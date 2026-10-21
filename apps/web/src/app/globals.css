@@ -1,0 +1,201 @@
+@import "tailwindcss";
+
+/* Light theme. The palette is semantic: `ink` is the page surface, `snow` is
+   the primary text color — so components written as bg-ink/text-snow work in
+   either theme by changing only these tokens. */
+@theme {
+  --color-ink: #ffffff; /* page background */
+  --color-ink2: #f6f7f9; /* raised surfaces */
+  --color-panel: #edeff4; /* deeper panels */
+  --color-line: #e4e7ee; /* borders */
+  --color-fog: #64708a; /* muted text */
+  --color-snow: #15161e; /* primary text */
+  --color-brand: #ff2e63;
+  --color-brand2: #ff7a3c;
+  --color-mint: #0b9e6b; /* success / discounts on white */
+  --color-gold: #d97706; /* price accent on white */
+
+  --font-display: var(--font-fredoka), ui-rounded, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  color-scheme: light;
+}
+
+/* Tailwind v4 preflight dropped the hand cursor on buttons — bring it back */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+body {
+  background-color: var(--color-ink);
+  color: var(--color-snow);
+  /* App-like feel: double-click / rapid taps must not select text */
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Form fields stay selectable/editable as normal */
+input,
+textarea,
+select,
+[contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-brand) 30%, transparent);
+}
+
+/* slim scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #ccd2de transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #ccd2de;
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.pie-gradient {
+  background-image: linear-gradient(135deg, var(--color-brand), var(--color-brand2));
+}
+
+.text-pie {
+  background-image: linear-gradient(135deg, var(--color-brand), var(--color-brand2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* native dropdown panels follow the theme */
+select option {
+  background-color: #ffffff;
+  color: #15161e;
+}
+
+/* die-cut sticker lift: soft layered shadow following the art's silhouette
+   (the art's own white die-cut border reads naturally on light surfaces) */
+.sticker-cut {
+  filter: drop-shadow(0 1px 2px rgba(16, 24, 40, 0.16))
+    drop-shadow(0 12px 22px rgba(16, 24, 40, 0.22));
+}
+.sticker-cut-sm {
+  filter: drop-shadow(0 1px 1.5px rgba(16, 24, 40, 0.14))
+    drop-shadow(0 5px 9px rgba(16, 24, 40, 0.18));
+}
+
+/* decorative dot grid */
+.bg-dots {
+  background-image: radial-gradient(rgba(20, 24, 40, 0.08) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* light sweep across a card on hover (pair with a `group` parent) */
+.shine {
+  position: relative;
+  overflow: hidden;
+}
+.shine::after {
+  content: "";
+  position: absolute;
+  top: -150%;
+  left: -60%;
+  width: 55%;
+  height: 400%;
+  transform: rotate(25deg) translateX(-140%);
+  background: linear-gradient(90deg, transparent, rgba(16, 24, 40, 0.045), transparent);
+  transition: transform 0.65s ease;
+  pointer-events: none;
+}
+.group:hover .shine::after {
+  transform: rotate(25deg) translateX(340%);
+}
+
+/* hero slide transitions */
+@keyframes hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-hero-in {
+  animation: hero-in 0.5s ease-out both;
+}
+@keyframes hero-img-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9) rotate(-3deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+.animate-hero-img-in {
+  animation: hero-img-in 0.6s cubic-bezier(0.2, 0.8, 0.3, 1.1) both;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-14px) rotate(2deg);
+  }
+}
+.animate-float {
+  animation: float 7s ease-in-out infinite;
+}
+.animate-float-slow {
+  animation: float 11s ease-in-out infinite;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.animate-pop {
+  animation: pop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+}
+
+@keyframes spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin-slow {
+  animation: spin-slow 2.4s linear infinite;
+}

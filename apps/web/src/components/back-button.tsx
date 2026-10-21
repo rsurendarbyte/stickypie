@@ -1,0 +1,34 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+import { NAV_COUNT_KEY } from "./nav-tracker";
+
+/**
+ * Goes back to wherever the shopper came from (home hero, a row, browse) when
+ * that page is in-app history; a direct or shared link falls back to /browse
+ * instead of leaving the site.
+ */
+export default function BackButton({ fallback = "/browse" }: { fallback?: string }) {
+  const router = useRouter();
+
+  function goBack() {
+    let visited = 0;
+    try {
+      visited = Number(sessionStorage.getItem(NAV_COUNT_KEY) ?? "0");
+    } catch {}
+    if (visited > 1) router.back();
+    else router.push(fallback);
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={goBack}
+      aria-label="Go back"
+      className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-line bg-ink px-3.5 text-sm font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.08)] transition-all hover:border-brand/50 hover:text-brand active:scale-95"
+    >
+      <ArrowLeft className="size-4" strokeWidth={2.5} /> Back
+    </button>
+  );
+}

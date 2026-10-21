@@ -1,0 +1,83 @@
+// Pure snake_case row ⇄ camelCase model mappers. Browser-safe (no deps):
+// used by the server-side Supabase driver AND the storefront's client-side
+// live-catalog fetches against the Supabase REST API.
+import type { Category, Order, OrderItem, Product, ProductInput } from "../types";
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
+export function rowToCategory(r: any): Category {
+  return { id: r.id, name: r.name, slug: r.slug, sort: r.sort };
+}
+
+export function rowToProduct(r: any): Product {
+  return {
+    id: r.id,
+    slug: r.slug,
+    name: r.name,
+    description: r.description ?? "",
+    price: r.price,
+    compareAtPrice: r.compare_at_price,
+    categoryId: r.category_id,
+    imageUrl: r.image_url,
+    tags: r.tags ?? [],
+    featured: r.featured,
+    isActive: r.is_active,
+    stock: r.stock,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+
+export function rowToItem(r: any): OrderItem {
+  return {
+    id: r.id,
+    orderId: r.order_id,
+    productId: r.product_id,
+    name: r.name,
+    unitPrice: r.unit_price,
+    quantity: r.quantity,
+    imageUrl: r.image_url ?? "",
+  };
+}
+
+export function rowToOrder(r: any): Order {
+  return {
+    id: r.id,
+    status: r.status,
+    customerName: r.customer_name,
+    email: r.email,
+    phone: r.phone,
+    address1: r.address1,
+    address2: r.address2,
+    city: r.city,
+    state: r.state,
+    pincode: r.pincode,
+    subtotal: r.subtotal,
+    shippingFee: r.shipping_fee,
+    total: r.total,
+    paymentProvider: r.payment_provider,
+    cfOrderId: r.cf_order_id,
+    cfPaymentId: r.cf_payment_id,
+    paymentNote: r.payment_note,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    paidAt: r.paid_at,
+    items: Array.isArray(r.order_items) ? r.order_items.map(rowToItem) : [],
+  };
+}
+
+export function productToRow(input: Partial<ProductInput>): Record<string, unknown> {
+  const row: Record<string, unknown> = {};
+  if (input.name !== undefined) row.name = input.name;
+  if (input.slug !== undefined) row.slug = input.slug;
+  if (input.description !== undefined) row.description = input.description;
+  if (input.price !== undefined) row.price = input.price;
+  if (input.compareAtPrice !== undefined) row.compare_at_price = input.compareAtPrice;
+  if (input.categoryId !== undefined) row.category_id = input.categoryId;
+  if (input.imageUrl !== undefined) row.image_url = input.imageUrl;
+  if (input.tags !== undefined) row.tags = input.tags;
+  if (input.featured !== undefined) row.featured = input.featured;
+  if (input.isActive !== undefined) row.is_active = input.isActive;
+  if (input.stock !== undefined) row.stock = input.stock;
+  return row;
+}

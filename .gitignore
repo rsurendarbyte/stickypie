@@ -1,0 +1,35 @@
+# deps
+node_modules/
+
+# next build output
+.next/
+out/
+
+# cloudflare build output & local state
+.open-next/
+.wrangler/
+.dev.vars
+
+# env files & secrets (examples are committed) — never commit real values
+.env*
+!.env.example
+!.env*.example
+.dev.vars*
+*.pem
+*.key
+
+# supabase CLI local state (project link, tokens)
+supabase/.temp/
+supabase/.branches/
+
+# personal Claude Code settings
+.claude/settings.local.json
+
+# local demo-mode database
+data/
+
+# misc
+.DS_Store
+*.tsbuildinfo
+npm-debug.log*
+.vercel

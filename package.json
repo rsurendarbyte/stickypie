@@ -1,0 +1,34 @@
+{
+  "name": "stickypie",
+  "private": true,
+  "version": "0.1.0",
+  "description": "StickyPie — Stick Your Style. Sticker store (web) + admin console.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n web,admin -c magenta,cyan \"npm:dev:web\" \"npm:dev:admin\"",
+    "dev:web": "npm run dev --workspace stickypie-web",
+    "dev:admin": "npm run dev --workspace stickypie-admin",
+    "build": "npm run build:web && npm run build:admin",
+    "build:web": "npm run build --workspace stickypie-web",
+    "build:admin": "npm run build --workspace stickypie-admin",
+    "start:web": "npm run start --workspace stickypie-web",
+    "start:admin": "npm run start --workspace stickypie-admin",
+    "deploy:dev": "npm run deploy:dev --workspace stickypie-web",
+    "deploy:prod": "npm run deploy:prod --workspace stickypie-web",
+    "db:link": "supabase link --project-ref liqxjqaudwtowvdkbvyi",
+    "db:push": "supabase db push",
+    "admin:create": "node scripts/create-admin.mjs",
+    "seed:remote": "node scripts/seed-remote.mjs",
+    "seed:sql": "node scripts/generate-seed-sql.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "supabase": "^2.30.0"
+  }
+}

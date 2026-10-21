@@ -1,0 +1,52 @@
+// Cloudflare Workers config for the StickyPie storefront (free plan friendly).
+//
+// Two environments, two separate Workers:
+//   dev         → worker "stickypie-web"            → https://dev.stickypie.in  (noindex)
+//   production  → worker "stickypie-web-production" → https://stickypie.in      (indexed)
+//
+// Deploy ONLY through the scripts — they build with the matching env so the
+// prerendered pages get the right SEO settings baked in:
+//   npm run deploy:dev
+//   npm run deploy:prod
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "stickypie-web",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+
+  // ---- dev (top level) ----
+  "routes": [{ "pattern": "dev.stickypie.in", "custom_domain": true }],
+  "vars": {
+    "SITE_ENV": "development",
+    "SITE_URL": "https://dev.stickypie.in",
+    "SUPABASE_URL": "https://liqxjqaudwtowvdkbvyi.supabase.co",
+    "CASHFREE_ENV": "sandbox"
+  },
+
+  "env": {
+    "production": {
+      "routes": [{ "pattern": "stickypie.in", "custom_domain": true }],
+      // No *.workers.dev or preview hosts in production — one canonical domain.
+      "workers_dev": false,
+      "preview_urls": false,
+      "vars": {
+        "SITE_ENV": "production",
+        "SITE_URL": "https://stickypie.in",
+        "SUPABASE_URL": "https://liqxjqaudwtowvdkbvyi.supabase.co",
+        // Switch to "production" together with the live Cashfree keys.
+        "CASHFREE_ENV": "sandbox"
+      }
+    }
+  }
+
+  // Secrets are NOT stored here. Set them once per environment (pipe values
+  // in; never type them into a shared terminal):
+  //   dev:   npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+  //   prod:  npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY --env production
+  // Same for CASHFREE_APP_ID and CASHFREE_SECRET_KEY.
+}

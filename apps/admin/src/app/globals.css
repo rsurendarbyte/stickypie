@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0a0a11;
+  --color-ink2: #10101a;
+  --color-panel: #171726;
+  --color-line: #272739;
+  --color-fog: #a6a6b8;
+  --color-snow: #f6f6f9;
+  --color-brand: #ff2e63;
+  --color-brand2: #ff7a3c;
+  --color-mint: #76e4b8;
+  --color-gold: #ffd166;
+
+  --font-display: var(--font-fredoka), ui-rounded, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  color-scheme: dark;
+}
+
+/* Tailwind v4 preflight dropped the hand cursor on buttons — bring it back */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+body {
+  background-color: var(--color-ink);
+  color: var(--color-snow);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-brand) 45%, transparent);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2e2e42 transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #2e2e42;
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pie-gradient {
+  background-image: linear-gradient(135deg, var(--color-brand), var(--color-brand2));
+}
+
+.text-pie {
+  background-image: linear-gradient(135deg, var(--color-brand), var(--color-brand2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* native dropdown panels follow the theme */
+select option {
+  background-color: #171726;
+  color: #f6f6f9;
+}
+
+/* die-cut sticker outline (see storefront globals) */
+.sticker-cut {
+  filter: drop-shadow(2.5px 0 0 rgba(255, 255, 255, 0.97))
+    drop-shadow(-2.5px 0 0 rgba(255, 255, 255, 0.97))
+    drop-shadow(0 2.5px 0 rgba(255, 255, 255, 0.97))
+    drop-shadow(0 -2.5px 0 rgba(255, 255, 255, 0.97))
+    drop-shadow(0 16px 22px rgba(0, 0, 0, 0.55));
+}
+.sticker-cut-sm {
+  filter: drop-shadow(1.5px 0 0 rgba(255, 255, 255, 0.97))
+    drop-shadow(-1.5px 0 0 rgba(255, 255, 255, 0.97))
+    drop-shadow(0 1.5px 0 rgba(255, 255, 255, 0.97))
+    drop-shadow(0 -1.5px 0 rgba(255, 255, 255, 0.97))
+    drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45));
+}
+
+/* decorative dot grid */
+.bg-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+@keyframes toast-in {
+  from {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.animate-toast-in {
+  animation: toast-in 0.25s ease-out both;
+}
