@@ -54,22 +54,38 @@ export async function signIn(email: string, password: string): Promise<Session> 
   if (!c) throw new Error("Sign-in is not available");
   const { data, error } = await c.auth.signInWithPassword({ email: email.trim(), password });
   if (error || !data.session) {
+    const message = error?.message ?? "";
     throw new Error(
-      /invalid login credentials/i.test(error?.message ?? "")
+      /invalid login credentials/i.test(message)
         ? "Email or password is incorrect."
-        : (error?.message ?? "Could not sign in.")
+        : isNetworkError(message)
+          ? NETWORK_ERROR
+          : message || "Could not sign in."
     );
   }
   return data.session;
 }
 
+/** Shown instead of the browser's raw "Failed to fetch" when a request can't get through. */
+export const NETWORK_ERROR =
+  "We couldn't reach StickyPie — check your internet connection and try again.";
+
+export function isNetworkError(message: string): boolean {
+  return /failed to fetch|networkerror|load failed|network request failed/i.test(message);
+}
+
 /** Creates the account (confirmed instantly) and signs straight in. */
 export async function createAccount(email: string, password: string, name: string): Promise<Session> {
-  const res = await fetch("/api/account/signup", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password, name }),
-  });
+  let res: Response;
+  try {
+    res = await fetch("/api/account/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, name }),
+    });
+  } catch {
+    throw new Error(NETWORK_ERROR);
+  }
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(typeof data.error === "string" ? data.error : "Could not create your account.");
@@ -93,6 +109,7 @@ export async function requestPasswordReset(email: string): Promise<void> {
     redirectTo: `${window.location.origin}/account/reset`,
   });
   if (error) {
+    if (isNetworkError(error.message)) throw new Error(NETWORK_ERROR);
     if (/security purposes/i.test(error.message)) {
       throw new Error(
         "We just sent you a reset email — check your inbox and spam folder. You can ask for another in a minute."
