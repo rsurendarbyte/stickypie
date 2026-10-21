@@ -68,7 +68,7 @@ export default function Footer({ demoMode }: { demoMode: boolean }) {
         ))}
       </div>
       <div className="border-t border-line/60 py-5 text-center text-xs text-fog/60">
-        © {new Date().getFullYear()} StickyPie · Made with 🥧 in India
+        © {new Date().getFullYear()} StickyPie · Stickers printed in India
       </div>
     </footer>
   );

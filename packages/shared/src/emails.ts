@@ -80,7 +80,7 @@ export function welcomeEmail(brand: EmailBrand, name: string): EmailContent {
   const first = name.trim().split(/\s+/)[0] ?? "";
   const greeting = first ? `Welcome aboard, ${escapeHtml(first)}!` : "Welcome aboard!";
   return {
-    subject: "Welcome to StickyPie 🥧",
+    subject: "Welcome to StickyPie — your sticker stash starts here ✨",
     html: layout({
       brand,
       preheader: "Your account is ready — check out faster and track every order.",
