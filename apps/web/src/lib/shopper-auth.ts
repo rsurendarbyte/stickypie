@@ -5,6 +5,7 @@
 // access token so the server knows who is ordering.
 import { useEffect, useState } from "react";
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
+import { SUPPORT_EMAIL } from "@stickypie/shared";
 
 let client: SupabaseClient | null | undefined;
 
@@ -78,4 +79,39 @@ export async function createAccount(email: string, password: string, name: strin
 
 export async function signOut(): Promise<void> {
   await authClient()?.auth.signOut();
+}
+
+/**
+ * Emails a password-reset link that opens /account/reset. Supabase answers the
+ * same way whether or not the account exists, so this never reveals which
+ * emails are registered.
+ */
+export async function requestPasswordReset(email: string): Promise<void> {
+  const c = authClient();
+  if (!c) throw new Error("Password reset is not available");
+  const { error } = await c.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: `${window.location.origin}/account/reset`,
+  });
+  if (error) {
+    if (/security purposes|rate limit|too many/i.test(error.message)) {
+      throw new Error("Please wait a minute before requesting another reset email.");
+    }
+    throw new Error(
+      `We couldn't send the reset email right now. Please try again later or write to ${SUPPORT_EMAIL}.`
+    );
+  }
+}
+
+/** Sets a new password for the signed-in (or link-recovered) shopper. */
+export async function updatePassword(password: string): Promise<void> {
+  const c = authClient();
+  if (!c) throw new Error("Password reset is not available");
+  const { error } = await c.auth.updateUser({ password });
+  if (error) {
+    throw new Error(
+      /different from the old/i.test(error.message)
+        ? "Choose a password you haven't used before."
+        : error.message
+    );
+  }
 }

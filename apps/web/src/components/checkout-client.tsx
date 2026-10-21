@@ -265,6 +265,16 @@ export default function CheckoutClient() {
                       hint={authMode === "create" ? "8+ characters — to track your orders" : undefined}
                     />
                   </div>
+                  {authMode === "signin" && (
+                    <a
+                      href="/account?forgot"
+                      target="_blank"
+                      rel="noopener"
+                      className="mt-2 inline-block text-xs font-semibold text-fog hover:text-brand"
+                    >
+                      Forgot password?
+                    </a>
+                  )}
                   {authError && (
                     <p className="mt-2 rounded-lg border border-brand/40 bg-brand/10 px-3 py-2 text-xs text-brand">
                       {authError}

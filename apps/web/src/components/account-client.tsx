@@ -5,7 +5,14 @@ import { useEffect, useState } from "react";
 import { ChevronRight, Loader2, LogOut, Package } from "lucide-react";
 import type { Order, OrderStatus } from "@stickypie/shared";
 import { STATUS_LABELS, formatDateTime, formatINR, orderCode, rowToOrder } from "@stickypie/shared";
-import { authClient, createAccount, signIn, signOut, useShopper } from "@/lib/shopper-auth";
+import {
+  authClient,
+  createAccount,
+  requestPasswordReset,
+  signIn,
+  signOut,
+  useShopper,
+} from "@/lib/shopper-auth";
 import { TextField } from "./field";
 
 const STATUS_STYLE: Record<OrderStatus, string> = {
@@ -43,19 +50,37 @@ export default function AccountClient() {
 }
 
 function SignInCard() {
-  const [mode, setMode] = useState<"signin" | "create">("signin");
+  const [mode, setMode] = useState<"signin" | "create" | "forgot">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [sentTo, setSentTo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // /account?forgot opens straight on the reset form (linked from checkout).
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has("forgot")) setMode("forgot");
+  }, []);
+
+  function switchTo(next: typeof mode) {
+    setMode(next);
+    setError(null);
+    setSentTo(null);
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setBusy(true);
     try {
-      if (mode === "create") await createAccount(email, password, "");
-      else await signIn(email, password);
+      if (mode === "forgot") {
+        await requestPasswordReset(email);
+        setSentTo(email.trim());
+      } else if (mode === "create") {
+        await createAccount(email, password, "");
+      } else {
+        await signIn(email, password);
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Could not sign in.";
       setError(message);
@@ -65,54 +90,77 @@ function SignInCard() {
     }
   }
 
+  const title = { signin: "Sign in", create: "Create account", forgot: "Reset password" }[mode];
+
   return (
     <form
       onSubmit={submit}
       className="mx-auto max-w-sm rounded-2xl border border-line bg-ink2/40 p-5 sm:p-6"
     >
-      <h1 className="font-display text-2xl font-bold">
-        {mode === "signin" ? "Sign in" : "Create account"}
-      </h1>
-      <p className="mt-1 text-sm text-fog">Track your orders and see your order history.</p>
-      <div className="mt-5 space-y-3">
-        <TextField
-          label="Email"
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <TextField
-          label="Password"
-          type="password"
-          autoComplete={mode === "signin" ? "current-password" : "new-password"}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          hint={mode === "create" ? "8+ characters" : undefined}
-        />
-      </div>
-      {error && (
-        <p className="mt-3 rounded-lg border border-brand/40 bg-brand/10 px-3 py-2 text-xs text-brand">
-          {error}
+      <h1 className="font-display text-2xl font-bold">{title}</h1>
+      <p className="mt-1 text-sm text-fog">
+        {mode === "forgot"
+          ? "Enter your account email and we'll send you a link to choose a new password."
+          : "Track your orders and see your order history."}
+      </p>
+
+      {sentTo ? (
+        <p className="mt-5 rounded-lg border border-mint/40 bg-mint/10 px-3 py-3 text-sm text-snow">
+          If an account exists for <span className="font-semibold">{sentTo}</span>, a reset link is
+          on its way. Check your inbox (and spam folder) — the link works once.
         </p>
+      ) : (
+        <>
+          <div className="mt-5 space-y-3">
+            <TextField
+              label="Email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            {mode !== "forgot" && (
+              <TextField
+                label="Password"
+                type="password"
+                autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                hint={mode === "create" ? "8+ characters" : undefined}
+              />
+            )}
+          </div>
+          {mode === "signin" && (
+            <button
+              type="button"
+              onClick={() => switchTo("forgot")}
+              className="mt-2 text-xs font-semibold text-fog hover:text-brand"
+            >
+              Forgot password?
+            </button>
+          )}
+          {error && (
+            <p className="mt-3 rounded-lg border border-brand/40 bg-brand/10 px-3 py-2 text-xs text-brand">
+              {error}
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={busy || !email || (mode !== "forgot" && !password)}
+            className="pie-gradient mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 disabled:opacity-60"
+          >
+            {busy && <Loader2 className="size-4 animate-spin" />}
+            {mode === "forgot" ? "Send reset link" : title}
+          </button>
+        </>
       )}
-      <button
-        type="submit"
-        disabled={busy || !email || !password}
-        className="pie-gradient mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 disabled:opacity-60"
-      >
-        {busy && <Loader2 className="size-4 animate-spin" />}
-        {mode === "signin" ? "Sign in" : "Create account"}
-      </button>
+
       <button
         type="button"
-        onClick={() => {
-          setMode(mode === "signin" ? "create" : "signin");
-          setError(null);
-        }}
+        onClick={() => switchTo(mode === "signin" ? "create" : "signin")}
         className="mt-3 w-full text-center text-xs font-semibold text-brand hover:underline"
       >
-        {mode === "signin" ? "New here? Create an account" : "Already have an account? Sign in"}
+        {mode === "signin" ? "New here? Create an account" : "Back to sign in"}
       </button>
     </form>
   );

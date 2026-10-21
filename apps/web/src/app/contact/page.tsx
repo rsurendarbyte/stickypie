@@ -1,18 +1,18 @@
 import type { Metadata } from "next";
 import { Clock, Mail, MapPin } from "lucide-react";
+import { SUPPORT_EMAIL } from "@stickypie/shared";
 import { pageMetadata } from "@/lib/site";
 
 export const metadata: Metadata = pageMetadata({
   title: "Contact us",
-  description:
-    "Questions about an order, bulk or custom stickers? Email the StickyPie team at hello@clodot.com.",
+  description: `Questions about an order, bulk or custom stickers? Email the StickyPie team at ${SUPPORT_EMAIL}.`,
   path: "/contact",
 });
 
 // STORE OWNER: keep these genuine — Cashfree's production review checks the
 // contact page.
 const CONTACT = {
-  email: "hello@clodot.com",
+  email: SUPPORT_EMAIL,
   address: "StickyPie, Bengaluru, Karnataka, India",
   hours: "Mon–Sat, 10:00 AM – 6:00 PM IST",
 };

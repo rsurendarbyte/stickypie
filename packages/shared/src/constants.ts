@@ -1,5 +1,7 @@
 export const BRAND_NAME = "StickyPie";
 export const BRAND_TAGLINE = "Stick your style.";
+/** Customer support inbox shown on the contact page and in help messages. */
+export const SUPPORT_EMAIL = "hello@clodot.com";
 
 export const CURRENCY = "INR";
 
