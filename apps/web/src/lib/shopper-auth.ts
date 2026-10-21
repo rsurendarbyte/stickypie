@@ -93,8 +93,13 @@ export async function requestPasswordReset(email: string): Promise<void> {
     redirectTo: `${window.location.origin}/account/reset`,
   });
   if (error) {
-    if (/security purposes|rate limit|too many/i.test(error.message)) {
-      throw new Error("Please wait a minute before requesting another reset email.");
+    if (/security purposes/i.test(error.message)) {
+      throw new Error(
+        "We just sent you a reset email — check your inbox and spam folder. You can ask for another in a minute."
+      );
+    }
+    if (/rate limit|too many/i.test(error.message)) {
+      throw new Error("Too many reset emails were requested just now. Please try again in a few minutes.");
     }
     throw new Error(
       `We couldn't send the reset email right now. Please try again later or write to ${SUPPORT_EMAIL}.`

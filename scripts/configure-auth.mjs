@@ -75,6 +75,10 @@ for (const target of TARGETS) {
     smtp_port: "465",
     smtp_user: "resend",
     smtp_pass: ops.RESEND_API_KEY,
+    // Supabase keeps its built-in mailer's limit (2 emails/hour for the whole
+    // project) even after switching to SMTP — far too low for real shoppers.
+    rate_limit_email_sent: 60,
+    smtp_max_frequency: 60,
     mailer_subjects_recovery: reset.subject,
     mailer_templates_recovery_content: reset.html,
   };

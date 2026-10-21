@@ -16,6 +16,13 @@ export default function LoginPage() {
       <div className="absolute -right-32 -bottom-32 size-96 rounded-full bg-brand2/10 blur-[110px]" />
 
       <div className="relative w-full max-w-sm rounded-2xl border border-line bg-ink2 p-7 shadow-2xl">
+        <img
+          src="/icons/icon-192.png"
+          alt=""
+          width={56}
+          height={56}
+          className="mx-auto mb-3 size-14 -rotate-6 rounded-2xl shadow-lg shadow-amber-500/20"
+        />
         <p className="text-center font-display text-3xl font-semibold">
           Sticky<span className="text-pie">Pie</span>
         </p>

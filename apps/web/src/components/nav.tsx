@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Search, ShoppingBag, Sticker, UserRound, X } from "lucide-react";
+import { Search, ShoppingBag, UserRound, X } from "lucide-react";
 import { useShopper } from "@/lib/shopper-auth";
 import { useCart } from "./cart-context";
 
@@ -60,9 +60,13 @@ export default function Nav() {
     >
       <div className="flex h-[72px] w-full items-center gap-2 px-3 sm:gap-6 sm:px-8 lg:px-12">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
-          <span className="pie-gradient grid size-9 -rotate-6 place-items-center rounded-[11px] shadow-lg shadow-brand/30 transition-transform duration-300 hover:rotate-0">
-            <Sticker className="size-5 text-white" strokeWidth={2.2} />
-          </span>
+          <img
+            src="/icons/icon-192.png"
+            alt=""
+            width={36}
+            height={36}
+            className="size-9 -rotate-6 rounded-[11px] shadow-lg shadow-amber-500/30 transition-transform duration-300 hover:rotate-0"
+          />
           <span className="font-display text-[22px] leading-none font-semibold tracking-tight">
             Sticky<span className="text-pie">Pie</span>
           </span>

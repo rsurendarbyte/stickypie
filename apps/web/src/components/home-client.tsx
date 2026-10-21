@@ -25,9 +25,13 @@ export default function HomeClient({ initial }: { initial: Catalog }) {
   if (!hero) {
     return (
       <div className="flex min-h-[80vh] flex-col items-center justify-center gap-3 px-4 pt-20 text-center">
-        <span className="pie-gradient grid size-14 -rotate-6 place-items-center rounded-2xl text-2xl shadow-lg shadow-brand/30">
-          🥧
-        </span>
+        <img
+          src="/icons/icon-192.png"
+          alt=""
+          width={64}
+          height={64}
+          className="size-16 -rotate-6 rounded-2xl shadow-lg shadow-amber-500/30"
+        />
         <h1 className="mt-2 font-display text-3xl font-bold sm:text-4xl">
           Fresh stickers are on the way
         </h1>

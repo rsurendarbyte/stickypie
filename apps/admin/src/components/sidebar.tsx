@@ -44,13 +44,16 @@ export default function Sidebar({
     <>
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-line bg-ink2 lg:flex">
-        <div className="px-5 pt-6 pb-4">
-          <p className="font-display text-2xl font-semibold">
+        <div className="flex items-center gap-3 px-5 pt-6 pb-4">
+          <img src="/icons/icon-192.png" alt="" width={40} height={40} className="size-10 rounded-xl" />
+          <div>
+          <p className="font-display text-2xl leading-none font-semibold">
             Sticky<span className="text-pie">Pie</span>
           </p>
           <p className="mt-0.5 text-[10px] font-semibold tracking-[0.2em] text-fog uppercase">
             Admin console
           </p>
+          </div>
         </div>
         <nav className="flex-1 space-y-1 px-3">
           {NAV.map(({ href, label, icon: Icon }) => (
@@ -79,8 +82,9 @@ export default function Sidebar({
       {/* Mobile top bar */}
       <div className="sticky top-0 z-30 border-b border-line bg-ink2/95 backdrop-blur-md lg:hidden">
         <div className="flex items-center justify-between px-4 pt-3">
-          <p className="font-display text-lg font-semibold">
-            Sticky<span className="text-pie">Pie</span>{" "}
+          <p className="flex items-center gap-2 font-display text-lg font-semibold">
+            <img src="/icons/icon-192.png" alt="" width={28} height={28} className="size-7 rounded-lg" />
+            Sticky<span className="-ml-2 text-pie">Pie</span>{" "}
             <span className="text-xs font-normal text-fog">admin</span>
           </p>
           <form action={logout}>

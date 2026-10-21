@@ -30,8 +30,11 @@ export default function Footer({ demoMode }: { demoMode: boolean }) {
     <footer className="border-t border-line bg-ink2">
       <div className="grid w-full gap-10 px-4 py-12 sm:px-8 md:grid-cols-[1.4fr_1fr_1fr_1fr] lg:px-12 2xl:px-20">
         <div>
-          <p className="font-display text-2xl font-semibold">
-            Sticky<span className="text-pie">Pie</span>
+          <p className="flex items-center gap-2.5 font-display text-2xl font-semibold">
+            <img src="/icons/icon-192.png" alt="" width={36} height={36} className="size-9 rounded-[11px]" />
+            <span>
+              Sticky<span className="text-pie">Pie</span>
+            </span>
           </p>
           <p className="mt-2 max-w-xs text-sm text-fog">
             Stick your style. Premium die-cut vinyl stickers for rides, lids, laptops and

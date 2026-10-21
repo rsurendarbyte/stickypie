@@ -13,6 +13,15 @@ export const metadata: Metadata = {
   },
   description: "Inventory, catalog and order management for StickyPie.",
   robots: { index: false, follow: false },
+  // Served from public/ as-is: Next's app/favicon.ico processing rejects
+  // this icon file (its embedded PNGs are RGB, not RGBA).
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icons/icon-192.png", type: "image/png", sizes: "192x192" },
+    ],
+    apple: { url: "/icons/apple-touch-icon.png", sizes: "180x180" },
+  },
 };
 
 export const viewport: Viewport = {
