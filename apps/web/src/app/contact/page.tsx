@@ -1,19 +1,18 @@
 import type { Metadata } from "next";
-import { Clock, Mail, MapPin, Phone } from "lucide-react";
+import { Clock, Mail, MapPin } from "lucide-react";
 import { pageMetadata } from "@/lib/site";
 
 export const metadata: Metadata = pageMetadata({
   title: "Contact us",
   description:
-    "Questions about an order, bulk or custom stickers? Reach the StickyPie team by email or phone.",
+    "Questions about an order, bulk or custom stickers? Email the StickyPie team at hello@clodot.com.",
   path: "/contact",
 });
 
-// STORE OWNER: replace these placeholders with your real business details —
-// Cashfree production approval requires a genuine contact page.
+// STORE OWNER: keep these genuine — Cashfree's production review checks the
+// contact page.
 const CONTACT = {
-  email: "support@stickypie.in",
-  phone: "+91 90000 00000",
+  email: "hello@clodot.com",
   address: "StickyPie, Bengaluru, Karnataka, India",
   hours: "Mon–Sat, 10:00 AM – 6:00 PM IST",
 };
@@ -30,19 +29,11 @@ export default function ContactPage() {
       <div className="mt-10 grid gap-4 sm:grid-cols-2">
         <a
           href={`mailto:${CONTACT.email}`}
-          className="rounded-2xl border border-line bg-ink2 p-5 transition-colors hover:border-fog/40"
+          className="rounded-2xl border border-line bg-ink2 p-5 transition-colors hover:border-fog/40 sm:col-span-2"
         >
           <Mail className="size-6 text-brand" />
           <p className="mt-3 text-sm font-semibold">Email</p>
           <p className="mt-1 text-sm text-fog">{CONTACT.email}</p>
-        </a>
-        <a
-          href={`tel:${CONTACT.phone.replace(/\s/g, "")}`}
-          className="rounded-2xl border border-line bg-ink2 p-5 transition-colors hover:border-fog/40"
-        >
-          <Phone className="size-6 text-brand" />
-          <p className="mt-3 text-sm font-semibold">Phone / WhatsApp</p>
-          <p className="mt-1 text-sm text-fog">{CONTACT.phone}</p>
         </a>
         <div className="rounded-2xl border border-line bg-ink2 p-5">
           <MapPin className="size-6 text-brand" />

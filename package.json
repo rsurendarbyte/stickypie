@@ -26,6 +26,7 @@
     "db:push:prod": "node scripts/db-push.mjs --prod",
     "admin:create": "node scripts/create-admin.mjs",
     "seed:remote": "node scripts/seed-remote.mjs",
+    "catalog:import": "node scripts/import-catalog.mjs",
     "seed:sql": "node scripts/generate-seed-sql.mjs"
   },
   "devDependencies": {

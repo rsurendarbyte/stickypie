@@ -42,8 +42,8 @@
         "SITE_URL": "https://stickypie.in",
         // Separate production database (no seed data — catalog entered via admin).
         "SUPABASE_URL": "https://grybbgtdopnikfzirzxd.supabase.co",
-        // Switch to "production" together with the live Cashfree keys.
-        "CASHFREE_ENV": "sandbox"
+        // Live payments. Keys are worker secrets (CASHFREE_APP_ID / CASHFREE_SECRET_KEY).
+        "CASHFREE_ENV": "production"
       }
     }
   }

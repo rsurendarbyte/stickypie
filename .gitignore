@@ -33,3 +33,6 @@ data/
 *.tsbuildinfo
 npm-debug.log*
 .vercel
+
+# product images staged for import (already shipped in apps/web/public/stickers)
+prod_stickers/
