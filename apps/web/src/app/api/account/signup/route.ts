@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { signupSchema } from "@stickypie/shared";
-import { supabaseUrl } from "@/lib/mode";
+import { SUPPORT_EMAIL, signupSchema, welcomeEmail } from "@stickypie/shared";
+import { sendEmail } from "@/lib/email";
+import { siteUrl, supabaseUrl } from "@/lib/mode";
 import { accountsEnabled } from "@/lib/shopper";
 
 /**
@@ -40,7 +41,11 @@ export async function POST(req: Request) {
     }),
   });
 
-  if (res.ok) return NextResponse.json({ ok: true });
+  if (res.ok) {
+    // A failed welcome email must never block the shopper's checkout.
+    await sendEmail(email, welcomeEmail({ siteUrl: siteUrl(), supportEmail: SUPPORT_EMAIL }, name));
+    return NextResponse.json({ ok: true });
+  }
 
   const data = (await res.json().catch(() => ({}))) as { msg?: string; message?: string; error_code?: string };
   const message = data.msg ?? data.message ?? "";

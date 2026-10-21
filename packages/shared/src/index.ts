@@ -6,3 +6,4 @@ export * from "./constants";
 export * from "./utils";
 export * from "./schemas";
 export * from "./store/mappers";
+export * from "./emails";

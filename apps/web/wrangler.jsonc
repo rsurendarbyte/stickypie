@@ -27,6 +27,7 @@
   "vars": {
     "SITE_ENV": "development",
     "SITE_URL": "https://dev.stickypie.in",
+    "EMAIL_FROM": "StickyPie <noreply@stickypie.in>",
     "SUPABASE_URL": "https://liqxjqaudwtowvdkbvyi.supabase.co",
     "CASHFREE_ENV": "sandbox"
   },
@@ -40,6 +41,7 @@
       "vars": {
         "SITE_ENV": "production",
         "SITE_URL": "https://stickypie.in",
+        "EMAIL_FROM": "StickyPie <noreply@stickypie.in>",
         // Separate production database (no seed data — catalog entered via admin).
         "SUPABASE_URL": "https://grybbgtdopnikfzirzxd.supabase.co",
         // Live payments. Keys are worker secrets (CASHFREE_APP_ID / CASHFREE_SECRET_KEY).

@@ -185,7 +185,12 @@ const list = spawnSync("npx", ["wrangler", "secret", "list", "--format", "json",
 });
 try {
   const have = new Set(JSON.parse(list.stdout).map((secret) => secret.name));
-  const missing = ["SUPABASE_SERVICE_ROLE_KEY", "CASHFREE_APP_ID", "CASHFREE_SECRET_KEY"].filter(
+  const missing = [
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "CASHFREE_APP_ID",
+    "CASHFREE_SECRET_KEY",
+    "RESEND_API_KEY",
+  ].filter(
     (name) => !have.has(name)
   );
   if (missing.length) {

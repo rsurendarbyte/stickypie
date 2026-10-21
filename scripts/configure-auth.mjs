@@ -1,15 +1,24 @@
-// Configures shopper emails (password reset) in BOTH Supabase projects:
-//   - Site URL + allowed reset-link addresses for that environment
-//   - Resend as the SMTP sender (Supabase's built-in mailer can't reach customers)
-//   - A StickyPie-branded "reset your password" email
+// Configures shopper emails for dev AND production:
+//   Supabase (each project):
+//     - Site URL + allowed reset-link addresses for that environment
+//     - Resend as the SMTP sender (Supabase's built-in mailer can't reach customers)
+//     - The StickyPie-branded "reset your password" email (packages/shared/src/emails.ts)
+//     - Public sign-up off: accounts are only created by the shop's /api/account/signup
+//       (which confirms them instantly and sends the welcome email)
+//   Cloudflare (each storefront Worker):
+//     - RESEND_API_KEY secret, so the shop can send the welcome email
 //
 //   npm run auth:configure              (apply)
 //   npm run auth:configure -- --dry-run (show what would change, no secrets printed)
 //
 // Reads RESEND_API_KEY, SUPABASE_ACCESS_TOKEN, EMAIL_FROM_* from .env.ops (gitignored).
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { resetPasswordEmail } from "../packages/shared/src/emails.ts";
 import { root } from "./lib/target-env.mjs";
+
+const SUPPORT_EMAIL = "hello@clodot.com";
 
 function readEnv(file) {
   const env = {};
@@ -39,45 +48,57 @@ const refOf = (file) => {
 const TARGETS = [
   {
     name: "dev",
+    wranglerEnv: null,
     ref: refOf("apps/web/.env.local"),
     siteUrl: "https://dev.stickypie.in",
     redirects: ["https://dev.stickypie.in/account/reset", "http://localhost:3000/account/reset"],
   },
   {
     name: "PRODUCTION",
+    wranglerEnv: "production",
     ref: refOf("apps/web/.env.prod"),
     siteUrl: "https://stickypie.in",
     redirects: ["https://stickypie.in/account/reset"],
   },
 ];
 
-const RESET_EMAIL = `<div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#15161e">
-  <h2 style="margin:0 0 8px">Reset your StickyPie password</h2>
-  <p style="margin:0 0 20px;color:#64708a">Someone (hopefully you) asked to reset the password for your StickyPie account. The link works once and expires soon.</p>
-  <p style="margin:0 0 24px"><a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#ff2e63;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:10px">Choose a new password</a></p>
-  <p style="margin:0;color:#64708a;font-size:13px">Didn't ask for this? Ignore this email — your password stays the same.</p>
-</div>`;
-
 for (const target of TARGETS) {
+  const reset = resetPasswordEmail({ siteUrl: target.siteUrl, supportEmail: SUPPORT_EMAIL });
   const config = {
     site_url: target.siteUrl,
     uri_allow_list: target.redirects.join(","),
     external_email_enabled: true,
+    disable_signup: true,
     smtp_admin_email: ops.EMAIL_FROM_ADDRESS,
     smtp_sender_name: ops.EMAIL_FROM_NAME || "StickyPie",
     smtp_host: "smtp.resend.com",
     smtp_port: "465",
     smtp_user: "resend",
     smtp_pass: ops.RESEND_API_KEY,
-    mailer_subjects_recovery: "Reset your StickyPie password",
-    mailer_templates_recovery_content: RESET_EMAIL,
+    mailer_subjects_recovery: reset.subject,
+    mailer_templates_recovery_content: reset.html,
   };
 
   console.log(`\n${target.name} (${target.ref})`);
   console.log(`  site URL      ${config.site_url}`);
   console.log(`  reset links   ${target.redirects.join("  ")}`);
   console.log(`  sender        ${config.smtp_sender_name} <${config.smtp_admin_email}> via Resend`);
+  console.log(`  emails        "${reset.subject}" (Supabase) · welcome email (shop, via Resend)`);
+  console.log(`  public signup off — accounts only via the shop's checkout / account page`);
   if (dryRun) continue;
+
+  // Welcome emails are sent by the storefront Worker itself.
+  const secret = spawnSync(
+    "npx",
+    ["wrangler", "secret", "put", "RESEND_API_KEY", ...(target.wranglerEnv ? ["--env", target.wranglerEnv] : [])],
+    { cwd: path.join(root, "apps/web"), input: ops.RESEND_API_KEY, encoding: "utf8" }
+  );
+  console.log(
+    secret.status === 0
+      ? "  ✔ RESEND_API_KEY set on the storefront Worker"
+      : `  ✘ could not set the Worker secret: ${(secret.stderr || secret.stdout).slice(-200)}`
+  );
+  if (secret.status !== 0) process.exitCode = 1;
 
   const res = await fetch(`https://api.supabase.com/v1/projects/${target.ref}/config/auth`, {
     method: "PATCH",
