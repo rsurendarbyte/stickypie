@@ -31,10 +31,6 @@ export function formatDateTime(iso: string): string {
   });
 }
 
-export function computeShipping(subtotal: number, threshold: number, fee: number): number {
-  return subtotal >= threshold ? 0 : fee;
-}
-
 export function discountPercent(price: number, compareAt: number | null): number | null {
   if (!compareAt || compareAt <= price) return null;
   return Math.round(((compareAt - price) / compareAt) * 100);

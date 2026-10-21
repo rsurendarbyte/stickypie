@@ -1,5 +1,7 @@
 import { CreditCard, Database, Globe, HardDrive } from "lucide-react";
 import ResetDemoButton from "@/components/reset-demo-button";
+import StoreSettingsForm from "@/components/store-settings-form";
+import { getAdminDriver } from "@/lib/data";
 import { supabaseConfigured, webUrl } from "@/lib/auth";
 import { r2Config } from "@/lib/r2";
 
@@ -16,18 +18,21 @@ function maskedHost(url: string | undefined): string {
   }
 }
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
   const supabase = supabaseConfigured();
   const r2 = r2Config();
+  const settings = await (await getAdminDriver()).getSettings();
 
   return (
     <div className="mx-auto w-full max-w-[1100px]">
       <h1 className="font-display text-2xl font-bold sm:text-3xl">Settings</h1>
       <p className="mt-1 text-sm text-fog">
-        Environment status for this admin console. Secrets live in .env files, never in the UI.
+        Shop rules and environment status. Secrets live in .env files, never in the UI.
       </p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <StoreSettingsForm initial={settings} />
+
         <section className="rounded-2xl border border-line bg-ink2 p-5">
           <div className="flex items-center gap-2">
             <Database className="size-4 text-fog" />

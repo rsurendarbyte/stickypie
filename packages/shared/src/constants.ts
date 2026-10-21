@@ -5,10 +5,7 @@ export const SUPPORT_EMAIL = "hello@clodot.com";
 
 export const CURRENCY = "INR";
 
-/** Orders at or above this subtotal (₹) ship free. */
-export const FREE_SHIPPING_THRESHOLD = 499;
-/** Flat shipping fee (₹) below the free-shipping threshold. */
-export const SHIPPING_FEE = 49;
+/* Minimum order + shipping rates are store settings (admin → Settings); see shipping.ts. */
 
 /** Stock at or below this (and above 0) shows a "low stock" hint. */
 export const LOW_STOCK_THRESHOLD = 3;

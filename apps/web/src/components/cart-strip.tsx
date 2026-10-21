@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, ShoppingBag } from "lucide-react";
-import { FREE_SHIPPING_THRESHOLD, formatINR } from "@stickypie/shared";
+import { belowMinimum, formatINR } from "@stickypie/shared";
+import { useStoreSettings } from "@/lib/live-catalog";
 import { useCart } from "./cart-context";
 
 /** Routes where the persistent cart UI would be noise. */
@@ -22,10 +23,11 @@ export function cartUiHidden(pathname: string): boolean {
 export default function CartStrip() {
   const { count, subtotal, openCart } = useCart();
   const pathname = usePathname();
+  const settings = useStoreSettings();
 
   if (count === 0 || cartUiHidden(pathname)) return null;
 
-  const remaining = FREE_SHIPPING_THRESHOLD - subtotal;
+  const shortBy = belowMinimum(settings, subtotal);
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-30 bg-snow pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-8px_24px_-10px_rgba(16,24,40,0.35)]">
@@ -53,37 +55,46 @@ export default function CartStrip() {
           </span>
         </button>
 
-        {/* Free-shipping nudge fills the middle on wider screens */}
+        {/* Minimum-order progress fills the middle on wider screens */}
         <div className="mx-auto hidden min-w-0 max-w-sm flex-1 px-4 lg:block">
-          {remaining > 0 ? (
+          {shortBy > 0 ? (
             <>
               <p className="truncate text-[11px] text-white/70">
-                Add <span className="font-bold text-white">{formatINR(remaining)}</span> more for{" "}
-                <span className="font-bold text-mint">FREE shipping</span>
+                Add <span className="font-bold text-white">{formatINR(shortBy)}</span> more · minimum
+                order <span className="font-bold text-white">{formatINR(settings.minOrder)}</span>
               </p>
               <div className="mt-1 h-1 overflow-hidden rounded-full bg-white/15">
                 <div
                   className="pie-gradient h-full rounded-full transition-all duration-500"
                   style={{
-                    width: `${Math.min((subtotal / FREE_SHIPPING_THRESHOLD) * 100, 100)}%`,
+                    width: `${Math.min((subtotal / Math.max(settings.minOrder, 1)) * 100, 100)}%`,
                   }}
                 />
               </div>
             </>
           ) : (
             <p className="text-center text-[12px] font-semibold text-mint">
-              🎉 FREE shipping unlocked
+              ✓ Minimum order reached · shipping by distance at checkout
             </p>
           )}
         </div>
 
-        <Link
-          href="/checkout"
-          className="pie-gradient ml-auto flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-5 text-sm font-bold text-white shadow-md shadow-brand/30 transition-all hover:brightness-110 active:scale-[0.98] sm:h-12 sm:px-7 lg:ml-0"
-        >
-          Checkout<span className="hidden sm:inline"> · {formatINR(subtotal)}</span>{" "}
-          <ArrowRight className="size-4" />
-        </Link>
+        {shortBy > 0 ? (
+          <Link
+            href="/browse"
+            className="ml-auto flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-white px-4 text-sm font-bold text-snow transition-all hover:bg-white/90 active:scale-[0.98] sm:h-12 sm:px-6 lg:ml-0"
+          >
+            Add {formatINR(shortBy)} more <ArrowRight className="size-4" />
+          </Link>
+        ) : (
+          <Link
+            href="/checkout"
+            className="pie-gradient ml-auto flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-5 text-sm font-bold text-white shadow-md shadow-brand/30 transition-all hover:brightness-110 active:scale-[0.98] sm:h-12 sm:px-7 lg:ml-0"
+          >
+            Checkout<span className="hidden sm:inline"> · {formatINR(subtotal)}</span>{" "}
+            <ArrowRight className="size-4" />
+          </Link>
+        )}
       </div>
     </div>
   );

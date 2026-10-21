@@ -115,3 +115,27 @@ export const signupSchema = z.object({
   password: z.string().min(8, "Use at least 8 characters").max(72),
   name: z.string().trim().max(80).default(""),
 });
+
+const rupees = (label: string) =>
+  z.number({ invalid_type_error: `Enter ${label}` }).int(`${label} must be whole rupees`).min(0).max(100000);
+
+export const storeSettingsSchema = z.object({
+  minOrder: rupees("the minimum order"),
+  originPincode: z
+    .string()
+    .trim()
+    .regex(/^[1-9]\d{5}$/, "Enter a valid 6-digit PIN code")
+    .nullable(),
+  originState: z
+    .string()
+    .trim()
+    .transform((s) => matchIndianState(s) ?? s)
+    .refine((s) => (INDIAN_STATES as readonly string[]).includes(s), "Choose your state")
+    .nullable(),
+  rates: z.object({
+    local: rupees("the same-city rate"),
+    state: rupees("the within-state rate"),
+    national: rupees("the rest-of-India rate"),
+    remote: rupees("the remote-area rate"),
+  }),
+});

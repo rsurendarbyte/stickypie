@@ -9,3 +9,4 @@ export * from "./store/mappers";
 export * from "./emails";
 export * from "./india";
 export * from "./sizes";
+export * from "./shipping";

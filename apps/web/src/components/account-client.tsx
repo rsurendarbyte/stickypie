@@ -2,9 +2,17 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ChevronRight, Loader2, LogOut, Package } from "lucide-react";
+import { ChevronRight, Loader2, LogOut, MapPin, Package, Plus, Trash2 } from "lucide-react";
 import type { Order, OrderStatus } from "@stickypie/shared";
-import { STATUS_LABELS, formatDateTime, formatINR, orderCode, rowToOrder } from "@stickypie/shared";
+import {
+  INDIAN_STATES,
+  STATUS_LABELS,
+  customerSchema,
+  formatDateTime,
+  formatINR,
+  orderCode,
+  rowToOrder,
+} from "@stickypie/shared";
 import {
   authClient,
   createAccount,
@@ -13,8 +21,18 @@ import {
   signOut,
   useShopper,
 } from "@/lib/shopper-auth";
+import {
+  addAddress,
+  addressLine,
+  deleteAddress,
+  setDefaultAddress,
+  useSavedAddresses,
+  type AddressType,
+} from "@/lib/addresses";
+import { lookupPincode } from "@/lib/pincode";
+import AddressTypePicker, { AddressTypeBadge } from "./address-type-picker";
 import AuthShell from "./auth-shell";
-import { PasswordField, TextField } from "./field";
+import { CheckField, PasswordField, SelectField, TextField } from "./field";
 
 const STATUS_STYLE: Record<OrderStatus, string> = {
   pending: "bg-gold/10 text-gold",
@@ -53,6 +71,7 @@ export default function AccountClient() {
   return (
     <div className="mx-auto min-h-screen w-full max-w-3xl px-4 pt-24 pb-24 sm:px-8">
       <OrderHistory email={shopper.email} />
+      <SavedAddresses email={shopper.email} />
     </div>
   );
 }
@@ -331,5 +350,294 @@ function OrderHistory({ email }: { email: string }) {
         </ul>
       )}
     </>
+  );
+}
+
+function SavedAddresses({ email }: { email: string }) {
+  const { addresses, loaded, refresh } = useSavedAddresses(email);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+
+  async function run(id: string, action: () => Promise<void>) {
+    setBusy(id);
+    setError(null);
+    try {
+      await action();
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  return (
+    <section className="mt-12">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="font-display text-xl font-bold">Saved addresses</h2>
+          <p className="mt-0.5 text-sm text-fog">Pick one at checkout in a tap.</p>
+        </div>
+        {!adding && (
+          <button
+            type="button"
+            onClick={() => setAdding(true)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-brand/50 px-3.5 py-1.5 text-xs font-semibold text-brand transition-colors hover:bg-brand/5"
+          >
+            <Plus className="size-3.5" /> Add address
+          </button>
+        )}
+      </div>
+      {adding && (
+        <AddAddressForm
+          email={email}
+          first={addresses.length === 0}
+          onDone={async (saved) => {
+            setAdding(false);
+            if (saved) await refresh();
+          }}
+        />
+      )}
+      {error && <p className="mt-3 text-sm text-brand">{error}</p>}
+      {!loaded ? (
+        <div className="mt-6 grid place-items-center">
+          <Loader2 className="size-6 animate-spin text-fog" />
+        </div>
+      ) : addresses.length === 0 ? (
+        !adding && <div className="mt-5 rounded-2xl border border-dashed border-line p-8 text-center text-sm text-fog">
+          <MapPin className="mx-auto size-8 text-fog/60" />
+          <p className="mt-2">No saved addresses yet — add one now or at your next checkout.</p>
+        </div>
+      ) : (
+        <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+          {addresses.map((a) => (
+            <li
+              key={a.id}
+              className={`flex flex-col rounded-2xl border p-4 ${
+                a.isDefault ? "border-brand/50 bg-brand/[0.03]" : "border-line bg-ink2/40"
+              }`}
+            >
+              <p className="flex flex-wrap items-center gap-2 font-semibold">
+                {a.name}
+                <AddressTypeBadge type={a.label} />
+                {a.isDefault && (
+                  <span className="rounded bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold text-brand uppercase">
+                    Default
+                  </span>
+                )}
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-fog">
+                {addressLine(a)}
+                <br />
+                {a.state} · {a.phone}
+              </p>
+              <div className="mt-auto flex items-center gap-4 pt-3 text-xs font-semibold">
+                {!a.isDefault && (
+                  <button
+                    type="button"
+                    disabled={busy === a.id}
+                    onClick={() => run(a.id, () => setDefaultAddress(a.id))}
+                    className="text-brand hover:underline disabled:opacity-50"
+                  >
+                    Make default
+                  </button>
+                )}
+                <button
+                  type="button"
+                  disabled={busy === a.id}
+                  onClick={() => {
+                    if (confirm("Delete this address?")) run(a.id, () => deleteAddress(a.id));
+                  }}
+                  className="ml-auto inline-flex items-center gap-1 text-fog hover:text-brand disabled:opacity-50"
+                >
+                  <Trash2 className="size-3.5" /> Delete
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+const EMPTY_ADDRESS = {
+  name: "",
+  phone: "",
+  pincode: "",
+  city: "",
+  state: "",
+  address1: "",
+  address2: "",
+};
+
+function AddAddressForm({
+  email,
+  first,
+  onDone,
+}: {
+  email: string;
+  first: boolean;
+  onDone: (saved: boolean) => void;
+}) {
+  const [type, setType] = useState<AddressType>("Home");
+  const [form, setForm] = useState(EMPTY_ADDRESS);
+  const [makeDefault, setMakeDefault] = useState(first);
+  const [errors, setErrors] = useState<Partial<Record<keyof typeof EMPTY_ADDRESS, string>>>({});
+  const [pinNote, setPinNote] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  function set(field: keyof typeof EMPTY_ADDRESS, value: string) {
+    setForm((f) => ({ ...f, [field]: value }));
+    setErrors((e) => ({ ...e, [field]: undefined }));
+  }
+
+  // Fill city + state from India Post once the PIN code is complete.
+  useEffect(() => {
+    if (!/^[1-9]\d{5}$/.test(form.pincode)) {
+      setPinNote(null);
+      return;
+    }
+    let cancelled = false;
+    lookupPincode(form.pincode).then((r) => {
+      if (cancelled) return;
+      if (r.status === "ok") {
+        setForm((f) => ({ ...f, city: r.city, state: r.state ?? f.state }));
+        setPinNote([r.city, r.state].filter(Boolean).join(", "));
+      } else if (r.status === "notfound") {
+        setErrors((e) => ({ ...e, pincode: "We couldn't find this PIN code" }));
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [form.pincode]);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    const parsed = customerSchema.safeParse({ ...form, email });
+    if (!parsed.success) {
+      const next: typeof errors = {};
+      for (const issue of parsed.error.issues) {
+        const key = issue.path[0] as keyof typeof EMPTY_ADDRESS;
+        if (key in EMPTY_ADDRESS && !next[key]) next[key] = issue.message;
+      }
+      setErrors(next);
+      return;
+    }
+    setSaving(true);
+    try {
+      const { name, phone, address1, address2, city, state, pincode } = parsed.data;
+      await addAddress({ label: type, name, phone, address1, address2, city, state, pincode }, makeDefault);
+      onDone(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save the address.");
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={save} className="mt-5 rounded-2xl border border-line bg-ink2/40 p-4 sm:p-5">
+      <AddressTypePicker value={type} onChange={setType} />
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-6">
+        <TextField
+          label="Full name"
+          autoComplete="name"
+          value={form.name}
+          onChange={(e) => set("name", e.target.value)}
+          error={errors.name}
+          className="col-span-2 sm:col-span-3"
+        />
+        <TextField
+          label="Mobile (10 digits)"
+          type="tel"
+          inputMode="numeric"
+          autoComplete="tel-national"
+          value={form.phone}
+          onChange={(e) =>
+            set("phone", e.target.value.replace(/\D/g, "").replace(/^91(?=\d{10})/, "").slice(0, 10))
+          }
+          error={errors.phone}
+          className="col-span-2 sm:col-span-3"
+        />
+        <TextField
+          label="PIN code"
+          inputMode="numeric"
+          autoComplete="postal-code"
+          value={form.pincode}
+          onChange={(e) => set("pincode", e.target.value.replace(/\D/g, "").slice(0, 6))}
+          error={errors.pincode}
+          hint={pinNote ?? undefined}
+          className="sm:col-span-2"
+        />
+        <TextField
+          label="City / district"
+          autoComplete="address-level2"
+          value={form.city}
+          onChange={(e) => set("city", e.target.value)}
+          error={errors.city}
+          className="sm:col-span-2"
+        />
+        <SelectField
+          label="State"
+          value={form.state}
+          onChange={(e) => set("state", e.target.value)}
+          error={errors.state}
+          className="col-span-2 sm:col-span-2"
+        >
+          <option value="" disabled>
+            Select state
+          </option>
+          {INDIAN_STATES.map((st) => (
+            <option key={st} value={st}>
+              {st}
+            </option>
+          ))}
+        </SelectField>
+        <TextField
+          label="House / flat no., street"
+          autoComplete="address-line1"
+          value={form.address1}
+          onChange={(e) => set("address1", e.target.value)}
+          error={errors.address1}
+          className="col-span-2 sm:col-span-6"
+        />
+        <TextField
+          label="Area, landmark (optional)"
+          autoComplete="address-line2"
+          value={form.address2}
+          onChange={(e) => set("address2", e.target.value)}
+          className="col-span-2 sm:col-span-6"
+        />
+      </div>
+      {!first && (
+        <CheckField
+          label="Make this my default address"
+          checked={makeDefault}
+          onChange={setMakeDefault}
+          className="mt-3"
+        />
+      )}
+      {error && <p className="mt-3 text-xs text-brand">{error}</p>}
+      <div className="mt-4 flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={saving}
+          className="pie-gradient inline-flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 disabled:opacity-60"
+        >
+          {saving && <Loader2 className="size-4 animate-spin" />} Save address
+        </button>
+        <button
+          type="button"
+          onClick={() => onDone(false)}
+          className="rounded-xl px-4 py-2.5 text-sm font-semibold text-fog hover:text-snow"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
   );
 }

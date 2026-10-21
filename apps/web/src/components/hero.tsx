@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowRight, BadgeCheck, Droplets, Sparkles, Sun } from "lucide-react";
+import { ArrowRight, BadgeCheck, Droplets, Sparkles, Sun, Truck } from "lucide-react";
 import type { Category, Product } from "@stickypie/shared";
-import { FREE_SHIPPING_THRESHOLD, discountPercent, formatINR } from "@stickypie/shared";
+import { discountPercent, formatINR } from "@stickypie/shared";
 import { tileFor } from "@/lib/palette";
 import AddToCartButton from "./add-to-cart-button";
 
@@ -107,7 +107,7 @@ export default function Hero({
               <Sun className="size-3.5 text-mint" /> UV &amp; fade safe
             </li>
             <li className="flex items-center gap-1.5 rounded-full border border-line bg-ink2 px-3 py-1.5">
-              Free shipping over {formatINR(FREE_SHIPPING_THRESHOLD)}
+              <Truck className="size-3.5 text-mint" /> Ships across India
             </li>
           </ul>
         </div>

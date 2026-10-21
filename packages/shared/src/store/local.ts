@@ -14,11 +14,13 @@ import type {
   Product,
   ProductInput,
 } from "../types";
+import { DEFAULT_STORE_SETTINGS, type StoreSettings } from "../shipping";
 
 type StoreShape = {
   categories: Category[];
   products: Product[];
   orders: Order[];
+  settings?: StoreSettings;
 };
 
 const DAY_MS = 86_400_000;
@@ -370,6 +372,17 @@ export function createLocalDriver(filePath: string): DataDriver {
         )
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
         .slice(0, 5);
+    },
+
+    async getSettings() {
+      return load().settings ?? DEFAULT_STORE_SETTINGS;
+    },
+
+    async updateSettings(settings: StoreSettings) {
+      const store = load();
+      store.settings = settings;
+      persist(store);
+      return settings;
     },
 
     async stats() {

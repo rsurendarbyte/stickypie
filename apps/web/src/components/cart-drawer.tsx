@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
-import { PartyPopper, ShoppingBag, Trash2, Truck, X } from "lucide-react";
-import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE, formatINR } from "@stickypie/shared";
+import { CheckCircle2, ShoppingBag, Trash2, Truck, X } from "lucide-react";
+import { belowMinimum, formatINR } from "@stickypie/shared";
+import { useStoreSettings } from "@/lib/live-catalog";
 import { lineKey, useCart } from "./cart-context";
 import QtyStepper from "./qty-stepper";
 
 export default function CartDrawer() {
   const { items, count, subtotal, isOpen, closeCart, setQty, remove } = useCart();
-  const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
-  const remaining = FREE_SHIPPING_THRESHOLD - subtotal;
+  const settings = useStoreSettings();
+  const shortBy = belowMinimum(settings, subtotal);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -137,22 +138,22 @@ export default function CartDrawer() {
             </ul>
 
             <div className="border-t border-line px-5 py-4">
-              {shipping === 0 ? (
+              {shortBy === 0 ? (
                 <p className="flex items-center gap-2 text-xs font-medium text-mint">
-                  <PartyPopper className="size-4" /> You&apos;ve unlocked FREE shipping!
+                  <CheckCircle2 className="size-4" /> Minimum order reached — you can check out
                 </p>
               ) : (
                 <div>
                   <p className="flex items-center gap-2 text-xs text-fog">
                     <Truck className="size-4" />
-                    Add <span className="font-semibold text-snow">{formatINR(remaining)}</span>
-                    more for FREE shipping
+                    Add <span className="font-semibold text-snow">{formatINR(shortBy)}</span> more
+                    to reach the {formatINR(settings.minOrder)} minimum order
                   </p>
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-panel">
                     <div
                       className="pie-gradient h-full rounded-full transition-all duration-500"
                       style={{
-                        width: `${Math.min((subtotal / FREE_SHIPPING_THRESHOLD) * 100, 100)}%`,
+                        width: `${Math.min((subtotal / Math.max(settings.minOrder, 1)) * 100, 100)}%`,
                       }}
                     />
                   </div>
@@ -166,23 +167,27 @@ export default function CartDrawer() {
                 </div>
                 <div className="flex justify-between text-fog">
                   <span>Shipping</span>
-                  <span className={shipping === 0 ? "font-medium text-mint" : "text-snow"}>
-                    {shipping === 0 ? "FREE" : formatINR(shipping)}
-                  </span>
-                </div>
-                <div className="flex justify-between border-t border-line pt-2 text-base font-semibold">
-                  <span>Total</span>
-                  <span>{formatINR(subtotal + shipping)}</span>
+                  <span className="text-xs">By distance, at checkout</span>
                 </div>
               </div>
 
-              <Link
-                href="/checkout"
-                onClick={closeCart}
-                className="pie-gradient mt-4 block w-full rounded-xl py-3 text-center text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110"
-              >
-                Checkout · {formatINR(subtotal + shipping)}
-              </Link>
+              {shortBy > 0 ? (
+                <Link
+                  href="/browse"
+                  onClick={closeCart}
+                  className="mt-4 block w-full rounded-xl bg-snow py-3 text-center text-sm font-bold text-white shadow-lg shadow-black/10 transition-all hover:bg-snow/90"
+                >
+                  Add {formatINR(shortBy)} more — browse stickers →
+                </Link>
+              ) : (
+                <Link
+                  href="/checkout"
+                  onClick={closeCart}
+                  className="pie-gradient mt-4 block w-full rounded-xl py-3 text-center text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110"
+                >
+                  Checkout · {formatINR(subtotal)} + shipping
+                </Link>
+              )}
             </div>
           </>
         )}

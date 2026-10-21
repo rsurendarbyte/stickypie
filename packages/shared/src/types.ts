@@ -175,6 +175,8 @@ export type ListProductsOpts = {
   q?: string;
 };
 
+import type { StoreSettings } from "./shipping";
+
 export interface DataDriver {
   listCategories(): Promise<Category[]>;
   createCategory(input: CategoryInput): Promise<Category>;
@@ -212,6 +214,10 @@ export interface DataDriver {
   setPaymentNote(id: string, note: string, paymentId?: string | null): Promise<void>;
   /** A shopper's unpaid online-payment orders created since `sinceIso`, newest first. */
   listPendingOrdersForUser(userId: string, sinceIso: string): Promise<Order[]>;
+
+  /** Minimum order + shipping zones (one row, edited in the admin). */
+  getSettings(): Promise<StoreSettings>;
+  updateSettings(settings: StoreSettings): Promise<StoreSettings>;
 
   stats(): Promise<AdminStats>;
   /** Local demo driver only. */

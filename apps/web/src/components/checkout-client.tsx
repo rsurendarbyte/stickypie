@@ -3,17 +3,28 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CheckCircle2, Loader2, Lock, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Loader2, Lock, MapPin, Plus, ShieldCheck } from "lucide-react";
 import {
-  FREE_SHIPPING_THRESHOLD,
-  SHIPPING_FEE,
   INDIAN_STATES,
+  ZONE_LABELS,
+  belowMinimum,
   customerSchema,
   formatINR,
   matchIndianState,
+  shippingFor,
 } from "@stickypie/shared";
+import { useStoreSettings } from "@/lib/live-catalog";
 import { authClient, createAccount, signIn, signOut, useShopper } from "@/lib/shopper-auth";
 import { lookupPincode } from "@/lib/pincode";
+import {
+  ADDRESS_TYPES,
+  addressLine,
+  rememberAddress,
+  useSavedAddresses,
+  type AddressType,
+  type SavedAddress,
+} from "@/lib/addresses";
+import AddressTypePicker, { AddressTypeBadge } from "./address-type-picker";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
 import { SelectField, TextField } from "./field";
@@ -59,10 +70,56 @@ export default function CheckoutClient() {
     status: "idle" | "checking" | "ok" | "notfound" | "unavailable";
     label?: string;
   }>({ status: "idle" });
-  const [showArea, setShowArea] = useState(false);
 
-  const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
-  const total = subtotal + shipping;
+  // Address book (signed-in shoppers): pick a saved address or add a new one.
+  const { addresses, loaded: addressesLoaded } = useSavedAddresses(shopper.email);
+  const [addressChoice, setAddressChoice] = useState<string | null>(null); // address id or "new"
+  const [saveAddress, setSaveAddress] = useState(true);
+  const [addressType, setAddressType] = useState<AddressType>("Home");
+  const savedChoice = addresses.find((a) => a.id === addressChoice) ?? null;
+  // Signed-in shopper whose address book is still loading: don't flash the form.
+  const addressesPending =
+    shopper.enabled && (!shopper.ready || (Boolean(shopper.email) && !addressesLoaded));
+
+  function pickAddress(a: SavedAddress) {
+    setAddressChoice(a.id);
+    setForm((f) => ({
+      ...f,
+      name: a.name,
+      phone: a.phone,
+      address1: a.address1,
+      address2: a.address2 ?? "",
+      city: a.city,
+      state: a.state,
+      pincode: a.pincode,
+    }));
+    setAddressType(a.label);
+    setErrors({});
+  }
+
+  function pickNewAddress() {
+    setAddressChoice("new");
+    // Keep who it's for; clear where it goes.
+    setForm((f) => ({ ...f, address1: "", address2: "", city: "", state: "", pincode: "" }));
+    // Suggest a type they haven't saved yet (Home → Work → Other).
+    const used = new Set(addresses.map((a) => a.label));
+    setAddressType(ADDRESS_TYPES.find((t) => !used.has(t)) ?? "Other");
+    setErrors({});
+  }
+
+  // Signed in with saved addresses → start on the default one.
+  useEffect(() => {
+    if (addressesLoaded && addresses.length > 0 && addressChoice === null) pickAddress(addresses[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addressesLoaded, addresses]);
+
+  // Shipping depends on distance: known once the PIN code + state are filled in.
+  const settings = useStoreSettings();
+  const addressKnown =
+    /^[1-9]\d{5}$/.test(form.pincode) && (INDIAN_STATES as readonly string[]).includes(form.state);
+  const quote = addressKnown && settings.loaded ? shippingFor(settings, form.pincode, form.state) : null;
+  const total = subtotal + (quote?.fee ?? 0);
+  const shortBy = belowMinimum(settings, subtotal);
 
   // Signed-in shoppers order with their account email.
   useEffect(() => {
@@ -77,7 +134,6 @@ export default function CheckoutClient() {
         // Older saved addresses had a free-text state; snap it to the dropdown.
         saved.state = matchIndianState(saved.state) ?? "";
         setForm(saved);
-        setShowArea(Boolean(saved.address2));
       }
     } catch {
       // ignore
@@ -118,6 +174,12 @@ export default function CheckoutClient() {
     e.preventDefault();
     setServerError(null);
     setAuthError(null);
+    if (shortBy > 0) {
+      setServerError(
+        `Minimum order is ${formatINR(settings.minOrder)} — add ${formatINR(shortBy)} more to check out.`
+      );
+      return;
+    }
 
     const parsed = customerSchema.safeParse(form);
     if (!parsed.success) {
@@ -198,6 +260,14 @@ export default function CheckoutClient() {
         }
         setSubmitting(false);
         return;
+      }
+      // Order placed: remember the address in the shopper's book (never blocks payment).
+      if (shopper.enabled && token && (savedChoice || saveAddress)) {
+        const { name, phone, address1, address2, city, state, pincode } = parsed.data;
+        const label = savedChoice ? savedChoice.label : addressType;
+        await rememberAddress({ label, name, phone, address1, address2, city, state, pincode }).catch(
+          () => {}
+        );
       }
       if (data.mode === "cashfree") {
         const { load } = await import("@cashfreepayments/cashfree-js");
@@ -334,8 +404,64 @@ export default function CheckoutClient() {
             </div>
           )}
 
-          <h2 className="font-display text-base font-semibold">Contact &amp; delivery</h2>
-          <div className="mt-3.5 grid grid-cols-2 gap-3 sm:grid-cols-6">
+          <h2 className="font-display text-base font-semibold">
+            {addresses.length > 0 || addressesPending ? "Deliver to" : "Contact & delivery"}
+          </h2>
+          {addresses.length > 0 && (
+            <div role="radiogroup" aria-label="Saved addresses" className="mt-3 grid gap-2 sm:grid-cols-2">
+              {addresses.map((a) => {
+                const active = addressChoice === a.id;
+                return (
+                  <button
+                    key={a.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => pickAddress(a)}
+                    className={`flex gap-2.5 rounded-xl border p-3 text-left transition-all ${
+                      active ? "border-brand bg-brand/[0.05] ring-1 ring-brand" : "border-line bg-ink hover:border-snow/30"
+                    }`}
+                  >
+                    <MapPin className={`mt-0.5 size-4 shrink-0 ${active ? "text-brand" : "text-fog"}`} />
+                    <span className="min-w-0 text-xs leading-relaxed">
+                      <span className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-snow">
+                        {a.name}
+                        <AddressTypeBadge type={a.label} />
+                        {a.isDefault && (
+                          <span className="rounded bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold text-brand uppercase">
+                            Default
+                          </span>
+                        )}
+                      </span>
+                      <span className="block text-fog">{addressLine(a)}</span>
+                      <span className="block text-fog">{a.state} · {a.phone}</span>
+                    </span>
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                role="radio"
+                aria-checked={addressChoice === "new"}
+                onClick={pickNewAddress}
+                className={`flex items-center justify-center gap-2 rounded-xl border border-dashed p-3 text-sm font-semibold transition-all ${
+                  addressChoice === "new"
+                    ? "border-brand bg-brand/[0.05] text-brand"
+                    : "border-line text-fog hover:border-snow/30 hover:text-snow"
+                }`}
+              >
+                <Plus className="size-4" /> New address
+              </button>
+            </div>
+          )}
+          {addressesPending && (
+            <p className="mt-3 flex items-center gap-2 text-xs text-fog">
+              <Loader2 className="size-3.5 animate-spin" /> Loading your saved addresses…
+            </p>
+          )}
+          <div
+            className={`mt-3.5 grid grid-cols-2 gap-3 sm:grid-cols-6 ${savedChoice || addressesPending ? "hidden" : ""}`}
+          >
             <TextField
               label="Full name"
               autoComplete="name"
@@ -425,24 +551,37 @@ export default function CheckoutClient() {
               error={errors.address1}
               className="col-span-2 sm:col-span-6"
             />
-            {showArea ? (
-              <TextField
-                label="Area, landmark (optional)"
-                autoComplete="address-line2"
-                value={form.address2}
-                onChange={(e) => set("address2", e.target.value)}
+            <TextField
+              label="Area, landmark (optional)"
+              autoComplete="address-line2"
+              value={form.address2}
+              onChange={(e) => set("address2", e.target.value)}
+              className="col-span-2 sm:col-span-6"
+            />
+            {shopper.enabled && saveAddress && (
+              <AddressTypePicker
+                value={addressType}
+                onChange={setAddressType}
                 className="col-span-2 sm:col-span-6"
               />
-            ) : (
-              <button
-                type="button"
-                onClick={() => setShowArea(true)}
-                className="col-span-2 justify-self-start text-xs font-semibold text-brand hover:underline sm:col-span-6"
-              >
-                + Add area / landmark (optional)
-              </button>
+            )}
+            {shopper.enabled && (
+              <label className="col-span-2 flex cursor-pointer items-center gap-2 text-xs text-fog sm:col-span-6">
+                <input
+                  type="checkbox"
+                  checked={saveAddress}
+                  onChange={(e) => setSaveAddress(e.target.checked)}
+                  className="size-4 accent-[#ff2e63]"
+                />
+                Save this address for next time
+              </label>
             )}
           </div>
+          {savedChoice && Object.values(errors).some(Boolean) && (
+            <p className="mt-2 text-xs text-brand">
+              This saved address needs an update — choose “New address” and enter it again.
+            </p>
+          )}
         </section>
 
         {/* Summary stays editable: qty steppers, trash at 1 removes */}
@@ -480,10 +619,13 @@ export default function CheckoutClient() {
               <span>Subtotal</span>
               <span className="text-snow">{formatINR(subtotal)}</span>
             </div>
-            <div className="flex justify-between text-fog">
-              <span>Shipping</span>
-              <span className={shipping === 0 ? "font-medium text-mint" : "text-snow"}>
-                {shipping === 0 ? "FREE" : formatINR(shipping)}
+            <div className="flex justify-between gap-3 text-fog">
+              <span>
+                Shipping
+                {quote && <span className="text-xs"> · {ZONE_LABELS[quote.zone]}</span>}
+              </span>
+              <span className={quote ? "text-snow" : "text-xs"}>
+                {quote ? formatINR(quote.fee) : addressKnown ? "Calculating…" : "Enter your PIN code"}
               </span>
             </div>
             <div className="flex justify-between border-t border-line pt-1.5 text-base font-bold">
@@ -491,6 +633,18 @@ export default function CheckoutClient() {
               <span>{formatINR(total)}</span>
             </div>
           </div>
+
+          {shortBy > 0 && (
+            <div className="mt-3 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2 text-xs text-snow">
+              <p>
+                Minimum order is <b>{formatINR(settings.minOrder)}</b> — add{" "}
+                <b>{formatINR(shortBy)}</b> more to check out.
+              </p>
+              <Link href="/browse" className="mt-1 inline-block font-semibold text-brand hover:underline">
+                Add more stickers →
+              </Link>
+            </div>
+          )}
 
           {serverError && (
             <p className="mt-3 rounded-lg border border-brand/40 bg-brand/10 px-3 py-2 text-xs text-brand">
@@ -500,7 +654,7 @@ export default function CheckoutClient() {
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || shortBy > 0}
             className="pie-gradient mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 disabled:opacity-60"
           >
             {submitting ? (

@@ -129,7 +129,8 @@ const DOCS: Record<string, LegalDoc> = {
       {
         heading: "Charges",
         body: [
-          "Shipping is a flat ₹49, and FREE for orders of ₹499 or more.",
+          "Shipping is charged on every order based on the delivery distance — same city, within our state, rest of India, or remote areas (North-East, Jammu & Kashmir, Ladakh and the islands). The exact amount is shown at checkout as soon as you enter your PIN code, before you pay.",
+          "A minimum order value applies; the cart shows how much more to add before you can check out.",
         ],
       },
       {

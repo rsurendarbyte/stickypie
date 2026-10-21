@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import {
-  FREE_SHIPPING_THRESHOLD,
-  SHIPPING_FEE,
+  belowMinimum,
   checkoutSchema,
-  computeShipping,
+  formatINR,
+  shippingFor,
   priceForSize,
   sizeLabel,
   type NewOrderInput,
@@ -117,7 +117,19 @@ export async function POST(req: Request) {
   }
 
   const subtotal = orderItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  const shippingFee = computeShipping(subtotal, FREE_SHIPPING_THRESHOLD, SHIPPING_FEE);
+  const settings = await driver.getSettings();
+  const shortBy = belowMinimum(settings, subtotal);
+  if (shortBy > 0) {
+    return NextResponse.json(
+      {
+        error: `Minimum order is ${formatINR(settings.minOrder)} — add ${formatINR(shortBy)} more to check out.`,
+        code: "min_order",
+      },
+      { status: 400 }
+    );
+  }
+  // Always charged, by distance from the dispatch PIN code (zones set in the admin).
+  const shippingFee = shippingFor(settings, customer.pincode, customer.state).fee;
   const total = subtotal + shippingFee;
   const provider = cashfreeConfigured() ? "cashfree" : "simulator";
 

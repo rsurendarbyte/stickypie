@@ -14,6 +14,7 @@ import {
   rowToOrder,
   rowToProduct,
 } from "./mappers";
+import { rowToSettings, settingsToRow, type StoreSettings } from "../shipping";
 
 function friendly(error: { code?: string; message: string }): Error {
   if (error.code === "23505") {
@@ -279,6 +280,24 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
         .limit(5);
       if (error) throw friendly(error);
       return (data ?? []).map(rowToOrder);
+    },
+
+    async getSettings() {
+      const { data, error } = await client.from("store_settings").select("*").eq("id", 1).maybeSingle();
+      // Table missing (migration not applied yet) → built-in defaults.
+      if (error) return rowToSettings(null);
+      return rowToSettings(data);
+    },
+
+    async updateSettings(settings: StoreSettings) {
+      const { data, error } = await client
+        .from("store_settings")
+        .update(settingsToRow(settings))
+        .eq("id", 1)
+        .select()
+        .single();
+      if (error) throw friendly(error);
+      return rowToSettings(data);
     },
 
     async stats() {

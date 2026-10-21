@@ -9,8 +9,8 @@
 // active products & categories). Without the env vars (local demo mode) the
 // hooks simply keep the server-rendered data.
 import { useEffect, useState } from "react";
-import type { Category, Product } from "@stickypie/shared";
-import { rowToCategory, rowToProduct } from "@stickypie/shared";
+import type { Category, Product, StoreSettings } from "@stickypie/shared";
+import { DEFAULT_STORE_SETTINGS, rowToCategory, rowToProduct, rowToSettings } from "@stickypie/shared";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -97,4 +97,33 @@ export function useLiveProduct(
   }, [slug, initial.id]);
 
   return { product, unavailable };
+}
+
+let settingsRequest: Promise<StoreSettings> | null = null;
+
+/** Minimum order + shipping zones from the admin (defaults until `loaded`). */
+export function useStoreSettings(): StoreSettings & { loaded: boolean } {
+  const [settings, setSettings] = useState<StoreSettings>(DEFAULT_STORE_SETTINGS);
+  const [loaded, setLoaded] = useState(!liveCatalogEnabled);
+
+  useEffect(() => {
+    if (!liveCatalogEnabled) return;
+    let cancelled = false;
+    settingsRequest ??= rest("store_settings?select=*&id=eq.1")
+      .then((rows) => rowToSettings(rows[0]))
+      .catch(() => {
+        settingsRequest = null;
+        return DEFAULT_STORE_SETTINGS;
+      });
+    settingsRequest.then((s) => {
+      if (cancelled) return;
+      setSettings(s);
+      setLoaded(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return { ...settings, loaded };
 }
