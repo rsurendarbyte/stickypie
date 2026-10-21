@@ -28,6 +28,7 @@
     "auth:configure": "node scripts/configure-auth.mjs",
     "seed:remote": "node scripts/seed-remote.mjs",
     "catalog:import": "node scripts/import-catalog.mjs",
+    "icons:build": "python3 scripts/build-icons.py",
     "seed:sql": "node scripts/generate-seed-sql.mjs"
   },
   "devDependencies": {
