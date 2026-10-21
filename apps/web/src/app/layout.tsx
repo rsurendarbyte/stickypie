@@ -21,6 +21,17 @@ export const metadata: Metadata = {
   },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
+  // Plain files in public/ so Cloudflare serves them as free static assets
+  // (Next's app/icon routes would run the Worker on every favicon request).
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icons/favicon-32.png", type: "image/png", sizes: "32x32" },
+      { url: "/icons/icon-192.png", type: "image/png", sizes: "192x192" },
+    ],
+    apple: { url: "/icons/apple-touch-icon.png", sizes: "180x180" },
+  },
+  manifest: "/manifest.webmanifest",
   robots: isProductionSite()
     ? {
         index: true,

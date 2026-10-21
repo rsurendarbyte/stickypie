@@ -50,7 +50,7 @@ export default async function HomePage() {
       "@type": "Organization",
       name: SITE_NAME,
       url: siteUrl(),
-      logo: absoluteUrl("/icon.svg"),
+      logo: absoluteUrl("/icons/icon-512.png"),
     },
   ];
 
