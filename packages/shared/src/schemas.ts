@@ -56,6 +56,7 @@ export const productInputSchema = z.object({
   imageUrl: z.string().trim().min(1, "Pick or paste an image"),
   tags: z.array(z.string().trim().min(1).max(30)).max(10).default([]),
   featured: z.boolean().default(false),
+  isNew: z.boolean().default(false),
   isActive: z.boolean().default(true),
   stock: z.number().int().min(0).max(1000000).nullable().default(null),
 });

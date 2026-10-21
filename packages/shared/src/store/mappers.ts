@@ -21,6 +21,8 @@ export function rowToProduct(r: any): Product {
     imageUrl: r.image_url,
     tags: r.tags ?? [],
     featured: r.featured,
+    // Absent until the 20261021 migration runs — treat as "not new".
+    isNew: r.is_new ?? false,
     isActive: r.is_active,
     stock: r.stock,
     createdAt: r.created_at,
@@ -77,6 +79,7 @@ export function productToRow(input: Partial<ProductInput>): Record<string, unkno
   if (input.imageUrl !== undefined) row.image_url = input.imageUrl;
   if (input.tags !== undefined) row.tags = input.tags;
   if (input.featured !== undefined) row.featured = input.featured;
+  if (input.isNew !== undefined) row.is_new = input.isNew;
   if (input.isActive !== undefined) row.is_active = input.isActive;
   if (input.stock !== undefined) row.stock = input.stock;
   return row;

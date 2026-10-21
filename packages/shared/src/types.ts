@@ -18,6 +18,8 @@ export type Product = {
   imageUrl: string;
   tags: string[];
   featured: boolean;
+  /** Shows the "NEW" badge on the storefront (set by hand in the admin). */
+  isNew: boolean;
   /** "Open for sale" — hidden from the storefront when false. */
   isActive: boolean;
   /** null = inventory not tracked (never sells out). */
@@ -92,6 +94,7 @@ export type ProductInput = {
   imageUrl: string;
   tags: string[];
   featured: boolean;
+  isNew: boolean;
   isActive: boolean;
   stock: number | null;
 };

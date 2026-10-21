@@ -38,6 +38,7 @@ export default function ProductForm({
     product && product.stock !== null ? String(product.stock) : "25"
   );
   const [featured, setFeatured] = useState(product?.featured ?? false);
+  const [isNew, setIsNew] = useState(product?.isNew ?? true);
   const [isActive, setIsActive] = useState(product?.isActive ?? true);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -93,6 +94,7 @@ export default function ProductForm({
         .filter(Boolean)
         .slice(0, 10),
       featured,
+      isNew,
       isActive,
       stock: tracked ? Number(stock) : null,
     };
@@ -224,6 +226,7 @@ export default function ProductForm({
               checked={featured}
               onChange={setFeatured}
             />
+            <CheckField label='Show "NEW" badge' checked={isNew} onChange={setIsNew} />
           </div>
         </div>
 

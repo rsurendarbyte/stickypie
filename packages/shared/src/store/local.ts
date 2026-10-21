@@ -46,6 +46,7 @@ function buildSeedStore(): StoreShape {
       imageUrl: p.image,
       tags: p.tags,
       featured: p.featured,
+      isNew: false,
       isActive: p.isActive,
       stock: p.stock,
       createdAt: created,

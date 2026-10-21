@@ -3,12 +3,7 @@
 import Link from "next/link";
 import { Check, ShoppingBag } from "lucide-react";
 import type { Product } from "@stickypie/shared";
-import {
-  LOW_STOCK_THRESHOLD,
-  NEW_BADGE_DAYS,
-  discountPercent,
-  formatINR,
-} from "@stickypie/shared";
+import { LOW_STOCK_THRESHOLD, discountPercent, formatINR } from "@stickypie/shared";
 import { rotationFor } from "@/lib/palette";
 import { useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
@@ -30,7 +25,7 @@ export default function ProductCard({
   const rotate = rotationFor(product.slug);
   const out = product.stock === 0;
   const low = product.stock !== null && product.stock > 0 && product.stock <= LOW_STOCK_THRESHOLD;
-  const isNew = Date.now() - new Date(product.createdAt).getTime() < NEW_BADGE_DAYS * 86400000;
+  const isNew = product.isNew;
   const off = discountPercent(product.price, product.compareAtPrice);
 
   function addToCart() {

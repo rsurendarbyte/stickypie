@@ -135,7 +135,7 @@ export default function ProductsTable({
       </div>
 
       <div className="mt-4 overflow-x-auto rounded-2xl border border-line bg-ink2">
-        <table className="w-full min-w-[840px] text-left text-sm">
+        <table className="w-full min-w-[920px] text-left text-sm">
           <thead>
             <tr className="border-b border-line text-[11px] tracking-wide text-fog uppercase">
               <th className="px-4 py-3 font-semibold">Product</th>
@@ -143,6 +143,7 @@ export default function ProductsTable({
               <th className="px-4 py-3 text-right font-semibold">Price</th>
               <th className="px-4 py-3 font-semibold">Stock</th>
               <th className="px-4 py-3 text-center font-semibold">Featured</th>
+              <th className="px-4 py-3 text-center font-semibold">New badge</th>
               <th className="px-4 py-3 font-semibold">Open for sale</th>
               <th className="px-4 py-3 text-right font-semibold">Actions</th>
             </tr>
@@ -202,6 +203,27 @@ export default function ProductsTable({
                     <Star
                       className={`size-4.5 ${product.featured ? "fill-gold text-gold" : ""}`}
                     />
+                  </button>
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <button
+                    type="button"
+                    aria-pressed={product.isNew}
+                    aria-label={product.isNew ? "Hide NEW badge" : "Show NEW badge"}
+                    onClick={() =>
+                      patch(
+                        product,
+                        { isNew: !product.isNew },
+                        product.isNew ? "NEW badge hidden" : "NEW badge shown"
+                      )
+                    }
+                    className={`rounded-md px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase transition-colors ${
+                      product.isNew
+                        ? "bg-mint text-ink"
+                        : "border border-line text-fog/60 hover:border-mint/60 hover:text-mint"
+                    }`}
+                  >
+                    New
                   </button>
                 </td>
                 <td className="px-4 py-3">

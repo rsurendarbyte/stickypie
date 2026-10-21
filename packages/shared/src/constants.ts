@@ -11,8 +11,6 @@ export const SHIPPING_FEE = 49;
 /** Stock at or below this (and above 0) shows a "low stock" hint. */
 export const LOW_STOCK_THRESHOLD = 3;
 
-/** A product created within this many days gets a "New" badge. */
-export const NEW_BADGE_DAYS = 14;
 
 export const ORDER_STATUSES = [
   "pending",
