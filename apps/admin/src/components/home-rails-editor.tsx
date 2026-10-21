@@ -18,6 +18,7 @@ import {
 import {
   DEFAULT_HOME_RAILS,
   HOME_RAIL_KINDS,
+  resolveHomeRails,
   type Category,
   type HomeRail,
   type HomeRailKind,
@@ -90,12 +91,7 @@ export default function HomeRailsEditor({
       const rows = categories.filter((c) => onSale.some((p) => p.categoryId === c.id)).length;
       return `${rows} rail${rows === 1 ? "" : "s"}`;
     }
-    let n = 0;
-    if (rail.kind === "featured") n = onSale.filter((p) => p.featured).length;
-    else if (rail.kind === "new") n = onSale.length;
-    else if (rail.kind === "category") n = onSale.filter((p) => p.categoryId === rail.categoryId).length;
-    else n = rail.productIds.filter((id) => productById.get(id)?.isActive).length;
-    n = Math.min(n, rail.limit);
+    const n = resolveHomeRails([{ ...rail, visible: true }], onSale, categories)[0]?.items.length ?? 0;
     return n === 0 ? "nothing to show — hidden in the shop" : `${n} sticker${n === 1 ? "" : "s"}`;
   }
 
@@ -200,7 +196,7 @@ export default function HomeRailsEditor({
                 </SelectField>
               )}
               <TextField
-                label={rail.kind === "categories" ? "Stickers per rail" : "Show up to"}
+                label={rail.kind === "categories" ? "Per rail" : "Show up to"}
                 value={String(rail.limit)}
                 inputMode="numeric"
                 onChange={(e) => {
@@ -210,14 +206,25 @@ export default function HomeRailsEditor({
               />
             </div>
 
-            {rail.kind === "custom" && (
-              <CustomItems
-                ids={rail.productIds}
-                productById={productById}
-                products={products}
-                onChange={(productIds) => update(index, { productIds })}
-              />
-            )}
+            <CustomItems
+              intro={
+                rail.kind === "custom"
+                  ? null
+                  : rail.kind === "categories"
+                    ? "Pinned stickers go first in their own category's rail; the rest fill in automatically."
+                    : "Pinned stickers show first, in this order; the rest fill in automatically."
+              }
+              emptyText={
+                rail.kind === "custom"
+                  ? "No stickers yet — search below to add some."
+                  : "Nothing pinned — the rail fills itself automatically."
+              }
+              searchPlaceholder={rail.kind === "custom" ? "Search stickers to add…" : "Search stickers to pin…"}
+              ids={rail.productIds}
+              productById={productById}
+              products={products}
+              onChange={(productIds) => update(index, { productIds })}
+            />
           </li>
         ))}
       </ol>
@@ -306,11 +313,17 @@ function IconButton({
 }
 
 function CustomItems({
+  intro,
+  emptyText,
+  searchPlaceholder,
   ids,
   productById,
   products,
   onChange,
 }: {
+  intro: string | null;
+  emptyText: string;
+  searchPlaceholder: string;
   ids: string[];
   productById: Map<string, Product>;
   products: Product[];
@@ -327,9 +340,14 @@ function CustomItems({
   }, [query, products, ids]);
 
   return (
-    <div className="mt-3">
+    <div className="mt-3 border-t border-line/60 pt-3">
+      {intro && (
+        <p className="mb-2 text-[10.5px] font-semibold tracking-widest text-fog uppercase">
+          Pinned stickers <span className="font-normal tracking-normal normal-case">· {intro}</span>
+        </p>
+      )}
       {ids.length === 0 ? (
-        <p className="text-xs text-fog">No stickers yet — search below to add some.</p>
+        <p className="text-xs text-fog">{emptyText}</p>
       ) : (
         <ul className="space-y-1.5">
           {ids.map((id, i) => {
@@ -370,7 +388,7 @@ function CustomItems({
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search stickers to add…"
+          placeholder={searchPlaceholder}
           className="w-full rounded-xl border border-line bg-ink py-2.5 pr-3 pl-9 text-sm outline-none focus:border-brand/60"
         />
         {matches.length > 0 && (

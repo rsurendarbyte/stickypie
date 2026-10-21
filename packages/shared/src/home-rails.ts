@@ -13,7 +13,11 @@ export type HomeRail = {
   title: string;
   /** "category" rails only. */
   categoryId: string | null;
-  /** "custom" rails only — shown in this order. */
+  /**
+   * "custom" rails: the stickers, in this order. Other rails: pinned stickers
+   * shown first (in this order), then the automatic ones fill the rest.
+   * "categories": a pinned sticker leads its own category's rail.
+   */
   productIds: string[];
   visible: boolean;
   /** Most stickers shown in the rail. */
@@ -82,13 +86,21 @@ export function resolveHomeRails(
     rails.filter((r) => r.visible && r.kind === "category" && r.categoryId).map((r) => r.categoryId)
   );
   const out: ResolvedRail[] = [];
+  // Pinned (on-sale) stickers first, then the automatic list without repeats.
+  const pinnedFirst = (pins: string[], auto: Product[]) => {
+    const pinned = pins.map((id) => byId.get(id)).filter((p): p is Product => Boolean(p));
+    const seen = new Set(pinned.map((p) => p.id));
+    return [...pinned, ...auto.filter((p) => !seen.has(p.id))];
+  };
 
   for (const rail of rails) {
     if (!rail.visible) continue;
     if (rail.kind === "categories") {
       for (const category of categories) {
         if (explicitCategories.has(category.id)) continue;
-        const items = products.filter((p) => p.categoryId === category.id).slice(0, rail.limit);
+        const inCategory = (p: Product) => p.categoryId === category.id;
+        const pins = rail.productIds.filter((id) => byId.get(id) && inCategory(byId.get(id)!));
+        const items = pinnedFirst(pins, products.filter(inCategory)).slice(0, rail.limit);
         if (items.length > 0) {
           out.push({ key: `${rail.id}:${category.id}`, title: category.name, href: `/browse?category=${category.slug}`, items });
         }
@@ -108,9 +120,8 @@ export function resolveHomeRails(
       items = products.filter((p) => p.categoryId === category.id);
       title = title || category.name;
       href = `/browse?category=${category.slug}`;
-    } else if (rail.kind === "custom") {
-      items = rail.productIds.map((id) => byId.get(id)).filter((p): p is Product => Boolean(p));
     }
+    items = pinnedFirst(rail.productIds, rail.kind === "custom" ? [] : items);
     items = items.slice(0, rail.limit);
     if (items.length > 0) out.push({ key: rail.id, title, href, items });
   }
