@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CheckCircle2, Clock3, PackageX, RefreshCw, XCircle } from "lucide-react";
+import { CheckCircle2, PackageX, XCircle } from "lucide-react";
 import { STATUS_LABELS, formatDateTime, formatINR, orderCode } from "@stickypie/shared";
 import ClearCartOnPaid from "@/components/clear-cart-on-paid";
 import OrderTracking from "@/components/order-tracking";
+import PaymentPending from "@/components/payment-pending";
 import { getCfOrder } from "@/lib/cashfree";
 import { getDriver } from "@/lib/data";
 import { cashfreeConfigured } from "@/lib/mode";
@@ -67,22 +68,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             </p>
           </>
         )}
-        {pending && (
-          <>
-            <Clock3 className="mx-auto size-16 text-gold" />
-            <h1 className="mt-4 font-display text-3xl font-bold sm:text-4xl">Payment pending</h1>
-            <p className="mt-2 text-sm text-fog">
-              We haven&apos;t received a payment confirmation yet. If you completed the payment,
-              refresh in a few seconds.
-            </p>
-            <Link
-              href={`/order/${order.id}`}
-              className="mt-4 inline-flex items-center gap-2 rounded-lg border border-line bg-ink2 px-4 py-2 text-sm font-medium transition-colors hover:bg-white/5"
-            >
-              <RefreshCw className="size-4" /> Check again
-            </Link>
-          </>
-        )}
+        {pending && <PaymentPending />}
         {failed && (
           <>
             <XCircle className="mx-auto size-16 text-brand" />
