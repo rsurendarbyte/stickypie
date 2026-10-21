@@ -61,7 +61,11 @@ export default function SizePicker({
 
   if (compact) {
     return (
-      <div role="radiogroup" aria-label="Sticker size" className="flex gap-1">
+      <div
+        role="radiogroup"
+        aria-label="Sticker size"
+        className="inline-flex gap-0.5 rounded-full bg-white/90 p-0.5 shadow-[0_2px_8px_rgba(16,24,40,0.15)] ring-1 ring-black/5 backdrop-blur-sm"
+      >
         {sizes.map((s) => {
           const active = s.inches === value;
           return (
@@ -73,10 +77,8 @@ export default function SizePicker({
               aria-label={`${s.inches} inch, ${formatINR(s.price)}`}
               disabled={disabled}
               onClick={() => onChange(s.inches)}
-              className={`h-6 min-w-8 flex-1 rounded-md border px-1 text-[11px] font-bold transition-colors ${
-                active
-                  ? "border-snow bg-snow text-white"
-                  : "border-line bg-ink text-fog hover:border-snow/40 hover:text-snow"
+              className={`h-6 min-w-9 rounded-full px-2 text-[11px] font-bold transition-colors ${
+                active ? "bg-snow text-white" : "text-fog hover:text-snow"
               }`}
             >
               {formatInches(s.inches)}″
