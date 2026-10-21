@@ -16,6 +16,7 @@ import type {
 } from "../types";
 import { DEFAULT_STORE_SETTINGS, type StoreSettings } from "../shipping";
 import { DEFAULT_HOME_RAILS, type HomeRail } from "../home-rails";
+import { inCategory } from "../utils";
 import type { ContactInput, ContactMessage, NewReviewInput, Review, ReviewStatus } from "../feedback";
 
 type StoreShape = {
@@ -50,6 +51,7 @@ function buildSeedStore(): StoreShape {
       price: p.price,
       compareAtPrice: p.compareAtPrice,
       categoryId: idBySlug.get(p.category) ?? null,
+      categoryIds: idBySlug.has(p.category) ? [idBySlug.get(p.category)!] : [],
       imageUrl: p.image,
       tags: p.tags,
       featured: p.featured,
@@ -146,7 +148,8 @@ export function createLocalDriver(filePath: string): DataDriver {
       const store = load();
       store.categories = store.categories.filter((c) => c.id !== id);
       for (const p of store.products) {
-        if (p.categoryId === id) p.categoryId = null;
+        p.categoryIds = (p.categoryIds ?? []).filter((c) => c !== id);
+        p.categoryId = p.categoryIds[0] ?? null;
       }
       persist(store);
     },
@@ -158,7 +161,7 @@ export function createLocalDriver(filePath: string): DataDriver {
       if (opts.categorySlug) {
         const cat = store.categories.find((c) => c.slug === opts.categorySlug);
         if (!cat) return [];
-        products = products.filter((p) => p.categoryId === cat.id);
+        products = products.filter((p) => inCategory(p, cat.id));
       }
       if (opts.q) {
         const q = opts.q.toLowerCase();
@@ -191,6 +194,7 @@ export function createLocalDriver(filePath: string): DataDriver {
       const product: Product = {
         id: randomUUID(),
         ...input,
+        categoryId: input.categoryIds[0] ?? null,
         thumbUrl: input.thumbUrl ?? null,
         createdAt: ts,
         updatedAt: ts,
@@ -206,6 +210,7 @@ export function createLocalDriver(filePath: string): DataDriver {
       if (!product) throw new Error("Product not found");
       if (input.slug) assertSlugFree(store, input.slug, id);
       Object.assign(product, input, { updatedAt: now() });
+      if (input.categoryIds) product.categoryId = input.categoryIds[0] ?? null;
       persist(store);
       return product;
     },

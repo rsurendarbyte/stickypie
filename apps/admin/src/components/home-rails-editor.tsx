@@ -18,6 +18,7 @@ import {
 import {
   DEFAULT_HOME_RAILS,
   HOME_RAIL_KINDS,
+  inCategory,
   resolveHomeRails,
   type Category,
   type HomeRail,
@@ -88,7 +89,7 @@ export default function HomeRailsEditor({
   /** How many stickers the rail will show right now (on-sale only). */
   function shownCount(rail: HomeRail): string {
     if (rail.kind === "categories") {
-      const rows = categories.filter((c) => onSale.some((p) => p.categoryId === c.id)).length;
+      const rows = categories.filter((c) => onSale.some((p) => inCategory(p, c.id))).length;
       return `${rows} rail${rows === 1 ? "" : "s"}`;
     }
     const n = resolveHomeRails([{ ...rail, visible: true }], onSale, categories)[0]?.items.length ?? 0;

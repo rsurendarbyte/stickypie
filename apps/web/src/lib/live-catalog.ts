@@ -20,6 +20,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import type { Category, HomeRail, Product, PublicReview, StoreSettings } from "@stickypie/shared";
 import {
   DEFAULT_STORE_SETTINGS,
+  inCategory,
   rowToCategory,
   rowToHomeRails,
   rowToProduct,
@@ -177,7 +178,7 @@ export function useRelatedProducts(
   const { bundle, failed } = useBundle();
   if (!liveCatalogEnabled) return { products: initial, loaded: true };
   const products = bundle
-    ? bundle.products.filter((p) => categoryId && p.categoryId === categoryId && p.id !== excludeId).slice(0, 10)
+    ? bundle.products.filter((p) => p.id !== excludeId && inCategory(p, categoryId)).slice(0, 10)
     : [];
   return { products, loaded: Boolean(bundle) || failed };
 }

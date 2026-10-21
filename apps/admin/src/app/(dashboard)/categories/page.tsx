@@ -14,8 +14,8 @@ export default async function CategoriesPage() {
 
   const productCounts: Record<string, number> = {};
   for (const product of products) {
-    if (product.categoryId) {
-      productCounts[product.categoryId] = (productCounts[product.categoryId] ?? 0) + 1;
+    for (const id of product.categoryIds) {
+      productCounts[id] = (productCounts[id] ?? 0) + 1;
     }
   }
 

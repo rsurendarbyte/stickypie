@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
+import { inCategory } from "@stickypie/shared";
 import ProductCard from "./product-card";
 import ProductCardSkeleton from "./product-card-skeleton";
 import { SelectField } from "./field";
@@ -37,7 +38,7 @@ export default function BrowseClient({ initial }: { initial: Catalog }) {
     let list = products;
     if (category) {
       const cat = categories.find((c) => c.slug === category);
-      list = cat ? list.filter((p) => p.categoryId === cat.id) : [];
+      list = cat ? list.filter((p) => inCategory(p, cat.id)) : [];
     }
     if (q) {
       const needle = q.toLowerCase();
@@ -56,7 +57,7 @@ export default function BrowseClient({ initial }: { initial: Catalog }) {
   // Only categories that have stickers on sale (plus the one being viewed),
   // so a big category list never shows dead-end chips.
   const shownCategories = useMemo(() => {
-    const used = new Set(products.map((p) => p.categoryId));
+    const used = new Set(products.flatMap((p) => p.categoryIds ?? [p.categoryId]));
     return categories.filter((c) => used.has(c.id) || c.slug === category);
   }, [categories, products, category]);
 

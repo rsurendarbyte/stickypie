@@ -12,7 +12,8 @@ import {
   slugify,
 } from "@stickypie/shared";
 import { imageDownloadHref, imageSrc } from "@/lib/img";
-import { CheckField, SelectField, TextAreaField, TextField } from "./field";
+import CategoryPicker from "./category-picker";
+import { CheckField, TextAreaField, TextField } from "./field";
 import { useToast } from "./toast";
 
 type LibraryImage = { name: string; url: string };
@@ -37,7 +38,9 @@ export default function ProductForm({
   const [compareAt, setCompareAt] = useState(
     product?.compareAtPrice ? String(product.compareAtPrice) : ""
   );
-  const [categoryId, setCategoryId] = useState(product?.categoryId ?? "");
+  const [categoryIds, setCategoryIds] = useState<string[]>(
+    product?.categoryIds ?? (product?.categoryId ? [product.categoryId] : [])
+  );
   const [tags, setTags] = useState(product?.tags.join(", ") ?? "");
   const [imageUrl, setImageUrl] = useState(product?.imageUrl ?? "");
   const [tracked, setTracked] = useState(product ? product.stock !== null : true);
@@ -153,7 +156,7 @@ export default function ProductForm({
           : Number(compareAt),
       sizes,
       aspectRatio,
-      categoryId: categoryId || null,
+      categoryIds,
       imageUrl: imageUrl.trim(),
       tags: tags
         .split(",")
@@ -319,20 +322,12 @@ export default function ProductForm({
           )}
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <SelectField
-            label="Category"
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
-          >
-            <option value="">No category</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </SelectField>
-        </div>
+        <CategoryPicker
+          categories={categories}
+          value={categoryIds}
+          onChange={setCategoryIds}
+          error={errors.categoryIds}
+        />
 
         <div className="rounded-xl border border-line bg-ink2/60 p-4">
           <div className="flex flex-wrap items-center gap-x-7 gap-y-4">

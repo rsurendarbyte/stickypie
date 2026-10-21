@@ -125,7 +125,7 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
       }
       let query = client.from("products").select("*").order("created_at", { ascending: false });
       if (opts.activeOnly) query = query.eq("is_active", true);
-      if (categoryId) query = query.eq("category_id", categoryId);
+      if (categoryId) query = query.contains("category_ids", [categoryId]);
       if (opts.q) query = query.ilike("name", `%${opts.q}%`);
       const { data, error } = await query;
       if (error) throw friendly(error);

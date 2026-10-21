@@ -14,7 +14,10 @@ export type Product = {
   price: number;
   /** Strike-through price in whole INR, for sales. */
   compareAtPrice: number | null;
+  /** Main category (= categoryIds[0]) — breadcrumbs, "more like this". */
   categoryId: string | null;
+  /** Every category the sticker is in, main first. */
+  categoryIds: string[];
   imageUrl: string;
   /** Small WebP for cards (made by the admin); null → use imageUrl. */
   thumbUrl: string | null;
@@ -134,7 +137,8 @@ export type ProductInput = {
   description: string;
   price: number;
   compareAtPrice: number | null;
-  categoryId: string | null;
+  /** Categories, main first (can be empty). */
+  categoryIds: string[];
   imageUrl: string;
   tags: string[];
   featured: boolean;

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { Download, Pencil, Search, Star, Trash2 } from "lucide-react";
+import { ChevronDown, Download, Pencil, Search, Star, Trash2 } from "lucide-react";
 import type { Category, Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, formatINR } from "@stickypie/shared";
 import { imageDownloadHref, imageSrc } from "@/lib/img";
@@ -66,6 +66,8 @@ export default function ProductsTable({
 }) {
   const [products, setProducts] = useState(initial);
   const [query, setQuery] = useState("");
+  // "" = all categories, "none" = products without a category.
+  const [categoryFilter, setCategoryFilter] = useState("");
   const { toast } = useToast();
   const router = useRouter();
   const categoryName = useMemo(
@@ -73,16 +75,31 @@ export default function ProductsTable({
     [categories]
   );
 
+  const countByCategory = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const p of products) {
+      const ids = (p.categoryIds ?? []).filter((id) => categoryName.has(id));
+      if (ids.length === 0) counts.set("none", (counts.get("none") ?? 0) + 1);
+      for (const id of ids) counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+    return counts;
+  }, [products, categoryName]);
+
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter(
-      (p) =>
+    return products.filter((p) => {
+      const ids = (p.categoryIds ?? []).filter((id) => categoryName.has(id));
+      if (categoryFilter === "none" ? ids.length > 0 : categoryFilter && !ids.includes(categoryFilter)) {
+        return false;
+      }
+      if (!q) return true;
+      return (
         p.name.toLowerCase().includes(q) ||
         p.slug.includes(q) ||
         p.tags.some((t) => t.toLowerCase().includes(q))
-    );
-  }, [products, query]);
+      );
+    });
+  }, [products, query, categoryFilter, categoryName]);
 
   async function patch(product: Product, changes: Partial<Product>, successMsg: string) {
     const before = products;
@@ -119,7 +136,7 @@ export default function ProductsTable({
 
   return (
     <div>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 sm:max-w-xs">
           <Search className="absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-fog" />
           <input
@@ -129,6 +146,40 @@ export default function ProductsTable({
             className="h-11 w-full rounded-full border border-line bg-ink2/70 pr-4 pl-10 text-sm outline-none transition-all placeholder:text-fog/50 hover:border-fog/40 focus:border-brand/70 focus:shadow-[0_0_0_3px_rgba(255,46,99,0.14)]"
           />
         </div>
+        <div className="relative">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            aria-label="Filter by category"
+            className={`h-11 cursor-pointer appearance-none rounded-full border bg-ink2/70 pr-10 pl-4 text-sm outline-none transition-all hover:border-fog/40 focus:border-brand/70 focus:shadow-[0_0_0_3px_rgba(255,46,99,0.14)] ${
+              categoryFilter ? "border-brand/60 text-snow" : "border-line text-fog"
+            }`}
+          >
+            <option value="">All categories ({products.length})</option>
+            <optgroup label="──── By category ────">
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({countByCategory.get(c.id) ?? 0})
+                </option>
+              ))}
+            </optgroup>
+            {countByCategory.has("none") && (
+              <optgroup label="──── Other ────">
+                <option value="none">No category ({countByCategory.get("none")})</option>
+              </optgroup>
+            )}
+          </select>
+          <ChevronDown className="pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 text-fog" />
+        </div>
+        {categoryFilter && (
+          <button
+            type="button"
+            onClick={() => setCategoryFilter("")}
+            className="text-xs font-semibold text-fog transition-colors hover:text-brand"
+          >
+            Clear
+          </button>
+        )}
         <p className="ml-auto text-xs text-fog">
           {visible.length} of {products.length}
         </p>
@@ -174,7 +225,7 @@ export default function ProductsTable({
                   </div>
                 </td>
                 <td className="px-4 py-3 text-fog">
-                  {product.categoryId ? (categoryName.get(product.categoryId) ?? "—") : "—"}
+                  {(product.categoryIds ?? []).filter((id) => categoryName.has(id)).map((id) => categoryName.get(id)).join(", ") || "—"}
                 </td>
                 <td className="px-4 py-3 text-right">
                   {(product.sizes?.length ?? 0) > 0 && (
@@ -283,7 +334,16 @@ export default function ProductsTable({
             {visible.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-12 text-center text-sm text-fog">
-                  No products match your search.
+                  {categoryFilter && !query.trim() ? (
+                    <>
+                      No stickers in this category yet.{" "}
+                      <Link href="/products/new" className="font-semibold text-brand hover:underline">
+                        Add one →
+                      </Link>
+                    </>
+                  ) : (
+                    "No products match your search."
+                  )}
                 </td>
               </tr>
             )}

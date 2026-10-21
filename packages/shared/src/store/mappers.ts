@@ -17,7 +17,9 @@ export function rowToProduct(r: any): Product {
     description: r.description ?? "",
     price: r.price,
     compareAtPrice: r.compare_at_price,
-    categoryId: r.category_id,
+    categoryId: r.category_id ?? null,
+    // Absent until the multi-category migration runs — just the main one.
+    categoryIds: Array.isArray(r.category_ids) ? r.category_ids : r.category_id ? [r.category_id] : [],
     imageUrl: r.image_url,
     thumbUrl: r.thumb_url ?? null,
     tags: r.tags ?? [],
@@ -101,7 +103,10 @@ export function productToRow(input: Partial<ProductInput>): Record<string, unkno
   if (input.description !== undefined) row.description = input.description;
   if (input.price !== undefined) row.price = input.price;
   if (input.compareAtPrice !== undefined) row.compare_at_price = input.compareAtPrice;
-  if (input.categoryId !== undefined) row.category_id = input.categoryId;
+  if (input.categoryIds !== undefined) {
+    row.category_ids = input.categoryIds;
+    row.category_id = input.categoryIds[0] ?? null;
+  }
   if (input.imageUrl !== undefined) row.image_url = input.imageUrl;
   if (input.thumbUrl !== undefined) row.thumb_url = input.thumbUrl;
   if (input.tags !== undefined) row.tags = input.tags;

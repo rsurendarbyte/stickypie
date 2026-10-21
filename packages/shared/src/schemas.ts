@@ -60,7 +60,11 @@ export const productInputSchema = z.object({
   description: z.string().trim().max(1000).default(""),
   price: z.number().int().min(1, "Price must be at least ₹1").max(1000000),
   compareAtPrice: z.number().int().min(1).max(1000000).nullable().default(null),
-  categoryId: z.string().nullable().default(null),
+  categoryIds: z
+    .array(z.string().min(1))
+    .max(10, "Up to 10 categories")
+    .default([])
+    .transform((ids) => [...new Set(ids)]),
   imageUrl: z.string().trim().min(1, "Pick or paste an image"),
   tags: z.array(z.string().trim().min(1).max(30)).max(10).default([]),
   featured: z.boolean().default(false),
