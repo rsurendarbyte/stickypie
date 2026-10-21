@@ -20,6 +20,8 @@ export type CartItem = {
   name: string;
   price: number;
   imageUrl: string;
+  /** Small card image for cart lists (falls back to imageUrl). */
+  thumbUrl?: string | null;
   qty: number;
   /** null = untracked inventory */
   stock: number | null;

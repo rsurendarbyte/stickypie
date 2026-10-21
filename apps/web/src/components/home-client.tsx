@@ -3,22 +3,63 @@
 import Link from "next/link";
 import Hero from "./hero";
 import ProductCard from "./product-card";
+import ProductCardSkeleton from "./product-card-skeleton";
 import Row from "./row";
-import { useLiveCatalog, type Catalog } from "@/lib/live-catalog";
+import { resolveHomeRails, type HomeRail } from "@stickypie/shared";
+import { useHomeRails, useLiveCatalog, type Catalog } from "@/lib/live-catalog";
 
-export default function HomeClient({ initial }: { initial: Catalog }) {
-  const { categories, products } = useLiveCatalog(initial);
+export default function HomeClient({
+  initial,
+  initialRails,
+}: {
+  initial: Catalog;
+  initialRails: HomeRail[];
+}) {
+  const catalog = useLiveCatalog(initial);
+  const { rails, loaded: railsLoaded } = useHomeRails(initialRails);
+  const { categories, products, failed, retry } = catalog;
+  const loaded = catalog.loaded && railsLoaded;
 
   const featured = products.filter((p) => p.featured);
   const hero = featured[0] ?? products[0];
-  const topPicks = featured.slice(0, 10);
-  const newDrops = products.slice(0, 10);
-  const categoryRows = categories
-    .map((category) => ({
-      category,
-      items: products.filter((p) => p.categoryId === category.id),
-    }))
-    .filter((row) => row.items.length > 0);
+  // Rails, their order and contents come from the admin (Home page).
+  const homeRails = resolveHomeRails(rails, products, categories);
+
+  // Placeholders until the live (on-sale only) list arrives — never stale cards.
+  if (!loaded) {
+    return (
+      <div aria-busy="true" aria-label="Loading stickers">
+        <div className="w-full px-4 pt-24 sm:px-8 lg:px-12 2xl:px-20">
+          <div className="h-[48vh] min-h-[320px] animate-pulse rounded-3xl bg-panel/60" />
+        </div>
+        <div className="mt-8 space-y-10 pb-24">
+          {["Top Picks This Week", "New Drops"].map((title) => (
+            <Row key={title} title={title}>
+              {Array.from({ length: 6 }, (_, i) => (
+                <ProductCardSkeleton key={i} />
+              ))}
+            </Row>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (failed && products.length === 0) {
+    return (
+      <div className="flex min-h-[70vh] flex-col items-center justify-center gap-3 px-4 pt-20 text-center">
+        <p className="font-display text-2xl font-bold">Couldn&apos;t load the stickers</p>
+        <p className="text-sm text-fog">Check your connection and try again.</p>
+        <button
+          type="button"
+          onClick={retry}
+          className="pie-gradient mt-1 rounded-full px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand/25"
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
 
   // Shoppers see this while the catalog is empty (e.g. a fresh production
   // database before the first products are added in the admin).
@@ -53,25 +94,9 @@ export default function HomeClient({ initial }: { initial: Catalog }) {
     <>
       <Hero products={featured.length > 0 ? featured : [hero]} categories={categories} />
       <div className="relative z-10 mt-2 space-y-10 pb-24">
-        {topPicks.length > 0 && (
-          <Row title="Top Picks This Week">
-            {topPicks.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </Row>
-        )}
-        <Row title="New Drops" href="/browse?sort=new">
-          {newDrops.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </Row>
-        {categoryRows.map(({ category, items }) => (
-          <Row
-            key={category.id}
-            title={category.name}
-            href={`/browse?category=${category.slug}`}
-          >
-            {items.map((product) => (
+        {homeRails.map((rail) => (
+          <Row key={rail.key} title={rail.title} href={rail.href}>
+            {rail.items.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </Row>

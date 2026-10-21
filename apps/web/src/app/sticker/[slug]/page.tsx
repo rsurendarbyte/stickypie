@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Product } from "@stickypie/shared";
 import { formatINR } from "@stickypie/shared";
 import ProductDetailClient from "@/components/product-detail-client";
+import { productSnapshot } from "@/lib/catalog-snapshot";
 import { getDriver } from "@/lib/data";
 import { SITE_NAME, absoluteUrl, jsonLd, pageMetadata } from "@/lib/site";
 
@@ -88,7 +89,7 @@ export default async function ProductPage({
       <ProductDetailClient
         initial={product}
         category={category ? { name: category.name, slug: category.slug } : null}
-        related={related}
+        related={productSnapshot(related)}
       />
     </div>
   );

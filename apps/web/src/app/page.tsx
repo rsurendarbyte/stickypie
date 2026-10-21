@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import HomeClient from "@/components/home-client";
+import { productSnapshot } from "@/lib/catalog-snapshot";
 import { getDriver } from "@/lib/data";
 import { siteUrl } from "@/lib/mode";
 import {
@@ -23,14 +24,14 @@ export async function generateMetadata(): Promise<Metadata> {
   return { ...base, title: { absolute: `${SITE_NAME} — ${SITE_TAGLINE} | Vinyl Stickers India` } };
 }
 
-// Built as a static shell (free, unlimited on Cloudflare) with a build-time
-// catalog snapshot; in the browser it refreshes live from the Supabase API,
-// so stock/prices/new drops stay current without a redeploy.
+// Built as a static shell (free, unlimited on Cloudflare). Products load live
+// in the browser (on-sale only), so nothing stale or off-sale is ever shown.
 export default async function HomePage() {
   const driver = getDriver();
-  const [categories, products] = await Promise.all([
+  const [categories, products, rails] = await Promise.all([
     driver.listCategories(),
     driver.listProducts({ activeOnly: true }),
+    driver.getHomeRails(),
   ]);
 
   const structuredData = [
@@ -60,7 +61,10 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }}
       />
-      <HomeClient initial={{ categories, products }} />
+      <HomeClient
+        initial={{ categories, products: productSnapshot(products) }}
+        initialRails={rails}
+      />
     </>
   );
 }

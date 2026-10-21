@@ -81,6 +81,7 @@ export const productInputSchema = z.object({
     .refine((sizes) => new Set(sizes.map((s) => s.inches)).size === sizes.length, "Each size only once")
     .default([]),
   aspectRatio: z.number().positive().max(100).nullable().default(null),
+  thumbUrl: z.string().trim().max(500).nullable().optional(),
 });
 
 export type ProductInputParsed = z.infer<typeof productInputSchema>;

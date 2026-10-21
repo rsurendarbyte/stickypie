@@ -5,9 +5,11 @@ import { BadgeCheck, Droplets, PackageX, Sun, Truck } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR } from "@stickypie/shared";
 import { rotationFor } from "@/lib/palette";
-import { useLiveProduct } from "@/lib/live-catalog";
+import { useLiveProduct, useRelatedProducts } from "@/lib/live-catalog";
 import BackButton from "./back-button";
 import ProductCard from "./product-card";
+import ProductCardSkeleton from "./product-card-skeleton";
+import ProductDetails from "./product-details";
 import ProductPurchase from "./product-purchase";
 import Row from "./row";
 import SizePicker, { useSizeChoice } from "./size-picker";
@@ -23,6 +25,12 @@ export default function ProductDetailClient({
 }) {
   // Static snapshot first paint; live stock/price/availability from Supabase.
   const { product, unavailable } = useLiveProduct(initial.slug, initial);
+  // Live and on-sale only (never the build-time list).
+  const { products: moreLikeThis, loaded: relatedLoaded } = useRelatedProducts(
+    product.categoryId,
+    product.id,
+    related
+  );
 
   const rotate = rotationFor(product.slug);
   const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product);
@@ -149,6 +157,8 @@ export default function ProductDetailClient({
             </li>
           </ul>
 
+          {!unavailable && <ProductDetails size={sizes.length > 0 ? size : null} />}
+
           {product.tags.length > 0 && (
             <div className="mt-6 flex flex-wrap gap-2">
               {product.tags.map((tag) => (
@@ -165,15 +175,15 @@ export default function ProductDetailClient({
         </div>
       </div>
 
-      {related.length > 0 && (
+      {(!relatedLoaded || moreLikeThis.length > 0) && (
         <div className="mt-12 -mx-4 sm:-mx-8">
           <Row
             title="More like this"
             href={category ? `/browse?category=${category.slug}` : "/browse"}
           >
-            {related.map((p) => (
-              <ProductCard key={p.id} product={p} />
-            ))}
+            {relatedLoaded
+              ? moreLikeThis.map((p) => <ProductCard key={p.id} product={p} />)
+              : Array.from({ length: 5 }, (_, i) => <ProductCardSkeleton key={i} />)}
           </Row>
         </div>
       )}

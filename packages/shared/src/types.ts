@@ -16,6 +16,8 @@ export type Product = {
   compareAtPrice: number | null;
   categoryId: string | null;
   imageUrl: string;
+  /** Small WebP for cards (made by the admin); null → use imageUrl. */
+  thumbUrl: string | null;
   tags: string[];
   featured: boolean;
   /** Shows the "NEW" badge on the storefront (set by hand in the admin). */
@@ -131,6 +133,7 @@ export type ProductInput = {
   stock: number | null;
   sizes: ProductSize[];
   aspectRatio: number | null;
+  thumbUrl?: string | null;
 };
 
 export type CategoryInput = {
@@ -176,6 +179,7 @@ export type ListProductsOpts = {
 };
 
 import type { StoreSettings } from "./shipping";
+import type { HomeRail } from "./home-rails";
 
 export interface DataDriver {
   listCategories(): Promise<Category[]>;
@@ -218,6 +222,9 @@ export interface DataDriver {
   /** Minimum order + shipping zones (one row, edited in the admin). */
   getSettings(): Promise<StoreSettings>;
   updateSettings(settings: StoreSettings): Promise<StoreSettings>;
+  /** Home page layout (DEFAULT_HOME_RAILS until edited). */
+  getHomeRails(): Promise<HomeRail[]>;
+  updateHomeRails(rails: HomeRail[]): Promise<HomeRail[]>;
 
   stats(): Promise<AdminStats>;
   /** Local demo driver only. */

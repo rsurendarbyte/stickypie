@@ -10,3 +10,4 @@ export * from "./emails";
 export * from "./india";
 export * from "./sizes";
 export * from "./shipping";
+export * from "./home-rails";

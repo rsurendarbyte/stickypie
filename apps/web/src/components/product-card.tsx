@@ -57,9 +57,10 @@ export default function ProductCard({
             style={{ "--rot": `${rotate}deg` } as React.CSSProperties}
           >
             <img
-              src={product.imageUrl}
+              src={product.thumbUrl ?? product.imageUrl}
               alt={product.name}
               loading="lazy"
+              decoding="async"
               className={`sticker-cut max-h-full max-w-full object-contain transition-transform duration-300 group-hover:scale-[1.06] ${
                 out ? "opacity-40 saturate-50" : ""
               }`}

@@ -597,7 +597,9 @@ export default function CheckoutClient() {
               <li key={lineKey(item)} className="flex items-center gap-2.5">
                 <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-panel p-1 ring-1 ring-line">
                   <img
-                    src={item.imageUrl}
+                    src={item.thumbUrl ?? item.imageUrl}
+                    loading="lazy"
+                    decoding="async"
                     alt=""
                     className="sticker-cut-sm max-h-full max-w-full object-contain"
                   />

@@ -1,5 +1,6 @@
 import { imageAspectFromBytes, withSizePricing, type ProductInputParsed } from "@stickypie/shared";
 import { imageSrc } from "./img";
+import { makeThumb } from "./thumbs";
 
 /** Reads the artwork's width / height from the image file header. */
 export async function fetchImageAspect(imageUrl: string): Promise<number | null> {
@@ -18,13 +19,25 @@ export async function fetchImageAspect(imageUrl: string): Promise<number | null>
 
 /**
  * Server-side touches before saving a product: the headline price mirrors the
- * cheapest size, and the aspect ratio is filled in from the image when the
- * form didn't measure it.
+ * cheapest size, the aspect ratio is filled in from the image when the form
+ * didn't measure it, and a new/changed image gets a small card thumbnail.
  */
-export async function prepareProductInput<T extends Partial<ProductInputParsed>>(input: T): Promise<T> {
-  const next = withSizePricing(input);
+export async function prepareProductInput<T extends Partial<ProductInputParsed>>(
+  input: T,
+  existing?: { imageUrl: string; thumbUrl: string | null } | null
+): Promise<T> {
+  let next = withSizePricing(input);
   if (next.imageUrl && next.aspectRatio == null) {
-    return { ...next, aspectRatio: await fetchImageAspect(next.imageUrl) };
+    next = { ...next, aspectRatio: await fetchImageAspect(next.imageUrl) };
+  }
+  if (next.imageUrl) {
+    const unchanged = existing && existing.imageUrl === next.imageUrl && existing.thumbUrl;
+    if (unchanged) {
+      const { thumbUrl: _keep, ...rest } = next;
+      next = rest as T;
+    } else {
+      next = { ...next, thumbUrl: await makeThumb(next.imageUrl) };
+    }
   }
   return next;
 }

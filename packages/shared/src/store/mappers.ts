@@ -19,6 +19,7 @@ export function rowToProduct(r: any): Product {
     compareAtPrice: r.compare_at_price,
     categoryId: r.category_id,
     imageUrl: r.image_url,
+    thumbUrl: r.thumb_url ?? null,
     tags: r.tags ?? [],
     featured: r.featured,
     // Absent until the 20261021 migration runs — treat as "not new".
@@ -95,6 +96,7 @@ export function productToRow(input: Partial<ProductInput>): Record<string, unkno
   if (input.compareAtPrice !== undefined) row.compare_at_price = input.compareAtPrice;
   if (input.categoryId !== undefined) row.category_id = input.categoryId;
   if (input.imageUrl !== undefined) row.image_url = input.imageUrl;
+  if (input.thumbUrl !== undefined) row.thumb_url = input.thumbUrl;
   if (input.tags !== undefined) row.tags = input.tags;
   if (input.featured !== undefined) row.featured = input.featured;
   if (input.isNew !== undefined) row.is_new = input.isNew;

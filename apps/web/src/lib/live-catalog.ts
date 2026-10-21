@@ -1,21 +1,40 @@
 "use client";
 
-// Live catalog over the Supabase REST API, straight from the browser.
+// Live catalog over the Supabase REST API, straight from the browser — with
+// as few requests as possible:
 //
-// The storefront pages are shipped as free static assets (unlimited reach on
-// Cloudflare); on load they refresh themselves against Supabase so stock,
-// prices, availability and brand-new stickers are always current — with zero
-// Worker requests. Requires the PUBLIC anon key (safe: RLS only exposes
-// active products & categories). Without the env vars (local demo mode) the
-// hooks simply keep the server-rendered data.
+//   1. Every page load asks for ONE small row (store_settings: shipping
+//      settings, home layout and `catalog_version`).
+//   2. The full catalog (categories + on-sale products) is kept in IndexedDB
+//      and only re-downloaded when `catalog_version` changed — the database
+//      bumps it whenever the admin edits a product/category/setting or stock
+//      moves after a sale. So everyone sees admin changes on their next page
+//      load, and nobody re-downloads an unchanged catalog.
+//   3. Within one visit, client-side navigation reuses the in-memory copy for
+//      MEMORY_TTL_MS without any request; product pages and "More like this"
+//      read from it instead of asking the API again.
+//
+// RLS only exposes is_active products, so items taken off sale never reach the
+// browser. Demo mode (no Supabase env) keeps the server-rendered data.
 import { useEffect, useState } from "react";
-import type { Category, Product, StoreSettings } from "@stickypie/shared";
-import { DEFAULT_STORE_SETTINGS, rowToCategory, rowToProduct, rowToSettings } from "@stickypie/shared";
+import type { Category, HomeRail, Product, StoreSettings } from "@stickypie/shared";
+import {
+  DEFAULT_STORE_SETTINGS,
+  rowToCategory,
+  rowToHomeRails,
+  rowToProduct,
+  rowToSettings,
+} from "@stickypie/shared";
+import { idbGet, idbSet } from "./idb";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export const liveCatalogEnabled = Boolean(SUPABASE_URL && ANON_KEY);
+
+/** Bump when the cached shape changes so old caches are ignored. */
+const CACHE_KEY = "catalog:v1";
+const MEMORY_TTL_MS = 60_000;
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -30,100 +49,139 @@ async function rest(path: string): Promise<any[]> {
 
 export type Catalog = { categories: Category[]; products: Product[] };
 
-/** Static snapshot in, live catalog out (snapshot kept on any failure). */
-export function useLiveCatalog(initial: Catalog): Catalog {
-  const [data, setData] = useState(initial);
+type Bundle = Catalog & { version: string; settings: StoreSettings; rails: HomeRail[] };
+type CachedCatalog = Catalog & { version: string };
+
+let memory: { bundle: Bundle; at: number } | null = null;
+let inflight: Promise<Bundle> | null = null;
+
+function freshMemory(): Bundle | null {
+  return memory && Date.now() - memory.at < MEMORY_TTL_MS ? memory.bundle : null;
+}
+
+/** Version check (1 small request), then the catalog from cache or network. */
+function loadCatalog(): Promise<Bundle> {
+  const hit = freshMemory();
+  if (hit) return Promise.resolve(hit);
+  inflight ??= (async () => {
+    const [meta] = await rest("store_settings?select=*&id=eq.1");
+    const version: string | null = meta?.catalog_version ?? null;
+
+    let catalog: CachedCatalog | null = null;
+    if (version) {
+      if (memory?.bundle.version === version) catalog = memory.bundle;
+      else {
+        const cached = await idbGet<CachedCatalog>(CACHE_KEY);
+        if (cached?.version === version) catalog = cached;
+      }
+    }
+    if (!catalog) {
+      const [categoryRows, productRows] = await Promise.all([
+        rest("categories?select=*&order=sort.asc,name.asc"),
+        rest("products?select=*&is_active=eq.true&order=created_at.desc"),
+      ]);
+      catalog = {
+        version: version ?? "",
+        categories: categoryRows.map(rowToCategory),
+        products: productRows.map(rowToProduct),
+      };
+      if (version) void idbSet(CACHE_KEY, catalog);
+    }
+
+    const bundle: Bundle = {
+      ...catalog,
+      settings: rowToSettings(meta),
+      rails: rowToHomeRails(meta?.home_rails),
+    };
+    memory = { bundle, at: Date.now() };
+    return bundle;
+  })().finally(() => {
+    inflight = null;
+  });
+  return inflight;
+}
+
+/** Shared state for every hook below — one load per page, however many hooks. */
+function useBundle(): { bundle: Bundle | null; failed: boolean; retry: () => void } {
+  const [bundle, setBundle] = useState<Bundle | null>(() => (liveCatalogEnabled ? freshMemory() : null));
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!liveCatalogEnabled) return;
     let cancelled = false;
-    (async () => {
-      try {
-        const [categoryRows, productRows] = await Promise.all([
-          rest("categories?select=*&order=sort.asc,name.asc"),
-          rest("products?select=*&is_active=eq.true&order=created_at.desc"),
-        ]);
-        if (!cancelled) {
-          setData({
-            categories: categoryRows.map(rowToCategory),
-            products: productRows.map(rowToProduct),
-          });
-        }
-      } catch {
-        // Offline or misconfigured: the build-time snapshot stays on screen.
-      }
-    })();
+    setFailed(false);
+    loadCatalog()
+      .then((b) => {
+        if (!cancelled) setBundle(b);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [attempt]);
 
-  return data;
+  return { bundle, failed, retry: () => setAttempt((n) => n + 1) };
 }
 
-/** Refreshes one product (stock/price/availability) on the product page. */
+export type LiveCatalog = Catalog & {
+  /** False until the live list has arrived (show placeholders, not stale cards). */
+  loaded: boolean;
+  /** The live request failed — offer a retry. */
+  failed: boolean;
+  retry: () => void;
+};
+
+/** Categories + on-sale products. */
+export function useLiveCatalog(initial: Catalog): LiveCatalog {
+  const { bundle, failed, retry } = useBundle();
+  if (!liveCatalogEnabled) return { ...initial, loaded: true, failed: false, retry };
+  return {
+    categories: bundle?.categories ?? initial.categories,
+    products: bundle?.products ?? initial.products,
+    loaded: Boolean(bundle) || failed,
+    failed,
+    retry,
+  };
+}
+
+/** "More like this": other on-sale stickers in the same category (no extra request). */
+export function useRelatedProducts(
+  categoryId: string | null,
+  excludeId: string,
+  initial: Product[]
+): { products: Product[]; loaded: boolean } {
+  const { bundle, failed } = useBundle();
+  if (!liveCatalogEnabled) return { products: initial, loaded: true };
+  const products = bundle
+    ? bundle.products.filter((p) => categoryId && p.categoryId === categoryId && p.id !== excludeId).slice(0, 10)
+    : [];
+  return { products, loaded: Boolean(bundle) || failed };
+}
+
+/** The product on its own page, kept current (no extra request). */
 export function useLiveProduct(
   slug: string,
   initial: Product
 ): { product: Product; unavailable: boolean } {
-  const [product, setProduct] = useState(initial);
-  const [unavailable, setUnavailable] = useState(false);
-
-  useEffect(() => {
-    setProduct(initial);
-    setUnavailable(false);
-    if (!liveCatalogEnabled) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const rows = await rest(
-          `products?select=*&slug=eq.${encodeURIComponent(slug)}&limit=1`
-        );
-        if (cancelled) return;
-        const row = rows[0];
-        if (!row || !row.is_active) {
-          setUnavailable(true);
-        } else {
-          setProduct(rowToProduct(row));
-        }
-      } catch {
-        // Keep the snapshot.
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug, initial.id]);
-
-  return { product, unavailable };
+  const { bundle } = useBundle();
+  if (!liveCatalogEnabled || !bundle) return { product: initial, unavailable: false };
+  const live = bundle.products.find((p) => p.slug === slug);
+  return live ? { product: live, unavailable: false } : { product: initial, unavailable: true };
 }
-
-let settingsRequest: Promise<StoreSettings> | null = null;
 
 /** Minimum order + shipping zones from the admin (defaults until `loaded`). */
 export function useStoreSettings(): StoreSettings & { loaded: boolean } {
-  const [settings, setSettings] = useState<StoreSettings>(DEFAULT_STORE_SETTINGS);
-  const [loaded, setLoaded] = useState(!liveCatalogEnabled);
+  const { bundle, failed } = useBundle();
+  if (!liveCatalogEnabled) return { ...DEFAULT_STORE_SETTINGS, loaded: true };
+  return { ...(bundle?.settings ?? DEFAULT_STORE_SETTINGS), loaded: Boolean(bundle) || failed };
+}
 
-  useEffect(() => {
-    if (!liveCatalogEnabled) return;
-    let cancelled = false;
-    settingsRequest ??= rest("store_settings?select=*&id=eq.1")
-      .then((rows) => rowToSettings(rows[0]))
-      .catch(() => {
-        settingsRequest = null;
-        return DEFAULT_STORE_SETTINGS;
-      });
-    settingsRequest.then((s) => {
-      if (cancelled) return;
-      setSettings(s);
-      setLoaded(true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return { ...settings, loaded };
+/** Home page layout from the admin (Home page). */
+export function useHomeRails(initial: HomeRail[]): { rails: HomeRail[]; loaded: boolean } {
+  const { bundle, failed } = useBundle();
+  if (!liveCatalogEnabled) return { rails: initial, loaded: true };
+  return { rails: bundle?.rails ?? initial, loaded: Boolean(bundle) || failed };
 }

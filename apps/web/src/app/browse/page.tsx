@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import BrowseClient from "@/components/browse-client";
+import { productSnapshot } from "@/lib/catalog-snapshot";
 import { getDriver } from "@/lib/data";
 import { pageMetadata } from "@/lib/site";
 
-// Static at build time: the catalog ships inside the page and all
-// search/filter/sort happens client-side (zero dynamic requests).
+// Static shell: products load live in the browser (on-sale only) and all
+// search/filter/sort happens client-side (zero Worker requests).
 // Filtered/search URLs (?category=, ?q=) all canonicalize to /browse.
 export const metadata: Metadata = pageMetadata({
   title: "Browse all stickers",
@@ -30,7 +31,7 @@ export default async function BrowsePage() {
           </div>
         }
       >
-        <BrowseClient initial={{ categories, products }} />
+        <BrowseClient initial={{ categories, products: productSnapshot(products) }} />
       </Suspense>
     </div>
   );

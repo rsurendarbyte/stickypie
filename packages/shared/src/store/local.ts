@@ -15,12 +15,14 @@ import type {
   ProductInput,
 } from "../types";
 import { DEFAULT_STORE_SETTINGS, type StoreSettings } from "../shipping";
+import { DEFAULT_HOME_RAILS, type HomeRail } from "../home-rails";
 
 type StoreShape = {
   categories: Category[];
   products: Product[];
   orders: Order[];
   settings?: StoreSettings;
+  homeRails?: HomeRail[];
 };
 
 const DAY_MS = 86_400_000;
@@ -53,6 +55,7 @@ function buildSeedStore(): StoreShape {
       stock: p.stock,
       sizes: [],
       aspectRatio: null,
+      thumbUrl: null,
       createdAt: created,
       updatedAt: created,
     };
@@ -182,7 +185,13 @@ export function createLocalDriver(filePath: string): DataDriver {
       const store = load();
       assertSlugFree(store, input.slug);
       const ts = now();
-      const product: Product = { id: randomUUID(), ...input, createdAt: ts, updatedAt: ts };
+      const product: Product = {
+        id: randomUUID(),
+        ...input,
+        thumbUrl: input.thumbUrl ?? null,
+        createdAt: ts,
+        updatedAt: ts,
+      };
       store.products.unshift(product);
       persist(store);
       return product;
@@ -383,6 +392,17 @@ export function createLocalDriver(filePath: string): DataDriver {
       store.settings = settings;
       persist(store);
       return settings;
+    },
+
+    async getHomeRails() {
+      return load().homeRails ?? DEFAULT_HOME_RAILS;
+    },
+
+    async updateHomeRails(rails: HomeRail[]) {
+      const store = load();
+      store.homeRails = rails;
+      persist(store);
+      return rails;
     },
 
     async stats() {

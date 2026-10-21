@@ -33,6 +33,7 @@ export function toCartProduct(product: Product, size: number | null, price: numb
     name: product.name,
     price,
     imageUrl: product.imageUrl,
+    thumbUrl: product.thumbUrl,
     stock: product.stock,
     size,
     sizeLabel: size === null ? null : `${formatInches(size)}″`,

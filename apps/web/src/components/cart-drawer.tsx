@@ -91,7 +91,9 @@ export default function CartDrawer() {
                       className="grid size-16 shrink-0 place-items-center rounded-xl bg-panel p-1.5 ring-1 ring-line"
                     >
                       <img
-                        src={item.imageUrl}
+                        src={item.thumbUrl ?? item.imageUrl}
+                        loading="lazy"
+                        decoding="async"
                         alt={item.name}
                         className="sticker-cut-sm max-h-full max-w-full object-contain"
                       />

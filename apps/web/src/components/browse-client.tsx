@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 import ProductCard from "./product-card";
+import ProductCardSkeleton from "./product-card-skeleton";
 import { SelectField } from "./field";
 import { useLiveCatalog, type Catalog } from "@/lib/live-catalog";
 
@@ -12,7 +13,7 @@ import { useLiveCatalog, type Catalog } from "@/lib/live-catalog";
  * and all searching/filtering/sorting is local — zero server requests.
  */
 export default function BrowseClient({ initial }: { initial: Catalog }) {
-  const { categories, products } = useLiveCatalog(initial);
+  const { categories, products, loaded, failed, retry } = useLiveCatalog(initial);
   const router = useRouter();
   const params = useSearchParams();
   const q = params.get("q") ?? "";
@@ -70,7 +71,9 @@ export default function BrowseClient({ initial }: { initial: Catalog }) {
         {activeCategoryName ?? "Browse stickers"}
       </h1>
       <p className="mt-1 text-sm text-fog">
-        {q ? (
+        {!loaded ? (
+          "Loading stickers…"
+        ) : q ? (
           <>
             {visible.length} result{visible.length === 1 ? "" : "s"} for “{q}”
           </>
@@ -107,7 +110,27 @@ export default function BrowseClient({ initial }: { initial: Catalog }) {
         </SelectField>
       </div>
 
-      {visible.length === 0 ? (
+      {!loaded ? (
+        <div
+          aria-busy="true"
+          className="mt-8 grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8"
+        >
+          {Array.from({ length: 12 }, (_, i) => (
+            <ProductCardSkeleton key={i} width="w-full" />
+          ))}
+        </div>
+      ) : failed && products.length === 0 ? (
+        <div className="mt-20 flex flex-col items-center gap-3 text-center">
+          <p className="font-display text-xl font-semibold">Couldn&apos;t load the stickers</p>
+          <button
+            type="button"
+            onClick={retry}
+            className="pie-gradient rounded-full px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand/25"
+          >
+            Try again
+          </button>
+        </div>
+      ) : visible.length === 0 ? (
         <div className="mt-20 flex flex-col items-center gap-2 text-center">
           <p className="font-display text-xl font-semibold">No stickers found</p>
           <p className="text-sm text-fog">Try a different search or category.</p>

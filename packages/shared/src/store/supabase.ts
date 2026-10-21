@@ -15,6 +15,7 @@ import {
   rowToProduct,
 } from "./mappers";
 import { rowToSettings, settingsToRow, type StoreSettings } from "../shipping";
+import { rowToHomeRails, type HomeRail } from "../home-rails";
 
 function friendly(error: { code?: string; message: string }): Error {
   if (error.code === "23505") {
@@ -298,6 +299,23 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
         .single();
       if (error) throw friendly(error);
       return rowToSettings(data);
+    },
+
+    async getHomeRails() {
+      const { data, error } = await client.from("store_settings").select("home_rails").eq("id", 1).maybeSingle();
+      if (error) return rowToHomeRails(null);
+      return rowToHomeRails(data?.home_rails);
+    },
+
+    async updateHomeRails(rails: HomeRail[]) {
+      const { data, error } = await client
+        .from("store_settings")
+        .update({ home_rails: rails })
+        .eq("id", 1)
+        .select("home_rails")
+        .single();
+      if (error) throw friendly(error);
+      return rowToHomeRails(data.home_rails);
     },
 
     async stats() {

@@ -24,7 +24,8 @@ export async function PATCH(req: Request, ctx: Ctx) {
     );
   }
   try {
-    const product = await auth.driver.updateProduct(id, await prepareProductInput(parsed.data));
+    const existing = parsed.data.imageUrl ? await auth.driver.getProductById(id) : null;
+    const product = await auth.driver.updateProduct(id, await prepareProductInput(parsed.data, existing));
     return NextResponse.json({ product });
   } catch (err) {
     return NextResponse.json(
