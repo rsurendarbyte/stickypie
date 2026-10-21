@@ -24,8 +24,13 @@ export type CfOrder = {
   cf_order_id?: string | number;
   order_id: string;
   order_status: "ACTIVE" | "PAID" | "EXPIRED" | "TERMINATED" | string;
+  order_amount?: number | string;
+  order_currency?: string;
   payment_session_id?: string;
 };
+
+/** A Cashfree payment session stays payable for this long, then expires. */
+export const CF_ORDER_TTL_MINUTES = 30;
 
 export async function createCfOrder(params: {
   orderId: string;
@@ -50,6 +55,11 @@ export async function createCfOrder(params: {
       ...(params.notifyUrl?.startsWith("https://") ? { notify_url: params.notifyUrl } : {}),
     },
     order_note: "StickyPie sticker order",
+    // Stale checkout tabs can't be paid later (which could double-charge a
+    // shopper who already re-ordered); the order then shows as failed.
+    order_expiry_time: new Date(Date.now() + CF_ORDER_TTL_MINUTES * 60_000)
+      .toISOString()
+      .replace(/\.\d{3}Z$/, "+00:00"),
   };
   const res = await fetch(`${baseUrl()}/orders`, {
     method: "POST",
@@ -78,6 +88,23 @@ export async function getCfOrder(orderId: string): Promise<CfOrder> {
     );
   }
   return data as CfOrder;
+}
+
+/** The successful payment's id for an order, if Cashfree has one. */
+export async function getCfSuccessfulPaymentId(orderId: string): Promise<string | null> {
+  const res = await fetch(`${baseUrl()}/orders/${encodeURIComponent(orderId)}/payments`, {
+    headers: headers(),
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+  const payments = (await res.json().catch(() => [])) as Array<{
+    payment_status?: string;
+    cf_payment_id?: string | number;
+  }>;
+  const success = Array.isArray(payments)
+    ? payments.find((p) => p.payment_status === "SUCCESS")
+    : undefined;
+  return success?.cf_payment_id !== undefined ? String(success.cf_payment_id) : null;
 }
 
 /** Verify a Cashfree webhook: base64(HMAC-SHA256(timestamp + rawBody, secret)). */

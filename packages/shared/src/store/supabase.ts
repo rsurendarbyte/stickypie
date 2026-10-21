@@ -257,6 +257,27 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
       if (error) throw friendly(error);
     },
 
+    async setPaymentNote(id, note, paymentId) {
+      const changes: Record<string, unknown> = { payment_note: note };
+      if (paymentId) changes.cf_payment_id = paymentId;
+      const { error } = await client.from("orders").update(changes).eq("id", id);
+      if (error) throw friendly(error);
+    },
+
+    async listPendingOrdersForUser(userId, sinceIso) {
+      const { data, error } = await client
+        .from("orders")
+        .select("*, order_items(*)")
+        .eq("user_id", userId)
+        .eq("status", "pending")
+        .eq("payment_provider", "cashfree")
+        .gte("created_at", sinceIso)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      if (error) throw friendly(error);
+      return (data ?? []).map(rowToOrder);
+    },
+
     async stats() {
       const { data, error } = await client.rpc("admin_stats");
       if (error) throw friendly(error);

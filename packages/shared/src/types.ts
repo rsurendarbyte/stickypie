@@ -186,6 +186,10 @@ export interface DataDriver {
   /** Allowed from pending/paid/packed; restocks items if payment had been captured. */
   cancelOrder(id: string): Promise<Order>;
   setCfOrderId(id: string, cfOrderId: string): Promise<void>;
+  /** Records payment details without changing the status (e.g. paid after cancellation). */
+  setPaymentNote(id: string, note: string, paymentId?: string | null): Promise<void>;
+  /** A shopper's unpaid online-payment orders created since `sinceIso`, newest first. */
+  listPendingOrdersForUser(userId: string, sinceIso: string): Promise<Order[]>;
 
   stats(): Promise<AdminStats>;
   /** Local demo driver only. */

@@ -4,10 +4,12 @@ import {
   SHIPPING_FEE,
   checkoutSchema,
   computeShipping,
+  type Order,
 } from "@stickypie/shared";
-import { createCfOrder } from "@/lib/cashfree";
+import { CF_ORDER_TTL_MINUTES, createCfOrder, getCfOrder } from "@/lib/cashfree";
 import { getDriver } from "@/lib/data";
 import { cashfreeConfigured, cashfreeEnv, paymentSimulatorAllowed, siteUrl } from "@/lib/mode";
+import { reconcileOrderPayment } from "@/lib/payments";
 import { accountsEnabled, shopperFromRequest } from "@/lib/shopper";
 
 export async function POST(req: Request) {
@@ -96,6 +98,40 @@ export async function POST(req: Request) {
   const shippingFee = computeShipping(subtotal, FREE_SHIPPING_THRESHOLD, SHIPPING_FEE);
   const total = subtotal + shippingFee;
   const provider = cashfreeConfigured() ? "cashfree" : "simulator";
+
+  // Same cart submitted again while an earlier attempt is still payable
+  // (double click, back from Cashfree, second tab): reuse that order and its
+  // Cashfree session instead of creating a second one that could also be paid.
+  if (provider === "cashfree" && userId) {
+    const since = new Date(Date.now() - (CF_ORDER_TTL_MINUTES - 5) * 60_000).toISOString();
+    const sameCart = (o: Order) =>
+      o.total === total &&
+      o.items.length === orderItems.length &&
+      orderItems.every((i) =>
+        o.items.some(
+          (x) => x.productId === i.productId && x.quantity === i.quantity && x.unitPrice === i.unitPrice
+        )
+      );
+    const earlier = (await driver.listPendingOrdersForUser(userId, since)).filter(sameCart);
+    for (const existing of earlier) {
+      try {
+        const cf = await getCfOrder(existing.id);
+        if (cf.order_status === "PAID") {
+          await reconcileOrderPayment(existing);
+          return NextResponse.json({ mode: "paid", url: `/order/${existing.id}` });
+        }
+        if (cf.order_status === "ACTIVE" && cf.payment_session_id) {
+          return NextResponse.json({
+            mode: "cashfree",
+            cfMode: cashfreeEnv(),
+            paymentSessionId: cf.payment_session_id,
+          });
+        }
+      } catch (err) {
+        console.error("[checkout] could not reuse order", existing.id, err);
+      }
+    }
+  }
 
   const order = await driver.createOrder({
     customer,

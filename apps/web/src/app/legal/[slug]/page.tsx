@@ -79,7 +79,14 @@ const DOCS: Record<string, LegalDoc> = {
       {
         heading: "Cancellations",
         body: [
-          "You can request a cancellation any time before the order is shipped by contacting us with your order number. Paid, unshipped orders are refunded in full.",
+          "Every sticker is printed and packed to order, so orders cannot be cancelled by the customer once payment is confirmed.",
+          "If we have to cancel an order from our side (for example, an item goes out of stock), you get a full refund to the original payment method.",
+        ],
+      },
+      {
+        heading: "Duplicate payments",
+        body: [
+          "If you are charged more than once for the same order, the extra payment is refunded in full — contact us with your order number if you notice it before we do.",
         ],
       },
       {
@@ -98,6 +105,12 @@ const DOCS: Record<string, LegalDoc> = {
         heading: "Failed payments",
         body: [
           "If a payment fails but money was debited, it is auto-reversed by the payment network, usually within 5–7 business days. If it takes longer, contact us with the payment reference.",
+        ],
+      },
+      {
+        heading: "Contact",
+        body: [
+          "For any refund or order issue, reach us via the Contact page with your order number (SP-XXXXXXXX).",
         ],
       },
     ],

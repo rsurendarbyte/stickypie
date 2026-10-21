@@ -6,9 +6,8 @@ import { STATUS_LABELS, formatDateTime, formatINR, orderCode } from "@stickypie/
 import ClearCartOnPaid from "@/components/clear-cart-on-paid";
 import OrderTracking from "@/components/order-tracking";
 import PaymentPending from "@/components/payment-pending";
-import { getCfOrder } from "@/lib/cashfree";
+import { reconcileOrderPayment } from "@/lib/payments";
 import { getDriver } from "@/lib/data";
-import { cashfreeConfigured } from "@/lib/mode";
 import { PRIVATE_PAGE_ROBOTS } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -23,19 +22,12 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   let order = await driver.getOrder(id);
   if (!order) notFound();
 
-  // Buyer just returned from Cashfree: confirm payment server-side.
-  if (order.status === "pending" && order.paymentProvider === "cashfree" && cashfreeConfigured()) {
+  // Buyer just returned from Cashfree (or the page is polling): ask Cashfree.
+  if (order.status === "pending" || order.status === "failed") {
     try {
-      const cf = await getCfOrder(order.id);
-      if (cf.order_status === "PAID") {
-        order = await driver.markOrderPaid(order.id, {
-          note: "Confirmed via Cashfree order status",
-        });
-      } else if (cf.order_status === "EXPIRED" || cf.order_status === "TERMINATED") {
-        order = await driver.markOrderFailed(order.id, `Cashfree status: ${cf.order_status}`);
-      }
+      order = await reconcileOrderPayment(order);
     } catch {
-      // Keep showing "pending" — webhook or a refresh will settle it.
+      // Keep the current status — the webhook or the next check settles it.
     }
   }
 

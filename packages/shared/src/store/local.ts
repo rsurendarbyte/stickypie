@@ -346,6 +346,28 @@ export function createLocalDriver(filePath: string): DataDriver {
       persist(store);
     },
 
+    async setPaymentNote(id, note, paymentId) {
+      const store = load();
+      const order = getOrderOrThrow(store, id);
+      order.paymentNote = note;
+      if (paymentId) order.cfPaymentId = paymentId;
+      order.updatedAt = now();
+      persist(store);
+    },
+
+    async listPendingOrdersForUser(userId, sinceIso) {
+      return load()
+        .orders.filter(
+          (o) =>
+            o.userId === userId &&
+            o.status === "pending" &&
+            o.paymentProvider === "cashfree" &&
+            o.createdAt >= sinceIso
+        )
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .slice(0, 5);
+    },
+
     async stats() {
       const store = load();
       const ordersByStatus: Partial<Record<OrderStatus, number>> = {};
