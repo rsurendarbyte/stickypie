@@ -116,7 +116,6 @@ export default function ProductCard({
             sizes={sizes}
             value={size}
             onChange={setSize}
-            aspectRatio={product.aspectRatio}
           />
         </div>
       )}

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Product, ProductSize } from "@stickypie/shared";
-import { formatDimensions, formatINR, formatInches, priceForSize, productSizes } from "@stickypie/shared";
+import { formatINR, formatInches, priceForSize, productSizes } from "@stickypie/shared";
 import type { CartProduct } from "./cart-context";
 
 /** The lowest-priced size — what the shop shows first. */
@@ -35,8 +35,7 @@ export function toCartProduct(product: Product, size: number | null, price: numb
     imageUrl: product.imageUrl,
     stock: product.stock,
     size,
-    sizeLabel:
-      size === null ? null : `${formatInches(size)}″ · ${formatDimensions(size, product.aspectRatio)}`,
+    sizeLabel: size === null ? null : `${formatInches(size)}″`,
   };
 }
 
@@ -48,14 +47,12 @@ export default function SizePicker({
   sizes,
   value,
   onChange,
-  aspectRatio,
   compact = false,
   disabled = false,
 }: {
   sizes: ProductSize[];
   value: number | null;
   onChange: (inches: number) => void;
-  aspectRatio: number | null;
   compact?: boolean;
   disabled?: boolean;
 }) {
@@ -93,7 +90,7 @@ export default function SizePicker({
   return (
     <div>
       <p className="text-xs font-semibold tracking-wider text-fog uppercase">
-        Size <span className="font-normal normal-case tracking-normal">· longest side</span>
+        Size
       </p>
       <div role="radiogroup" aria-label="Sticker size" className="mt-2 grid max-w-md grid-cols-3 gap-2">
         {sizes.map((s) => {
@@ -113,7 +110,6 @@ export default function SizePicker({
               }`}
             >
               <span className="block font-display text-base font-bold">{formatInches(s.inches)}″</span>
-              <span className="block text-[11px] text-fog">{formatDimensions(s.inches, aspectRatio)}</span>
               <span className={`mt-1 block text-sm font-bold ${active ? "text-brand" : "text-snow"}`}>
                 {formatINR(s.price)}
               </span>

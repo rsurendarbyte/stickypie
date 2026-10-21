@@ -465,7 +465,7 @@ export default function CheckoutClient() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] font-medium">{item.name}</p>
-                  {item.sizeLabel && <p className="text-[11px] text-fog">{item.sizeLabel}</p>}
+                  {item.size && <p className="text-[11px] text-fog">Size {item.size}″</p>}
                   <CartStepper item={item} size="sm" className="mt-1" />
                 </div>
                 <span className="text-sm font-bold tabular-nums">

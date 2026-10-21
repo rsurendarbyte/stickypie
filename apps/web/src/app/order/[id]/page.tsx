@@ -121,8 +121,8 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                     <span className="block truncate">
                       {item.name} <span className="text-fog">× {item.quantity}</span>
                     </span>
-                    {item.sizeLabel && (
-                      <span className="block text-xs text-fog">Size {item.sizeLabel}</span>
+                    {item.sizeInches && (
+                      <span className="block text-xs text-fog">Size {item.sizeInches}″</span>
                     )}
                   </span>
                   <span className="text-sm font-medium">

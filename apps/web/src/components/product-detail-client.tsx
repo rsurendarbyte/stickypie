@@ -126,7 +126,6 @@ export default function ProductDetailClient({
                     sizes={sizes}
                     value={size}
                     onChange={setSize}
-                    aspectRatio={product.aspectRatio}
                   />
                 </div>
               )}

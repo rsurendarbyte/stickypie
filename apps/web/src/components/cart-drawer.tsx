@@ -114,8 +114,8 @@ export default function CartDrawer() {
                         </button>
                       </div>
                       <p className="mt-0.5 text-xs text-fog">
-                        {item.sizeLabel && (
-                          <span className="font-medium text-snow/80">{item.sizeLabel} · </span>
+                        {item.size && (
+                          <span className="font-medium text-snow/80">{item.size}″ · </span>
                         )}
                         {formatINR(item.price)} each
                       </p>
