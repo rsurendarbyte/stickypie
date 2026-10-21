@@ -21,6 +21,9 @@
 
   // ---- dev (top level) ----
   "routes": [{ "pattern": "dev.stickypie.in", "custom_domain": true }],
+  // Served only on dev.stickypie.in — no *.workers.dev or preview hosts.
+  "workers_dev": false,
+  "preview_urls": false,
   "vars": {
     "SITE_ENV": "development",
     "SITE_URL": "https://dev.stickypie.in",
