@@ -47,7 +47,7 @@ function layout(opts: {
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif">
     <tr><td style="padding:0 4px 18px">
       <a href="${brand.siteUrl}" style="text-decoration:none;font-size:24px;font-weight:800;color:${INK};letter-spacing:-0.5px">
-        <img src="${brand.siteUrl}/icons/icon-192.png" width="36" height="36" alt="StickyPie" style="display:inline-block;width:36px;height:36px;border:0;border-radius:10px;vertical-align:middle;margin-right:8px"><span style="vertical-align:middle">Sticky<span style="color:${BRAND}">Pie</span></span>
+        <img src="${brand.siteUrl}/icons/icon-192.png" width="36" height="36" alt="StickyPie" style="display:inline-block;width:36px;height:36px;border:0;border-radius:10px;vertical-align:middle;margin-right:8px"><span style="vertical-align:middle">Sticky<span style="color:#f9530a">Pie</span></span>
       </a>
     </td></tr>
     <tr><td style="background:#ffffff;border:1px solid #e4e7ee;border-radius:18px;overflow:hidden">

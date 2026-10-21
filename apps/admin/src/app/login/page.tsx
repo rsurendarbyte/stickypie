@@ -24,7 +24,7 @@ export default function LoginPage() {
           className="mx-auto mb-3 size-14 -rotate-6 rounded-2xl shadow-lg shadow-amber-500/20"
         />
         <p className="text-center font-display text-3xl font-semibold">
-          Sticky<span className="text-pie">Pie</span>
+          Sticky<span className="text-logo">Pie</span>
         </p>
         <p className="mt-1 text-center text-xs font-semibold tracking-[0.2em] text-fog uppercase">
           Admin console

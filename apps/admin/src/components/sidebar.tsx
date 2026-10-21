@@ -48,7 +48,7 @@ export default function Sidebar({
           <img src="/icons/icon-192.png" alt="" width={40} height={40} className="size-10 rounded-xl" />
           <div>
           <p className="font-display text-2xl leading-none font-semibold">
-            Sticky<span className="text-pie">Pie</span>
+            Sticky<span className="text-logo">Pie</span>
           </p>
           <p className="mt-0.5 text-[10px] font-semibold tracking-[0.2em] text-fog uppercase">
             Admin console
@@ -84,7 +84,7 @@ export default function Sidebar({
         <div className="flex items-center justify-between px-4 pt-3">
           <p className="flex items-center gap-2 font-display text-lg font-semibold">
             <img src="/icons/icon-192.png" alt="" width={28} height={28} className="size-7 rounded-lg" />
-            Sticky<span className="-ml-2 text-pie">Pie</span>{" "}
+            Sticky<span className="-ml-2 text-logo">Pie</span>{" "}
             <span className="text-xs font-normal text-fog">admin</span>
           </p>
           <form action={logout}>

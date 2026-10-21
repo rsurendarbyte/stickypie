@@ -86,6 +86,11 @@ select,
   color: transparent;
 }
 
+/* Wordmark "Pie": the orange of the SP logo's P */
+.text-logo {
+  color: #f9530a;
+}
+
 /* native dropdown panels follow the theme */
 select option {
   background-color: #ffffff;
