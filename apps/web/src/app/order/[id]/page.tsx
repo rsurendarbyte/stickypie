@@ -7,6 +7,8 @@ import ClearCartOnPaid from "@/components/clear-cart-on-paid";
 import OrderReviews from "@/components/order-reviews";
 import OrderTracking from "@/components/order-tracking";
 import PaymentPending from "@/components/payment-pending";
+import { getCfLatestPaymentStatus } from "@/lib/cashfree";
+import { cashfreeConfigured } from "@/lib/mode";
 import { reconcileOrderPayment } from "@/lib/payments";
 import { getDriver } from "@/lib/data";
 import { PRIVATE_PAGE_ROBOTS } from "@/lib/site";
@@ -38,6 +40,19 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const cancelled = order.status === "cancelled";
   const pending = order.status === "pending";
 
+  // Still unpaid: is a payment actually in progress, or did the shopper close
+  // Cashfree / fail an attempt? Then they get "Pay now" instead of a spinner.
+  let lastAttempt: string | null = null;
+  let awaitingShopper = false;
+  if (pending && order.paymentProvider === "cashfree" && cashfreeConfigured()) {
+    try {
+      lastAttempt = await getCfLatestPaymentStatus(order.id);
+      awaitingShopper = lastAttempt !== "PENDING" && lastAttempt !== "SUCCESS";
+    } catch {
+      // Unknown → keep checking.
+    }
+  }
+
   return (
     <div className="mx-auto min-h-screen w-full max-w-[1100px] px-4 pt-28 pb-24 sm:px-8">
       <ClearCartOnPaid orderId={order.id} paid={paid} />
@@ -62,7 +77,14 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             </p>
           </>
         )}
-        {pending && <PaymentPending />}
+        {pending && (
+          <PaymentPending
+            orderId={order.id}
+            total={order.total}
+            awaitingShopper={awaitingShopper}
+            lastAttempt={lastAttempt}
+          />
+        )}
         {failed && (
           <>
             <XCircle className="mx-auto size-16 text-brand" />

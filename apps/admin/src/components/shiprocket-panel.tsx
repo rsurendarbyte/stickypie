@@ -33,7 +33,12 @@ export default function ShiprocketPanel({ order, ready }: { order: Order; ready:
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Shiprocket request failed");
-      toast("Shipment created — print the label and keep the parcel ready for pickup");
+      const picked = data.shipping as { courier: string; rate: number; days: number | null } | null;
+      toast(
+        picked
+          ? `Booked ${picked.courier} — ₹${picked.rate}${picked.days ? `, ~${picked.days} days` : ""}. Print the label for pickup.`
+          : "Shipment created — print the label and keep the parcel ready for pickup"
+      );
       for (const w of (data.warnings as string[]) ?? []) toast(w, "error");
       router.refresh();
     } catch (err) {

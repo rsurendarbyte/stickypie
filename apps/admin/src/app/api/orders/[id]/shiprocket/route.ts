@@ -4,6 +4,7 @@ import { advanceOrderTo, shiprocketTrackingUrl } from "@stickypie/shared";
 import { requireAdminApi } from "@/lib/data";
 import {
   assignAwb,
+  cheapestCourier,
   createShiprocketOrder,
   schedulePickup,
   shippingLabel,
@@ -43,6 +44,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
   let order = await driver.getOrder(id);
   if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
   const warnings: string[] = [];
+  let shipping: { courier: string; rate: number; days: number | null } | null = null;
 
   try {
     if (order.status === "paid") order = await advanceOrderTo(driver, order, "packed");
@@ -52,14 +54,26 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     const settings = await driver.getSettings();
 
     let shipmentId = order.shiprocketShipmentId;
+    let shiprocketOrderId = order.shiprocketOrderId;
     if (!shipmentId) {
       const created = await createShiprocketOrder(cfg, order, parsed.data, settings.business.hsn);
       shipmentId = created.shipmentId;
+      shiprocketOrderId = created.orderId;
       await driver.setShipmentRefs(id, { shiprocketOrderId: created.orderId, shiprocketShipmentId: created.shipmentId });
     }
 
     if (!order.trackingNumber) {
-      const { awb, courier } = await assignAwb(cfg, shipmentId);
+      // Cheapest courier that delivers within a week; Shiprocket's pick if quotes fail.
+      let pick: Awaited<ReturnType<typeof cheapestCourier>> = null;
+      if (shiprocketOrderId) {
+        try {
+          pick = await cheapestCourier(cfg, shiprocketOrderId);
+        } catch (err) {
+          warnings.push(`Couldn't compare couriers (${err instanceof Error ? err.message : err}) — used Shiprocket's pick.`);
+        }
+      }
+      const { awb, courier } = await assignAwb(cfg, shipmentId, pick?.id);
+      if (pick) shipping = { courier: pick.name, rate: pick.rate, days: pick.days };
       await driver.setShipmentRefs(id, { courier, trackingNumber: awb, trackingUrl: shiprocketTrackingUrl(awb) });
     }
 
@@ -80,5 +94,5 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
     return NextResponse.json({ error: err instanceof Error ? err.message : "Shiprocket request failed" }, { status: 502 });
   }
 
-  return NextResponse.json({ order: await driver.getOrder(id), warnings });
+  return NextResponse.json({ order: await driver.getOrder(id), warnings, shipping });
 }

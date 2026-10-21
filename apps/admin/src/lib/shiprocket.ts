@@ -120,13 +120,55 @@ export async function createShiprocketOrder(
   return { orderId: String(data.order_id), shipmentId: String(data.shipment_id) };
 }
 
-/** Books the courier Shiprocket recommends (its courier-priority setting) → AWB. */
-export async function assignAwb(cfg: ShiprocketConfig, shipmentId: string): Promise<{ awb: string; courier: string }> {
+export type CourierQuote = { id: number; name: string; rate: number; days: number | null };
+
+/** Slowest delivery we accept when picking the cheapest courier. */
+const MAX_DELIVERY_DAYS = 7;
+
+/**
+ * Cheapest courier for a Shiprocket order that delivers within a week (ties →
+ * the faster one). Falls back to the cheapest overall if none is that quick.
+ */
+export async function cheapestCourier(cfg: ShiprocketConfig, shiprocketOrderId: string): Promise<CourierQuote | null> {
+  const data = await call<{
+    data?: {
+      available_courier_companies?: Array<{
+        courier_company_id: number;
+        courier_name: string;
+        rate: number | string;
+        estimated_delivery_days?: number | string;
+        blocked?: number;
+      }>;
+    };
+  }>(cfg, `/courier/serviceability?order_id=${encodeURIComponent(shiprocketOrderId)}`);
+  const quotes: CourierQuote[] = (data.data?.available_courier_companies ?? [])
+    .filter((c) => !c.blocked)
+    .map((c) => {
+      const days = Number(c.estimated_delivery_days);
+      return {
+        id: c.courier_company_id,
+        name: c.courier_name,
+        rate: Number(c.rate),
+        days: Number.isFinite(days) && days > 0 ? days : null,
+      };
+    })
+    .filter((q) => Number.isFinite(q.rate));
+  const byPrice = (a: CourierQuote, b: CourierQuote) => a.rate - b.rate || (a.days ?? 99) - (b.days ?? 99);
+  const quick = quotes.filter((q) => q.days !== null && q.days <= MAX_DELIVERY_DAYS).sort(byPrice);
+  return quick[0] ?? quotes.sort(byPrice)[0] ?? null;
+}
+
+/** Books a courier → AWB: the given one, or Shiprocket's recommendation. */
+export async function assignAwb(
+  cfg: ShiprocketConfig,
+  shipmentId: string,
+  courierId?: number
+): Promise<{ awb: string; courier: string }> {
   const data = await call<{
     awb_assign_status?: number;
     message?: string;
     response?: { data?: { awb_code?: string; courier_name?: string; awb_assign_error?: string } };
-  }>(cfg, "/courier/assign/awb", { shipment_id: shipmentId });
+  }>(cfg, "/courier/assign/awb", { shipment_id: shipmentId, ...(courierId ? { courier_id: courierId } : {}) });
   const info = data.response?.data;
   if (data.awb_assign_status !== 1 || !info?.awb_code) {
     throw new Error(info?.awb_assign_error ?? data.message ?? "Shiprocket couldn't assign a courier");

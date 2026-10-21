@@ -107,6 +107,28 @@ export async function getCfSuccessfulPaymentId(orderId: string): Promise<string 
   return success?.cf_payment_id !== undefined ? String(success.cf_payment_id) : null;
 }
 
+/**
+ * Status of the shopper's latest payment attempt on an order — SUCCESS,
+ * PENDING (bank still processing), FAILED, USER_DROPPED… — or null if they
+ * never tried (closed the payment page straight away).
+ */
+export async function getCfLatestPaymentStatus(orderId: string): Promise<string | null> {
+  const res = await fetch(`${baseUrl()}/orders/${encodeURIComponent(orderId)}/payments`, {
+    headers: headers(),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Cashfree payments lookup failed (${res.status})`);
+  const payments = (await res.json().catch(() => [])) as Array<{
+    payment_status?: string;
+    payment_time?: string;
+  }>;
+  if (!Array.isArray(payments) || payments.length === 0) return null;
+  const latest = [...payments].sort(
+    (a, b) => new Date(b.payment_time ?? 0).getTime() - new Date(a.payment_time ?? 0).getTime()
+  )[0];
+  return latest.payment_status ?? null;
+}
+
 /** Verify a Cashfree webhook: base64(HMAC-SHA256(timestamp + rawBody, secret)). */
 export function verifyCfWebhook(rawBody: string, signature: string, timestamp: string): boolean {
   const secret = process.env.CASHFREE_SECRET_KEY;
