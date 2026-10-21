@@ -30,7 +30,7 @@ export default function HomeClient({ initial }: { initial: Catalog }) {
           alt=""
           width={64}
           height={64}
-          className="size-16 -rotate-6 rounded-2xl shadow-lg shadow-amber-500/30"
+          className="size-16 -rotate-6 rounded-2xl"
         />
         <h1 className="mt-2 font-display text-3xl font-bold sm:text-4xl">
           Fresh stickers are on the way

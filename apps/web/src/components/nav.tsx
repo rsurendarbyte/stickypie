@@ -65,7 +65,7 @@ export default function Nav() {
             alt=""
             width={36}
             height={36}
-            className="size-9 -rotate-6 rounded-[11px] shadow-lg shadow-amber-500/30 transition-transform duration-300 hover:rotate-0"
+            className="size-9 -rotate-6 rounded-[11px] transition-transform duration-300 hover:rotate-0"
           />
           <span className="font-display text-[22px] leading-none font-semibold tracking-tight">
             Sticky<span className="text-logo">Pie</span>

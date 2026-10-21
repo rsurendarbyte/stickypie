@@ -21,7 +21,7 @@ export default function LoginPage() {
           alt=""
           width={56}
           height={56}
-          className="mx-auto mb-3 size-14 -rotate-6 rounded-2xl shadow-lg shadow-amber-500/20"
+          className="mx-auto mb-3 size-14 -rotate-6 rounded-2xl"
         />
         <p className="text-center font-display text-3xl font-semibold">
           Sticky<span className="text-logo">Pie</span>
