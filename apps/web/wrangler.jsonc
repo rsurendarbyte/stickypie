@@ -40,7 +40,8 @@
       "vars": {
         "SITE_ENV": "production",
         "SITE_URL": "https://stickypie.in",
-        "SUPABASE_URL": "https://liqxjqaudwtowvdkbvyi.supabase.co",
+        // Separate production database (no seed data — catalog entered via admin).
+        "SUPABASE_URL": "https://grybbgtdopnikfzirzxd.supabase.co",
         // Switch to "production" together with the live Cashfree keys.
         "CASHFREE_ENV": "sandbox"
       }

@@ -4,7 +4,7 @@ import { FlaskConical } from "lucide-react";
 import { formatINR, orderCode } from "@stickypie/shared";
 import SimulatorButtons from "@/components/simulator-buttons";
 import { getDriver } from "@/lib/data";
-import { cashfreeConfigured } from "@/lib/mode";
+import { paymentSimulatorAllowed } from "@/lib/mode";
 import { PRIVATE_PAGE_ROBOTS } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +17,7 @@ export default async function SimulatorPage({
   searchParams: Promise<{ order?: string }>;
 }) {
   const { order: orderId } = await searchParams;
-  if (!orderId || cashfreeConfigured()) notFound();
+  if (!orderId || !paymentSimulatorAllowed()) notFound();
 
   const order = await getDriver().getOrder(orderId);
   if (!order) notFound();

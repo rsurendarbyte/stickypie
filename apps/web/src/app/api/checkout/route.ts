@@ -7,9 +7,17 @@ import {
 } from "@stickypie/shared";
 import { createCfOrder } from "@/lib/cashfree";
 import { getDriver } from "@/lib/data";
-import { cashfreeConfigured, cashfreeEnv, siteUrl } from "@/lib/mode";
+import { cashfreeConfigured, cashfreeEnv, paymentSimulatorAllowed, siteUrl } from "@/lib/mode";
 
 export async function POST(req: Request) {
+  if (!cashfreeConfigured() && !paymentSimulatorAllowed()) {
+    console.error("[checkout] Cashfree keys are not configured on the production site.");
+    return NextResponse.json(
+      { error: "Payments are temporarily unavailable. Please try again soon." },
+      { status: 503 }
+    );
+  }
+
   let body: unknown;
   try {
     body = await req.json();

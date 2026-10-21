@@ -20,13 +20,26 @@ export default function HomeClient({ initial }: { initial: Catalog }) {
     }))
     .filter((row) => row.items.length > 0);
 
+  // Shoppers see this while the catalog is empty (e.g. a fresh production
+  // database before the first products are added in the admin).
   if (!hero) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 px-4 text-center">
-        <p className="font-display text-2xl font-semibold">The shelf is empty</p>
-        <p className="text-sm text-fog">Add products from the admin console to open the store.</p>
-        <Link href="/browse" className="text-sm text-brand hover:underline">
-          Browse
+      <div className="flex min-h-[80vh] flex-col items-center justify-center gap-3 px-4 pt-20 text-center">
+        <span className="pie-gradient grid size-14 -rotate-6 place-items-center rounded-2xl text-2xl shadow-lg shadow-brand/30">
+          🥧
+        </span>
+        <h1 className="mt-2 font-display text-3xl font-bold sm:text-4xl">
+          Fresh stickers are on the way
+        </h1>
+        <p className="max-w-md text-fog">
+          We&apos;re printing our first drop of die-cut vinyl stickers. Check back soon — or say
+          hi in the meantime.
+        </p>
+        <Link
+          href="/contact"
+          className="mt-2 rounded-full border border-line bg-ink2 px-5 py-2 text-sm font-semibold transition-colors hover:border-brand/50 hover:text-brand"
+        >
+          Contact us
         </Link>
       </div>
     );

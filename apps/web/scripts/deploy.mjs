@@ -60,6 +60,37 @@ if (!vars.SITE_ENV || !vars.SITE_URL) {
   process.exit(1);
 }
 
+// Build-time data source: dev builds read .env.local (dev database); the
+// production build reads .env.prod (production database). These supply the
+// catalog snapshot and the browser's live catalog.
+const buildEnvFile = path.join(appDir, wranglerEnv ? ".env.prod" : ".env.local");
+if (!fs.existsSync(buildEnvFile)) {
+  console.error(`Missing apps/web/${path.basename(buildEnvFile)} (Supabase settings for ${target}).`);
+  process.exit(1);
+}
+const buildEnv = {};
+for (const line of fs.readFileSync(buildEnvFile, "utf8").split("\n")) {
+  const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
+  if (m && m[2].trim()) buildEnv[m[1]] = m[2].trim();
+}
+for (const key of [
+  "SUPABASE_URL",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+]) {
+  if (!buildEnv[key]) {
+    console.error(`apps/web/${path.basename(buildEnvFile)} is missing ${key}.`);
+    process.exit(1);
+  }
+}
+if (buildEnv.SUPABASE_URL !== vars.SUPABASE_URL) {
+  console.error(
+    `SUPABASE_URL differs between apps/web/${path.basename(buildEnvFile)} and the ${target} vars in wrangler.jsonc — fix one so the build and the Worker use the same database.`
+  );
+  process.exit(1);
+}
+
 const indexable = vars.SITE_ENV === "production";
 console.log(
   `\n▶ ${target}: ${vars.SITE_URL} — search indexing ${indexable ? "ENABLED" : "DISABLED (noindex)"}\n`
@@ -69,13 +100,66 @@ function run(cmd, args) {
   const result = spawnSync(cmd, args, {
     cwd: appDir,
     stdio: "inherit",
-    env: { ...process.env, ...vars },
+    env: { ...process.env, ...buildEnv, ...vars },
   });
-  if (result.status !== 0) process.exit(result.status ?? 1);
+  return result.status ?? 1;
 }
 
-run("npx", ["opennextjs-cloudflare", "build", ...envArgs]);
-run("node", ["scripts/copy-static-pages.mjs"]);
+// OpenNext copies every .env* file in the app folder into the Worker bundle as
+// fallback process.env values. That would ship secrets inside the code and let
+// a Worker silently fall back to dev settings for anything not configured on
+// it. So the env files are moved aside while building (the values the build
+// needs come from `buildEnv` above), and the Worker only ever sees its own
+// wrangler vars + secrets.
+// OpenNext reads env files from both the app folder and the monorepo root.
+const repoRoot = path.resolve(appDir, "../..");
+const NEXT_ENV_FILE = /^\.env(\.(local|production|development|test)(\.local)?)?$/;
+const stashed = []; // [dir, name]
+const stashDirOf = (dir) => path.join(dir, ".env.deploy-stash");
+function restoreEnvFiles() {
+  while (stashed.length) {
+    const [dir, name] = stashed.pop();
+    fs.renameSync(path.join(stashDirOf(dir), name), path.join(dir, name));
+  }
+  for (const dir of [appDir, repoRoot]) fs.rmSync(stashDirOf(dir), { recursive: true, force: true });
+}
+for (const dir of [appDir, repoRoot]) {
+  if (fs.existsSync(stashDirOf(dir))) {
+    console.error(
+      `Found ${stashDirOf(dir)} from an interrupted deploy — move its files back into ${dir} first.`
+    );
+    process.exit(1);
+  }
+}
+for (const dir of [appDir, repoRoot]) {
+  for (const name of fs.readdirSync(dir)) {
+    if (!NEXT_ENV_FILE.test(name)) continue;
+    fs.mkdirSync(stashDirOf(dir), { recursive: true });
+    fs.renameSync(path.join(dir, name), path.join(stashDirOf(dir), name));
+    stashed.push([dir, name]);
+  }
+}
+process.on("SIGINT", () => {
+  restoreEnvFiles();
+  process.exit(130);
+});
+
+let status;
+try {
+  status = run("npx", ["opennextjs-cloudflare", "build", ...envArgs]);
+} finally {
+  restoreEnvFiles();
+}
+if (status !== 0) process.exit(status);
+
+const bundledEnv = path.join(appDir, ".open-next/cloudflare/next-env.mjs");
+if (fs.existsSync(bundledEnv) && /"[A-Z0-9_]+"\s*:/.test(fs.readFileSync(bundledEnv, "utf8"))) {
+  console.error("deploy: env values were bundled into the Worker — aborting.");
+  process.exit(1);
+}
+
+status = run("node", ["scripts/copy-static-pages.mjs"]);
+if (status !== 0) process.exit(status);
 
 // Static assets bypass the Worker, so their noindex header comes from
 // Cloudflare's `_headers` file rather than next.config.
@@ -89,4 +173,30 @@ if (indexable) {
 }
 
 if (flags.includes("--build-only")) process.exit(0);
-run("npx", ["opennextjs-cloudflare", flags.includes("--preview") ? "preview" : "deploy", ...envArgs]);
+const preview = flags.includes("--preview");
+status = run("npx", ["opennextjs-cloudflare", preview ? "preview" : "deploy", ...envArgs]);
+if (status !== 0 || preview) process.exit(status);
+
+// Nothing falls back to .env files any more, so say which secrets the
+// deployed Worker is still missing.
+const list = spawnSync("npx", ["wrangler", "secret", "list", "--format", "json", ...envArgs], {
+  cwd: appDir,
+  encoding: "utf8",
+});
+try {
+  const have = new Set(JSON.parse(list.stdout).map((secret) => secret.name));
+  const missing = ["SUPABASE_SERVICE_ROLE_KEY", "CASHFREE_APP_ID", "CASHFREE_SECRET_KEY"].filter(
+    (name) => !have.has(name)
+  );
+  if (missing.length) {
+    console.warn(`\n⚠ ${target} Worker is missing secrets: ${missing.join(", ")}`);
+    console.warn(
+      `  Set each with: npx wrangler secret put <NAME>${wranglerEnv ? ` --env ${wranglerEnv}` : ""}`
+    );
+    console.warn("  (without the Cashfree keys, checkout on production reports payments unavailable)");
+  } else {
+    console.log(`✔ ${target} Worker has all its secrets.`);
+  }
+} catch {
+  console.warn("Could not list Worker secrets — check them in the Cloudflare dashboard.");
+}

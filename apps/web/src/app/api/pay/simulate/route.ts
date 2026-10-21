@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { getDriver } from "@/lib/data";
-import { cashfreeConfigured } from "@/lib/mode";
+import { paymentSimulatorAllowed } from "@/lib/mode";
 
 /**
  * Local-dev payment simulator. Only active while Cashfree keys are NOT
- * configured; orders created for the real gateway can never be confirmed here.
+ * configured, and never on the production site; orders created for the real
+ * gateway can never be confirmed here.
  */
 export async function POST(req: Request) {
-  if (cashfreeConfigured()) {
+  if (!paymentSimulatorAllowed()) {
     return NextResponse.json({ error: "Not available" }, { status: 404 });
   }
 

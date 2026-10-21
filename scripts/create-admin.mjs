@@ -1,39 +1,15 @@
 // Creates (or finds) a Supabase Auth user and grants them admin-console
 // access — the CLI replacement for the dashboard's "Add user" + make-admin.sql.
 //
-//   npm run admin:create -- you@example.com
+//   npm run admin:create -- you@example.com           (dev database)
+//   npm run admin:create -- you@example.com --prod    (production database)
 //
 // The password is asked interactively with hidden input; it goes straight to
 // the Supabase Admin API and is never stored or printed. Idempotent: an
 // existing user just gets (re-)granted admin access.
-//
-// Uses SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY from the environment, falling
-// back to apps/web/.env.local.
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { loadTargetEnv, promptHidden } from "./lib/target-env.mjs";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-
-function loadEnv() {
-  const env = { ...process.env };
-  const file = path.join(root, "apps/web/.env.local");
-  if (fs.existsSync(file)) {
-    for (const line of fs.readFileSync(file, "utf8").split("\n")) {
-      const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
-      if (m && !env[m[1]]) env[m[1]] = m[2].trim();
-    }
-  }
-  return env;
-}
-
-const env = loadEnv();
-const URL_ = env.SUPABASE_URL;
-const KEY = env.SUPABASE_SERVICE_ROLE_KEY;
-if (!URL_ || !KEY) {
-  console.error("Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY (apps/web/.env.local)");
-  process.exit(1);
-}
+const { args, url: URL_, key: KEY } = loadTargetEnv();
 
 const headers = {
   apikey: KEY,
@@ -41,42 +17,9 @@ const headers = {
   "Content-Type": "application/json",
 };
 
-function promptHidden(label) {
-  process.stdout.write(label);
-  return new Promise((resolve) => {
-    const { stdin } = process;
-    const wasRaw = Boolean(stdin.isRaw);
-    stdin.setRawMode?.(true);
-    stdin.resume();
-    let value = "";
-    const onData = (chunk) => {
-      for (const char of chunk.toString("utf8")) {
-        if (char === "\r" || char === "\n" || char === "\u0004") {
-          stdin.off("data", onData);
-          stdin.setRawMode?.(wasRaw);
-          stdin.pause();
-          process.stdout.write("\n");
-          resolve(value);
-          return;
-        }
-        if (char === "\u0003") {
-          process.stdout.write("\n");
-          process.exit(1);
-        }
-        if (char === "\u007f" || char === "\b") {
-          value = value.slice(0, -1);
-        } else if (char >= " ") {
-          value += char;
-        }
-      }
-    };
-    stdin.on("data", onData);
-  });
-}
-
-const email = (process.argv[2] ?? "").trim().toLowerCase();
+const email = (args[0] ?? "").trim().toLowerCase();
 if (!email || !email.includes("@")) {
-  console.error("Usage: npm run admin:create -- you@example.com");
+  console.error("Usage: npm run admin:create -- you@example.com [--prod]");
   process.exit(1);
 }
 

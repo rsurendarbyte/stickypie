@@ -69,7 +69,45 @@ with `immutable` cache headers (free egress, cached at the edge).
 | URL | https://dev.stickypie.in | https://stickypie.in |
 | Worker | `stickypie-web` | `stickypie-web-production` |
 | Search engines | **blocked** (noindex everywhere) | **indexed** (sitemap, canonical URLs, rich results) |
+| Database (Supabase) | `liqxjqaudwtowvdkbvyi` (seeded demo catalog) | `grybbgtdopnikfzirzxd` (**no seed** — catalog entered in admin) |
+| Local env file | `apps/web/.env.local` | `apps/web/.env.prod` + `apps/admin/.env.production.local` |
+| Payment simulator | allowed while Cashfree keys are missing | **never** — checkout returns "payments unavailable" until keys are set |
 | Deploy | `npm run deploy:dev` | `npm run deploy:prod` |
+
+### Production database (one-time)
+
+Production gets its own Supabase project and starts **empty** — no demo
+products, categories or orders. The local env files hold its keys (gitignored):
+
+- `apps/web/.env.prod` — `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (the
+  `sb_secret_…` key), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  (the `sb_publishable_…` key)
+- `apps/admin/.env.production.local` — `SUPABASE_URL`, `SUPABASE_ANON_KEY`
+  (publishable key), `NEXT_PUBLIC_WEB_URL=https://stickypie.in`
+
+Then, from the repo root:
+
+```bash
+npm run db:push:prod
+```
+
+(creates the tables, RLS and storage bucket; asks for the **database password**
+from Supabase → Project Settings → Database, hidden; never applies seed data)
+
+```bash
+npm run admin:create -- you@example.com --prod
+```
+
+(creates your production admin login; password asked hidden)
+
+`npm run seed:remote` refuses to run against production. To manage the
+production catalog, run the admin app in production mode:
+
+```bash
+npm run build:admin && npm run start:admin
+```
+
+(`npm run dev:admin` keeps working against the dev database.)
 
 Both are defined in [apps/web/wrangler.jsonc](../apps/web/wrangler.jsonc).
 Non-secret config (`SITE_ENV`, `SITE_URL`, `SUPABASE_URL`, `CASHFREE_ENV`)
@@ -105,9 +143,10 @@ grep '^SUPABASE_SERVICE_ROLE_KEY=' .env.local | cut -d= -f2- | npx wrangler secr
 Repeat for `CASHFREE_APP_ID` and `CASHFREE_SECRET_KEY`. For production add
 `--env production` to each command (and use the production keys).
 
-**Build-time env:** the deploy build runs on your machine and reads
-`apps/web/.env.local` for the catalog snapshot and the browser's live catalog
-(`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`).
+**Build-time env:** the deploy build runs on your machine. The dev build reads
+`apps/web/.env.local`; the production build reads `apps/web/.env.prod` (and
+refuses to run if its `SUPABASE_URL` doesn't match the production `vars`). These
+supply the catalog snapshot and the browser's live catalog.
 
 **Tip:** stop the local dev server (`npm run dev`) before deploying — both use
 the same `.next` build folder; restart dev afterwards.
@@ -158,7 +197,7 @@ switch; the app itself is host-agnostic.)
 
 ## Go-live checklist
 
-- [ ] Supabase **prod** project migrated (`20261020000001_init.sql`) + admin user added (`make-admin.sql`)
+- [ ] Supabase **prod** project migrated (`npm run db:push:prod`) + admin user added (`npm run admin:create -- … --prod`), no seed data
 - [ ] `wrangler login` done; R2 bucket created with public access; admin `.env` has the R2 keys
 - [ ] Production Worker secrets set with `--env production` (`SUPABASE_SERVICE_ROLE_KEY`, `CASHFREE_APP_ID`, `CASHFREE_SECRET_KEY`)
 - [ ] Cashfree KYC approved, stickypie.in whitelisted; `CASHFREE_ENV` = `production` in the production vars

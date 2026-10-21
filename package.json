@@ -22,7 +22,8 @@
     "deploy:dev": "npm run deploy:dev --workspace stickypie-web",
     "deploy:prod": "npm run deploy:prod --workspace stickypie-web",
     "db:link": "supabase link --project-ref liqxjqaudwtowvdkbvyi",
-    "db:push": "supabase db push",
+    "db:push": "node scripts/db-push.mjs",
+    "db:push:prod": "node scripts/db-push.mjs --prod",
     "admin:create": "node scripts/create-admin.mjs",
     "seed:remote": "node scripts/seed-remote.mjs",
     "seed:sql": "node scripts/generate-seed-sql.mjs"

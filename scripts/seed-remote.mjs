@@ -2,33 +2,17 @@
 // Idempotent: existing slugs are left untouched (safe to re-run; it will
 // never clobber products you've edited in the admin).
 //
-//   node scripts/seed-remote.mjs
+//   npm run seed:remote        (dev database only)
 //
-// Uses SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY from the environment, falling
-// back to apps/web/.env.local.
+// Production is deliberately unseeded — its catalog is entered from the
+// admin app — so this refuses to run with --prod.
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { loadTargetEnv, root } from "./lib/target-env.mjs";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-
-function loadEnv() {
-  const env = { ...process.env };
-  const file = path.join(root, "apps/web/.env.local");
-  if (fs.existsSync(file)) {
-    for (const line of fs.readFileSync(file, "utf8").split("\n")) {
-      const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
-      if (m && !env[m[1]]) env[m[1]] = m[2].trim();
-    }
-  }
-  return env;
-}
-
-const env = loadEnv();
-const URL_ = env.SUPABASE_URL;
-const KEY = env.SUPABASE_SERVICE_ROLE_KEY;
-if (!URL_ || !KEY) {
-  console.error("Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY");
+const { prod, url: URL_, key: KEY } = loadTargetEnv();
+if (prod) {
+  console.error("Refusing to seed demo data into PRODUCTION. Add products from the admin app.");
   process.exit(1);
 }
 

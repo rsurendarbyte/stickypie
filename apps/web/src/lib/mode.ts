@@ -14,6 +14,14 @@ export function cashfreeConfigured(): boolean {
   return Boolean(process.env.CASHFREE_APP_ID && process.env.CASHFREE_SECRET_KEY);
 }
 
+/**
+ * The fake-payment simulator stands in for Cashfree in local/dev only. It must
+ * never run on the production site: it would let anyone mark an order paid.
+ */
+export function paymentSimulatorAllowed(): boolean {
+  return !cashfreeConfigured() && process.env.SITE_ENV !== "production";
+}
+
 export function cashfreeEnv(): "sandbox" | "production" {
   return process.env.CASHFREE_ENV === "production" ? "production" : "sandbox";
 }
