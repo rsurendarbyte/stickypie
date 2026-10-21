@@ -2,10 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ImagePlus, Images, Loader2, Trash2, X } from "lucide-react";
+import { Download, ImagePlus, Images, Loader2, Trash2, X } from "lucide-react";
 import type { Category, Product } from "@stickypie/shared";
 import { formatINR, productInputSchema, slugify } from "@stickypie/shared";
-import { imageSrc } from "@/lib/img";
+import { imageDownloadHref, imageSrc } from "@/lib/img";
 import { CheckField, SelectField, TextAreaField, TextField } from "./field";
 import { useToast } from "./toast";
 
@@ -314,6 +314,16 @@ export default function ProductForm({
             >
               <Images className="size-4" /> Library
             </button>
+            {imageUrl.trim() && (
+              <a
+                href={imageDownloadHref(imageUrl.trim(), name)}
+                download
+                title="Download image"
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-line py-3 text-xs font-semibold text-fog transition-colors hover:bg-white/5 hover:text-snow"
+              >
+                <Download className="size-4" /> Download
+              </a>
+            )}
           </div>
           <input
             ref={fileInput}

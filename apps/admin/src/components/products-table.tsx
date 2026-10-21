@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { Pencil, Search, Star, Trash2 } from "lucide-react";
+import { Download, Pencil, Search, Star, Trash2 } from "lucide-react";
 import type { Category, Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, formatINR } from "@stickypie/shared";
-import { imageSrc } from "@/lib/img";
+import { imageDownloadHref, imageSrc } from "@/lib/img";
 import { useToast } from "./toast";
 
 function Switch({
@@ -241,6 +241,17 @@ export default function ProductsTable({
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
+                    {product.imageUrl && (
+                      <a
+                        href={imageDownloadHref(product.imageUrl, product.name)}
+                        download
+                        aria-label={`Download ${product.name} image`}
+                        title="Download image"
+                        className="grid size-8 place-items-center rounded-lg text-fog transition-colors hover:bg-white/10 hover:text-snow"
+                      >
+                        <Download className="size-4" />
+                      </a>
+                    )}
                     <Link
                       href={`/products/${product.id}/edit`}
                       aria-label={`Edit ${product.name}`}

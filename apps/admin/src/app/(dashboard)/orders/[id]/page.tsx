@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download } from "lucide-react";
 import { formatDateTime, formatINR, orderCode } from "@stickypie/shared";
 import OrderActions from "@/components/order-actions";
 import StatusBadge from "@/components/status-badge";
 import { getAdminDriver } from "@/lib/data";
-import { imageSrc } from "@/lib/img";
+import { imageDownloadHref, imageSrc } from "@/lib/img";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +64,17 @@ export default async function OrderDetailPage({
                 <span className="text-sm font-semibold tabular-nums">
                   {formatINR(item.unitPrice * item.quantity)}
                 </span>
+                {item.imageUrl && (
+                  <a
+                    href={imageDownloadHref(item.imageUrl, item.name)}
+                    download
+                    aria-label={`Download ${item.name} image`}
+                    title="Download image"
+                    className="grid size-8 shrink-0 place-items-center rounded-lg text-fog transition-colors hover:bg-white/10 hover:text-snow"
+                  >
+                    <Download className="size-4" />
+                  </a>
+                )}
               </li>
             ))}
           </ul>
