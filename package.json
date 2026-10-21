@@ -21,6 +21,7 @@
     "start:admin": "npm run start --workspace stickypie-admin",
     "deploy:dev": "npm run deploy:dev --workspace stickypie-web",
     "deploy:prod": "npm run deploy:prod --workspace stickypie-web",
+    "deploy:www": "cd infra/www-redirect && npx wrangler deploy",
     "db:link": "supabase link --project-ref liqxjqaudwtowvdkbvyi",
     "db:push": "node scripts/db-push.mjs",
     "db:push:prod": "node scripts/db-push.mjs --prod",

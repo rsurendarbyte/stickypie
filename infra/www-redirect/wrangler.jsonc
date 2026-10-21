@@ -1,0 +1,13 @@
+// Owns www.stickypie.in and permanently redirects every request to the
+// canonical https://stickypie.in (same path + query). A separate Worker because
+// the storefront serves prerendered pages as static assets, which never reach
+// its Worker code. Deploy: npm run deploy:www
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "stickypie-www-redirect",
+  "main": "index.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [{ "pattern": "www.stickypie.in", "custom_domain": true }]
+}

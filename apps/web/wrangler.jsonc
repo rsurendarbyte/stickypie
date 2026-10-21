@@ -11,7 +11,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "stickypie-web",
-  "main": "worker.ts",
+  "main": ".open-next/worker.js",
   "compatibility_date": "2026-10-01",
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
@@ -34,12 +34,9 @@
 
   "env": {
     "production": {
-      "routes": [
-        { "pattern": "stickypie.in", "custom_domain": true },
-        { "pattern": "www.stickypie.in", "custom_domain": true }
-      ],
-      // No *.workers.dev or preview hosts in production — www redirects to the
-      // one canonical domain (worker.ts).
+      "routes": [{ "pattern": "stickypie.in", "custom_domain": true }],
+      // No *.workers.dev or preview hosts in production — one canonical domain.
+      // www.stickypie.in belongs to the tiny redirect Worker in infra/www-redirect.
       "workers_dev": false,
       "preview_urls": false,
       "vars": {
