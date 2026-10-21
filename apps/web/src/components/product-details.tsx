@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Droplets, Palette, Ruler, Truck } from "lucide-react";
+import { ChevronDown, Palette, Ruler, Truck } from "lucide-react";
 import { formatInches } from "@stickypie/shared";
 
 function Panel({
@@ -35,7 +35,7 @@ export default function ProductDetails({ size }: { size: number | null }) {
   return (
     <div className="mt-6 max-w-lg rounded-2xl border border-line bg-ink px-4">
       {inch && (
-        <Panel icon={Ruler} title={`Dimensions · ${inch}″`} open>
+        <Panel icon={Ruler} title={`Dimensions · ${inch}″`}>
           <p>
             Fits within a{" "}
             <span className="font-semibold text-snow">
@@ -54,14 +54,10 @@ export default function ProductDetails({ size }: { size: number | null }) {
         </Panel>
       )}
       {!inch && (
-        <Panel icon={Palette} title="Colour note" open>
+        <Panel icon={Palette} title="Colour note">
           <p>Colours may slightly vary depending on your screen brightness.</p>
         </Panel>
       )}
-      <Panel icon={Droplets} title="Material & care">
-        <p>Premium die-cut vinyl — waterproof, scratch-proof and UV / fade resistant.</p>
-        <p>Stick on a clean, dry, smooth surface and press firmly from the centre outwards.</p>
-      </Panel>
       <Panel icon={Truck} title="Shipping">
         <p>Packed and dispatched in 2–4 business days, in bend-proof packaging.</p>
         <p>Shipping is charged by delivery distance and shown at checkout once you enter your PIN code.</p>

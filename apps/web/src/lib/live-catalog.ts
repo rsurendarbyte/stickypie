@@ -16,7 +16,7 @@
 //
 // RLS only exposes is_active products, so items taken off sale never reach the
 // browser. Demo mode (no Supabase env) keeps the server-rendered data.
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import type { Category, HomeRail, Product, StoreSettings } from "@stickypie/shared";
 import {
   DEFAULT_STORE_SETTINGS,
@@ -54,6 +54,12 @@ type CachedCatalog = Catalog & { version: string };
 
 let memory: { bundle: Bundle; at: number } | null = null;
 let inflight: Promise<Bundle> | null = null;
+const listeners = new Set<() => void>();
+
+function subscribe(notify: () => void) {
+  listeners.add(notify);
+  return () => listeners.delete(notify);
+}
 
 function freshMemory(): Bundle | null {
   return memory && Date.now() - memory.at < MEMORY_TTL_MS ? memory.bundle : null;
@@ -94,6 +100,7 @@ function loadCatalog(): Promise<Bundle> {
       rails: rowToHomeRails(meta?.home_rails),
     };
     memory = { bundle, at: Date.now() };
+    listeners.forEach((notify) => notify());
     return bundle;
   })().finally(() => {
     inflight = null;
@@ -101,9 +108,18 @@ function loadCatalog(): Promise<Bundle> {
   return inflight;
 }
 
-/** Shared state for every hook below — one load per page, however many hooks. */
+/**
+ * Shared state for every hook below — one load per page, however many hooks.
+ * useSyncExternalStore renders `null` while hydrating the static HTML (which
+ * has placeholders), so an already-loaded catalog never causes a hydration
+ * mismatch; client-side navigation gets the in-memory catalog immediately.
+ */
 function useBundle(): { bundle: Bundle | null; failed: boolean; retry: () => void } {
-  const [bundle, setBundle] = useState<Bundle | null>(() => (liveCatalogEnabled ? freshMemory() : null));
+  const bundle = useSyncExternalStore(
+    subscribe,
+    () => memory?.bundle ?? null,
+    () => null
+  );
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
@@ -111,19 +127,15 @@ function useBundle(): { bundle: Bundle | null; failed: boolean; retry: () => voi
     if (!liveCatalogEnabled) return;
     let cancelled = false;
     setFailed(false);
-    loadCatalog()
-      .then((b) => {
-        if (!cancelled) setBundle(b);
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
+    loadCatalog().catch(() => {
+      if (!cancelled) setFailed(true);
+    });
     return () => {
       cancelled = true;
     };
   }, [attempt]);
 
-  return { bundle, failed, retry: () => setAttempt((n) => n + 1) };
+  return { bundle: liveCatalogEnabled ? bundle : null, failed, retry: () => setAttempt((n) => n + 1) };
 }
 
 export type LiveCatalog = Catalog & {
