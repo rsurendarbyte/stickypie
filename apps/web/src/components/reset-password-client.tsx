@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { CheckCircle2, Loader2, Unlink } from "lucide-react";
 import { authClient, updatePassword } from "@/lib/shopper-auth";
-import { TextField } from "./field";
+import AuthShell from "./auth-shell";
+import { PasswordField } from "./field";
 
 type Stage = "checking" | "ready" | "invalid" | "done";
 
@@ -48,7 +49,8 @@ export default function ResetPasswordClient() {
   }
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-sm px-4 pt-24 pb-24">
+    <AuthShell>
+      <div className="mx-auto w-full max-w-sm">
       {stage === "checking" && (
         <div className="grid place-items-center pt-16">
           <Loader2 className="size-8 animate-spin text-fog" />
@@ -56,7 +58,7 @@ export default function ResetPasswordClient() {
       )}
 
       {stage === "invalid" && (
-        <div className="rounded-2xl border border-line bg-ink2/40 p-6 text-center">
+        <div className="text-center lg:pt-8">
           <Unlink className="mx-auto size-10 text-fog" />
           <h1 className="mt-3 font-display text-xl font-bold">This link has expired</h1>
           <p className="mt-1 text-sm text-fog">
@@ -72,21 +74,19 @@ export default function ResetPasswordClient() {
       )}
 
       {stage === "ready" && (
-        <form onSubmit={submit} className="rounded-2xl border border-line bg-ink2/40 p-5 sm:p-6">
-          <h1 className="font-display text-2xl font-bold">Choose a new password</h1>
+        <form onSubmit={submit}>
+          <h1 className="font-display text-3xl font-bold">Choose a new password</h1>
           <p className="mt-1 text-sm text-fog">You&apos;ll be signed in once it&apos;s saved.</p>
           <div className="mt-5 space-y-3">
-            <TextField
+            <PasswordField
               label="New password"
-              type="password"
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               hint="8+ characters"
             />
-            <TextField
+            <PasswordField
               label="Type it again"
-              type="password"
               autoComplete="new-password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
@@ -100,7 +100,7 @@ export default function ResetPasswordClient() {
           <button
             type="submit"
             disabled={busy || !password || !confirm}
-            className="pie-gradient mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 disabled:opacity-60"
+            className="pie-gradient mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 disabled:opacity-60"
           >
             {busy && <Loader2 className="size-4 animate-spin" />}
             Save new password
@@ -109,7 +109,7 @@ export default function ResetPasswordClient() {
       )}
 
       {stage === "done" && (
-        <div className="rounded-2xl border border-line bg-ink2/40 p-6 text-center">
+        <div className="text-center lg:pt-8">
           <CheckCircle2 className="mx-auto size-12 text-mint" />
           <h1 className="mt-3 font-display text-xl font-bold">Password updated</h1>
           <p className="mt-1 text-sm text-fog">You&apos;re signed in with your new password.</p>
@@ -121,6 +121,7 @@ export default function ResetPasswordClient() {
           </Link>
         </div>
       )}
-    </div>
+      </div>
+    </AuthShell>
   );
 }

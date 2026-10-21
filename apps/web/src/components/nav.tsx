@@ -58,7 +58,7 @@ export default function Nav() {
           : "bg-gradient-to-b from-white via-white/70 to-transparent"
       }`}
     >
-      <div className="flex h-[72px] w-full items-center gap-3 px-4 sm:gap-6 sm:px-8 lg:px-12">
+      <div className="flex h-[72px] w-full items-center gap-2 px-3 sm:gap-6 sm:px-8 lg:px-12">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
           <span className="pie-gradient grid size-9 -rotate-6 place-items-center rounded-[11px] shadow-lg shadow-brand/30 transition-transform duration-300 hover:rotate-0">
             <Sticker className="size-5 text-white" strokeWidth={2.2} />
@@ -73,7 +73,7 @@ export default function Nav() {
           {navLink("/browse", "Browse")}
         </nav>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-1 sm:gap-2">
           <form
             onSubmit={submitSearch}
             className={`flex items-center rounded-full border transition-all duration-300 ${
@@ -108,7 +108,7 @@ export default function Nav() {
               href="/account"
               aria-label={shopper.email ? "My orders" : "Sign in"}
               title={shopper.email ? `My orders (${shopper.email})` : "Sign in"}
-              className={`grid size-10 place-items-center rounded-full transition-colors ${
+              className={`grid size-9 place-items-center rounded-full transition-colors sm:size-10 ${
                 shopper.email
                   ? "bg-brand/10 text-brand hover:bg-brand/15"
                   : "text-fog hover:bg-snow/5 hover:text-snow"

@@ -13,7 +13,8 @@ import {
   signOut,
   useShopper,
 } from "@/lib/shopper-auth";
-import { TextField } from "./field";
+import AuthShell from "./auth-shell";
+import { PasswordField, TextField } from "./field";
 
 const STATUS_STYLE: Record<OrderStatus, string> = {
   pending: "bg-gold/10 text-gold",
@@ -42,17 +43,26 @@ export default function AccountClient() {
       </div>
     );
   }
+  if (!shopper.email) {
+    return (
+      <AuthShell>
+        <SignInCard />
+      </AuthShell>
+    );
+  }
   return (
     <div className="mx-auto min-h-screen w-full max-w-3xl px-4 pt-24 pb-24 sm:px-8">
-      {shopper.email ? <OrderHistory email={shopper.email} /> : <SignInCard />}
+      <OrderHistory email={shopper.email} />
     </div>
   );
 }
 
 function SignInCard() {
   const [mode, setMode] = useState<"signin" | "create" | "forgot">("signin");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const [error, setError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -65,19 +75,27 @@ function SignInCard() {
   function switchTo(next: typeof mode) {
     setMode(next);
     setError(null);
+    setFieldErrors({});
     setSentTo(null);
   }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    const errors: typeof fieldErrors = {};
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) errors.email = "Enter a valid email";
+    if (mode === "create" && password.length < 8) errors.password = "Use at least 8 characters";
+    if (mode === "signin" && !password) errors.password = "Enter your password";
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) return;
+
     setBusy(true);
     try {
       if (mode === "forgot") {
         await requestPasswordReset(email);
         setSentTo(email.trim());
       } else if (mode === "create") {
-        await createAccount(email, password, "");
+        await createAccount(email, password, name.trim());
       } else {
         await signIn(email, password);
       }
@@ -90,78 +108,131 @@ function SignInCard() {
     }
   }
 
-  const title = { signin: "Sign in", create: "Create account", forgot: "Reset password" }[mode];
+  const copy = {
+    signin: { title: "Welcome back", sub: "Sign in to see your orders and check out faster.", button: "Sign in" },
+    create: { title: "Create your account", sub: "Takes ten seconds — no email confirmation needed.", button: "Create account" },
+    forgot: { title: "Reset your password", sub: "Enter your account email and we'll send you a link to choose a new password.", button: "Send reset link" },
+  }[mode];
 
   return (
-    <form
-      onSubmit={submit}
-      className="mx-auto max-w-sm rounded-2xl border border-line bg-ink2/40 p-5 sm:p-6"
-    >
-      <h1 className="font-display text-2xl font-bold">{title}</h1>
-      <p className="mt-1 text-sm text-fog">
-        {mode === "forgot"
-          ? "Enter your account email and we'll send you a link to choose a new password."
-          : "Track your orders and see your order history."}
-      </p>
+    <form onSubmit={submit} noValidate className="mx-auto w-full max-w-sm">
+      {mode !== "forgot" && (
+        <div className="grid grid-cols-2 rounded-full border border-line bg-ink2 p-1 text-sm font-semibold">
+          {(["signin", "create"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => switchTo(m)}
+              className={`rounded-full py-2 transition-all ${
+                mode === m ? "pie-gradient text-white shadow-md shadow-brand/25" : "text-fog hover:text-snow"
+              }`}
+            >
+              {m === "signin" ? "Sign in" : "Create account"}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <h1 className="mt-7 font-display text-3xl font-bold">{copy.title}</h1>
+      <p className="mt-1.5 text-sm text-fog">{copy.sub}</p>
 
       {sentTo ? (
-        <p className="mt-5 rounded-lg border border-mint/40 bg-mint/10 px-3 py-3 text-sm text-snow">
-          If an account exists for <span className="font-semibold">{sentTo}</span>, a reset link is
-          on its way. Check your inbox (and spam folder) — the link works once.
-        </p>
+        <div className="mt-6 rounded-2xl border border-mint/40 bg-mint/10 p-4 text-sm">
+          <p className="font-semibold text-snow">Check your inbox</p>
+          <p className="mt-1 text-fog">
+            If an account exists for <span className="font-semibold text-snow">{sentTo}</span>, a
+            reset link is on its way. Look in spam too — the link works once.
+          </p>
+        </div>
       ) : (
         <>
-          <div className="mt-5 space-y-3">
+          <div className="mt-6 space-y-3.5">
+            {mode === "create" && (
+              <TextField
+                label="Your name"
+                autoComplete="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            )}
             <TextField
               label="Email"
               type="email"
               autoComplete="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              error={fieldErrors.email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setFieldErrors((f) => ({ ...f, email: undefined }));
+              }}
             />
             {mode !== "forgot" && (
-              <TextField
-                label="Password"
-                type="password"
-                autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                hint={mode === "create" ? "8+ characters" : undefined}
-              />
+              <div>
+                <PasswordField
+                  label="Password"
+                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                  value={password}
+                  error={fieldErrors.password}
+                  hint={mode === "create" ? "At least 8 characters" : undefined}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setFieldErrors((f) => ({ ...f, password: undefined }));
+                  }}
+                />
+                {mode === "signin" && (
+                  <div className="mt-2 text-right">
+                    <button
+                      type="button"
+                      onClick={() => switchTo("forgot")}
+                      className="text-xs font-semibold text-brand hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
-          {mode === "signin" && (
-            <button
-              type="button"
-              onClick={() => switchTo("forgot")}
-              className="mt-2 text-xs font-semibold text-fog hover:text-brand"
-            >
-              Forgot password?
-            </button>
-          )}
+
           {error && (
-            <p className="mt-3 rounded-lg border border-brand/40 bg-brand/10 px-3 py-2 text-xs text-brand">
+            <p className="mt-4 rounded-xl border border-brand/40 bg-brand/10 px-3.5 py-2.5 text-sm text-brand">
               {error}
             </p>
           )}
+
           <button
             type="submit"
-            disabled={busy || !email || (mode !== "forgot" && !password)}
-            className="pie-gradient mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 disabled:opacity-60"
+            disabled={busy}
+            className="pie-gradient mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-wait"
           >
             {busy && <Loader2 className="size-4 animate-spin" />}
-            {mode === "forgot" ? "Send reset link" : title}
+            {copy.button}
           </button>
         </>
       )}
 
-      <button
-        type="button"
-        onClick={() => switchTo(mode === "signin" ? "create" : "signin")}
-        className="mt-3 w-full text-center text-xs font-semibold text-brand hover:underline"
-      >
-        {mode === "signin" ? "New here? Create an account" : "Back to sign in"}
-      </button>
+      {mode === "create" && (
+        <p className="mt-4 text-center text-xs text-fog">
+          By creating an account you agree to our{" "}
+          <Link href="/legal/terms" className="font-semibold text-snow hover:text-brand">
+            Terms
+          </Link>{" "}
+          and{" "}
+          <Link href="/legal/privacy" className="font-semibold text-snow hover:text-brand">
+            Privacy Policy
+          </Link>
+          .
+        </p>
+      )}
+      {mode === "forgot" && (
+        <button
+          type="button"
+          onClick={() => switchTo("signin")}
+          className="mt-5 w-full text-center text-sm font-semibold text-brand hover:underline"
+        >
+          ← Back to sign in
+        </button>
+      )}
     </form>
   );
 }

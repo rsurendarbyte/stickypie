@@ -2,7 +2,8 @@
 
 // Material-style form controls: filled fields with floating labels, themed
 // selects and checkboxes. Shared look for every input in the storefront.
-import { Check, ChevronDown } from "lucide-react";
+import { useState } from "react";
+import { Check, ChevronDown, Eye, EyeOff } from "lucide-react";
 
 function shell(error?: string): string {
   return `relative block rounded-xl border bg-ink2/70 transition-all duration-200 ${
@@ -34,12 +35,15 @@ export function TextField({
   error,
   hint,
   className = "",
+  trailing,
   ...rest
 }: {
   label: string;
   error?: string;
   hint?: string;
   className?: string;
+  /** Control shown inside the field on the right (e.g. a show-password toggle). */
+  trailing?: React.ReactNode;
 } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <label className={`block ${className}`}>
@@ -47,12 +51,36 @@ export function TextField({
         <input
           {...rest}
           placeholder=" "
-          className="peer h-14 w-full bg-transparent px-4 pt-4 pb-0.5 text-sm text-snow outline-none placeholder-transparent"
+          className={`peer h-14 w-full bg-transparent px-4 pt-4 pb-0.5 text-sm text-snow outline-none placeholder-transparent ${
+            trailing ? "pr-12" : ""
+          }`}
         />
         <span className={FLOAT_LABEL}>{label}</span>
+        {trailing && <span className="absolute top-1/2 right-2 -translate-y-1/2">{trailing}</span>}
       </span>
       <Message error={error} hint={hint} />
     </label>
+  );
+}
+
+/** Password input with a show/hide toggle. */
+export function PasswordField(props: Omit<React.ComponentProps<typeof TextField>, "type" | "trailing">) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <TextField
+      {...props}
+      type={visible ? "text" : "password"}
+      trailing={
+        <button
+          type="button"
+          onClick={() => setVisible((v) => !v)}
+          aria-label={visible ? "Hide password" : "Show password"}
+          className="grid size-9 place-items-center rounded-lg text-fog transition-colors hover:bg-snow/5 hover:text-snow"
+        >
+          {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+        </button>
+      }
+    />
   );
 }
 
