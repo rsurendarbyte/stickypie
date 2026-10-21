@@ -92,7 +92,7 @@ const DOCS: Record<string, LegalDoc> = {
       {
         heading: "Damaged or wrong items",
         body: [
-          "If your stickers arrive damaged, misprinted, or incorrect, send us a photo within 7 days of delivery. We'll replace them free of charge or issue a full refund — your choice.",
+          "If your stickers arrive damaged, misprinted, or incorrect, send us a photo within 7 days of delivery and we'll send a replacement free of charge. Damaged or wrong items are replaced, not refunded.",
         ],
       },
       {
