@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { CheckCircle2, Clock3, PackageX, RefreshCw, XCircle } from "lucide-react";
 import { STATUS_LABELS, formatDateTime, formatINR, orderCode } from "@stickypie/shared";
 import ClearCartOnPaid from "@/components/clear-cart-on-paid";
+import OrderTracking from "@/components/order-tracking";
 import { getCfOrder } from "@/lib/cashfree";
 import { getDriver } from "@/lib/data";
 import { cashfreeConfigured } from "@/lib/mode";
@@ -51,11 +52,18 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
           <>
             <CheckCircle2 className="mx-auto size-16 animate-pop text-mint" />
             <h1 className="mt-4 font-display text-3xl font-bold sm:text-4xl">
-              Order confirmed! 🎉
+              {order.status === "delivered"
+                ? "Delivered 🎉"
+                : order.status === "shipped"
+                  ? "On its way 🚚"
+                  : order.status === "packed"
+                    ? "Packed & ready to ship"
+                    : "Order confirmed! 🎉"}
             </h1>
             <p className="mt-2 text-sm text-fog">
-              Thanks {order.customerName.split(" ")[0]} — your stickers are getting packed. A
-              confirmation has been noted for {order.email}.
+              {order.status === "paid"
+                ? `Thanks ${order.customerName.split(" ")[0]} — your stickers are getting packed.`
+                : `Thanks ${order.customerName.split(" ")[0]} — follow your order below.`}
             </p>
           </>
         )}
@@ -101,7 +109,16 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         )}
       </div>
 
-      <div className="mt-10 grid gap-5 md:grid-cols-[1.4fr_1fr]">
+      {paid && (
+        <section className="mt-10 rounded-2xl border border-line bg-ink2 p-5">
+          <h2 className="font-display text-lg font-semibold">Order tracking</h2>
+          <div className="mt-4">
+            <OrderTracking order={order} />
+          </div>
+        </section>
+      )}
+
+      <div className="mt-5 grid gap-5 md:grid-cols-[1.4fr_1fr]">
         <section className="rounded-2xl border border-line bg-ink2 p-5">
           <div className="flex items-baseline justify-between">
             <h2 className="font-display text-lg font-semibold">
@@ -193,8 +210,13 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
 
-      <div className="mt-10 text-center">
-        <Link href="/browse" className="text-sm text-brand hover:underline">
+      <div className="mt-10 flex items-center justify-center gap-6 text-sm">
+        {order.userId && (
+          <Link href="/account" className="text-brand hover:underline">
+            ← My orders
+          </Link>
+        )}
+        <Link href="/browse" className="text-brand hover:underline">
           Continue shopping →
         </Link>
       </div>

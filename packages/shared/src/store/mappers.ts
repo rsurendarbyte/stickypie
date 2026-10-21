@@ -64,6 +64,13 @@ export function rowToOrder(r: any): Order {
     createdAt: r.created_at,
     updatedAt: r.updated_at,
     paidAt: r.paid_at,
+    userId: r.user_id ?? null,
+    packedAt: r.packed_at ?? null,
+    shippedAt: r.shipped_at ?? null,
+    deliveredAt: r.delivered_at ?? null,
+    courier: r.courier ?? null,
+    trackingNumber: r.tracking_number ?? null,
+    trackingUrl: r.tracking_url ?? null,
     items: Array.isArray(r.order_items) ? r.order_items.map(rowToItem) : [],
   };
 }

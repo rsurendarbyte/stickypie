@@ -143,6 +143,46 @@ export default async function OrderDetailPage({
               )}
             </dl>
           </section>
+
+          {(order.packedAt || order.shippedAt || order.deliveredAt) && (
+            <section className="rounded-2xl border border-line bg-ink2 p-5">
+              <h2 className="font-display text-lg font-semibold">Fulfilment</h2>
+              <dl className="mt-3 space-y-1.5 text-sm">
+                {(
+                  [
+                    ["Packed", order.packedAt],
+                    ["Shipped", order.shippedAt],
+                    ["Delivered", order.deliveredAt],
+                  ] as const
+                ).map(([label, at]) =>
+                  at ? (
+                    <div key={label} className="flex justify-between">
+                      <dt className="text-fog">{label}</dt>
+                      <dd>{formatDateTime(at)}</dd>
+                    </div>
+                  ) : null
+                )}
+                {order.courier && (
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-fog">Courier</dt>
+                    <dd className="truncate">
+                      {order.courier} · {order.trackingNumber}
+                    </dd>
+                  </div>
+                )}
+                {order.trackingUrl && (
+                  <a
+                    href={order.trackingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block truncate text-xs text-brand hover:underline"
+                  >
+                    {order.trackingUrl}
+                  </a>
+                )}
+              </dl>
+            </section>
+          )}
         </div>
       </div>
     </div>

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Ban, Loader2, PackageCheck, PackageOpen, Truck } from "lucide-react";
 import type { Order } from "@stickypie/shared";
+import { TextField } from "./field";
 import { useToast } from "./toast";
 
 const NEXT_STEP: Partial<
@@ -18,6 +19,11 @@ export default function OrderActions({ order }: { order: Order }) {
   const router = useRouter();
   const { toast } = useToast();
   const [busy, setBusy] = useState<string | null>(null);
+  // Shipping asks for courier details so the shopper can track the parcel.
+  const [shipping, setShipping] = useState(false);
+  const [courier, setCourier] = useState("");
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [trackingUrl, setTrackingUrl] = useState("");
 
   const next = NEXT_STEP[order.status];
   const cancellable = ["pending", "paid", "packed"].includes(order.status);
@@ -42,6 +48,62 @@ export default function OrderActions({ order }: { order: Order }) {
 
   if (!next && !cancellable) return null;
 
+  if (shipping) {
+    return (
+      <form
+        className="w-full max-w-md space-y-3 rounded-2xl border border-line bg-ink2 p-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          setBusy("next");
+          post(
+            `/api/orders/${order.id}/status`,
+            {
+              status: "shipped",
+              shipment: {
+                courier,
+                trackingNumber,
+                trackingUrl: trackingUrl.trim() === "" ? null : trackingUrl,
+              },
+            },
+            "Order marked as shipped"
+          ).then(() => setShipping(false));
+        }}
+      >
+        <p className="text-sm font-semibold">Shipping details (shown to the customer)</p>
+        <TextField label="Courier" value={courier} onChange={(e) => setCourier(e.target.value)} hint="e.g. India Post, Delhivery, DTDC" />
+        <TextField
+          label="Tracking number"
+          value={trackingNumber}
+          onChange={(e) => setTrackingNumber(e.target.value)}
+        />
+        <TextField
+          label="Tracking link (optional)"
+          type="url"
+          value={trackingUrl}
+          onChange={(e) => setTrackingUrl(e.target.value)}
+          hint="https://… page where the customer can track the parcel"
+        />
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            disabled={busy !== null || courier.trim().length < 2 || trackingNumber.trim().length < 3}
+            className="pie-gradient flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 disabled:opacity-60"
+          >
+            {busy === "next" ? <Loader2 className="size-4 animate-spin" /> : <Truck className="size-4" />}
+            Confirm shipped
+          </button>
+          <button
+            type="button"
+            onClick={() => setShipping(false)}
+            className="rounded-xl border border-line px-4 py-2.5 text-sm font-semibold text-fog hover:text-snow"
+          >
+            Back
+          </button>
+        </div>
+      </form>
+    );
+  }
+
   return (
     <div className="flex flex-wrap gap-2">
       {next && (
@@ -49,6 +111,10 @@ export default function OrderActions({ order }: { order: Order }) {
           type="button"
           disabled={busy !== null}
           onClick={() => {
+            if (next.status === "shipped") {
+              setShipping(true);
+              return;
+            }
             setBusy("next");
             post(
               `/api/orders/${order.id}/status`,

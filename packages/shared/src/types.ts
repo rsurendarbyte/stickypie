@@ -81,7 +81,21 @@ export type Order = {
   createdAt: string;
   updatedAt: string;
   paidAt: string | null;
+  /** The shopper account that placed it (null for demo-mode/legacy orders). */
+  userId: string | null;
+  packedAt: string | null;
+  shippedAt: string | null;
+  deliveredAt: string | null;
+  courier: string | null;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
   items: OrderItem[];
+};
+
+export type ShipmentInfo = {
+  courier: string;
+  trackingNumber: string;
+  trackingUrl: string | null;
 };
 
 export type ProductInput = {
@@ -118,6 +132,7 @@ export type NewOrderInput = {
   shippingFee: number;
   total: number;
   paymentProvider: PaymentProvider;
+  userId: string | null;
 };
 
 export type AdminStats = {
@@ -162,7 +177,12 @@ export interface DataDriver {
   ): Promise<Order>;
   markOrderFailed(id: string, note?: string | null): Promise<Order>;
   /** Fulfillment transitions only: paid→packed→shipped→delivered. */
-  updateOrderStatus(id: string, status: "packed" | "shipped" | "delivered"): Promise<Order>;
+  /** Courier details are saved when marking an order shipped. */
+  updateOrderStatus(
+    id: string,
+    status: "packed" | "shipped" | "delivered",
+    shipment?: ShipmentInfo
+  ): Promise<Order>;
   /** Allowed from pending/paid/packed; restocks items if payment had been captured. */
   cancelOrder(id: string): Promise<Order>;
   setCfOrderId(id: string, cfOrderId: string): Promise<void>;

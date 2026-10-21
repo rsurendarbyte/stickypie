@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Search, ShoppingBag, Sticker, X } from "lucide-react";
+import { Search, ShoppingBag, Sticker, UserRound, X } from "lucide-react";
+import { useShopper } from "@/lib/shopper-auth";
 import { useCart } from "./cart-context";
 
 export default function Nav() {
@@ -12,6 +13,7 @@ export default function Nav() {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const { count, openCart } = useCart();
+  const shopper = useShopper();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -100,6 +102,21 @@ export default function Nav() {
               />
             )}
           </form>
+
+          {shopper.enabled && (
+            <Link
+              href="/account"
+              aria-label={shopper.email ? "My orders" : "Sign in"}
+              title={shopper.email ? `My orders (${shopper.email})` : "Sign in"}
+              className={`grid size-10 place-items-center rounded-full transition-colors ${
+                shopper.email
+                  ? "bg-brand/10 text-brand hover:bg-brand/15"
+                  : "text-fog hover:bg-snow/5 hover:text-snow"
+              }`}
+            >
+              <UserRound className="size-[18px]" />
+            </Link>
+          )}
 
           <button
             type="button"

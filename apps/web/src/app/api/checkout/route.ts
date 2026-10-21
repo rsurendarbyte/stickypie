@@ -8,6 +8,7 @@ import {
 import { createCfOrder } from "@/lib/cashfree";
 import { getDriver } from "@/lib/data";
 import { cashfreeConfigured, cashfreeEnv, paymentSimulatorAllowed, siteUrl } from "@/lib/mode";
+import { accountsEnabled, shopperFromRequest } from "@/lib/shopper";
 
 export async function POST(req: Request) {
   if (!cashfreeConfigured() && !paymentSimulatorAllowed()) {
@@ -30,7 +31,21 @@ export async function POST(req: Request) {
     const first = parsed.error.issues[0];
     return NextResponse.json({ error: first?.message ?? "Invalid input" }, { status: 400 });
   }
-  const { customer, items } = parsed.data;
+  // Orders are placed from a shopper account (demo mode stays guest-only).
+  let userId: string | null = null;
+  let customer = parsed.data.customer;
+  const { items } = parsed.data;
+  if (accountsEnabled()) {
+    const shopper = await shopperFromRequest(req);
+    if (!shopper) {
+      return NextResponse.json(
+        { error: "Please sign in to place your order.", code: "auth_required" },
+        { status: 401 }
+      );
+    }
+    userId = shopper.id;
+    customer = { ...customer, email: shopper.email };
+  }
 
   // Merge duplicate product ids, then re-price everything server-side.
   const qtyById = new Map<string, number>();
@@ -89,6 +104,7 @@ export async function POST(req: Request) {
     shippingFee,
     total,
     paymentProvider: provider,
+    userId,
   });
 
   if (provider === "simulator") {

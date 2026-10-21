@@ -172,6 +172,7 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
           shipping_fee: input.shippingFee,
           total: input.total,
           payment_provider: input.paymentProvider,
+          ...(input.userId ? { user_id: input.userId } : {}),
         })
         .select()
         .single();
@@ -223,7 +224,7 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
       return getOrderOrThrow(id);
     },
 
-    async updateOrderStatus(id, status) {
+    async updateOrderStatus(id, status, shipment) {
       const allowedFrom: Record<string, string> = {
         packed: "paid",
         shipped: "packed",
@@ -233,7 +234,14 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
       if (current.status !== allowedFrom[status]) {
         throw new Error(`Cannot mark a "${current.status}" order as "${status}"`);
       }
-      const { error } = await client.from("orders").update({ status }).eq("id", id);
+      // packed_at / shipped_at / delivered_at are stamped by a database trigger.
+      const changes: Record<string, unknown> = { status };
+      if (status === "shipped" && shipment) {
+        changes.courier = shipment.courier;
+        changes.tracking_number = shipment.trackingNumber;
+        changes.tracking_url = shipment.trackingUrl;
+      }
+      const { error } = await client.from("orders").update(changes).eq("id", id);
       if (error) throw friendly(error);
       return getOrderOrThrow(id);
     },

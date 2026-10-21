@@ -75,3 +75,21 @@ export const categoryInputSchema = z.object({
 });
 
 export const fulfillmentStatusSchema = z.enum(["packed", "shipped", "delivered"]);
+
+export const shipmentSchema = z.object({
+  courier: z.string().trim().min(2, "Enter the courier name").max(60),
+  trackingNumber: z.string().trim().min(3, "Enter the tracking number").max(60),
+  trackingUrl: z
+    .string()
+    .trim()
+    .url("Tracking link must be a full https:// URL")
+    .max(300)
+    .nullable()
+    .default(null),
+});
+
+export const signupSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email"),
+  password: z.string().min(8, "Use at least 8 characters").max(72),
+  name: z.string().trim().max(80).default(""),
+});

@@ -230,6 +230,13 @@ export function createLocalDriver(filePath: string): DataDriver {
         createdAt: ts,
         updatedAt: ts,
         paidAt: null,
+        userId: input.userId,
+        packedAt: null,
+        shippedAt: null,
+        deliveredAt: null,
+        courier: null,
+        trackingNumber: null,
+        trackingUrl: null,
         items: input.items.map((item) => ({
           id: randomUUID(),
           orderId: id,
@@ -288,7 +295,7 @@ export function createLocalDriver(filePath: string): DataDriver {
       return order;
     },
 
-    async updateOrderStatus(id, status) {
+    async updateOrderStatus(id, status, shipment) {
       const allowedFrom: Record<string, OrderStatus> = {
         packed: "paid",
         shipped: "packed",
@@ -299,8 +306,19 @@ export function createLocalDriver(filePath: string): DataDriver {
       if (order.status !== allowedFrom[status]) {
         throw new Error(`Cannot mark a "${order.status}" order as "${status}"`);
       }
+      const ts = now();
       order.status = status;
-      order.updatedAt = now();
+      order.updatedAt = ts;
+      if (status === "packed") order.packedAt = ts;
+      if (status === "delivered") order.deliveredAt = ts;
+      if (status === "shipped") {
+        order.shippedAt = ts;
+        if (shipment) {
+          order.courier = shipment.courier;
+          order.trackingNumber = shipment.trackingNumber;
+          order.trackingUrl = shipment.trackingUrl;
+        }
+      }
       persist(store);
       return order;
     },
