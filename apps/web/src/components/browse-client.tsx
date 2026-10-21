@@ -50,6 +50,12 @@ export default function BrowseClient({ initial }: { initial: Catalog }) {
   }, [products, categories, q, category, sort]);
 
   const activeCategoryName = categories.find((c) => c.slug === category)?.name;
+  // Only categories that have stickers on sale (plus the one being viewed),
+  // so a big category list never shows dead-end chips.
+  const shownCategories = useMemo(() => {
+    const used = new Set(products.map((p) => p.categoryId));
+    return categories.filter((c) => used.has(c.id) || c.slug === category);
+  }, [categories, products, category]);
 
   const chip = (active: boolean) =>
     `shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium transition-all ${
@@ -78,7 +84,7 @@ export default function BrowseClient({ initial }: { initial: Catalog }) {
           <button type="button" className={chip(!category)} onClick={() => update({ category: "" })}>
             All
           </button>
-          {categories.map((c) => (
+          {shownCategories.map((c) => (
             <button
               key={c.id}
               type="button"
