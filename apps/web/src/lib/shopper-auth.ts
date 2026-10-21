@@ -88,6 +88,18 @@ export async function createAccount(email: string, password: string, name: strin
   }
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
+    if (data.code === "exists") {
+      // Returning shopper picked "New here": the right password just signs them in.
+      try {
+        return await signIn(email, password);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "";
+        if (message === NETWORK_ERROR) throw err;
+        throw new Error(
+          "An account with this email already exists, but that password doesn't match — sign in or reset your password."
+        );
+      }
+    }
     throw new Error(typeof data.error === "string" ? data.error : "Could not create your account.");
   }
   return signIn(email, password);

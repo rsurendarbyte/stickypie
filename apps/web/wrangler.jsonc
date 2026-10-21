@@ -34,8 +34,12 @@
 
   "env": {
     "production": {
-      "routes": [{ "pattern": "stickypie.in", "custom_domain": true }],
-      // No *.workers.dev or preview hosts in production — one canonical domain.
+      "routes": [
+        { "pattern": "stickypie.in", "custom_domain": true },
+        { "pattern": "www.stickypie.in", "custom_domain": true }
+      ],
+      // No *.workers.dev or preview hosts in production — www redirects to the
+      // one canonical domain (next.config.ts).
       "workers_dev": false,
       "preview_urls": false,
       "vars": {
