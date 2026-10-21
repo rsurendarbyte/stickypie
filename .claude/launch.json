@@ -4,14 +4,29 @@
     {
       "name": "web",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:web"],
+      "runtimeArgs": [
+        "run",
+        "dev:web"
+      ],
       "port": 3000
     },
     {
       "name": "admin",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:admin"],
+      "runtimeArgs": [
+        "run",
+        "dev:admin"
+      ],
       "port": 3100
+    },
+    {
+      "name": "admin-prod",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "admin:prod"
+      ],
+      "port": 3200
     }
   ]
 }
