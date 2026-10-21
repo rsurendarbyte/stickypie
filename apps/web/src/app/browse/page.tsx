@@ -4,6 +4,7 @@ import BrowseClient from "@/components/browse-client";
 import { productSnapshot } from "@/lib/catalog-snapshot";
 import { getDriver } from "@/lib/data";
 import { pageMetadata } from "@/lib/site";
+import StickerLoader from "@/components/sticker-loader";
 
 // Static shell: products load live in the browser (on-sale only) and all
 // search/filter/sort happens client-side (zero Worker requests).
@@ -27,7 +28,7 @@ export default async function BrowsePage() {
       <Suspense
         fallback={
           <div className="grid min-h-[40vh] place-items-center">
-            <div className="size-10 animate-spin rounded-full border-2 border-line border-t-brand" />
+            <StickerLoader size={56} />
           </div>
         }
       >

@@ -133,6 +133,20 @@ export const storeSettingsSchema = z.object({
     .transform((s) => matchIndianState(s) ?? s)
     .refine((s) => (INDIAN_STATES as readonly string[]).includes(s), "Choose your state")
     .nullable(),
+  business: z.object({
+    name: z.string().trim().max(120).nullable().transform((s) => s || null),
+    gstin: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .nullable()
+      .transform((s) => s || null)
+      .refine((s) => s === null || /^[0-9]{2}[A-Z0-9]{10}[0-9A-Z]Z[0-9A-Z]$/.test(s), "Enter a valid 15-character GSTIN"),
+    address: z.string().trim().max(300).nullable().transform((s) => s || null),
+    hsn: z.string().trim().regex(/^\d{4,8}$/, "HSN is 4–8 digits"),
+    gstRate: z.number().min(0).max(28),
+    invoicePrefix: z.string().trim().toUpperCase().regex(/^[A-Z0-9-]{1,8}$/, "Prefix: up to 8 letters/digits"),
+  }),
   rates: z.object({
     local: rupees("the same-city rate"),
     state: rupees("the within-state rate"),

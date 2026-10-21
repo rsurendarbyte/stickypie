@@ -32,7 +32,12 @@ button:not(:disabled),
 body {
   background-color: var(--color-ink);
   color: var(--color-snow);
-  /* App-like feel: double-click / rapid taps must not select text */
+}
+
+/* Home + sticker pages feel like an app: rapid taps / double-clicks must not
+   select text. Everywhere else (orders, account, contact, legal…) text stays
+   selectable so shoppers can copy order numbers, addresses and so on. */
+.no-select {
   -webkit-user-select: none;
   user-select: none;
 }
@@ -203,4 +208,203 @@ select option {
 }
 .animate-spin-slow {
   animation: spin-slow 2.4s linear infinite;
+}
+
+/* Custom dropdown panel */
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.animate-dropdown-in {
+  animation: dropdown-in 0.16s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* ── Sticker-peel loading animation ─────────────────────────────────────────
+   A sticker whose bottom-right corner lifts (showing the paper backing) and
+   lays back down. Used by every loader and skeleton in the shop.
+   --peel-face: sticker colour · --peel-back: backing paper · --peel-dur. */
+.peel {
+  --peel-face: #ffffff;
+  --peel-back: linear-gradient(135deg, #ffffff 0%, #eef0f4 50%, #cdd3dd 100%);
+  --peel-dur: 2.2s;
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.peel-face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 22%;
+  background: var(--peel-face);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.12), 0 6px 18px -6px rgba(16, 24, 40, 0.25);
+  animation: peel-face var(--peel-dur) cubic-bezier(0.45, 0, 0.25, 1) infinite;
+  animation-delay: var(--peel-delay, 0s);
+}
+.peel-flap-wrap {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  filter: drop-shadow(-2px -2px 3px rgba(16, 24, 40, 0.22));
+  animation: peel-flap var(--peel-dur) cubic-bezier(0.45, 0, 0.25, 1) infinite;
+  animation-delay: var(--peel-delay, 0s);
+}
+.peel-flap {
+  width: 100%;
+  height: 100%;
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  background: var(--peel-back);
+  border-top-left-radius: 18%;
+}
+@keyframes peel-face {
+  0%,
+  12% {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 100% 100%, 0 100%);
+  }
+  48%,
+  60% {
+    clip-path: polygon(0 0, 100% 0, 100% 50%, 50% 100%, 0 100%);
+  }
+  100% {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 100% 100%, 0 100%);
+  }
+}
+@keyframes peel-flap {
+  0%,
+  12% {
+    width: 0;
+    height: 0;
+  }
+  48%,
+  60% {
+    width: 50%;
+    height: 50%;
+  }
+  100% {
+    width: 0;
+    height: 0;
+  }
+}
+/* Blank sticker for skeletons */
+.peel-blank {
+  --peel-face: #e8ebf1;
+  --peel-back: linear-gradient(135deg, #f7f8fa 0%, #eef0f4 55%, #d9dde5 100%);
+}
+.peel-blank .peel-face {
+  box-shadow: none;
+}
+/* Tiny white sticker for buttons on gradients */
+.peel-on-brand {
+  --peel-back: linear-gradient(135deg, #ffffff 0%, #ffe3ea 60%, #ffc2d1 100%);
+}
+
+/* Shimmer for skeleton text bars */
+.shimmer {
+  background: linear-gradient(90deg, #edeff4 0%, #f7f8fa 45%, #edeff4 90%);
+  background-size: 220% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+@keyframes shimmer {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .peel-face,
+  .peel-flap-wrap,
+  .shimmer {
+    animation: none;
+  }
+}
+
+/* Gentle, slow loop for the header logo: rests flat most of the time, then
+   the corner lifts a little, holds, and settles back. */
+.peel-gentle {
+  --peel-dur: 7s;
+  --peel-face: transparent;
+}
+.peel-gentle .peel-face {
+  border-radius: 11px;
+  box-shadow: none;
+  animation-name: peel-face-gentle;
+  animation-timing-function: cubic-bezier(0.37, 0, 0.25, 1);
+}
+.peel-gentle .peel-flap-wrap {
+  animation-name: peel-flap-gentle;
+  animation-timing-function: cubic-bezier(0.37, 0, 0.25, 1);
+  filter: drop-shadow(-1px -1px 2px rgba(16, 24, 40, 0.18));
+}
+@keyframes peel-face-gentle {
+  0%,
+  55% {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 100% 100%, 0 100%);
+  }
+  72%,
+  82% {
+    clip-path: polygon(0 0, 100% 0, 100% 66%, 66% 100%, 0 100%);
+  }
+  100% {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 100% 100%, 0 100%);
+  }
+}
+@keyframes peel-flap-gentle {
+  0%,
+  55% {
+    width: 0;
+    height: 0;
+  }
+  72%,
+  82% {
+    width: 34%;
+    height: 34%;
+  }
+  100% {
+    width: 0;
+    height: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .peel-gentle .peel-face,
+  .peel-gentle .peel-flap-wrap {
+    animation: none;
+  }
+}
+
+/* GST invoice: print / "Save as PDF" shows only the invoice. */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+  body * {
+    visibility: hidden !important;
+  }
+  .invoice-print,
+  .invoice-print * {
+    visibility: visible !important;
+  }
+  .invoice-print {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  .print-hide {
+    display: none !important;
+  }
 }

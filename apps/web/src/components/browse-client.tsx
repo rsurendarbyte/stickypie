@@ -6,6 +6,7 @@ import ProductCard from "./product-card";
 import ProductCardSkeleton from "./product-card-skeleton";
 import { SelectField } from "./field";
 import { useLiveCatalog, type Catalog } from "@/lib/live-catalog";
+import { useWindowScrollMemory } from "@/lib/scroll-memory";
 
 /**
  * Client-side catalog browser. The page ships as a free static asset with a
@@ -14,6 +15,7 @@ import { useLiveCatalog, type Catalog } from "@/lib/live-catalog";
  */
 export default function BrowseClient({ initial }: { initial: Catalog }) {
   const { categories, products, loaded, failed, retry } = useLiveCatalog(initial);
+  useWindowScrollMemory(loaded);
   const router = useRouter();
   const params = useSearchParams();
   const q = params.get("q") ?? "";
@@ -116,7 +118,7 @@ export default function BrowseClient({ initial }: { initial: Catalog }) {
           className="mt-8 grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8"
         >
           {Array.from({ length: 12 }, (_, i) => (
-            <ProductCardSkeleton key={i} width="w-full" />
+            <ProductCardSkeleton key={i} index={i} width="w-full" />
           ))}
         </div>
       ) : failed && products.length === 0 ? (

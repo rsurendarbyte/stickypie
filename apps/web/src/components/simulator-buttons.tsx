@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CheckCircle2, Loader2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle } from "lucide-react";
+import StickerLoader from "./sticker-loader";
 
 export default function SimulatorButtons({ orderId }: { orderId: string }) {
   const router = useRouter();
@@ -39,7 +40,7 @@ export default function SimulatorButtons({ orderId }: { orderId: string }) {
         className="flex w-full items-center justify-center gap-2 rounded-xl bg-mint/90 py-3 text-sm font-bold text-ink transition-all hover:bg-mint disabled:opacity-60"
       >
         {busy === "success" ? (
-          <Loader2 className="size-4 animate-spin" />
+          <StickerLoader size={18} variant="onBrand" />
         ) : (
           <CheckCircle2 className="size-4" />
         )}
@@ -52,7 +53,7 @@ export default function SimulatorButtons({ orderId }: { orderId: string }) {
         className="flex w-full items-center justify-center gap-2 rounded-xl border border-brand/40 bg-brand/10 py-3 text-sm font-bold text-brand transition-all hover:bg-brand/20 disabled:opacity-60"
       >
         {busy === "failure" ? (
-          <Loader2 className="size-4 animate-spin" />
+          <StickerLoader size={18} variant="onBrand" />
         ) : (
           <XCircle className="size-4" />
         )}

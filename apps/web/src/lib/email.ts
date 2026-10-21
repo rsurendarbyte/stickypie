@@ -2,7 +2,11 @@
 // Without RESEND_API_KEY (e.g. local dev) emails are skipped, never fatal.
 import { SUPPORT_EMAIL, type EmailContent } from "@stickypie/shared";
 
-export async function sendEmail(to: string, content: EmailContent): Promise<boolean> {
+export async function sendEmail(
+  to: string,
+  content: EmailContent,
+  opts: { replyTo?: string } = {}
+): Promise<boolean> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.warn(`[email] RESEND_API_KEY not set — skipped "${content.subject}"`);
@@ -15,7 +19,7 @@ export async function sendEmail(to: string, content: EmailContent): Promise<bool
       body: JSON.stringify({
         from: process.env.EMAIL_FROM ?? "StickyPie <noreply@stickypie.in>",
         to: [to],
-        reply_to: SUPPORT_EMAIL,
+        reply_to: opts.replyTo ?? SUPPORT_EMAIL,
         subject: content.subject,
         html: content.html,
         text: content.text,

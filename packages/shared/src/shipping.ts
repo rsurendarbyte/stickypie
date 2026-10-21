@@ -12,6 +12,19 @@ export type StoreSettings = {
   originState: string | null;
   /** Shipping fee (₹) per zone. */
   rates: Record<ShippingZone, number>;
+  /** Seller details printed on GST invoices. */
+  business: BusinessDetails;
+};
+
+export type BusinessDetails = {
+  name: string | null;
+  gstin: string | null;
+  address: string | null;
+  /** HSN code printed on invoice lines (3919 = self-adhesive plastic). */
+  hsn: string;
+  /** GST % included in prices (e.g. 18). */
+  gstRate: number;
+  invoicePrefix: string;
 };
 
 export const DEFAULT_STORE_SETTINGS: StoreSettings = {
@@ -19,6 +32,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   originPincode: null,
   originState: null,
   rates: { local: 40, state: 50, national: 70, remote: 90 },
+  business: { name: null, gstin: null, address: null, hsn: "3919", gstRate: 18, invoicePrefix: "SP" },
 };
 
 /** Couriers price these as special / remote zones. */
@@ -85,6 +99,14 @@ export function rowToSettings(r: any): StoreSettings {
       national: Number(r.ship_national ?? DEFAULT_STORE_SETTINGS.rates.national),
       remote: Number(r.ship_remote ?? DEFAULT_STORE_SETTINGS.rates.remote),
     },
+    business: {
+      name: r.business_name ?? null,
+      gstin: r.gstin ?? null,
+      address: r.business_address ?? null,
+      hsn: r.invoice_hsn ?? DEFAULT_STORE_SETTINGS.business.hsn,
+      gstRate: r.gst_rate == null ? DEFAULT_STORE_SETTINGS.business.gstRate : Number(r.gst_rate),
+      invoicePrefix: r.invoice_prefix ?? DEFAULT_STORE_SETTINGS.business.invoicePrefix,
+    },
   };
 }
 
@@ -97,5 +119,11 @@ export function settingsToRow(s: StoreSettings): Record<string, unknown> {
     ship_state: s.rates.state,
     ship_national: s.rates.national,
     ship_remote: s.rates.remote,
+    business_name: s.business.name,
+    gstin: s.business.gstin,
+    business_address: s.business.address,
+    invoice_hsn: s.business.hsn,
+    gst_rate: s.business.gstRate,
+    invoice_prefix: s.business.invoicePrefix,
   };
 }

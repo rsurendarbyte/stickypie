@@ -7,6 +7,8 @@ import ProductCardSkeleton from "./product-card-skeleton";
 import Row from "./row";
 import { resolveHomeRails, type HomeRail } from "@stickypie/shared";
 import { useHomeRails, useLiveCatalog, type Catalog } from "@/lib/live-catalog";
+import { useWindowScrollMemory } from "@/lib/scroll-memory";
+import StickerLoader from "./sticker-loader";
 
 export default function HomeClient({
   initial,
@@ -19,6 +21,7 @@ export default function HomeClient({
   const { rails, loaded: railsLoaded } = useHomeRails(initialRails);
   const { categories, products, failed, retry } = catalog;
   const loaded = catalog.loaded && railsLoaded;
+  useWindowScrollMemory(loaded);
 
   const featured = products.filter((p) => p.featured);
   const hero = featured[0] ?? products[0];
@@ -30,13 +33,15 @@ export default function HomeClient({
     return (
       <div aria-busy="true" aria-label="Loading stickers">
         <div className="w-full px-4 pt-24 sm:px-8 lg:px-12 2xl:px-20">
-          <div className="h-[48vh] min-h-[320px] animate-pulse rounded-3xl bg-panel/60" />
+          <div className="grid h-[48vh] min-h-[320px] place-items-center rounded-3xl bg-ink2">
+            <StickerLoader size={88} label="Peeling fresh stickers…" />
+          </div>
         </div>
         <div className="mt-8 space-y-10 pb-24">
           {["Top Picks This Week", "New Drops"].map((title) => (
             <Row key={title} title={title}>
               {Array.from({ length: 6 }, (_, i) => (
-                <ProductCardSkeleton key={i} />
+                <ProductCardSkeleton key={i} index={i} />
               ))}
             </Row>
           ))}

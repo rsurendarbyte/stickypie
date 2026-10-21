@@ -21,9 +21,10 @@ export default function OrderActions({ order }: { order: Order }) {
   const [busy, setBusy] = useState<string | null>(null);
   // Shipping asks for courier details so the shopper can track the parcel.
   const [shipping, setShipping] = useState(false);
-  const [courier, setCourier] = useState("");
-  const [trackingNumber, setTrackingNumber] = useState("");
-  const [trackingUrl, setTrackingUrl] = useState("");
+  // Pre-filled when a Shiprocket shipment was already booked.
+  const [courier, setCourier] = useState(order.courier ?? "");
+  const [trackingNumber, setTrackingNumber] = useState(order.trackingNumber ?? "");
+  const [trackingUrl, setTrackingUrl] = useState(order.trackingUrl ?? "");
 
   const next = NEXT_STEP[order.status];
   const cancellable = ["pending", "paid", "packed"].includes(order.status);

@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Clock3, Loader2, RefreshCw } from "lucide-react";
+import { Clock3, RefreshCw } from "lucide-react";
+import StickerLoader from "./sticker-loader";
 
 // Cashfree usually confirms within a few seconds of the shopper returning.
 // Each refresh re-runs the order page on the server, which asks Cashfree for
@@ -26,7 +27,7 @@ export default function PaymentPending() {
   if (checking) {
     return (
       <>
-        <Loader2 className="mx-auto size-16 animate-spin text-gold" />
+        <StickerLoader size={72} className="mx-auto" />
         <h1 className="mt-4 font-display text-3xl font-bold sm:text-4xl">Confirming your payment…</h1>
         <p className="mt-2 text-sm text-fog">
           This usually takes a few seconds — no need to refresh or pay again.

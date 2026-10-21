@@ -16,6 +16,14 @@ import {
 } from "./mappers";
 import { rowToSettings, settingsToRow, type StoreSettings } from "../shipping";
 import { rowToHomeRails, type HomeRail } from "../home-rails";
+import {
+  REVIEW_PHOTO_BUCKET,
+  rowToContact,
+  rowToReview,
+  type ContactInput,
+  type NewReviewInput,
+  type ReviewStatus,
+} from "../feedback";
 
 function friendly(error: { code?: string; message: string }): Error {
   if (error.code === "23505") {
@@ -24,12 +32,32 @@ function friendly(error: { code?: string; message: string }): Error {
   return new Error(error.message);
 }
 
+
 /**
  * Supabase-backed driver. Pass a server-side client:
  *  - storefront: a service-role client (order writes bypass RLS),
  *  - admin app: the signed-in admin's client (RLS enforces admin-only writes).
  */
 export function createSupabaseDriver(client: SupabaseClient): DataDriver {
+  /**
+   * Deletes a review's photo from storage (no-op without one). A whole-order
+   * review shares one photo across several reviews — the file is only removed
+   * once no other review still uses it.
+   */
+  async function removeReviewPhoto(reviewId: string) {
+    const { data } = await client.from("product_reviews").select("photo_path").eq("id", reviewId).maybeSingle();
+    const path = data?.photo_path as string | null | undefined;
+    if (!path) return;
+    const { count } = await client
+      .from("product_reviews")
+      .select("id", { count: "exact", head: true })
+      .eq("photo_path", path)
+      .neq("id", reviewId);
+    if ((count ?? 0) > 0) return;
+    const { error } = await client.storage.from(REVIEW_PHOTO_BUCKET).remove([path]);
+    if (error) throw new Error(`Couldn't remove the review photo: ${error.message}`);
+  }
+
   async function getOrder(id: string): Promise<Order | null> {
     const { data, error } = await client
       .from("orders")
@@ -269,6 +297,43 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
       if (error) throw friendly(error);
     },
 
+    async setShipmentRefs(id, refs) {
+      const changes: Record<string, unknown> = {};
+      if (refs.shiprocketOrderId !== undefined) changes.shiprocket_order_id = refs.shiprocketOrderId;
+      if (refs.shiprocketShipmentId !== undefined) changes.shiprocket_shipment_id = refs.shiprocketShipmentId;
+      if (refs.labelUrl !== undefined) changes.shipping_label_url = refs.labelUrl;
+      if (refs.courier !== undefined) changes.courier = refs.courier;
+      if (refs.trackingNumber !== undefined) changes.tracking_number = refs.trackingNumber;
+      if (refs.trackingUrl !== undefined) changes.tracking_url = refs.trackingUrl;
+      const { error } = await client.from("orders").update(changes).eq("id", id);
+      if (error) throw friendly(error);
+    },
+
+    async setCourierStatus(id, status) {
+      const { error } = await client
+        .from("orders")
+        .update({ courier_status: status, courier_status_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw friendly(error);
+    },
+
+    async findOrderForShipment(ref) {
+      const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (ref.orderId && uuid.test(ref.orderId)) {
+        const order = await getOrder(ref.orderId);
+        if (order) return order;
+      }
+      for (const [column, value] of [
+        ["shiprocket_order_id", ref.shiprocketOrderId],
+        ["tracking_number", ref.awb],
+      ] as const) {
+        if (!value) continue;
+        const { data } = await client.from("orders").select("id").eq(column, value).limit(1);
+        if (data?.[0]) return getOrder(data[0].id);
+      }
+      return null;
+    },
+
     async listPendingOrdersForUser(userId, sinceIso) {
       const { data, error } = await client
         .from("orders")
@@ -316,6 +381,93 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
         .single();
       if (error) throw friendly(error);
       return rowToHomeRails(data.home_rails);
+    },
+
+    async createContactMessage(input: ContactInput) {
+      const { error } = await client.from("contact_messages").insert({
+        name: input.name,
+        email: input.email,
+        phone: input.phone,
+        order_code: input.orderCode,
+        topic: input.topic,
+        message: input.message,
+      });
+      if (error) throw friendly(error);
+    },
+
+    async listContactMessages() {
+      const { data, error } = await client
+        .from("contact_messages")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw friendly(error);
+      return (data ?? []).map(rowToContact);
+    },
+
+    async setContactStatus(id: string, status: "new" | "resolved") {
+      const { error } = await client.from("contact_messages").update({ status }).eq("id", id);
+      if (error) throw friendly(error);
+    },
+
+    async deleteContactMessage(id: string) {
+      const { error } = await client.from("contact_messages").delete().eq("id", id);
+      if (error) throw friendly(error);
+    },
+
+    async createReview(input: NewReviewInput) {
+      const { data, error } = await client
+        .from("product_reviews")
+        .insert({
+          product_id: input.productId,
+          order_id: input.orderId,
+          order_item_id: input.orderItemId,
+          user_id: input.userId,
+          author_name: input.authorName,
+          rating: input.rating,
+          body: input.body,
+          photo_path: input.photoPath,
+          photo_url: input.photoUrl,
+        })
+        .select()
+        .single();
+      if (error) {
+        if (error.code === "23505") throw new Error("You've already reviewed this sticker.");
+        throw friendly(error);
+      }
+      return rowToReview(data);
+    },
+
+    async listReviews(status?: ReviewStatus) {
+      let query = client.from("product_reviews").select("*").order("created_at", { ascending: false }).limit(500);
+      if (status) query = query.eq("status", status);
+      const { data, error } = await query;
+      if (error) throw friendly(error);
+      return (data ?? []).map(rowToReview);
+    },
+
+    async listOrderReviews(orderId: string) {
+      const { data, error } = await client.from("product_reviews").select("*").eq("order_id", orderId);
+      if (error) throw friendly(error);
+      return (data ?? []).map(rowToReview);
+    },
+
+    async setReviewStatus(id: string, status: ReviewStatus) {
+      const patch: Record<string, unknown> = { status, reviewed_at: new Date().toISOString() };
+      if (status === "rejected") {
+        // A rejected review's photo is removed for good.
+        await removeReviewPhoto(id);
+        patch.photo_path = null;
+        patch.photo_url = null;
+      }
+      const { error } = await client.from("product_reviews").update(patch).eq("id", id);
+      if (error) throw friendly(error);
+    },
+
+    async deleteReview(id: string) {
+      await removeReviewPhoto(id);
+      const { error } = await client.from("product_reviews").delete().eq("id", id);
+      if (error) throw friendly(error);
     },
 
     async stats() {

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { CheckCircle2, Loader2, Lock, MapPin, Plus, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Lock, MapPin, Plus, ShieldCheck } from "lucide-react";
 import {
   INDIAN_STATES,
   ZONE_LABELS,
@@ -27,7 +27,8 @@ import {
 import AddressTypePicker, { AddressTypeBadge } from "./address-type-picker";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
-import { SelectField, TextField } from "./field";
+import { CheckField, SelectField, TextField } from "./field";
+import StickerLoader, { PageLoader } from "./sticker-loader";
 
 type FormState = {
   name: string;
@@ -287,9 +288,7 @@ export default function CheckoutClient() {
 
   if (!mounted) {
     return (
-      <div className="grid min-h-screen place-items-center">
-        <div className="size-10 animate-spin rounded-full border-2 border-line border-t-brand" />
-      </div>
+      <PageLoader />
     );
   }
 
@@ -456,7 +455,7 @@ export default function CheckoutClient() {
           )}
           {addressesPending && (
             <p className="mt-3 flex items-center gap-2 text-xs text-fog">
-              <Loader2 className="size-3.5 animate-spin" /> Loading your saved addresses…
+              <StickerLoader size={16} /> Loading your saved addresses…
             </p>
           )}
           <div
@@ -529,7 +528,7 @@ export default function CheckoutClient() {
             </SelectField>
             {pin.status === "checking" && (
               <p className="-mt-1 flex items-center gap-1.5 text-xs text-fog col-span-2 sm:col-span-6">
-                <Loader2 className="size-3.5 animate-spin" /> Checking PIN code…
+                <StickerLoader size={16} /> Checking PIN code…
               </p>
             )}
             {pin.status === "ok" && (
@@ -566,15 +565,12 @@ export default function CheckoutClient() {
               />
             )}
             {shopper.enabled && (
-              <label className="col-span-2 flex cursor-pointer items-center gap-2 text-xs text-fog sm:col-span-6">
-                <input
-                  type="checkbox"
-                  checked={saveAddress}
-                  onChange={(e) => setSaveAddress(e.target.checked)}
-                  className="size-4 accent-[#ff2e63]"
-                />
-                Save this address for next time
-              </label>
+              <CheckField
+                label={<span className="text-xs text-fog">Save this address for next time</span>}
+                checked={saveAddress}
+                onChange={setSaveAddress}
+                className="col-span-2 sm:col-span-6"
+              />
             )}
           </div>
           {savedChoice && Object.values(errors).some(Boolean) && (
@@ -661,7 +657,7 @@ export default function CheckoutClient() {
           >
             {submitting ? (
               <>
-                <Loader2 className="size-4 animate-spin" /> Taking you to payment…
+                <StickerLoader size={18} variant="onBrand" /> Taking you to payment…
               </>
             ) : (
               <>

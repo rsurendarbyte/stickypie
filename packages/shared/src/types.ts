@@ -109,6 +109,16 @@ export type Order = {
   courier: string | null;
   trackingNumber: string | null;
   trackingUrl: string | null;
+  /** Assigned when the order is marked delivered (GST invoice). */
+  invoiceNumber: string | null;
+  invoiceDate: string | null;
+  /** Shiprocket references (set when shipped through Shiprocket). */
+  shiprocketOrderId: string | null;
+  shiprocketShipmentId: string | null;
+  labelUrl: string | null;
+  /** Courier's latest status from tracking updates, e.g. "OUT FOR DELIVERY". */
+  courierStatus: string | null;
+  courierStatusAt: string | null;
   items: OrderItem[];
 };
 
@@ -180,6 +190,7 @@ export type ListProductsOpts = {
 
 import type { StoreSettings } from "./shipping";
 import type { HomeRail } from "./home-rails";
+import type { ContactInput, ContactMessage, NewReviewInput, Review, ReviewStatus } from "./feedback";
 
 export interface DataDriver {
   listCategories(): Promise<Category[]>;
@@ -218,6 +229,23 @@ export interface DataDriver {
   setPaymentNote(id: string, note: string, paymentId?: string | null): Promise<void>;
   /** A shopper's unpaid online-payment orders created since `sinceIso`, newest first. */
   listPendingOrdersForUser(userId: string, sinceIso: string): Promise<Order[]>;
+  /** Shiprocket: remember the shipment / label on the order. */
+  setShipmentRefs(
+    id: string,
+    refs: {
+      shiprocketOrderId?: string | null;
+      shiprocketShipmentId?: string | null;
+      labelUrl?: string | null;
+      /** Courier + AWB booked ahead of pickup (status stays "packed"). */
+      courier?: string | null;
+      trackingNumber?: string | null;
+      trackingUrl?: string | null;
+    }
+  ): Promise<void>;
+  /** Latest courier status from tracking updates. */
+  setCourierStatus(id: string, status: string): Promise<void>;
+  /** Finds the order a courier tracking update is about. */
+  findOrderForShipment(ref: { orderId?: string | null; shiprocketOrderId?: string | null; awb?: string | null }): Promise<Order | null>;
 
   /** Minimum order + shipping zones (one row, edited in the admin). */
   getSettings(): Promise<StoreSettings>;
@@ -225,6 +253,19 @@ export interface DataDriver {
   /** Home page layout (DEFAULT_HOME_RAILS until edited). */
   getHomeRails(): Promise<HomeRail[]>;
   updateHomeRails(rails: HomeRail[]): Promise<HomeRail[]>;
+
+  /** Contact form (written by the storefront server, read in the admin). */
+  createContactMessage(input: ContactInput): Promise<void>;
+  listContactMessages(): Promise<ContactMessage[]>;
+  setContactStatus(id: string, status: "new" | "resolved"): Promise<void>;
+  deleteContactMessage(id: string): Promise<void>;
+
+  /** Reviews: created after delivery, shown once approved. */
+  createReview(input: NewReviewInput): Promise<Review>;
+  listReviews(status?: ReviewStatus): Promise<Review[]>;
+  listOrderReviews(orderId: string): Promise<Review[]>;
+  setReviewStatus(id: string, status: ReviewStatus): Promise<void>;
+  deleteReview(id: string): Promise<void>;
 
   stats(): Promise<AdminStats>;
   /** Local demo driver only. */

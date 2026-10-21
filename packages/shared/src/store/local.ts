@@ -16,6 +16,7 @@ import type {
 } from "../types";
 import { DEFAULT_STORE_SETTINGS, type StoreSettings } from "../shipping";
 import { DEFAULT_HOME_RAILS, type HomeRail } from "../home-rails";
+import type { ContactInput, ContactMessage, NewReviewInput, Review, ReviewStatus } from "../feedback";
 
 type StoreShape = {
   categories: Category[];
@@ -23,6 +24,8 @@ type StoreShape = {
   orders: Order[];
   settings?: StoreSettings;
   homeRails?: HomeRail[];
+  contactMessages?: ContactMessage[];
+  reviews?: Review[];
 };
 
 const DAY_MS = 86_400_000;
@@ -250,6 +253,13 @@ export function createLocalDriver(filePath: string): DataDriver {
         courier: null,
         trackingNumber: null,
         trackingUrl: null,
+        invoiceNumber: null,
+        invoiceDate: null,
+        shiprocketOrderId: null,
+        shiprocketShipmentId: null,
+        labelUrl: null,
+        courierStatus: null,
+        courierStatusAt: null,
         items: input.items.map((item) => ({
           id: randomUUID(),
           orderId: id,
@@ -383,6 +393,36 @@ export function createLocalDriver(filePath: string): DataDriver {
         .slice(0, 5);
     },
 
+    async setShipmentRefs(id, refs) {
+      const store = load();
+      const order = getOrderOrThrow(store, id);
+      if (refs.shiprocketOrderId !== undefined) order.shiprocketOrderId = refs.shiprocketOrderId;
+      if (refs.shiprocketShipmentId !== undefined) order.shiprocketShipmentId = refs.shiprocketShipmentId;
+      if (refs.labelUrl !== undefined) order.labelUrl = refs.labelUrl;
+      if (refs.courier !== undefined) order.courier = refs.courier;
+      if (refs.trackingNumber !== undefined) order.trackingNumber = refs.trackingNumber;
+      if (refs.trackingUrl !== undefined) order.trackingUrl = refs.trackingUrl;
+      persist(store);
+    },
+
+    async setCourierStatus(id, status) {
+      const store = load();
+      const order = getOrderOrThrow(store, id);
+      order.courierStatus = status;
+      order.courierStatusAt = now();
+      persist(store);
+    },
+
+    async findOrderForShipment(ref) {
+      const orders = load().orders;
+      return (
+        (ref.orderId && orders.find((o) => o.id === ref.orderId)) ||
+        (ref.shiprocketOrderId && orders.find((o) => o.shiprocketOrderId === ref.shiprocketOrderId)) ||
+        (ref.awb && orders.find((o) => o.trackingNumber === ref.awb)) ||
+        null
+      );
+    },
+
     async getSettings() {
       return load().settings ?? DEFAULT_STORE_SETTINGS;
     },
@@ -403,6 +443,65 @@ export function createLocalDriver(filePath: string): DataDriver {
       store.homeRails = rails;
       persist(store);
       return rails;
+    },
+
+    async createContactMessage(input: ContactInput) {
+      const store = load();
+      store.contactMessages = [
+        { ...input, id: randomUUID(), status: "new", createdAt: now() },
+        ...(store.contactMessages ?? []),
+      ];
+      persist(store);
+    },
+
+    async listContactMessages() {
+      return load().contactMessages ?? [];
+    },
+
+    async setContactStatus(id, status) {
+      const store = load();
+      const m = store.contactMessages?.find((x) => x.id === id);
+      if (m) m.status = status;
+      persist(store);
+    },
+
+    async deleteContactMessage(id) {
+      const store = load();
+      store.contactMessages = (store.contactMessages ?? []).filter((x) => x.id !== id);
+      persist(store);
+    },
+
+    async createReview(input: NewReviewInput) {
+      const store = load();
+      if ((store.reviews ?? []).some((r) => r.orderItemId === input.orderItemId)) {
+        throw new Error("You've already reviewed this sticker.");
+      }
+      const review: Review = { ...input, id: randomUUID(), status: "pending", createdAt: now(), reviewedAt: null };
+      store.reviews = [review, ...(store.reviews ?? [])];
+      persist(store);
+      return review;
+    },
+
+    async listReviews(status?: ReviewStatus) {
+      const all = load().reviews ?? [];
+      return status ? all.filter((r) => r.status === status) : all;
+    },
+
+    async listOrderReviews(orderId) {
+      return (load().reviews ?? []).filter((r) => r.orderId === orderId);
+    },
+
+    async setReviewStatus(id, status) {
+      const store = load();
+      const r = store.reviews?.find((x) => x.id === id);
+      if (r) Object.assign(r, { status, reviewedAt: now() });
+      persist(store);
+    },
+
+    async deleteReview(id) {
+      const store = load();
+      store.reviews = (store.reviews ?? []).filter((x) => x.id !== id);
+      persist(store);
     },
 
     async stats() {

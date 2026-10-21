@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ChevronRight, Loader2, LogOut, MapPin, Package, Plus, Trash2 } from "lucide-react";
+import { ChevronRight, LogOut, MapPin, Package, Plus, Trash2 } from "lucide-react";
 import type { Order, OrderStatus } from "@stickypie/shared";
 import {
   INDIAN_STATES,
@@ -33,6 +33,7 @@ import { lookupPincode } from "@/lib/pincode";
 import AddressTypePicker, { AddressTypeBadge } from "./address-type-picker";
 import AuthShell from "./auth-shell";
 import { CheckField, PasswordField, SelectField, TextField } from "./field";
+import StickerLoader, { PageLoader } from "./sticker-loader";
 
 const STATUS_STYLE: Record<OrderStatus, string> = {
   pending: "bg-gold/10 text-gold",
@@ -49,9 +50,7 @@ export default function AccountClient() {
 
   if (!shopper.ready) {
     return (
-      <div className="grid min-h-screen place-items-center">
-        <Loader2 className="size-8 animate-spin text-fog" />
-      </div>
+      <PageLoader />
     );
   }
   if (!shopper.enabled) {
@@ -224,7 +223,7 @@ function SignInCard() {
             disabled={busy}
             className="pie-gradient mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-wait"
           >
-            {busy && <Loader2 className="size-4 animate-spin" />}
+            {busy && <StickerLoader size={18} variant="onBrand" />}
             {copy.button}
           </button>
         </>
@@ -295,7 +294,7 @@ function OrderHistory({ email }: { email: string }) {
       {error && <p className="mt-6 text-sm text-brand">{error}</p>}
       {!orders && !error && (
         <div className="mt-10 grid place-items-center">
-          <Loader2 className="size-7 animate-spin text-fog" />
+          <StickerLoader size={44} />
         </div>
       )}
       {orders && orders.length === 0 && (
@@ -402,7 +401,7 @@ function SavedAddresses({ email }: { email: string }) {
       {error && <p className="mt-3 text-sm text-brand">{error}</p>}
       {!loaded ? (
         <div className="mt-6 grid place-items-center">
-          <Loader2 className="size-6 animate-spin text-fog" />
+          <StickerLoader size={36} />
         </div>
       ) : addresses.length === 0 ? (
         !adding && <div className="mt-5 rounded-2xl border border-dashed border-line p-8 text-center text-sm text-fog">
@@ -628,7 +627,7 @@ function AddAddressForm({
           disabled={saving}
           className="pie-gradient inline-flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 disabled:opacity-60"
         >
-          {saving && <Loader2 className="size-4 animate-spin" />} Save address
+          {saving && <StickerLoader size={18} variant="onBrand" />} Save address
         </button>
         <button
           type="button"

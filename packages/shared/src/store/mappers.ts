@@ -83,6 +83,13 @@ export function rowToOrder(r: any): Order {
     courier: r.courier ?? null,
     trackingNumber: r.tracking_number ?? null,
     trackingUrl: r.tracking_url ?? null,
+    invoiceNumber: r.invoice_number ?? null,
+    invoiceDate: r.invoice_date ?? null,
+    shiprocketOrderId: r.shiprocket_order_id ?? null,
+    shiprocketShipmentId: r.shiprocket_shipment_id ?? null,
+    labelUrl: r.shipping_label_url ?? null,
+    courierStatus: r.courier_status ?? null,
+    courierStatusAt: r.courier_status_at ?? null,
     items: Array.isArray(r.order_items) ? r.order_items.map(rowToItem) : [],
   };
 }

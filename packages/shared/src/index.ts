@@ -11,3 +11,6 @@ export * from "./india";
 export * from "./sizes";
 export * from "./shipping";
 export * from "./home-rails";
+export * from "./feedback";
+export * from "./invoice";
+export * from "./fulfilment";

@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Download } from "lucide-react";
 import { formatDateTime, formatINR, orderCode } from "@stickypie/shared";
 import OrderActions from "@/components/order-actions";
+import ShiprocketPanel from "@/components/shiprocket-panel";
+import { shiprocketConfig } from "@/lib/shiprocket";
 import StatusBadge from "@/components/status-badge";
 import { getAdminDriver } from "@/lib/data";
 import { imageDownloadHref, imageSrc } from "@/lib/img";
@@ -39,6 +41,7 @@ export default async function OrderDetailPage({
       <div className="mt-5">
         <OrderActions order={order} />
       </div>
+      <ShiprocketPanel order={order} ready={shiprocketConfig() !== null} />
 
       <div className="mt-6 grid gap-5 lg:grid-cols-[1.5fr_1fr]">
         <section className="rounded-2xl border border-line bg-ink2 p-5">

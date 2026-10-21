@@ -35,6 +35,16 @@ export default function StoreSettingsForm({ initial }: { initial: StoreSettings 
     national: String(initial.rates.national),
     remote: String(initial.rates.remote),
   });
+  const [business, setBusiness] = useState({
+    name: initial.business.name ?? "",
+    gstin: initial.business.gstin ?? "",
+    address: initial.business.address ?? "",
+    hsn: initial.business.hsn,
+    gstRate: String(initial.business.gstRate),
+    invoicePrefix: initial.business.invoicePrefix,
+  });
+  const setB = (key: keyof typeof business) => (e: { target: { value: string } }) =>
+    setBusiness((b) => ({ ...b, [key]: e.target.value }));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,6 +56,14 @@ export default function StoreSettingsForm({ initial }: { initial: StoreSettings 
       minOrder: num(minOrder),
       originPincode: pincode.trim() || null,
       originState: state || null,
+      business: {
+        name: business.name.trim() || null,
+        gstin: business.gstin.trim().toUpperCase() || null,
+        address: business.address.trim() || null,
+        hsn: business.hsn.trim(),
+        gstRate: num(business.gstRate),
+        invoicePrefix: business.invoicePrefix.trim().toUpperCase(),
+      },
       rates: {
         local: num(rates.local),
         state: num(rates.state),
@@ -128,6 +146,51 @@ export default function StoreSettingsForm({ initial }: { initial: StoreSettings 
         Remote areas: {REMOTE_STATES.join(", ")}.
       </p>
 
+      <p className="mt-6 text-[10.5px] font-semibold tracking-widest text-fog uppercase">
+        Business &amp; GST invoice
+      </p>
+      <p className="mt-1 text-xs text-fog">
+        Printed on the tax invoice shoppers download after delivery. The download stays hidden until a
+        GSTIN is set. Prices in the shop include GST; the invoice works out the tax from them.
+      </p>
+      <div className="mt-3 grid gap-4 sm:grid-cols-2">
+        <TextField label="Legal business name" value={business.name} onChange={setB("name")} />
+        <TextField
+          label="GSTIN"
+          value={business.gstin}
+          onChange={(e) => setB("gstin")({ target: { value: e.target.value.toUpperCase().slice(0, 15) } })}
+          hint="15 characters, e.g. 29ABCDE1234F1Z5"
+        />
+        <TextField
+          label="Registered address"
+          value={business.address}
+          onChange={setB("address")}
+          className="sm:col-span-2"
+          hint="Street, city, state, PIN — as on your GST registration"
+        />
+      </div>
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">
+        <TextField
+          label="HSN code"
+          value={business.hsn}
+          inputMode="numeric"
+          onChange={(e) => setB("hsn")({ target: { value: digits(e.target.value).slice(0, 8) } })}
+          hint="3919 = self-adhesive plastic stickers"
+        />
+        <TextField
+          label="GST rate (%)"
+          value={business.gstRate}
+          inputMode="decimal"
+          onChange={(e) => setB("gstRate")({ target: { value: e.target.value.replace(/[^\d.]/g, "").slice(0, 5) } })}
+        />
+        <TextField
+          label="Invoice prefix"
+          value={business.invoicePrefix}
+          onChange={(e) => setB("invoicePrefix")({ target: { value: e.target.value.toUpperCase().slice(0, 8) } })}
+          hint="Numbers look like SP/2026-27/00001"
+        />
+      </div>
+
       {error && <p className="mt-3 text-xs text-brand">{error}</p>}
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <button
@@ -135,7 +198,7 @@ export default function StoreSettingsForm({ initial }: { initial: StoreSettings 
           disabled={saving}
           className="pie-gradient flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 disabled:opacity-60"
         >
-          {saving && <Loader2 className="size-4 animate-spin" />} Save shipping settings
+          {saving && <Loader2 className="size-4 animate-spin" />} Save settings
         </button>
         <span className="text-xs text-fog">
           Currently: minimum {formatINR(initial.minOrder)} · shipping{" "}

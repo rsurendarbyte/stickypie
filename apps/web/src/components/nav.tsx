@@ -60,13 +60,17 @@ export default function Nav() {
     >
       <div className="flex h-[72px] w-full items-center gap-2 px-3 sm:gap-6 sm:px-8 lg:px-12">
         <Link href="/" className="flex shrink-0 items-center gap-2.5">
-          <img
-            src="/icons/icon-192.png"
-            alt=""
-            width={36}
-            height={36}
-            className="size-9 -rotate-6 rounded-[11px] transition-transform duration-300 hover:rotate-0"
-          />
+          <span
+            aria-hidden
+            className="peel peel-gentle size-9 -rotate-6 transition-transform duration-300 hover:rotate-0"
+          >
+            <span className="peel-face">
+              <img src="/icons/icon-192.png" alt="" width={36} height={36} className="size-9 rounded-[11px]" />
+            </span>
+            <span className="peel-flap-wrap">
+              <span className="peel-flap block" />
+            </span>
+          </span>
           <span className="font-display text-[22px] leading-none font-semibold tracking-tight">
             Sticky<span className="text-logo">Pie</span>
           </span>

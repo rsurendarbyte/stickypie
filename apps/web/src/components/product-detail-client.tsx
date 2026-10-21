@@ -6,10 +6,12 @@ import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR } from "@stickypie/shared";
 import { rotationFor } from "@/lib/palette";
 import { useLiveProduct, useRelatedProducts } from "@/lib/live-catalog";
+import { useWindowScrollMemory } from "@/lib/scroll-memory";
 import BackButton from "./back-button";
 import ProductCard from "./product-card";
 import ProductCardSkeleton from "./product-card-skeleton";
 import ProductDetails from "./product-details";
+import ProductReviews, { RatingSummary } from "./product-reviews";
 import ProductPurchase from "./product-purchase";
 import Row from "./row";
 import SizePicker, { useSizeChoice } from "./size-picker";
@@ -25,6 +27,7 @@ export default function ProductDetailClient({
 }) {
   // Static snapshot first paint; live stock/price/availability from Supabase.
   const { product, unavailable } = useLiveProduct(initial.slug, initial);
+  useWindowScrollMemory(true);
   // Live and on-sale only (never the build-time list).
   const { products: moreLikeThis, loaded: relatedLoaded } = useRelatedProducts(
     product.categoryId,
@@ -93,6 +96,7 @@ export default function ProductDetailClient({
             </Link>
           )}
           <h1 className="mt-2.5 font-display text-3xl font-bold sm:text-4xl">{product.name}</h1>
+          <RatingSummary productId={product.id} />
 
           <div className="mt-2.5 flex items-baseline gap-3">
             <span className="font-display text-2xl font-bold text-gold">
@@ -175,6 +179,8 @@ export default function ProductDetailClient({
         </div>
       </div>
 
+      <ProductReviews productId={product.id} />
+
       {(!relatedLoaded || moreLikeThis.length > 0) && (
         <div className="mt-12 -mx-4 sm:-mx-8">
           <Row
@@ -183,7 +189,7 @@ export default function ProductDetailClient({
           >
             {relatedLoaded
               ? moreLikeThis.map((p) => <ProductCard key={p.id} product={p} />)
-              : Array.from({ length: 5 }, (_, i) => <ProductCardSkeleton key={i} />)}
+              : Array.from({ length: 5 }, (_, i) => <ProductCardSkeleton key={i} index={i} />)}
           </Row>
         </div>
       )}

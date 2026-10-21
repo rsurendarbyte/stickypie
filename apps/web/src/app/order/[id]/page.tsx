@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CheckCircle2, PackageX, XCircle } from "lucide-react";
+import { CheckCircle2, FileText, PackageX, XCircle } from "lucide-react";
 import { STATUS_LABELS, formatDateTime, formatINR, orderCode } from "@stickypie/shared";
 import ClearCartOnPaid from "@/components/clear-cart-on-paid";
+import OrderReviews from "@/components/order-reviews";
 import OrderTracking from "@/components/order-tracking";
 import PaymentPending from "@/components/payment-pending";
 import { reconcileOrderPayment } from "@/lib/payments";
@@ -21,6 +22,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const driver = getDriver();
   let order = await driver.getOrder(id);
   if (!order) notFound();
+  const settings = await driver.getSettings();
 
   // Buyer just returned from Cashfree (or the page is polling): ask Cashfree.
   if (order.status === "pending" || order.status === "failed") {
@@ -94,6 +96,25 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             <OrderTracking order={order} />
           </div>
         </section>
+      )}
+
+      {order.status === "delivered" && order.invoiceNumber && settings.business.gstin && (
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-ink2 p-4">
+          <p className="text-sm">
+            <span className="font-semibold">GST invoice</span>{" "}
+            <span className="text-fog">· {order.invoiceNumber}</span>
+          </p>
+          <Link
+            href={`/order/${order.id}/invoice`}
+            className="inline-flex items-center gap-2 rounded-xl border border-brand/40 bg-brand/5 px-4 py-2 text-sm font-semibold text-brand transition-colors hover:bg-brand/10"
+          >
+            <FileText className="size-4" /> Download GST invoice
+          </Link>
+        </div>
+      )}
+
+      {order.status === "delivered" && (
+        <OrderReviews orderId={order.id} orderUserId={order.userId} items={order.items} />
       )}
 
       <div className="mt-5 grid gap-5 md:grid-cols-[1.4fr_1fr]">

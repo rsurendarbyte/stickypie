@@ -17,12 +17,13 @@
 // RLS only exposes is_active products, so items taken off sale never reach the
 // browser. Demo mode (no Supabase env) keeps the server-rendered data.
 import { useEffect, useState, useSyncExternalStore } from "react";
-import type { Category, HomeRail, Product, StoreSettings } from "@stickypie/shared";
+import type { Category, HomeRail, Product, PublicReview, StoreSettings } from "@stickypie/shared";
 import {
   DEFAULT_STORE_SETTINGS,
   rowToCategory,
   rowToHomeRails,
   rowToProduct,
+  rowToPublicReview,
   rowToSettings,
 } from "@stickypie/shared";
 import { idbGet, idbSet } from "./idb";
@@ -33,7 +34,7 @@ const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 export const liveCatalogEnabled = Boolean(SUPABASE_URL && ANON_KEY);
 
 /** Bump when the cached shape changes so old caches are ignored. */
-const CACHE_KEY = "catalog:v1";
+const CACHE_KEY = "catalog:v2";
 const MEMORY_TTL_MS = 60_000;
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -49,8 +50,13 @@ async function rest(path: string): Promise<any[]> {
 
 export type Catalog = { categories: Category[]; products: Product[] };
 
-type Bundle = Catalog & { version: string; settings: StoreSettings; rails: HomeRail[] };
-type CachedCatalog = Catalog & { version: string };
+type Bundle = Catalog & {
+  version: string;
+  settings: StoreSettings;
+  rails: HomeRail[];
+  reviews: PublicReview[];
+};
+type CachedCatalog = Catalog & { version: string; reviews: PublicReview[] };
 
 let memory: { bundle: Bundle; at: number } | null = null;
 let inflight: Promise<Bundle> | null = null;
@@ -82,14 +88,17 @@ function loadCatalog(): Promise<Bundle> {
       }
     }
     if (!catalog) {
-      const [categoryRows, productRows] = await Promise.all([
+      const [categoryRows, productRows, reviewRows] = await Promise.all([
         rest("categories?select=*&order=sort.asc,name.asc"),
         rest("products?select=*&is_active=eq.true&order=created_at.desc"),
+        // Approved reviews only (public view). Missing view → no reviews.
+        rest("product_reviews_public?select=*&order=created_at.desc&limit=1000").catch(() => []),
       ]);
       catalog = {
         version: version ?? "",
         categories: categoryRows.map(rowToCategory),
         products: productRows.map(rowToProduct),
+        reviews: reviewRows.map(rowToPublicReview),
       };
       if (version) void idbSet(CACHE_KEY, catalog);
     }
@@ -196,4 +205,16 @@ export function useHomeRails(initial: HomeRail[]): { rails: HomeRail[]; loaded: 
   const { bundle, failed } = useBundle();
   if (!liveCatalogEnabled) return { rails: initial, loaded: true };
   return { rails: bundle?.rails ?? initial, loaded: Boolean(bundle) || failed };
+}
+
+/** Approved reviews for one sticker, newest first (no extra request). */
+export function useProductReviews(productId: string): {
+  reviews: PublicReview[];
+  average: number;
+  loaded: boolean;
+} {
+  const { bundle, failed } = useBundle();
+  const reviews = bundle ? bundle.reviews.filter((r) => r.productId === productId) : [];
+  const average = reviews.length ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
+  return { reviews, average, loaded: Boolean(bundle) || failed || !liveCatalogEnabled };
 }

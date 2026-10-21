@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRef } from "react";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { useRailScrollMemory } from "@/lib/scroll-memory";
 
 export default function Row({
   title,
@@ -14,6 +15,7 @@ export default function Row({
   children: React.ReactNode;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
+  useRailScrollMemory(scroller, title);
 
   function scrollByDir(dir: 1 | -1) {
     const el = scroller.current;

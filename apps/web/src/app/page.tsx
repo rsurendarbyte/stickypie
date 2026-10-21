@@ -61,10 +61,12 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLd(structuredData) }}
       />
-      <HomeClient
-        initial={{ categories, products: productSnapshot(products) }}
-        initialRails={rails}
-      />
+      <div className="no-select">
+        <HomeClient
+          initial={{ categories, products: productSnapshot(products) }}
+          initialRails={rails}
+        />
+      </div>
     </>
   );
 }

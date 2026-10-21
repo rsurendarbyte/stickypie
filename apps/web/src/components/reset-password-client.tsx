@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { CheckCircle2, Loader2, Unlink } from "lucide-react";
+import { CheckCircle2, Unlink } from "lucide-react";
 import { authClient, updatePassword } from "@/lib/shopper-auth";
 import AuthShell from "./auth-shell";
 import { PasswordField } from "./field";
+import StickerLoader from "./sticker-loader";
 
 type Stage = "checking" | "ready" | "invalid" | "done";
 
@@ -53,7 +54,7 @@ export default function ResetPasswordClient() {
       <div className="mx-auto w-full max-w-sm">
       {stage === "checking" && (
         <div className="grid place-items-center pt-16">
-          <Loader2 className="size-8 animate-spin text-fog" />
+          <StickerLoader size={56} />
         </div>
       )}
 
@@ -102,7 +103,7 @@ export default function ResetPasswordClient() {
             disabled={busy || !password || !confirm}
             className="pie-gradient mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 disabled:opacity-60"
           >
-            {busy && <Loader2 className="size-4 animate-spin" />}
+            {busy && <StickerLoader size={18} variant="onBrand" />}
             Save new password
           </button>
         </form>

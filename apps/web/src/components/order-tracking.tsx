@@ -43,6 +43,11 @@ export default function OrderTracking({ order }: { order: Order }) {
                 {step.label}
               </p>
               {done && step.at && <p className="text-xs text-fog">{formatDateTime(step.at)}</p>}
+              {i === 3 && done && order.courierStatus && order.status === "shipped" && (
+                <p className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-mint/10 px-2.5 py-0.5 text-[11px] font-bold text-mint">
+                  {order.courierStatus.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase())}
+                </p>
+              )}
               {i === 3 && done && order.courier && (
                 <p className="mt-1 text-xs text-fog">
                   {order.courier} · tracking no.{" "}

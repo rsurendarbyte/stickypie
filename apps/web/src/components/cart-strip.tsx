@@ -12,7 +12,8 @@ export function cartUiHidden(pathname: string): boolean {
   return (
     pathname.startsWith("/checkout") ||
     pathname.startsWith("/order") ||
-    pathname.startsWith("/pay")
+    pathname.startsWith("/pay") ||
+    pathname.startsWith("/contact")
   );
 }
 
