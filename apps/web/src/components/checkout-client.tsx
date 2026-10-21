@@ -3,17 +3,20 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Loader2, Lock, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Loader2, Lock, ShieldCheck } from "lucide-react";
 import {
   FREE_SHIPPING_THRESHOLD,
   SHIPPING_FEE,
+  INDIAN_STATES,
   customerSchema,
   formatINR,
+  matchIndianState,
 } from "@stickypie/shared";
 import { authClient, createAccount, signIn, signOut, useShopper } from "@/lib/shopper-auth";
+import { lookupPincode } from "@/lib/pincode";
 import { useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
-import { TextField } from "./field";
+import { SelectField, TextField } from "./field";
 
 type FormState = {
   name: string;
@@ -52,6 +55,11 @@ export default function CheckoutClient() {
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState<string | null>(null);
   const needsAccount = shopper.enabled && !shopper.email;
+  const [pin, setPin] = useState<{
+    status: "idle" | "checking" | "ok" | "notfound" | "unavailable";
+    label?: string;
+  }>({ status: "idle" });
+  const [showArea, setShowArea] = useState(false);
 
   const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
   const total = subtotal + shipping;
@@ -64,12 +72,42 @@ export default function CheckoutClient() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(CUSTOMER_KEY);
-      if (raw) setForm({ ...EMPTY, ...(JSON.parse(raw) as Partial<FormState>) });
+      if (raw) {
+        const saved = { ...EMPTY, ...(JSON.parse(raw) as Partial<FormState>) };
+        // Older saved addresses had a free-text state; snap it to the dropdown.
+        saved.state = matchIndianState(saved.state) ?? "";
+        setForm(saved);
+        setShowArea(Boolean(saved.address2));
+      }
     } catch {
       // ignore
     }
     setMounted(true);
   }, []);
+
+  // Verify the PIN with India Post and fill in its city + state.
+  useEffect(() => {
+    const code = form.pincode;
+    if (!/^[1-9]\d{5}$/.test(code)) {
+      setPin({ status: "idle" });
+      return;
+    }
+    let cancelled = false;
+    setPin({ status: "checking" });
+    lookupPincode(code).then((result) => {
+      if (cancelled) return;
+      if (result.status === "ok") {
+        setForm((f) => ({ ...f, city: result.city, state: result.state ?? f.state }));
+        setErrors((e) => ({ ...e, city: undefined, state: undefined, pincode: undefined }));
+        setPin({ status: "ok", label: [result.city, result.state].filter(Boolean).join(", ") });
+      } else {
+        setPin({ status: result.status });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [form.pincode]);
 
   function set(field: keyof FormState, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
@@ -89,6 +127,13 @@ export default function CheckoutClient() {
         if (key && !next[key]) next[key] = issue.message;
       }
       setErrors(next);
+      return;
+    }
+    // Only a PIN India Post doesn't know blocks the order; if the lookup
+    // service is down the shopper can still continue.
+    const verified = pin.status === "checking" ? await lookupPincode(form.pincode) : pin;
+    if (verified.status === "notfound") {
+      setErrors((e) => ({ ...e, pincode: "We couldn't find this PIN code — please check it" }));
       return;
     }
     if (needsAccount && (authMode === "create" ? password.length < 8 : !password)) {
@@ -286,20 +331,113 @@ export default function CheckoutClient() {
           )}
 
           <h2 className="font-display text-base font-semibold">Contact &amp; delivery</h2>
-          <div className="mt-3.5 grid gap-3 sm:grid-cols-2">
-            {field("name", "Full name", { autoComplete: "name" }, shopper.enabled)}
-            {!shopper.enabled && field("email", "Email", { type: "email", autoComplete: "email" })}
-            {field(
-              "phone",
-              "Mobile number (10-digit)",
-              { inputMode: "numeric", autoComplete: "tel" },
-              true
+          <div className="mt-3.5 grid grid-cols-2 gap-3 sm:grid-cols-6">
+            <TextField
+              label="Full name"
+              autoComplete="name"
+              value={form.name}
+              onChange={(e) => set("name", e.target.value)}
+              error={errors.name}
+              className="col-span-2 sm:col-span-3"
+            />
+            {!shopper.enabled && (
+              <TextField
+                label="Email"
+                type="email"
+                autoComplete="email"
+                value={form.email}
+                onChange={(e) => set("email", e.target.value)}
+                error={errors.email}
+                className="col-span-2 sm:col-span-3"
+              />
             )}
-            {field("address1", "Flat / house, street", { autoComplete: "address-line1" }, true)}
-            {field("address2", "Area, landmark (optional)", { autoComplete: "address-line2" }, true)}
-            {field("city", "City", { autoComplete: "address-level2" })}
-            {field("state", "State", { autoComplete: "address-level1" })}
-            {field("pincode", "PIN code", { inputMode: "numeric", autoComplete: "postal-code" })}
+            <TextField
+              label="Mobile (10 digits)"
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel-national"
+              value={form.phone}
+              onChange={(e) =>
+                set("phone", e.target.value.replace(/\D/g, "").replace(/^91(?=\d{10})/, "").slice(0, 10))
+              }
+              error={errors.phone}
+              className={shopper.enabled ? "col-span-2 sm:col-span-3" : "col-span-2 sm:col-span-6"}
+            />
+
+            <TextField
+              label="PIN code"
+              inputMode="numeric"
+              autoComplete="postal-code"
+              value={form.pincode}
+              onChange={(e) => set("pincode", e.target.value.replace(/\D/g, "").slice(0, 6))}
+              error={errors.pincode ?? (pin.status === "notfound" ? "PIN code not found" : undefined)}
+              className="sm:col-span-2"
+            />
+            <TextField
+              label="City / district"
+              autoComplete="address-level2"
+              value={form.city}
+              onChange={(e) => set("city", e.target.value)}
+              error={errors.city}
+              className="sm:col-span-2"
+            />
+            <SelectField
+              label="State"
+              value={form.state}
+              onChange={(e) => set("state", e.target.value)}
+              error={errors.state}
+              className="col-span-2 sm:col-span-2"
+            >
+              <option value="" disabled>
+                Select state
+              </option>
+              {INDIAN_STATES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </SelectField>
+            {pin.status === "checking" && (
+              <p className="-mt-1 flex items-center gap-1.5 text-xs text-fog col-span-2 sm:col-span-6">
+                <Loader2 className="size-3.5 animate-spin" /> Checking PIN code…
+              </p>
+            )}
+            {pin.status === "ok" && (
+              <p className="-mt-1 flex items-center gap-1.5 text-xs font-medium text-mint col-span-2 sm:col-span-6">
+                <CheckCircle2 className="size-3.5" /> PIN verified · {pin.label}
+              </p>
+            )}
+            {pin.status === "unavailable" && (
+              <p className="-mt-1 text-xs text-fog col-span-2 sm:col-span-6">
+                Couldn&apos;t verify the PIN right now — please double-check city and state.
+              </p>
+            )}
+
+            <TextField
+              label="House / flat no., street"
+              autoComplete="address-line1"
+              value={form.address1}
+              onChange={(e) => set("address1", e.target.value)}
+              error={errors.address1}
+              className="col-span-2 sm:col-span-6"
+            />
+            {showArea ? (
+              <TextField
+                label="Area, landmark (optional)"
+                autoComplete="address-line2"
+                value={form.address2}
+                onChange={(e) => set("address2", e.target.value)}
+                className="col-span-2 sm:col-span-6"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowArea(true)}
+                className="col-span-2 justify-self-start text-xs font-semibold text-brand hover:underline sm:col-span-6"
+              >
+                + Add area / landmark (optional)
+              </button>
+            )}
           </div>
         </section>
 

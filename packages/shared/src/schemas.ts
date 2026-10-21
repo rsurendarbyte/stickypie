@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { INDIAN_STATES, matchIndianState } from "./india";
 
 export const phoneSchema = z
   .string()
@@ -22,8 +23,12 @@ export const customerSchema = z.object({
     .nullable()
     .transform((v) => (v ? v : null)),
   city: z.string().trim().min(2, "Enter a city").max(60),
-  state: z.string().trim().min(2, "Enter a state").max(60),
-  pincode: z.string().trim().regex(/^\d{6}$/, "Enter a 6-digit PIN code"),
+  state: z
+    .string()
+    .trim()
+    .transform((s) => matchIndianState(s) ?? s)
+    .refine((s) => (INDIAN_STATES as readonly string[]).includes(s), "Choose your state"),
+  pincode: z.string().trim().regex(/^[1-9]\d{5}$/, "Enter a valid 6-digit PIN code"),
 });
 
 export const checkoutSchema = z.object({
