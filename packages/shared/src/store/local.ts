@@ -49,6 +49,8 @@ function buildSeedStore(): StoreShape {
       isNew: false,
       isActive: p.isActive,
       stock: p.stock,
+      sizes: [],
+      aspectRatio: null,
       createdAt: created,
       updatedAt: created,
     };
@@ -245,6 +247,8 @@ export function createLocalDriver(filePath: string): DataDriver {
           unitPrice: item.unitPrice,
           quantity: item.quantity,
           imageUrl: item.imageUrl,
+          sizeInches: item.sizeInches,
+          sizeLabel: item.sizeLabel,
         })),
       };
       store.orders.unshift(order);

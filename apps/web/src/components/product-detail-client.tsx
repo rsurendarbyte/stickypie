@@ -10,6 +10,7 @@ import BackButton from "./back-button";
 import ProductCard from "./product-card";
 import ProductPurchase from "./product-purchase";
 import Row from "./row";
+import SizePicker, { useSizeChoice } from "./size-picker";
 
 export default function ProductDetailClient({
   initial,
@@ -24,7 +25,8 @@ export default function ProductDetailClient({
   const { product, unavailable } = useLiveProduct(initial.slug, initial);
 
   const rotate = rotationFor(product.slug);
-  const off = discountPercent(product.price, product.compareAtPrice);
+  const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product);
+  const off = discountPercent(price, compareAtPrice);
   const out = product.stock === 0;
   const low = product.stock !== null && product.stock > 0 && product.stock <= LOW_STOCK_THRESHOLD;
 
@@ -86,11 +88,11 @@ export default function ProductDetailClient({
 
           <div className="mt-2.5 flex items-baseline gap-3">
             <span className="font-display text-2xl font-bold text-gold">
-              {formatINR(product.price)}
+              {formatINR(price)}
             </span>
-            {product.compareAtPrice !== null && product.compareAtPrice > product.price && (
+            {compareAtPrice !== null && compareAtPrice > price && (
               <span className="text-lg text-fog line-through">
-                {formatINR(product.compareAtPrice)}
+                {formatINR(compareAtPrice)}
               </span>
             )}
           </div>
@@ -118,7 +120,18 @@ export default function ProductDetailClient({
                 {product.description}
               </p>
 
-              <ProductPurchase product={product} />
+              {sizes.length > 0 && !out && (
+                <div className="mt-5">
+                  <SizePicker
+                    sizes={sizes}
+                    value={size}
+                    onChange={setSize}
+                    aspectRatio={product.aspectRatio}
+                  />
+                </div>
+              )}
+
+              <ProductPurchase product={product} stickerSize={size} price={price} />
             </>
           )}
 

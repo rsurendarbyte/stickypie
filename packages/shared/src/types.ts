@@ -24,8 +24,22 @@ export type Product = {
   isActive: boolean;
   /** null = inventory not tracked (never sells out). */
   stock: number | null;
+  /**
+   * Sizes on sale, each with its own price. Empty = one size at `price`.
+   * When set, `price`/`compareAtPrice` mirror the cheapest size ("from ₹X").
+   */
+  sizes: ProductSize[];
+  /** Artwork width / height — turns "6 inch" into real dimensions. */
+  aspectRatio: number | null;
   createdAt: string;
   updatedAt: string;
+};
+
+/** A sticker size: `inches` is the longest side. Prices in whole INR. */
+export type ProductSize = {
+  inches: number;
+  price: number;
+  compareAtPrice: number | null;
 };
 
 export type OrderStatus =
@@ -47,6 +61,10 @@ export type OrderItem = {
   unitPrice: number;
   quantity: number;
   imageUrl: string;
+  /** Chosen size (longest side, inches); null for single-size products. */
+  sizeInches: number | null;
+  /** e.g. `6″ — 6 × 3.1 in`, frozen at order time for printing. */
+  sizeLabel: string | null;
 };
 
 export type CustomerInfo = {
@@ -111,6 +129,8 @@ export type ProductInput = {
   isNew: boolean;
   isActive: boolean;
   stock: number | null;
+  sizes: ProductSize[];
+  aspectRatio: number | null;
 };
 
 export type CategoryInput = {
@@ -127,6 +147,8 @@ export type NewOrderInput = {
     unitPrice: number;
     quantity: number;
     imageUrl: string;
+    sizeInches: number | null;
+    sizeLabel: string | null;
   }>;
   subtotal: number;
   shippingFee: number;

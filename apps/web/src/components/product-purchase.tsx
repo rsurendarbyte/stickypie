@@ -5,29 +5,31 @@ import { Check, ShoppingBag } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { formatINR } from "@stickypie/shared";
 import AddToCartButton from "./add-to-cart-button";
-import { useCart } from "./cart-context";
+import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
 import QtyStepper from "./qty-stepper";
+import { toCartProduct } from "./size-picker";
 
-export default function ProductPurchase({ product }: { product: Product }) {
+export default function ProductPurchase({
+  product,
+  stickerSize,
+  price,
+}: {
+  product: Product;
+  /** Size picked on the product page (null for single-size stickers). */
+  stickerSize: number | null;
+  price: number;
+}) {
   const [qty, setQty] = useState(1);
   const { add, count, items } = useCart();
   const out = product.stock === 0;
-  const inCart = items.find((item) => item.productId === product.id);
+  const inCart = items.find(
+    (item) => lineKey(item) === lineKey({ productId: product.id, size: stickerSize })
+  );
 
   function addNow() {
     if (out) return;
-    add(
-      {
-        productId: product.id,
-        slug: product.slug,
-        name: product.name,
-        price: product.price,
-        imageUrl: product.imageUrl,
-        stock: product.stock,
-      },
-      qty
-    );
+    add(toCartProduct(product, stickerSize, price), qty);
   }
 
   return (
@@ -35,7 +37,7 @@ export default function ProductPurchase({ product }: { product: Product }) {
       {/* Desktop: inline controls (the button swaps to a synced stepper once in cart) */}
       <div className="mt-5 hidden flex-wrap items-center gap-3 lg:flex">
         {!out && !inCart && <QtyStepper value={qty} onChange={setQty} max={product.stock} />}
-        <AddToCartButton product={product} qty={qty} size="lg" />
+        <AddToCartButton product={product} qty={qty} size="lg" stickerSize={stickerSize} />
       </div>
 
       {/* Mobile: buy bar pinned to the bottom (above the cart strip when it's showing) */}
@@ -73,7 +75,7 @@ export default function ProductPurchase({ product }: { product: Product }) {
               ) : (
                 <>
                   <ShoppingBag className="size-4" /> Add to cart ·{" "}
-                  {formatINR(product.price * qty)}
+                  {formatINR(price * qty)}
                 </>
               )}
             </button>

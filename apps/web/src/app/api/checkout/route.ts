@@ -4,6 +4,9 @@ import {
   SHIPPING_FEE,
   checkoutSchema,
   computeShipping,
+  priceForSize,
+  sizeLabel,
+  type NewOrderInput,
   type Order,
 } from "@stickypie/shared";
 import { CF_ORDER_TTL_MINUTES, createCfOrder, getCfOrder } from "@/lib/cashfree";
@@ -49,23 +52,25 @@ export async function POST(req: Request) {
     customer = { ...customer, email: shopper.email };
   }
 
-  // Merge duplicate product ids, then re-price everything server-side.
-  const qtyById = new Map<string, number>();
+  // Merge duplicate lines (same product + size), then re-price everything server-side.
+  const lines = new Map<string, { productId: string; size: number | null; quantity: number }>();
   for (const item of items) {
-    qtyById.set(item.productId, (qtyById.get(item.productId) ?? 0) + item.quantity);
+    const size = item.size ?? null;
+    const key = `${item.productId}:${size ?? ""}`;
+    const line = lines.get(key) ?? { productId: item.productId, size, quantity: 0 };
+    line.quantity += item.quantity;
+    lines.set(key, line);
+  }
+  // Stock is shared by every size of a sticker.
+  const qtyById = new Map<string, number>();
+  for (const line of lines.values()) {
+    qtyById.set(line.productId, (qtyById.get(line.productId) ?? 0) + line.quantity);
   }
 
   const driver = getDriver();
   const products = await driver.getProductsByIds([...qtyById.keys()]);
   const byId = new Map(products.map((p) => [p.id, p]));
 
-  const orderItems: Array<{
-    productId: string;
-    name: string;
-    unitPrice: number;
-    quantity: number;
-    imageUrl: string;
-  }> = [];
   for (const [productId, quantity] of qtyById) {
     const product = byId.get(productId);
     if (!product || !product.isActive) {
@@ -85,12 +90,29 @@ export async function POST(req: Request) {
         { status: 409 }
       );
     }
+  }
+
+  const orderItems: NewOrderInput["items"] = [];
+  for (const line of lines.values()) {
+    const product = byId.get(line.productId)!;
+    const priced = priceForSize(product, line.size);
+    if (!priced) {
+      return NextResponse.json(
+        {
+          error: `The size you picked for "${product.name}" is no longer available. Please choose a size again.`,
+          code: "size_unavailable",
+        },
+        { status: 409 }
+      );
+    }
     orderItems.push({
-      productId,
+      productId: line.productId,
       name: product.name,
-      unitPrice: product.price,
-      quantity,
+      unitPrice: priced.price,
+      quantity: line.quantity,
       imageUrl: product.imageUrl,
+      sizeInches: line.size,
+      sizeLabel: line.size == null ? null : sizeLabel(line.size, product.aspectRatio),
     });
   }
 
@@ -109,7 +131,11 @@ export async function POST(req: Request) {
       o.items.length === orderItems.length &&
       orderItems.every((i) =>
         o.items.some(
-          (x) => x.productId === i.productId && x.quantity === i.quantity && x.unitPrice === i.unitPrice
+          (x) =>
+            x.productId === i.productId &&
+            (x.sizeInches ?? null) === i.sizeInches &&
+            x.quantity === i.quantity &&
+            x.unitPrice === i.unitPrice
         )
       );
     const earlier = (await driver.listPendingOrdersForUser(userId, since)).filter(sameCart);

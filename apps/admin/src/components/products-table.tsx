@@ -177,6 +177,15 @@ export default function ProductsTable({
                   {product.categoryId ? (categoryName.get(product.categoryId) ?? "—") : "—"}
                 </td>
                 <td className="px-4 py-3 text-right">
+                  {(product.sizes?.length ?? 0) > 0 && (
+                    <span className="mr-1.5 text-[11px] text-fog">
+                      {product.sizes
+                        .map((s) => s.inches)
+                        .sort((a, b) => a - b)
+                        .join("/")}
+                      ″ · from
+                    </span>
+                  )}
                   <span className="font-semibold tabular-nums">{formatINR(product.price)}</span>
                   {product.compareAtPrice !== null && (
                     <span className="ml-1.5 text-xs text-fog line-through">

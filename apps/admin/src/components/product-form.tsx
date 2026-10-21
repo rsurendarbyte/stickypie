@@ -4,12 +4,19 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Download, ImagePlus, Images, Loader2, Trash2, X } from "lucide-react";
 import type { Category, Product } from "@stickypie/shared";
-import { formatINR, productInputSchema, slugify } from "@stickypie/shared";
+import {
+  STICKER_SIZES,
+  formatDimensions,
+  formatINR,
+  productInputSchema,
+  slugify,
+} from "@stickypie/shared";
 import { imageDownloadHref, imageSrc } from "@/lib/img";
 import { CheckField, SelectField, TextAreaField, TextField } from "./field";
 import { useToast } from "./toast";
 
 type LibraryImage = { name: string; url: string };
+type SizeRow = { inches: number; on: boolean; price: string; compareAt: string };
 
 export default function ProductForm({
   categories,
@@ -40,6 +47,24 @@ export default function ProductForm({
   const [featured, setFeatured] = useState(product?.featured ?? false);
   const [isNew, setIsNew] = useState(product?.isNew ?? true);
   const [isActive, setIsActive] = useState(product?.isActive ?? true);
+  const [sizeRows, setSizeRows] = useState<SizeRow[]>(() =>
+    STICKER_SIZES.map((inches) => {
+      const existing = product?.sizes?.find((s) => s.inches === inches);
+      return {
+        inches,
+        // New products start with every size on; existing ones keep what they sell.
+        on: product ? Boolean(existing) : true,
+        price: existing ? String(existing.price) : "",
+        compareAt: existing?.compareAtPrice ? String(existing.compareAtPrice) : "",
+      };
+    })
+  );
+  const [aspectRatio, setAspectRatio] = useState<number | null>(product?.aspectRatio ?? null);
+  const sizesOn = sizeRows.filter((row) => row.on);
+
+  function updateSize(inches: number, patch: Partial<SizeRow>) {
+    setSizeRows((rows) => rows.map((row) => (row.inches === inches ? { ...row, ...patch } : row)));
+  }
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -51,6 +76,22 @@ export default function ProductForm({
   useEffect(() => {
     if (!slugTouched) setSlug(slugify(name));
   }, [name, slugTouched]);
+
+  // Measure the artwork so sizes show real dimensions (longest side = size).
+  useEffect(() => {
+    const src = imageUrl.trim();
+    if (!src) return;
+    let cancelled = false;
+    const img = new Image();
+    img.onload = () => {
+      if (cancelled || !img.naturalWidth || !img.naturalHeight) return;
+      setAspectRatio(Math.round((img.naturalWidth / img.naturalHeight) * 10000) / 10000);
+    };
+    img.src = imageSrc(src);
+    return () => {
+      cancelled = true;
+    };
+  }, [imageUrl]);
 
   async function openLibrary() {
     setLibraryOpen(true);
@@ -80,12 +121,38 @@ export default function ProductForm({
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+
+    const sizeErrors: Record<string, string> = {};
+    for (const row of sizesOn) {
+      const p = Number(row.price);
+      if (!row.price || p < 1) sizeErrors[`size${row.inches}`] = "Enter a price";
+      else if (row.compareAt && Number(row.compareAt) <= p)
+        sizeErrors[`size${row.inches}`] = "Compare-at must be higher than the price";
+    }
+    if (Object.keys(sizeErrors).length > 0) {
+      setErrors(sizeErrors);
+      toast("Fix the size prices", "error");
+      return;
+    }
+    const sizes = sizesOn.map((row) => ({
+      inches: row.inches,
+      price: Number(row.price),
+      compareAtPrice: row.compareAt ? Number(row.compareAt) : null,
+    }));
+    const cheapest = [...sizes].sort((a, b) => a.price - b.price)[0];
+
     const payload = {
       name: name.trim(),
       slug: slug.trim(),
       description: description.trim(),
-      price: Number(price),
-      compareAtPrice: compareAt.trim() === "" ? null : Number(compareAt),
+      price: cheapest ? cheapest.price : Number(price),
+      compareAtPrice: cheapest
+        ? cheapest.compareAtPrice
+        : compareAt.trim() === ""
+          ? null
+          : Number(compareAt),
+      sizes,
+      aspectRatio,
       categoryId: categoryId || null,
       imageUrl: imageUrl.trim(),
       tags: tags
@@ -177,22 +244,82 @@ export default function ProductForm({
           hint="A punchy one-liner buyers read on the product page."
         />
 
+        <div className="rounded-xl border border-line bg-ink2/60 p-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <p className="text-[10.5px] font-semibold tracking-widest text-fog uppercase">
+              Sizes &amp; prices
+            </p>
+            <p className="text-xs text-fog">
+              Size = longest side. The lowest price shows first in the shop.
+            </p>
+          </div>
+          <div className="mt-3 space-y-3">
+            {sizeRows.map((row) => (
+              <div key={row.inches} className="grid items-start gap-3 sm:grid-cols-[150px_1fr_1fr]">
+                <label className="flex cursor-pointer items-center gap-2.5 pt-3">
+                  <input
+                    type="checkbox"
+                    checked={row.on}
+                    onChange={(e) => updateSize(row.inches, { on: e.target.checked })}
+                    className="size-4 accent-[#ff2e63]"
+                  />
+                  <span>
+                    <span className="block text-sm font-semibold">{row.inches} inch</span>
+                    <span className="block text-[11px] text-fog">
+                      {aspectRatio ? formatDimensions(row.inches, aspectRatio) : "size from image"}
+                    </span>
+                  </span>
+                </label>
+                {row.on ? (
+                  <>
+                    <TextField
+                      label="Price (₹)"
+                      value={row.price}
+                      onChange={(e) =>
+                        updateSize(row.inches, { price: e.target.value.replace(/\D/g, "") })
+                      }
+                      inputMode="numeric"
+                      error={errors[`size${row.inches}`]}
+                    />
+                    <TextField
+                      label="Compare-at (₹)"
+                      value={row.compareAt}
+                      onChange={(e) =>
+                        updateSize(row.inches, { compareAt: e.target.value.replace(/\D/g, "") })
+                      }
+                      inputMode="numeric"
+                      hint="Optional strike-through"
+                    />
+                  </>
+                ) : (
+                  <p className="pt-3 text-xs text-fog/70 sm:col-span-2">Not sold in this size</p>
+                )}
+              </div>
+            ))}
+          </div>
+          {sizesOn.length === 0 && (
+            <div className="mt-4 grid gap-4 border-t border-line pt-4 sm:grid-cols-2">
+              <TextField
+                label="Price (₹)"
+                value={price}
+                onChange={(e) => setPrice(e.target.value.replace(/\D/g, ""))}
+                inputMode="numeric"
+                error={errors.price}
+                hint="One size only — no size choice in the shop"
+              />
+              <TextField
+                label="Compare-at (₹)"
+                value={compareAt}
+                onChange={(e) => setCompareAt(e.target.value.replace(/\D/g, ""))}
+                inputMode="numeric"
+                error={errors.compareAtPrice}
+                hint="Optional strike-through price"
+              />
+            </div>
+          )}
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-3">
-          <TextField
-            label="Price (₹)"
-            value={price}
-            onChange={(e) => setPrice(e.target.value.replace(/\D/g, ""))}
-            inputMode="numeric"
-            error={errors.price}
-          />
-          <TextField
-            label="Compare-at (₹)"
-            value={compareAt}
-            onChange={(e) => setCompareAt(e.target.value.replace(/\D/g, ""))}
-            inputMode="numeric"
-            error={errors.compareAtPrice}
-            hint="Optional strike-through price"
-          />
           <SelectField
             label="Category"
             value={categoryId}
@@ -359,14 +486,28 @@ export default function ProductForm({
               )}
             </div>
             <p className="mt-2 truncate text-sm font-medium">{name || "Product name"}</p>
-            <p className="font-display text-[15px] font-bold">
-              {price ? formatINR(Number(price)) : "₹—"}
-              {compareAt && Number(compareAt) > Number(price || 0) && (
-                <span className="ml-1.5 text-xs font-normal text-fog line-through">
-                  {formatINR(Number(compareAt))}
-                </span>
-              )}
-            </p>
+            {(() => {
+              const lowest = sizesOn
+                .filter((row) => Number(row.price) > 0)
+                .sort((a, b) => Number(a.price) - Number(b.price))[0];
+              const shownPrice = sizesOn.length > 0 ? lowest?.price : price;
+              const shownCompare = sizesOn.length > 0 ? lowest?.compareAt : compareAt;
+              return (
+                <p className="font-display text-[15px] font-bold">
+                  {shownPrice ? formatINR(Number(shownPrice)) : "₹—"}
+                  {shownCompare && Number(shownCompare) > Number(shownPrice || 0) && (
+                    <span className="ml-1.5 text-xs font-normal text-fog line-through">
+                      {formatINR(Number(shownCompare))}
+                    </span>
+                  )}
+                  {sizesOn.length > 1 && (
+                    <span className="ml-1.5 text-xs font-normal text-fog">
+                      · {sizesOn.length} sizes
+                    </span>
+                  )}
+                </p>
+              );
+            })()}
           </div>
         </div>
       </div>

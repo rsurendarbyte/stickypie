@@ -184,6 +184,9 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
         unit_price: item.unitPrice,
         quantity: item.quantity,
         image_url: item.imageUrl,
+        ...(item.sizeInches != null
+          ? { size_inches: item.sizeInches, size_label: item.sizeLabel }
+          : {}),
       }));
       const { error: itemsError } = await client.from("order_items").insert(items);
       if (itemsError) throw friendly(itemsError);

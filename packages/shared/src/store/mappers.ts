@@ -25,6 +25,15 @@ export function rowToProduct(r: any): Product {
     isNew: r.is_new ?? false,
     isActive: r.is_active,
     stock: r.stock,
+    // Absent until the 20261022 migration runs — a single-size product.
+    sizes: Array.isArray(r.sizes)
+      ? r.sizes.map((s: any) => ({
+          inches: Number(s.inches),
+          price: Number(s.price),
+          compareAtPrice: s.compare_at_price == null ? null : Number(s.compare_at_price),
+        }))
+      : [],
+    aspectRatio: r.aspect_ratio == null ? null : Number(r.aspect_ratio),
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
@@ -39,6 +48,8 @@ export function rowToItem(r: any): OrderItem {
     unitPrice: r.unit_price,
     quantity: r.quantity,
     imageUrl: r.image_url ?? "",
+    sizeInches: r.size_inches ?? null,
+    sizeLabel: r.size_label ?? null,
   };
 }
 
@@ -89,5 +100,13 @@ export function productToRow(input: Partial<ProductInput>): Record<string, unkno
   if (input.isNew !== undefined) row.is_new = input.isNew;
   if (input.isActive !== undefined) row.is_active = input.isActive;
   if (input.stock !== undefined) row.stock = input.stock;
+  if (input.sizes !== undefined) {
+    row.sizes = input.sizes.map((s) => ({
+      inches: s.inches,
+      price: s.price,
+      compare_at_price: s.compareAtPrice,
+    }));
+  }
+  if (input.aspectRatio !== undefined) row.aspect_ratio = input.aspectRatio;
   return row;
 }

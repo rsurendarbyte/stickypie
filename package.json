@@ -26,6 +26,8 @@
     "db:link": "supabase link --project-ref liqxjqaudwtowvdkbvyi",
     "db:push": "node scripts/db-push.mjs",
     "db:push:prod": "node scripts/db-push.mjs --prod",
+    "db:apply": "node scripts/db-apply.mjs",
+    "db:apply:prod": "node scripts/db-apply.mjs --prod",
     "admin:create": "node scripts/create-admin.mjs",
     "auth:configure": "node scripts/configure-auth.mjs",
     "seed:remote": "node scripts/seed-remote.mjs",

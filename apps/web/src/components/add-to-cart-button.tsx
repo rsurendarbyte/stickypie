@@ -2,24 +2,30 @@
 
 import { Check, ShoppingBag } from "lucide-react";
 import type { Product } from "@stickypie/shared";
-import { formatINR } from "@stickypie/shared";
-import { useCart } from "./cart-context";
+import { formatINR, priceForSize } from "@stickypie/shared";
+import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
+import { defaultSize, toCartProduct } from "./size-picker";
 
 export default function AddToCartButton({
   product,
   qty = 1,
   size = "md",
+  stickerSize,
   className = "",
 }: {
   product: Product;
   qty?: number;
   size?: "md" | "lg";
+  /** Chosen sticker size (inches); defaults to the lowest-priced size. */
+  stickerSize?: number | null;
   className?: string;
 }) {
   const { add, items } = useCart();
   const out = product.stock === 0;
-  const inCart = items.find((item) => item.productId === product.id);
+  const chosen = stickerSize === undefined ? defaultSize(product) : stickerSize;
+  const price = priceForSize(product, chosen)?.price ?? product.price;
+  const inCart = items.find((item) => lineKey(item) === lineKey({ productId: product.id, size: chosen }));
 
   // Already in the cart → the button becomes the synced quantity stepper.
   if (inCart && !out) {
@@ -40,17 +46,7 @@ export default function AddToCartButton({
 
   function onClick() {
     if (out) return;
-    add(
-      {
-        productId: product.id,
-        slug: product.slug,
-        name: product.name,
-        price: product.price,
-        imageUrl: product.imageUrl,
-        stock: product.stock,
-      },
-      qty
-    );
+    add(toCartProduct(product, chosen, price), qty);
   }
 
   const sizing =

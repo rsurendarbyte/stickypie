@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { PartyPopper, ShoppingBag, Trash2, Truck, X } from "lucide-react";
 import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE, formatINR } from "@stickypie/shared";
-import { useCart } from "./cart-context";
+import { lineKey, useCart } from "./cart-context";
 import QtyStepper from "./qty-stepper";
 
 export default function CartDrawer() {
@@ -83,7 +83,7 @@ export default function CartDrawer() {
             <ul className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
               {items.map((item) => {
                 return (
-                  <li key={item.productId} className="flex gap-3">
+                  <li key={lineKey(item)} className="flex gap-3">
                     <Link
                       href={`/sticker/${item.slug}`}
                       onClick={closeCart}
@@ -107,19 +107,24 @@ export default function CartDrawer() {
                         <button
                           type="button"
                           aria-label={`Remove ${item.name}`}
-                          onClick={() => remove(item.productId)}
+                          onClick={() => remove(lineKey(item))}
                           className="shrink-0 text-fog transition-colors hover:text-brand"
                         >
                           <Trash2 className="size-4" />
                         </button>
                       </div>
-                      <p className="mt-0.5 text-xs text-fog">{formatINR(item.price)} each</p>
+                      <p className="mt-0.5 text-xs text-fog">
+                        {item.sizeLabel && (
+                          <span className="font-medium text-snow/80">{item.sizeLabel} · </span>
+                        )}
+                        {formatINR(item.price)} each
+                      </p>
                       <div className="mt-2 flex items-center justify-between">
                         <QtyStepper
                           compact
                           value={item.qty}
                           max={item.stock}
-                          onChange={(next) => setQty(item.productId, next)}
+                          onChange={(next) => setQty(lineKey(item), next)}
                         />
                         <p className="text-sm font-semibold">
                           {formatINR(item.price * item.qty)}

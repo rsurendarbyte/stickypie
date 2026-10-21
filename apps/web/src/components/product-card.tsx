@@ -5,8 +5,9 @@ import { Check, ShoppingBag } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR } from "@stickypie/shared";
 import { rotationFor } from "@/lib/palette";
-import { useCart } from "./cart-context";
+import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
+import SizePicker, { toCartProduct, useSizeChoice } from "./size-picker";
 
 // E-commerce product card: die-cut art on a dark stage, prominent price with
 // the discount called out, and an always-visible Add to cart button.
@@ -21,23 +22,20 @@ export default function ProductCard({
   width?: string;
 }) {
   const { add, items } = useCart();
-  const inCart = items.find((item) => item.productId === product.id);
+  const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product);
+  const inCart = items.find((item) => lineKey(item) === lineKey({ productId: product.id, size }));
+  const inCartAnySize = items
+    .filter((item) => item.productId === product.id)
+    .reduce((sum, item) => sum + item.qty, 0);
   const rotate = rotationFor(product.slug);
   const out = product.stock === 0;
   const low = product.stock !== null && product.stock > 0 && product.stock <= LOW_STOCK_THRESHOLD;
   const isNew = product.isNew;
-  const off = discountPercent(product.price, product.compareAtPrice);
+  const off = discountPercent(price, compareAtPrice);
 
   function addToCart() {
     if (out) return;
-    add({
-      productId: product.id,
-      slug: product.slug,
-      name: product.name,
-      price: product.price,
-      imageUrl: product.imageUrl,
-      stock: product.stock,
-    });
+    add(toCartProduct(product, size, price));
   }
 
   return (
@@ -80,9 +78,9 @@ export default function ProductCard({
             )}
           </div>
 
-          {inCart && (
+          {inCartAnySize > 0 && (
           <span className="absolute top-2.5 right-2.5 flex items-center gap-1 rounded-full bg-mint px-2.5 py-1 text-[10px] font-bold text-white shadow-md">
-            <Check className="size-3" strokeWidth={3.5} /> {inCart.qty}
+            <Check className="size-3" strokeWidth={3.5} /> {inCartAnySize}
           </span>
         )}
 
@@ -101,22 +99,33 @@ export default function ProductCard({
         {/* Info */}
         <div className="min-h-[46px] px-3 pt-2.5">
           <p className="truncate text-[13px] font-medium text-snow/90">{product.name}</p>
-          {product.compareAtPrice !== null && product.compareAtPrice > product.price && (
+          {compareAtPrice !== null && compareAtPrice > price && (
             <p className="mt-0.5 text-[11px] text-fog">
-              <span className="line-through">{formatINR(product.compareAtPrice)}</span>{" "}
+              <span className="line-through">{formatINR(compareAtPrice)}</span>{" "}
               <span className="font-bold text-mint">{off}% off</span>
             </p>
           )}
         </div>
       </Link>
 
-      {/* Buy action: stepper once it's in the cart, otherwise add-with-price */}
+      {/* Size chips (lowest price pre-selected), then the buy action */}
+      {sizes.length > 1 && !out && (
+        <div className="px-3 pt-2">
+          <SizePicker
+            compact
+            sizes={sizes}
+            value={size}
+            onChange={setSize}
+            aspectRatio={product.aspectRatio}
+          />
+        </div>
+      )}
       <div className="flex p-3 pt-1.5">
         {inCart ? (
           <div className="flex h-10 w-full items-center justify-center gap-3 sm:h-11">
             <CartStepper item={inCart} size="sm" />
             <span className="font-display text-lg leading-none font-bold whitespace-nowrap">
-              {formatINR(inCart.qty * product.price)}
+              {formatINR(inCart.qty * inCart.price)}
             </span>
           </div>
         ) : (
@@ -125,7 +134,9 @@ export default function ProductCard({
           onClick={addToCart}
           disabled={out}
           aria-label={
-            out ? "Out of stock" : `Add ${product.name} to cart for ${formatINR(product.price)}`
+            out
+              ? "Out of stock"
+              : `Add ${product.name}${size ? ` (${size} inch)` : ""} to cart for ${formatINR(price)}`
           }
           className={`flex h-10 w-full items-center justify-center gap-2 rounded-full transition-all sm:h-11 sm:rounded-xl ${
             out
@@ -139,7 +150,7 @@ export default function ProductCard({
             <>
               <ShoppingBag className="size-4 shrink-0 text-brand2" />
               <span className="font-display text-lg leading-none font-bold whitespace-nowrap">
-                {formatINR(product.price)}
+                {formatINR(price)}
               </span>
             </>
           )}

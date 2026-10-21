@@ -2,7 +2,7 @@
 
 import { Minus, Plus, Trash2 } from "lucide-react";
 import type { CartItem } from "./cart-context";
-import { useCart } from "./cart-context";
+import { lineKey, useCart } from "./cart-context";
 
 /**
  * Quantity stepper bound to a cart line, so every surface showing the same
@@ -18,11 +18,16 @@ export default function CartStepper({
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
-  const { setQty, remove } = useCart();
-  const atMax = item.stock !== null && item.qty >= Math.min(item.stock, 99);
+  const { setQty, remove, items } = useCart();
+  const key = lineKey(item);
+  // Stock is shared by every size of the sticker.
+  const inOtherSizes = items
+    .filter((other) => other.productId === item.productId && lineKey(other) !== key)
+    .reduce((sum, other) => sum + other.qty, 0);
+  const atMax = item.stock !== null && item.qty + inOtherSizes >= Math.min(item.stock, 99);
   const lg = size === "lg";
   const sm = size === "sm";
-  const key = `grid place-items-center rounded-lg border border-line bg-ink text-snow shadow-[0_1px_2px_rgba(16,24,40,0.12)] transition-all hover:border-brand/50 hover:text-brand active:scale-95 disabled:pointer-events-none disabled:opacity-35 ${
+  const keyClass = `grid place-items-center rounded-lg border border-line bg-ink text-snow shadow-[0_1px_2px_rgba(16,24,40,0.12)] transition-all hover:border-brand/50 hover:text-brand active:scale-95 disabled:pointer-events-none disabled:opacity-35 ${
     lg ? "size-10" : sm ? "size-7 rounded-md" : "size-8"
   }`;
 
@@ -31,10 +36,8 @@ export default function CartStepper({
       <button
         type="button"
         aria-label={item.qty === 1 ? "Remove from cart" : "Decrease quantity"}
-        onClick={() =>
-          item.qty === 1 ? remove(item.productId) : setQty(item.productId, item.qty - 1)
-        }
-        className={key}
+        onClick={() => (item.qty === 1 ? remove(key) : setQty(key, item.qty - 1))}
+        className={keyClass}
       >
         {item.qty === 1 ? (
           <Trash2 className="size-4 text-brand" strokeWidth={2.25} />
@@ -53,8 +56,8 @@ export default function CartStepper({
         type="button"
         aria-label="Increase quantity"
         disabled={atMax}
-        onClick={() => setQty(item.productId, item.qty + 1)}
-        className={key}
+        onClick={() => setQty(key, item.qty + 1)}
+        className={keyClass}
       >
         <Plus className="size-4" strokeWidth={2.5} />
       </button>

@@ -14,7 +14,7 @@ import {
 } from "@stickypie/shared";
 import { authClient, createAccount, signIn, signOut, useShopper } from "@/lib/shopper-auth";
 import { lookupPincode } from "@/lib/pincode";
-import { useCart } from "./cart-context";
+import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
 import { SelectField, TextField } from "./field";
 
@@ -178,7 +178,11 @@ export default function CheckoutClient() {
         },
         body: JSON.stringify({
           customer: parsed.data,
-          items: items.map((item) => ({ productId: item.productId, quantity: item.qty })),
+          items: items.map((item) => ({
+            productId: item.productId,
+            quantity: item.qty,
+            size: item.size,
+          })),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -451,7 +455,7 @@ export default function CheckoutClient() {
           </div>
           <ul className="mt-3 space-y-2.5">
             {items.map((item) => (
-              <li key={item.productId} className="flex items-center gap-2.5">
+              <li key={lineKey(item)} className="flex items-center gap-2.5">
                 <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-panel p-1 ring-1 ring-line">
                   <img
                     src={item.imageUrl}
@@ -461,6 +465,7 @@ export default function CheckoutClient() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] font-medium">{item.name}</p>
+                  {item.sizeLabel && <p className="text-[11px] text-fog">{item.sizeLabel}</p>}
                   <CartStepper item={item} size="sm" className="mt-1" />
                 </div>
                 <span className="text-sm font-bold tabular-nums">

@@ -57,6 +57,11 @@ export default async function OrderDetailPage({
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{item.name}</p>
+                  {item.sizeLabel && (
+                    <p className="mt-0.5 inline-block rounded-md bg-gold/15 px-1.5 py-0.5 text-xs font-semibold text-gold">
+                      Size {item.sizeLabel}
+                    </p>
+                  )}
                   <p className="text-xs text-fog">
                     {formatINR(item.unitPrice)} × {item.quantity}
                   </p>
@@ -66,7 +71,10 @@ export default async function OrderDetailPage({
                 </span>
                 {item.imageUrl && (
                   <a
-                    href={imageDownloadHref(item.imageUrl, item.name)}
+                    href={imageDownloadHref(
+                      item.imageUrl,
+                      item.sizeInches ? `${item.name} ${item.sizeInches}in` : item.name
+                    )}
                     download
                     aria-label={`Download ${item.name} image`}
                     title="Download image"

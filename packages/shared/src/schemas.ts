@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { INDIAN_STATES, matchIndianState } from "./india";
+import { STICKER_SIZES } from "./sizes";
 
 export const phoneSchema = z
   .string()
@@ -38,6 +39,8 @@ export const checkoutSchema = z.object({
       z.object({
         productId: z.string().min(1),
         quantity: z.number().int().min(1).max(99),
+        /** Chosen size in inches; omitted/null for single-size products. */
+        size: z.number().int().positive().nullable().optional(),
       })
     )
     .min(1, "Your cart is empty")
@@ -64,6 +67,20 @@ export const productInputSchema = z.object({
   isNew: z.boolean().default(false),
   isActive: z.boolean().default(true),
   stock: z.number().int().min(0).max(1000000).nullable().default(null),
+  sizes: z
+    .array(
+      z.object({
+        inches: z
+          .number()
+          .refine((n) => (STICKER_SIZES as readonly number[]).includes(n), "Unknown sticker size"),
+        price: z.number().int().min(1, "Price must be at least ₹1").max(1000000),
+        compareAtPrice: z.number().int().min(1).max(1000000).nullable().default(null),
+      })
+    )
+    .max(STICKER_SIZES.length)
+    .refine((sizes) => new Set(sizes.map((s) => s.inches)).size === sizes.length, "Each size only once")
+    .default([]),
+  aspectRatio: z.number().positive().max(100).nullable().default(null),
 });
 
 export type ProductInputParsed = z.infer<typeof productInputSchema>;

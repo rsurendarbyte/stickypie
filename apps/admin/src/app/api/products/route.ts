@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { productInputSchema } from "@stickypie/shared";
 import { requireAdminApi } from "@/lib/data";
+import { prepareProductInput } from "@/lib/product-input";
 
 export async function POST(req: Request) {
   const auth = await requireAdminApi();
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
     );
   }
   try {
-    const product = await auth.driver.createProduct(parsed.data);
+    const product = await auth.driver.createProduct(await prepareProductInput(parsed.data));
     return NextResponse.json({ product }, { status: 201 });
   } catch (err) {
     return NextResponse.json(

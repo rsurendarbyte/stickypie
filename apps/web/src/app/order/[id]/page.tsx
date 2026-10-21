@@ -117,8 +117,13 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                       />
                     )}
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-sm">
-                    {item.name} <span className="text-fog">× {item.quantity}</span>
+                  <span className="min-w-0 flex-1 text-sm">
+                    <span className="block truncate">
+                      {item.name} <span className="text-fog">× {item.quantity}</span>
+                    </span>
+                    {item.sizeLabel && (
+                      <span className="block text-xs text-fog">Size {item.sizeLabel}</span>
+                    )}
                   </span>
                   <span className="text-sm font-medium">
                     {formatINR(item.unitPrice * item.quantity)}
