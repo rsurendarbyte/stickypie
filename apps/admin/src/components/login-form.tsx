@@ -36,16 +36,11 @@ export default function LoginForm({ mode }: { mode: "demo" | "supabase" }) {
         Sign in
       </button>
 
-      {mode === "demo" ? (
+      {mode === "demo" && (
         <p className="text-center text-[11px] leading-relaxed text-fog/70">
           Demo mode (no Supabase configured). The password comes from{" "}
           <code className="rounded bg-panel px-1 py-0.5">ADMIN_DEV_PASSWORD</code> — see
           apps/admin/.env.example for the default.
-        </p>
-      ) : (
-        <p className="text-center text-[11px] leading-relaxed text-fog/70">
-          Sign in with an admin account. Create one with{" "}
-          <code className="rounded bg-panel px-1 py-0.5">npm run admin:create -- email</code>
         </p>
       )}
     </form>
