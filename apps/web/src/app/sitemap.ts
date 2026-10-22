@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { categoryPath, inCategory } from "@stickypie/shared";
 import { getDriver } from "@/lib/data";
 import { generateStaticParams as legalSlugs } from "./legal/[slug]/page";
 import { absoluteUrl, isProductionSite } from "@/lib/site";
@@ -12,7 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const pages: MetadataRoute.Sitemap = [
     { url: absoluteUrl("/"), changeFrequency: "daily", priority: 1 },
-    { url: absoluteUrl("/browse"), changeFrequency: "daily", priority: 0.9 },
+    { url: absoluteUrl("/stickers"), changeFrequency: "daily", priority: 0.9 },
     { url: absoluteUrl("/contact"), changeFrequency: "yearly", priority: 0.3 },
     ...legalSlugs().map(({ slug }) => ({
       url: absoluteUrl(`/legal/${slug}`),
@@ -22,7 +23,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    const products = await getDriver().listProducts({ activeOnly: true });
+    const driver = getDriver();
+    const [products, categories] = await Promise.all([
+      driver.listProducts({ activeOnly: true }),
+      driver.listCategories(),
+    ]);
+    // Category pages that have stickers on sale.
+    for (const category of categories) {
+      if (!products.some((p) => inCategory(p, category.id))) continue;
+      pages.push({ url: absoluteUrl(categoryPath(category.slug)), changeFrequency: "weekly", priority: 0.85 });
+    }
     for (const product of products) {
       pages.push({
         url: absoluteUrl(`/sticker/${product.slug}`),

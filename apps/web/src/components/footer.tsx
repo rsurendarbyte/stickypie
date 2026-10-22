@@ -4,8 +4,8 @@ const COLUMNS: Array<{ title: string; links: Array<{ label: string; href: string
   {
     title: "Shop",
     links: [
-      { label: "Browse all", href: "/browse" },
-      { label: "New drops", href: "/browse?sort=new" },
+      { label: "All stickers", href: "/stickers" },
+      { label: "New drops", href: "/stickers?sort=new" },
     ],
   },
   {

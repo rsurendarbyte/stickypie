@@ -3,7 +3,7 @@
 // (on-sale only) catalog, so hidden products never appear in any rail.
 import { z } from "zod";
 import type { Category, Product } from "./types";
-import { inCategory } from "./utils";
+import { categoryPath, inCategory } from "./utils";
 
 export type HomeRailKind = "custom" | "featured" | "new" | "category" | "categories";
 
@@ -103,7 +103,7 @@ export function resolveHomeRails(
         const pins = rail.productIds.filter((id) => byId.get(id) && inThis(byId.get(id)!));
         const items = pinnedFirst(pins, products.filter(inThis)).slice(0, rail.limit);
         if (items.length > 0) {
-          out.push({ key: `${rail.id}:${category.id}`, title: category.name, href: `/browse?category=${category.slug}`, items });
+          out.push({ key: `${rail.id}:${category.id}`, title: category.name, href: categoryPath(category.slug), items });
         }
       }
       continue;
@@ -114,13 +114,13 @@ export function resolveHomeRails(
     if (rail.kind === "featured") items = products.filter((p) => p.featured);
     else if (rail.kind === "new") {
       items = products;
-      href = "/browse?sort=new";
+      href = "/stickers?sort=new";
     } else if (rail.kind === "category") {
       const category = rail.categoryId ? catById.get(rail.categoryId) : undefined;
       if (!category) continue;
       items = products.filter((p) => inCategory(p, category.id));
       title = title || category.name;
-      href = `/browse?category=${category.slug}`;
+      href = categoryPath(category.slug);
     }
     items = pinnedFirst(rail.productIds, rail.kind === "custom" ? [] : items);
     items = items.slice(0, rail.limit);

@@ -1,8 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
-import { inCategory } from "@stickypie/shared";
+import { ALL_STICKERS_PATH, categoryPath, categoryTitle, inCategory } from "@stickypie/shared";
 import ProductCard from "./product-card";
 import ProductCardSkeleton from "./product-card-skeleton";
 import { SelectField } from "./field";
@@ -14,24 +15,41 @@ import { useWindowScrollMemory } from "@/lib/scroll-memory";
  * build-time snapshot, refreshes live from the Supabase API in the browser,
  * and all searching/filtering/sorting is local — zero server requests.
  */
-export default function BrowseClient({ initial }: { initial: Catalog }) {
+export default function BrowseClient({
+  initial,
+  categorySlug = "",
+}: {
+  initial: Catalog;
+  /** From the URL path: /stickers/<slug>. Empty = all stickers. */
+  categorySlug?: string;
+}) {
   const { categories, products, loaded, failed, retry } = useLiveCatalog(initial);
   useWindowScrollMemory(loaded);
   const router = useRouter();
   const params = useSearchParams();
   const q = params.get("q") ?? "";
-  const category = params.get("category") ?? "";
+  const category = categorySlug;
   const sort = params.get("sort") ?? "new";
+
+  /** Link to a category (or all), keeping the current search + sort. */
+  function hrefFor(cat: string) {
+    const sp = new URLSearchParams();
+    if (q) sp.set("q", q);
+    if (sort && sort !== "new") sp.set("sort", sort);
+    const qs = sp.toString();
+    const path = cat ? categoryPath(cat) : ALL_STICKERS_PATH;
+    return qs ? `${path}?${qs}` : path;
+  }
 
   function update(next: { category?: string; sort?: string }) {
     const sp = new URLSearchParams();
     const cat = next.category ?? category;
     const sortValue = next.sort ?? sort;
     if (q) sp.set("q", q);
-    if (cat) sp.set("category", cat);
     if (sortValue && sortValue !== "new") sp.set("sort", sortValue);
     const qs = sp.toString();
-    router.push(qs ? `/browse?${qs}` : "/browse", { scroll: false });
+    const path = cat ? categoryPath(cat) : ALL_STICKERS_PATH;
+    router.push(qs ? `${path}?${qs}` : path, { scroll: false });
   }
 
   const visible = useMemo(() => {
@@ -71,7 +89,7 @@ export default function BrowseClient({ initial }: { initial: Catalog }) {
   return (
     <>
       <h1 className="font-display text-3xl font-bold sm:text-4xl">
-        {activeCategoryName ?? "Browse stickers"}
+        {activeCategoryName ? categoryTitle(activeCategoryName) : "All stickers"}
       </h1>
       <p className="mt-1 text-sm text-fog">
         {!loaded ? (
@@ -87,18 +105,13 @@ export default function BrowseClient({ initial }: { initial: Catalog }) {
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <div className="no-scrollbar -mx-1 flex max-w-full gap-2 overflow-x-auto px-1 py-1">
-          <button type="button" className={chip(!category)} onClick={() => update({ category: "" })}>
+          <Link href={hrefFor("")} scroll={false} className={chip(!category)}>
             All
-          </button>
+          </Link>
           {shownCategories.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              className={chip(category === c.slug)}
-              onClick={() => update({ category: c.slug })}
-            >
+            <Link key={c.id} href={hrefFor(c.slug)} scroll={false} className={chip(category === c.slug)}>
               {c.name}
-            </button>
+            </Link>
           ))}
         </div>
         <SelectField

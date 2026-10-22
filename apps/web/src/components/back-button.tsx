@@ -7,10 +7,10 @@ import { NAV_COUNT_KEY } from "./nav-tracker";
 
 /**
  * Goes back to wherever the shopper came from (home hero, a row, browse) when
- * that page is in-app history; a direct or shared link falls back to /browse
+ * that page is in-app history; a direct or shared link falls back to /stickers
  * instead of leaving the site.
  */
-export default function BackButton({ fallback = "/browse" }: { fallback?: string }) {
+export default function BackButton({ fallback = "/stickers" }: { fallback?: string }) {
   const router = useRouter();
 
   function goBack() {

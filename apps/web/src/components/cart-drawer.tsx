@@ -72,7 +72,7 @@ export default function CartDrawer() {
               <p className="mt-1 text-sm text-fog">Your cart is empty. Let&apos;s fix that.</p>
             </div>
             <Link
-              href="/browse"
+              href="/stickers"
               onClick={closeCart}
               className="pie-gradient rounded-lg px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110"
             >
@@ -175,7 +175,7 @@ export default function CartDrawer() {
 
               {shortBy > 0 ? (
                 <Link
-                  href="/browse"
+                  href="/stickers"
                   onClick={closeCart}
                   className="mt-4 block w-full rounded-xl bg-snow py-3 text-center text-sm font-bold text-white shadow-lg shadow-black/10 transition-all hover:bg-snow/90"
                 >

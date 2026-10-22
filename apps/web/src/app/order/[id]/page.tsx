@@ -242,7 +242,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             ← My orders
           </Link>
         )}
-        <Link href="/browse" className="text-brand hover:underline">
+        <Link href="/stickers" className="text-brand hover:underline">
           Continue shopping →
         </Link>
       </div>

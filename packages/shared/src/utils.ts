@@ -28,6 +28,17 @@ export function inCategory(
   return product.categoryIds ? product.categoryIds.includes(categoryId) : product.categoryId === categoryId;
 }
 
+/** SEO-friendly listing URLs: /stickers (all) and /stickers/<category-slug>. */
+export const ALL_STICKERS_PATH = "/stickers";
+export function categoryPath(slug: string): string {
+  return `${ALL_STICKERS_PATH}/${slug}`;
+}
+
+/** "Cars" → "Cars Stickers"; "Sticker Packs" stays as is. */
+export function categoryTitle(name: string): string {
+  return /sticker|decal|badge|label/i.test(name) ? name : `${name} Stickers`;
+}
+
 /** Human-friendly order code derived from the order id. */
 export function orderCode(orderId: string): string {
   return `SP-${orderId.replace(/-/g, "").slice(0, 8).toUpperCase()}`;

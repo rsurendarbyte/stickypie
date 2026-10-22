@@ -47,15 +47,15 @@ export default function ProductDetailClient({
   return (
     <>
       <div className="flex items-center gap-3">
-        <BackButton fallback={category ? `/browse?category=${category.slug}` : "/browse"} />
+        <BackButton fallback={category ? `/stickers/${category.slug}` : "/stickers"} />
         <nav className="text-xs text-fog">
-          <Link href="/browse" className="hover:text-snow">
-            Browse
+          <Link href="/stickers" className="hover:text-snow">
+            Stickers
           </Link>
           {category && (
             <>
               <span className="mx-1.5">/</span>
-              <Link href={`/browse?category=${category.slug}`} className="hover:text-snow">
+              <Link href={`/stickers/${category.slug}`} className="hover:text-snow">
                 {category.name}
               </Link>
             </>
@@ -102,7 +102,7 @@ export default function ProductDetailClient({
         <div>
           {category && (
             <Link
-              href={`/browse?category=${category.slug}`}
+              href={`/stickers/${category.slug}`}
               className="inline-block rounded-full border border-line bg-ink2 px-3 py-1 text-xs font-medium text-fog transition-colors hover:text-snow"
             >
               {category.name}
@@ -190,7 +190,7 @@ export default function ProductDetailClient({
               {product.tags.map((tag) => (
                 <Link
                   key={tag}
-                  href={`/browse?q=${encodeURIComponent(tag)}`}
+                  href={`/stickers?q=${encodeURIComponent(tag)}`}
                   className="rounded-full bg-panel px-3 py-1 text-xs text-fog transition-colors hover:text-snow"
                 >
                   #{tag}
@@ -207,7 +207,7 @@ export default function ProductDetailClient({
         <div className="mt-12 -mx-4 sm:-mx-8">
           <Row
             title="More like this"
-            href={category ? `/browse?category=${category.slug}` : "/browse"}
+            href={category ? `/stickers/${category.slug}` : "/stickers"}
           >
             {relatedLoaded
               ? moreLikeThis.map((p) => <ProductCard key={p.id} product={p} />)

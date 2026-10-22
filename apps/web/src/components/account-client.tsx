@@ -301,7 +301,7 @@ function OrderHistory({ email }: { email: string }) {
         <div className="mt-10 rounded-2xl border border-dashed border-line p-10 text-center">
           <Package className="mx-auto size-10 text-fog/60" />
           <p className="mt-3 font-semibold">No orders yet</p>
-          <Link href="/browse" className="mt-2 inline-block text-sm text-brand hover:underline">
+          <Link href="/stickers" className="mt-2 inline-block text-sm text-brand hover:underline">
             Browse stickers →
           </Link>
         </div>

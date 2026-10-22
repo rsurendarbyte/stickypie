@@ -31,7 +31,7 @@ export default function Nav() {
   function submitSearch(e: React.FormEvent) {
     e.preventDefault();
     const q = query.trim();
-    router.push(q ? `/browse?q=${encodeURIComponent(q)}` : "/browse");
+    router.push(q ? `/stickers?q=${encodeURIComponent(q)}` : "/stickers");
   }
 
   const navLink = (href: string, label: string, hideOnMobile = false) => {
@@ -78,7 +78,7 @@ export default function Nav() {
 
         <nav className="flex items-center gap-1">
           {navLink("/", "Home", true)}
-          {navLink("/browse", "Browse")}
+          {navLink("/stickers", "Stickers")}
         </nav>
 
         <div className="ml-auto flex items-center gap-1 sm:gap-2">

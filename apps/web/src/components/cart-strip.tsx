@@ -82,7 +82,7 @@ export default function CartStrip() {
 
         {shortBy > 0 ? (
           <Link
-            href="/browse"
+            href="/stickers"
             className="ml-auto flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-white px-4 text-sm font-bold text-snow transition-all hover:bg-white/90 active:scale-[0.98] sm:h-12 sm:px-6 lg:ml-0"
           >
             Add {formatINR(shortBy)} more <ArrowRight className="size-4" />

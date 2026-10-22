@@ -1,38 +1,21 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import BrowseClient from "@/components/browse-client";
-import { productSnapshot } from "@/lib/catalog-snapshot";
-import { getDriver } from "@/lib/data";
-import { pageMetadata } from "@/lib/site";
+import BrowseRedirect from "@/components/browse-redirect";
 import StickerLoader from "@/components/sticker-loader";
 
-// Static shell: products load live in the browser (on-sale only) and all
-// search/filter/sort happens client-side (zero Worker requests).
-// Filtered/search URLs (?category=, ?q=) all canonicalize to /browse.
-export const metadata: Metadata = pageMetadata({
-  title: "Browse all stickers",
-  description:
-    "Shop every StickyPie design — car and bike decals, origin badges, warning labels, memes and sticker packs. Waterproof die-cut vinyl, shipped across India.",
-  path: "/browse",
-});
+// Old address. Listings moved to /stickers and /stickers/<category>; this
+// forwards old links and bookmarks (keeping ?q= and ?sort=).
+export const metadata: Metadata = {
+  title: "Stickers",
+  robots: { index: false, follow: true },
+  alternates: { canonical: "/stickers" },
+};
 
-export default async function BrowsePage() {
-  const driver = getDriver();
-  const [categories, products] = await Promise.all([
-    driver.listCategories(),
-    driver.listProducts({ activeOnly: true }),
-  ]);
-
+export default function BrowsePage() {
   return (
-    <div className="min-h-screen w-full px-4 pt-24 pb-24 sm:px-8 lg:px-12 2xl:px-20">
-      <Suspense
-        fallback={
-          <div className="grid min-h-[40vh] place-items-center">
-            <StickerLoader size={56} />
-          </div>
-        }
-      >
-        <BrowseClient initial={{ categories, products: productSnapshot(products) }} />
+    <div className="grid min-h-screen place-items-center">
+      <Suspense fallback={<StickerLoader size={56} />}>
+        <BrowseRedirect />
       </Suspense>
     </div>
   );

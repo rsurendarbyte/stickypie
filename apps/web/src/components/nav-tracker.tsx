@@ -22,7 +22,7 @@ export default function NavTracker() {
       const n = Number(sessionStorage.getItem(NAV_COUNT_KEY) ?? "0");
       sessionStorage.setItem(NAV_COUNT_KEY, String(n + 1));
     } catch {
-      // storage unavailable — Back falls back to /browse
+      // storage unavailable — Back falls back to /stickers
     }
   }, [pathname]);
 

@@ -313,7 +313,7 @@ export default function CheckoutClient() {
         <p className="font-display text-2xl font-semibold">Your cart is empty</p>
         <p className="text-sm text-fog">Add a few stickers before checking out.</p>
         <Link
-          href="/browse"
+          href="/stickers"
           className="pie-gradient rounded-lg px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110"
         >
           Browse stickers
@@ -380,7 +380,7 @@ export default function CheckoutClient() {
             Minimum order is <b>{formatINR(settings.minOrder)}</b> — add <b>{formatINR(shortBy)}</b> more to
             check out.
           </p>
-          <Link href="/browse" className="mt-1 inline-block font-semibold text-brand hover:underline">
+          <Link href="/stickers" className="mt-1 inline-block font-semibold text-brand hover:underline">
             Add more stickers →
           </Link>
         </div>
@@ -396,7 +396,7 @@ export default function CheckoutClient() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <Link
-            href="/browse"
+            href="/stickers"
             className="inline-flex items-center gap-1 text-xs font-semibold text-fog transition-colors hover:text-brand"
           >
             <ArrowLeft className="size-3.5" /> Continue shopping
