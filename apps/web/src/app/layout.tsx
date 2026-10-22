@@ -11,7 +11,7 @@ import NavTracker from "@/components/nav-tracker";
 import PerfProbe from "@/components/perf-probe";
 import { LITE_SCRIPT } from "@/lib/lite-script";
 import { siteUrl, supabaseConfigured } from "@/lib/mode";
-import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, isProductionSite } from "@/lib/site";
+import { SHARE_IMAGE, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, isProductionSite } from "@/lib/site";
 
 const fredoka = Fredoka({ subsets: ["latin"], variable: "--font-fredoka" });
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -54,8 +54,9 @@ export const metadata: Metadata = {
     locale: "en_IN",
     title: `${SITE_NAME} — ${SITE_TAGLINE}`,
     description: SITE_DESCRIPTION,
+    images: [SHARE_IMAGE],
   },
-  twitter: { card: "summary_large_image" },
+  twitter: { card: "summary_large_image", images: [SHARE_IMAGE.url] },
 };
 
 export const viewport: Viewport = {

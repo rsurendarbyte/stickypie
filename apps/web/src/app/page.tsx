@@ -14,14 +14,12 @@ import {
   pageMetadata,
 } from "@/lib/site";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const products = await getDriver().listProducts({ activeOnly: true });
-  const hero = products.find((p) => p.featured) ?? products[0];
+export function generateMetadata(): Metadata {
+  // Home shares the brand card, not a rotating sticker.
   const base = pageMetadata({
     title: `${SITE_NAME} — ${SITE_TAGLINE}`,
     description: SITE_DESCRIPTION,
     path: "/",
-    image: hero?.imageUrl,
   });
   return { ...base, title: { absolute: `Buy Vinyl Stickers Online in India | ${SITE_NAME} — ${SITE_TAGLINE}` } };
 }

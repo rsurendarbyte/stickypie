@@ -22,7 +22,14 @@ export function absoluteUrl(pathOrUrl: string): string {
   return `${siteUrl()}${pathOrUrl.startsWith("/") ? "" : "/"}${pathOrUrl}`;
 }
 
-/** Metadata for a public, indexable page: canonical URL + share cards. */
+/** Brand link-preview card (public/og-image.png, made by scripts/make-og-image.mjs). */
+export const SHARE_IMAGE = { url: "/og-image.png", width: 1200, height: 630, alt: `${SITE_NAME} — ${SITE_TAGLINE}` };
+
+/**
+ * Metadata for a public, indexable page: canonical URL + share cards. Pages
+ * without their own picture (home, listings) share the brand card; sticker
+ * pages pass their artwork.
+ */
 export function pageMetadata({
   title,
   description,
@@ -34,7 +41,7 @@ export function pageMetadata({
   path: string;
   image?: string;
 }): Metadata {
-  const images = image ? [{ url: image, alt: title }] : undefined;
+  const images = image ? [{ url: image, alt: title }] : [SHARE_IMAGE];
   return {
     title,
     description,
@@ -51,10 +58,10 @@ export function pageMetadata({
       images,
     },
     twitter: {
-      card: image ? "summary_large_image" : "summary",
+      card: "summary_large_image",
       title,
       description,
-      images: image ? [image] : undefined,
+      images: image ? [image] : [SHARE_IMAGE.url],
     },
   };
 }
