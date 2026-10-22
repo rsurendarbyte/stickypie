@@ -378,7 +378,7 @@ export default function CheckoutClient() {
         <p className="text-sm text-fog">Add a few stickers before checking out.</p>
         <Link
           href="/stickers"
-          className="pie-gradient rounded-lg px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110"
+          className="peel-btn peel-btn--brand rounded-xl px-6 py-2.5 text-sm font-semibold"
         >
           Browse stickers
         </Link>
@@ -422,7 +422,7 @@ export default function CheckoutClient() {
     <button
       type="submit"
       disabled={submitting || shortBy > 0}
-      className={`pie-gradient flex items-center justify-center gap-2 rounded-xl font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 active:scale-[0.99] disabled:opacity-60 ${className}`}
+      className={`peel-btn peel-btn--brand flex items-center justify-center gap-2 rounded-xl font-bold ${className}`}
     >
       {submitting ? (
         <>
@@ -954,7 +954,7 @@ export default function CheckoutClient() {
               type="submit"
               form="checkout-form"
               disabled={submitting || code.length !== 6}
-              className="pie-gradient mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 disabled:opacity-50"
+              className="peel-btn peel-btn--brand mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold disabled:opacity-50"
             >
               {submitting ? <StickerLoader size={18} variant="onBrand" /> : <Lock className="size-4" />}
               {submitting ? "Verifying…" : `Verify & pay ${formatINR(total)}`}

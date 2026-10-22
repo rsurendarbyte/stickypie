@@ -12,6 +12,7 @@ export default function AddToCartButton({
   qty = 1,
   size = "md",
   stickerSize,
+  sticker = false,
   className = "",
 }: {
   product: Product;
@@ -19,6 +20,8 @@ export default function AddToCartButton({
   size?: "md" | "lg";
   /** Chosen sticker size (inches); defaults to the lowest-priced size. */
   stickerSize?: number | null;
+  /** Sticker-style button (yellow, white die-cut edge, corner peel on hover). */
+  sticker?: boolean;
   className?: string;
 }) {
   const { add, items } = useCart();
@@ -31,7 +34,7 @@ export default function AddToCartButton({
   if (inCart && !out) {
     return (
       <div className={`inline-flex flex-wrap items-center gap-3 ${className}`}>
-        <CartStepper item={inCart} size={size} />
+        <CartStepper item={inCart} size={size} sticker={sticker} />
         <span
           className={`inline-flex items-center gap-1.5 font-semibold text-mint ${
             size === "lg" ? "text-base" : "text-sm"
@@ -57,17 +60,19 @@ export default function AddToCartButton({
       type="button"
       onClick={onClick}
       disabled={out}
-      className={`inline-flex items-center justify-center gap-2 font-semibold text-white transition-all duration-200 ${
+      className={`inline-flex items-center justify-center gap-2 transition-all duration-200 ${
         out
-          ? "cursor-not-allowed bg-panel text-fog"
-          : "pie-gradient shadow-lg shadow-brand/25 hover:brightness-110 active:scale-95"
+          ? "cursor-not-allowed bg-panel font-semibold text-fog"
+          : sticker
+            ? "peel-btn font-bold"
+            : "peel-btn peel-btn--brand font-bold"
       } ${sizing} ${className}`}
     >
       {out ? (
         "Out of stock"
       ) : (
         <>
-          <ShoppingBag className="size-5" /> Add to cart
+          <ShoppingBag className={`size-5 ${sticker ? "peel-icon" : ""}`} /> Add to cart
         </>
       )}
     </button>

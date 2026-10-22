@@ -74,7 +74,7 @@ export default function CartDrawer() {
             <Link
               href="/stickers"
               onClick={closeCart}
-              className="pie-gradient rounded-lg px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110"
+              className="peel-btn peel-btn--brand rounded-xl px-6 py-2.5 text-sm font-semibold"
             >
               Browse stickers
             </Link>
@@ -189,7 +189,7 @@ export default function CartDrawer() {
                 <Link
                   href="/checkout"
                   onClick={closeCart}
-                  className="pie-gradient mt-4 block w-full rounded-xl py-3 text-center text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110"
+                  className="peel-btn peel-btn--brand mt-4 block w-full rounded-xl py-3 text-center text-sm font-bold"
                 >
                   Checkout · {formatINR(subtotal)} + shipping & GST
                 </Link>

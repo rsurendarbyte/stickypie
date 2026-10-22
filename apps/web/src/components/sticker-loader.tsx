@@ -56,7 +56,7 @@ export default function StickerLoader({
  */
 export function PageLoader({ label }: { label?: string }) {
   return (
-    <div className="fixed inset-x-0 top-[72px] bottom-0 z-30 grid place-items-center bg-ink">
+    <div className="mild-bg fixed inset-x-0 top-[72px] bottom-0 z-30 grid place-items-center">
       <StickerLoader size={64} label={label} />
     </div>
   );

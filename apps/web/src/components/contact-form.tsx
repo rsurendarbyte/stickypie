@@ -202,7 +202,7 @@ export default function ContactForm() {
       <button
         type="submit"
         disabled={sending}
-        className="pie-gradient mt-3 inline-flex w-full justify-center sm:w-auto items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 disabled:opacity-70"
+        className="peel-btn peel-btn--brand mt-3 inline-flex w-full justify-center sm:w-auto items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold disabled:opacity-70"
       >
         {sending ? <StickerLoader size={18} variant="onBrand" /> : <Send className="size-4" />}
         {sending ? "Sending…" : "Send message"}

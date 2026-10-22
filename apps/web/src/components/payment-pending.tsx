@@ -106,14 +106,14 @@ export default function PaymentPending({
             type="button"
             onClick={payNow}
             disabled={paying}
-            className="pie-gradient inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 disabled:opacity-70"
+            className="peel-btn peel-btn--brand inline-flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-bold disabled:opacity-70"
           >
             {paying ? <StickerLoader size={18} variant="onBrand" /> : <Lock className="size-4" />}
             {paying ? "Opening payment…" : `Pay ${formatINR(total)} now`}
           </button>
           <Link
             href="/checkout"
-            className="rounded-xl border border-line bg-ink2 px-5 py-3 text-sm font-semibold text-snow transition-colors hover:border-brand/50 hover:text-brand"
+            className="peel-btn peel-btn--light rounded-xl px-5 py-3 text-sm font-bold"
           >
             Change items or address
           </Link>
@@ -143,7 +143,7 @@ export default function PaymentPending({
       <button
         type="button"
         onClick={() => setAttempt(0)}
-        className="mt-4 inline-flex items-center gap-2 rounded-lg border border-line bg-ink2 px-4 py-2 text-sm font-medium transition-colors hover:bg-white/5"
+        className="peel-btn peel-btn--light mt-4 inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold"
       >
         <RefreshCw className="size-4" /> Check again
       </button>

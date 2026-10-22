@@ -38,7 +38,7 @@ export default function BackButton({ fallback = "/stickers" }: { fallback?: stri
       type="button"
       onClick={goBack}
       aria-label="Go back"
-      className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-line bg-ink px-3.5 text-sm font-semibold shadow-[0_1px_2px_rgba(16,24,40,0.08)] transition-all hover:border-brand/50 hover:text-brand active:scale-95"
+      className="peel-btn peel-btn--light inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-3.5 text-sm font-bold"
     >
       <ArrowLeft className="size-4" strokeWidth={2.5} /> Back
     </button>

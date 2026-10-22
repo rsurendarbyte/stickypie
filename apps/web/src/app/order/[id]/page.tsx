@@ -92,7 +92,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             </p>
             <Link
               href="/checkout"
-              className="pie-gradient mt-4 inline-block rounded-lg px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110"
+              className="peel-btn peel-btn--brand mt-4 inline-block rounded-xl px-6 py-2.5 text-sm font-semibold"
             >
               Try again
             </Link>

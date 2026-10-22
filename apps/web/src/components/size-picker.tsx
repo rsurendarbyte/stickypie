@@ -65,7 +65,7 @@ export default function SizePicker({
       <div
         role="radiogroup"
         aria-label="Sticker size"
-        className="inline-flex gap-0.5 rounded-full bg-white/90 p-0.5 shadow-[0_2px_8px_rgba(16,24,40,0.15)] ring-1 ring-black/5 backdrop-blur-sm"
+        className="inline-flex gap-0.5 rounded-full bg-snow/[0.06] p-0.5"
       >
         {sizes.map((s) => {
           const active = s.inches === value;

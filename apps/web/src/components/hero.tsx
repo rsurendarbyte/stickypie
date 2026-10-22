@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { ArrowRight, BadgeCheck, Droplets, Ruler, Sparkles, Sun, Truck } from "lucide-react";
 import type { Category, Product } from "@stickypie/shared";
 import { discountPercent, formatINR, formatInches } from "@stickypie/shared";
-import { tileFor } from "@/lib/palette";
+import { cardSkinFor, tileFor } from "@/lib/palette";
+import { useSkinSeed } from "@/lib/skin-seed";
 import AddToCartButton from "./add-to-cart-button";
 import { useSizeChoice } from "./size-picker";
 import TrueSizePreview from "./true-size-preview";
@@ -21,6 +22,7 @@ export default function Hero({
   const picks = products.slice(0, 5);
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  const seed = useSkinSeed();
   // Shopper picked a size → stop rotating so the slide doesn't change under them.
   const [engaged, setEngaged] = useState(false);
   const product = picks[Math.min(index, picks.length - 1)];
@@ -34,6 +36,8 @@ export default function Hero({
   if (!product) return null;
 
   const tile = tileFor(product.slug);
+  // Each slide sits on a sticker sheet or cutting mat — a new mix every load.
+  const skin = cardSkinFor(product.slug, seed);
   const categoryName = categories.find((c) => c.id === product.categoryId)?.name;
 
   return (
@@ -42,9 +46,13 @@ export default function Hero({
       onMouseLeave={() => setPaused(false)}
       className="relative flex items-center overflow-x-clip lg:min-h-[70svh]"
     >
-      {/* Layered background */}
-      <div className="bg-dots pointer-events-none absolute inset-0 opacity-50 [mask-image:radial-gradient(75%_65%_at_50%_38%,black,transparent)]" />
-      <div className="pointer-events-none absolute -top-44 -left-44 size-[36rem] rounded-full bg-brand/15 blur-[130px]" />
+      {/* Background: the slide's sticker sheet / cutting mat fills the hero and
+          fades softly into the page below (no hard edge). */}
+      <div
+        aria-hidden
+        style={skin.art}
+        className="pointer-events-none absolute inset-0 transition-[background-color] duration-700 [mask-image:linear-gradient(to_bottom,black_0%,black_62%,transparent_100%)]"
+      />
       <div
         className="pointer-events-none absolute top-1/3 -right-44 size-[32rem] rounded-full blur-[140px] transition-colors duration-700"
         style={{ background: `${tile.glow}1f` }}
@@ -89,7 +97,7 @@ export default function Hero({
           </ul>
         </div>
 
-        {/* Artwork, merged into the hero background (no frame) */}
+        {/* Artwork, floating on the mat */}
         <div className="relative order-1 mx-auto w-full max-w-[340px] sm:max-w-xl lg:order-2 lg:mx-0 lg:max-w-none">
           {/* product-tinted wash behind the art */}
           <div
@@ -98,12 +106,12 @@ export default function Hero({
           />
           <div className="pointer-events-none absolute inset-0 m-auto aspect-square w-[55%] rounded-full bg-white/70 blur-[60px]" />
 
-          <div key={product.id} className="animate-hero-img-in relative aspect-[5/4] overflow-hidden lg:aspect-auto lg:h-[min(50vh,560px)]">
+          <div key={product.id} className="animate-hero-img-in relative aspect-[5/4] lg:aspect-auto lg:h-[min(50vh,560px)]">
             <div className="absolute inset-0 grid place-items-center p-2 sm:p-4 lg:px-6 lg:pt-0 lg:pb-5">
               <img
                 src={product.imageUrl}
                 alt={product.name}
-                className="animate-float max-h-full max-w-full rotate-2 object-contain lg:max-h-[min(46vh,520px)]"
+                className="sticker-cut animate-float max-h-full max-w-full rotate-2 object-contain lg:max-h-[min(46vh,520px)]"
               />
             </div>
 
@@ -187,10 +195,10 @@ function HeroBuy({ product, onPickSize }: { product: Product; onPickSize: () => 
       )}
 
       <div className="mt-4 flex flex-wrap items-center gap-3 sm:mt-6">
-        <AddToCartButton product={product} stickerSize={size} size="lg" />
+        <AddToCartButton product={product} stickerSize={size} size="lg" sticker />
         <Link
           href={`/sticker/${product.slug}`}
-          className="inline-flex h-12 items-center gap-2 rounded-xl border border-line bg-ink2 px-6 text-base font-semibold transition-all hover:border-fog/40 hover:bg-panel"
+          className="peel-btn peel-btn--light inline-flex h-12 items-center gap-2 rounded-xl px-6 text-base font-bold"
         >
           Details <ArrowRight className="size-4" />
         </Link>

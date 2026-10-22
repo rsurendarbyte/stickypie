@@ -8,7 +8,7 @@ export default function PrintButton({ label = "Download PDF" }: { label?: string
     <button
       type="button"
       onClick={() => window.print()}
-      className="pie-gradient inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110"
+      className="peel-btn peel-btn--brand inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold"
     >
       <Download className="size-4" /> {label}
     </button>

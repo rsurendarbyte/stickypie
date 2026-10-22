@@ -141,7 +141,7 @@ export default function BrowseClient({
           <button
             type="button"
             onClick={retry}
-            className="pie-gradient rounded-full px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand/25"
+            className="peel-btn peel-btn--brand rounded-xl px-6 py-2.5 text-sm font-semibold"
           >
             Try again
           </button>

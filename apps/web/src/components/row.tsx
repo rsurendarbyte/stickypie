@@ -34,7 +34,7 @@ export default function Row({
         {href && (
           <Link
             href={href}
-            className="ml-auto flex items-center gap-1.5 rounded-full border border-line bg-ink2 px-3.5 py-1.5 text-xs font-medium text-fog transition-all hover:border-fog/40 hover:text-snow"
+            className="peel-btn peel-btn--light ml-auto flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold"
           >
             Explore all <ArrowRight className="size-3.5" />
           </Link>

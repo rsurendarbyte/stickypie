@@ -90,7 +90,7 @@ export default function CartStrip() {
         ) : (
           <Link
             href="/checkout"
-            className="pie-gradient ml-auto flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-5 text-sm font-bold text-white shadow-md shadow-brand/30 transition-all hover:brightness-110 active:scale-[0.98] sm:h-12 sm:px-7 lg:ml-0"
+            className="peel-btn peel-btn--brand ml-auto flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-5 text-sm font-bold active:scale-[0.98] sm:h-12 sm:px-7 lg:ml-0"
           >
             Checkout<span className="hidden sm:inline"> · {formatINR(subtotal)}</span>{" "}
             <ArrowRight className="size-4" />

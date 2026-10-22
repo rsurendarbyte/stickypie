@@ -292,7 +292,7 @@ function SignInCard() {
           <button
             type="submit"
             disabled={busy}
-            className="pie-gradient mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 active:scale-[0.99] disabled:cursor-wait"
+            className="peel-btn peel-btn--brand mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold active:scale-[0.99] disabled:cursor-wait"
           >
             {busy && <StickerLoader size={18} variant="onBrand" />}
             {copy.button}
@@ -696,7 +696,7 @@ function AddAddressForm({
         <button
           type="submit"
           disabled={saving}
-          className="pie-gradient inline-flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 disabled:opacity-60"
+          className="peel-btn peel-btn--brand inline-flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-bold disabled:opacity-60"
         >
           {saving && <StickerLoader size={18} variant="onBrand" />} Save address
         </button>

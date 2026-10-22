@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fredoka, Inter } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/components/cart-context";
+import MildBackground from "@/components/mild-background";
 import Nav from "@/components/nav";
 import Footer from "@/components/footer";
 import CartDrawer from "@/components/cart-drawer";
@@ -65,6 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-ink font-sans text-snow antialiased">
         <CartProvider>
           <NavTracker />
+          <MildBackground />
           <Nav />
           <CartShell>
             <main className="min-h-screen">{children}</main>

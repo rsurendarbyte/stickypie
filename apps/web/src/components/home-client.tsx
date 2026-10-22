@@ -58,7 +58,7 @@ export default function HomeClient({
         <button
           type="button"
           onClick={retry}
-          className="pie-gradient mt-1 rounded-full px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand/25"
+          className="peel-btn peel-btn--brand mt-1 rounded-xl px-6 py-2.5 text-sm font-semibold"
         >
           Try again
         </button>
@@ -87,7 +87,7 @@ export default function HomeClient({
         </p>
         <Link
           href="/contact"
-          className="mt-2 rounded-full border border-line bg-ink2 px-5 py-2 text-sm font-semibold transition-colors hover:border-brand/50 hover:text-brand"
+          className="peel-btn peel-btn--light mt-2 rounded-xl px-5 py-2 text-sm font-bold"
         >
           Contact us
         </Link>

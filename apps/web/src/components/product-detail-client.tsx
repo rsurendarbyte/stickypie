@@ -5,7 +5,8 @@ import { useState } from "react";
 import { BadgeCheck, Droplets, PackageX, Ruler, Sun, Truck } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR } from "@stickypie/shared";
-import { rotationFor } from "@/lib/palette";
+import { cardSkinFor, rotationFor } from "@/lib/palette";
+import { useSkinSeed } from "@/lib/skin-seed";
 import { useLiveProduct, useRelatedProducts } from "@/lib/live-catalog";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
 import BackButton from "./back-button";
@@ -38,6 +39,8 @@ export default function ProductDetailClient({
   );
 
   const rotate = rotationFor(product.slug);
+  // Same sticker sheet / cutting mat look as the home hero — new every load.
+  const skin = cardSkinFor(product.slug, useSkinSeed());
   const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product);
   const off = discountPercent(price, compareAtPrice);
   const out = product.stock === 0;
@@ -46,6 +49,12 @@ export default function ProductDetailClient({
 
   return (
     <>
+      {/* Mat across the top of the page, fading softly into the page below */}
+      <div
+        aria-hidden
+        style={skin.art}
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[820px] [mask-image:linear-gradient(to_bottom,black_0%,black_55%,transparent_100%)]"
+      />
       <div className="flex items-center gap-3">
         <BackButton fallback={category ? `/stickers/${category.slug}` : "/stickers"} />
         <nav className="text-xs text-fog">
@@ -65,10 +74,7 @@ export default function ProductDetailClient({
 
       <div className="mt-4 grid gap-8 lg:grid-cols-[1fr_1.1fr] lg:gap-12">
         {/* Art */}
-        <div
-          className="relative aspect-square max-h-[520px] w-full overflow-hidden rounded-3xl border border-line bg-ink shadow-[0_24px_60px_-24px_rgba(16,24,40,0.25)]">
-          <div className="bg-dots absolute inset-0 opacity-35" />
-          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/[0.03] to-transparent" />
+        <div className="relative aspect-square max-h-[520px] w-full">
           <button
             type="button"
             onClick={() => setTrueSize(true)}
@@ -84,13 +90,15 @@ export default function ProductDetailClient({
               }`}
             />
           </button>
-          <button
-            type="button"
-            onClick={() => setTrueSize(true)}
-            className="absolute right-4 bottom-4 inline-flex items-center gap-1.5 rounded-full border border-line bg-white/90 px-3.5 py-2 text-xs font-bold text-snow shadow-md backdrop-blur transition-colors hover:border-brand/50 hover:text-brand"
-          >
-            <Ruler className="size-4" /> See actual size
-          </button>
+          <div className="absolute right-4 bottom-4">
+            <button
+              type="button"
+              onClick={() => setTrueSize(true)}
+              className="peel-btn peel-btn--light inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold"
+            >
+              <Ruler className="size-4" /> See actual size
+            </button>
+          </div>
           {off !== null && !unavailable && (
             <span className="pie-gradient absolute top-4 left-4 rounded-full px-3 py-1 text-xs font-bold text-white">
               SAVE {off}%

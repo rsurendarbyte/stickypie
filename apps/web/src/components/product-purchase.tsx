@@ -1,13 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { Check, ShoppingBag } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { formatINR } from "@stickypie/shared";
 import AddToCartButton from "./add-to-cart-button";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
-import QtyStepper from "./qty-stepper";
 import { toCartProduct } from "./size-picker";
 
 export default function ProductPurchase({
@@ -20,7 +18,6 @@ export default function ProductPurchase({
   stickerSize: number | null;
   price: number;
 }) {
-  const [qty, setQty] = useState(1);
   const { add, count, items } = useCart();
   const out = product.stock === 0;
   const inCart = items.find(
@@ -29,15 +26,15 @@ export default function ProductPurchase({
 
   function addNow() {
     if (out) return;
-    add(toCartProduct(product, stickerSize, price), qty);
+    add(toCartProduct(product, stickerSize, price), 1);
   }
 
   return (
     <>
       {/* Desktop: inline controls (the button swaps to a synced stepper once in cart) */}
       <div className="mt-5 hidden flex-wrap items-center gap-3 lg:flex">
-        {!out && !inCart && <QtyStepper value={qty} onChange={setQty} max={product.stock} />}
-        <AddToCartButton product={product} qty={qty} size="lg" stickerSize={stickerSize} />
+        {/* One control: Add to cart, which becomes the − / + stepper once added */}
+        <AddToCartButton product={product} size="lg" stickerSize={stickerSize} sticker />
       </div>
 
       {/* Mobile: buy bar pinned to the bottom (above the cart strip when it's showing) */}
@@ -50,7 +47,7 @@ export default function ProductPurchase({
       >
         {inCart && !out ? (
           <div className="flex items-center justify-between gap-3">
-            <CartStepper item={inCart} />
+            <CartStepper item={inCart} sticker />
             <span className="flex items-center gap-1.5 text-sm font-bold text-mint">
               <Check className="size-4" strokeWidth={3} /> In cart ·{" "}
               {formatINR(inCart.qty * inCart.price)}
@@ -58,24 +55,23 @@ export default function ProductPurchase({
           </div>
         ) : (
           <div className="flex items-center gap-3">
-            {!out && <QtyStepper value={qty} onChange={setQty} max={product.stock} />}
             <button
               type="button"
               onClick={addNow}
               disabled={out}
-              aria-label={out ? "Out of stock" : `Add ${qty} to cart`}
+              aria-label={out ? "Out of stock" : "Add to cart"}
               className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-xl text-sm font-bold transition-all ${
                 out
                   ? "cursor-not-allowed bg-panel text-fog/60"
-                  : "pie-gradient text-white shadow-lg shadow-brand/25 active:scale-[0.98]"
+                  : "peel-btn"
               }`}
             >
               {out ? (
                 "Out of stock"
               ) : (
                 <>
-                  <ShoppingBag className="size-4" /> Add to cart ·{" "}
-                  {formatINR(price * qty)}
+                  <ShoppingBag className="peel-icon size-4" /> Add to cart ·{" "}
+                  {formatINR(price)}
                 </>
               )}
             </button>

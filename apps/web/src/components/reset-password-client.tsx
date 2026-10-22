@@ -67,7 +67,7 @@ export default function ResetPasswordClient() {
           </p>
           <Link
             href="/account?forgot"
-            className="pie-gradient mt-4 inline-block rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/25"
+            className="peel-btn peel-btn--brand mt-4 inline-block rounded-xl px-5 py-2.5 text-sm font-bold"
           >
             Send a new link
           </Link>
@@ -101,7 +101,7 @@ export default function ResetPasswordClient() {
           <button
             type="submit"
             disabled={busy || !password || !confirm}
-            className="pie-gradient mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 disabled:opacity-60"
+            className="peel-btn peel-btn--brand mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold disabled:opacity-60"
           >
             {busy && <StickerLoader size={18} variant="onBrand" />}
             Save new password
@@ -116,7 +116,7 @@ export default function ResetPasswordClient() {
           <p className="mt-1 text-sm text-fog">You&apos;re signed in with your new password.</p>
           <Link
             href="/account"
-            className="pie-gradient mt-4 inline-block rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/25"
+            className="peel-btn peel-btn--brand mt-4 inline-block rounded-xl px-5 py-2.5 text-sm font-bold"
           >
             Go to my orders
           </Link>

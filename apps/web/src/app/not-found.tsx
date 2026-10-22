@@ -11,7 +11,7 @@ export default function NotFound() {
       </p>
       <Link
         href="/"
-        className="pie-gradient mt-2 rounded-lg px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110"
+        className="peel-btn peel-btn--brand mt-2 rounded-xl px-6 py-2.5 text-sm font-semibold"
       >
         Back home
       </Link>

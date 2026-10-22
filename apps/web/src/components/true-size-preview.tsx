@@ -365,7 +365,7 @@ function Calibrator({
         <button
           type="button"
           onClick={onDone}
-          className="pie-gradient rounded-xl px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/25"
+          className="peel-btn peel-btn--brand rounded-xl px-6 py-2.5 text-sm font-bold"
         >
           It matches — save
         </button>

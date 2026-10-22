@@ -347,7 +347,7 @@ function ReviewForm({
         type="button"
         onClick={submit}
         disabled={saving}
-        className="pie-gradient inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 disabled:opacity-70"
+        className="peel-btn peel-btn--brand inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold disabled:opacity-70"
       >
         {saving && <StickerLoader size={16} variant="onBrand" />}
         {fields.scope === "order" ? "Submit feedback" : "Submit review"}
