@@ -20,6 +20,7 @@
     "start:web": "npm run start --workspace stickypie-web",
     "start:admin": "npm run start --workspace stickypie-admin",
     "admin:prod": "npm run build:admin && npm run start:prod --workspace stickypie-admin",
+    "deploy:admin": "npm run deploy --workspace stickypie-admin",
     "deploy:dev": "npm run deploy:dev --workspace stickypie-web",
     "deploy:prod": "npm run deploy:prod --workspace stickypie-web",
     "deploy:www": "cd infra/www-redirect && npx wrangler deploy",

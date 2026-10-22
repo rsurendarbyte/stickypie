@@ -1,0 +1,37 @@
+// Cloudflare Workers config for the StickyPie admin console — PRODUCTION ONLY.
+//
+//   worker "stickypie-admin" → https://stickypie-admin.<your-subdomain>.workers.dev
+//
+// No custom domain on purpose: the admin isn't for search engines (every
+// response is noindex too). Put Cloudflare Access in front of the workers.dev
+// address (Worker → Settings → Domains & Routes → workers.dev → Cloudflare
+// Access) so only your email can reach the login page.
+//
+// Dev keeps running locally: `npm run dev:admin` (dev database).
+// Deploy ONLY through the script: `npm run deploy:admin`
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "stickypie-admin",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "workers_dev": true,
+  "preview_urls": false,
+  // Cloudflare Images: resizes uploads into card thumbnails (sharp can't run here).
+  "images": { "binding": "IMAGES" },
+  "vars": {
+    "SUPABASE_URL": "https://grybbgtdopnikfzirzxd.supabase.co",
+    "NEXT_PUBLIC_WEB_URL": "https://stickypie.in",
+    "R2_BUCKET": "stickypie-images",
+    "R2_PUBLIC_URL": "https://pub-41e1feb697164af7ab78004921826e6f.r2.dev",
+    "SHIPROCKET_PICKUP_LOCATION": "Home"
+  }
+
+  // Secrets are NOT stored here; deploy-admin.mjs sets them from the env files:
+  //   SUPABASE_ANON_KEY, R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY,
+  //   SHIPROCKET_EMAIL, SHIPROCKET_PASSWORD
+}

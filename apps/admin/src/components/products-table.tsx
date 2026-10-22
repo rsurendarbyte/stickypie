@@ -3,7 +3,16 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, Download, Pencil, Plus, Search, Star, Trash2 } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Download,
+  Pencil,
+  Plus,
+  Search,
+  Star,
+  Trash2,
+} from "lucide-react";
 import type { Category, Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, formatINR } from "@stickypie/shared";
 import { imageDownloadHref, imageSrc } from "@/lib/img";
@@ -39,7 +48,8 @@ function Switch({
 }
 
 function StockCell({ stock }: { stock: number | null }) {
-  if (stock === null) return <span className="text-xs text-fog">not tracked</span>;
+  if (stock === null)
+    return <span className="text-xs text-fog">not tracked</span>;
   if (stock === 0) {
     return (
       <span className="rounded-full border border-brand/40 bg-brand/10 px-2 py-0.5 text-[11px] font-semibold text-brand">
@@ -59,7 +69,8 @@ function StockCell({ stock }: { stock: number | null }) {
 
 /**
  * Category chips for one row; click to tick categories on and off right in the
- * table. Each tick saves straight away. The menu is fixed-positioned so the
+ * table (type to search; Enter ticks the first match). Each tick saves
+ * straight away. The menu is fixed-positioned so the
  * table's horizontal scroller doesn't clip it.
  */
 function CategoryPicker({
@@ -72,6 +83,7 @@ function CategoryPicker({
   onChange: (next: string[]) => void;
 }) {
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const [search, setSearch] = useState("");
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const names = new Map(categories.map((c) => [c.id, c.name]));
@@ -81,7 +93,8 @@ function CategoryPicker({
     if (!pos) return;
     const close = (e: Event) => {
       const t = e.target as Node;
-      if (menuRef.current?.contains(t) || buttonRef.current?.contains(t)) return;
+      if (menuRef.current?.contains(t) || buttonRef.current?.contains(t))
+        return;
       setPos(null);
     };
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setPos(null);
@@ -104,13 +117,24 @@ function CategoryPicker({
     if (pos) return setPos(null);
     const r = buttonRef.current?.getBoundingClientRect();
     if (!r) return;
-    const menuHeight = Math.min(categories.length * 36 + 16, 320);
+    const menuHeight = Math.min(categories.length * 36 + 16, 320) + 48;
     const below = r.bottom + 6 + menuHeight < window.innerHeight;
-    setPos({ top: below ? r.bottom + 6 : Math.max(8, r.top - 6 - menuHeight), left: r.left });
+    setSearch("");
+    setPos({
+      top: below ? r.bottom + 6 : Math.max(8, r.top - 6 - menuHeight),
+      left: r.left,
+    });
   }
 
+  const q = search.trim().toLowerCase();
+  const visible = q
+    ? categories.filter((c) => c.name.toLowerCase().includes(q))
+    : categories;
+
   function toggle(id: string) {
-    onChange(current.includes(id) ? current.filter((c) => c !== id) : [...current, id]);
+    onChange(
+      current.includes(id) ? current.filter((c) => c !== id) : [...current, id],
+    );
   }
 
   return (
@@ -121,13 +145,15 @@ function CategoryPicker({
         onClick={open}
         aria-haspopup="listbox"
         aria-expanded={!!pos}
-        title="Change categories"
         className={`group flex max-w-[260px] flex-wrap items-center gap-1 rounded-lg px-1.5 py-1 text-left transition-colors hover:bg-white/[0.06] ${
           pos ? "bg-white/[0.06]" : ""
         }`}
       >
         {current.map((id) => (
-          <span key={id} className="rounded-md border border-line bg-panel px-2 py-0.5 text-xs text-snow/90">
+          <span
+            key={id}
+            className="rounded-md border border-line bg-panel px-2 py-0.5 text-xs text-snow/90"
+          >
             {names.get(id)}
           </span>
         ))}
@@ -145,30 +171,57 @@ function CategoryPicker({
           role="listbox"
           aria-multiselectable
           style={{ top: pos.top, left: pos.left }}
-          className="fixed z-50 max-h-80 w-56 overflow-y-auto rounded-xl border border-line bg-ink2 p-1.5 shadow-2xl shadow-black/50"
+          className="fixed z-50 flex w-56 flex-col rounded-xl border border-line bg-ink2 shadow-2xl shadow-black/50"
         >
-          {categories.map((c) => {
-            const on = current.includes(c.id);
-            return (
-              <button
-                key={c.id}
-                type="button"
-                role="option"
-                aria-selected={on}
-                onClick={() => toggle(c.id)}
-                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors hover:bg-white/[0.06]"
-              >
-                <span
-                  className={`grid size-4.5 shrink-0 place-items-center rounded border ${
-                    on ? "border-brand bg-brand text-white" : "border-fog/40"
-                  }`}
+          <div className="relative border-b border-line p-1.5">
+            <Search className="pointer-events-none absolute top-1/2 left-4 size-3.5 -translate-y-1/2 text-fog" />
+            <input
+              autoFocus
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && visible[0]) {
+                  e.preventDefault();
+                  toggle(visible[0].id);
+                  setSearch("");
+                }
+              }}
+              placeholder="Search categories…"
+              aria-label="Search categories"
+              className="h-8 w-full rounded-lg bg-white/[0.05] pr-2 pl-7 text-sm outline-none placeholder:text-fog/50 focus:bg-white/[0.08]"
+            />
+          </div>
+          <div className="max-h-80 overflow-y-auto p-1.5">
+            {visible.length === 0 && (
+              <p className="px-2.5 py-3 text-xs text-fog">
+                No category matches “{search}”
+              </p>
+            )}
+            {visible.map((c) => {
+              const on = current.includes(c.id);
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  role="option"
+                  aria-selected={on}
+                  onClick={() => toggle(c.id)}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors hover:bg-white/[0.06]"
                 >
-                  {on && <Check className="size-3" strokeWidth={3} />}
-                </span>
-                <span className={on ? "text-snow" : "text-fog"}>{c.name}</span>
-              </button>
-            );
-          })}
+                  <span
+                    className={`grid size-4.5 shrink-0 place-items-center rounded border ${
+                      on ? "border-brand bg-brand text-white" : "border-fog/40"
+                    }`}
+                  >
+                    {on && <Check className="size-3" strokeWidth={3} />}
+                  </span>
+                  <span className={on ? "text-snow" : "text-fog"}>
+                    {c.name}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </>
@@ -190,7 +243,7 @@ export default function ProductsTable({
   const router = useRouter();
   const categoryName = useMemo(
     () => new Map(categories.map((c) => [c.id, c.name])),
-    [categories]
+    [categories],
   );
 
   const countByCategory = useMemo(() => {
@@ -207,7 +260,11 @@ export default function ProductsTable({
     const q = query.trim().toLowerCase();
     return products.filter((p) => {
       const ids = (p.categoryIds ?? []).filter((id) => categoryName.has(id));
-      if (categoryFilter === "none" ? ids.length > 0 : categoryFilter && !ids.includes(categoryFilter)) {
+      if (
+        categoryFilter === "none"
+          ? ids.length > 0
+          : categoryFilter && !ids.includes(categoryFilter)
+      ) {
         return false;
       }
       if (!q) return true;
@@ -219,10 +276,14 @@ export default function ProductsTable({
     });
   }, [products, query, categoryFilter, categoryName]);
 
-  async function patch(product: Product, changes: Partial<Product>, successMsg: string) {
+  async function patch(
+    product: Product,
+    changes: Partial<Product>,
+    successMsg: string,
+  ) {
     const before = products;
     setProducts((prev) =>
-      prev.map((p) => (p.id === product.id ? { ...p, ...changes } : p))
+      prev.map((p) => (p.id === product.id ? { ...p, ...changes } : p)),
     );
     const res = await fetch(`/api/products/${product.id}`, {
       method: "PATCH",
@@ -232,7 +293,10 @@ export default function ProductsTable({
     if (!res.ok) {
       setProducts(before);
       const data = await res.json().catch(() => ({}));
-      toast(typeof data.error === "string" ? data.error : "Update failed", "error");
+      toast(
+        typeof data.error === "string" ? data.error : "Update failed",
+        "error",
+      );
       return;
     }
     toast(successMsg);
@@ -241,10 +305,15 @@ export default function ProductsTable({
 
   async function remove(product: Product) {
     if (!confirm(`Delete "${product.name}"? This cannot be undone.`)) return;
-    const res = await fetch(`/api/products/${product.id}`, { method: "DELETE" });
+    const res = await fetch(`/api/products/${product.id}`, {
+      method: "DELETE",
+    });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      toast(typeof data.error === "string" ? data.error : "Delete failed", "error");
+      toast(
+        typeof data.error === "string" ? data.error : "Delete failed",
+        "error",
+      );
       return;
     }
     setProducts((prev) => prev.filter((p) => p.id !== product.id));
@@ -270,7 +339,9 @@ export default function ProductsTable({
             onChange={(e) => setCategoryFilter(e.target.value)}
             aria-label="Filter by category"
             className={`h-11 cursor-pointer appearance-none rounded-full border bg-ink2/70 pr-10 pl-4 text-sm outline-none transition-all hover:border-fog/40 focus:border-brand/70 focus:shadow-[0_0_0_3px_rgba(255,46,99,0.14)] ${
-              categoryFilter ? "border-brand/60 text-snow" : "border-line text-fog"
+              categoryFilter
+                ? "border-brand/60 text-snow"
+                : "border-line text-fog"
             }`}
           >
             <option value="">All categories ({products.length})</option>
@@ -283,7 +354,9 @@ export default function ProductsTable({
             </optgroup>
             {countByCategory.has("none") && (
               <optgroup label="──── Other ────">
-                <option value="none">No category ({countByCategory.get("none")})</option>
+                <option value="none">
+                  No category ({countByCategory.get("none")})
+                </option>
               </optgroup>
             )}
           </select>
@@ -337,8 +410,12 @@ export default function ProductsTable({
                       )}
                     </span>
                     <div className="min-w-0">
-                      <p className="max-w-[220px] truncate font-medium">{product.name}</p>
-                      <p className="truncate text-xs text-fog">/{product.slug}</p>
+                      <p className="max-w-[220px] truncate font-medium">
+                        {product.name}
+                      </p>
+                      <p className="truncate text-xs text-fog">
+                        /{product.slug}
+                      </p>
                     </div>
                   </div>
                 </td>
@@ -346,7 +423,9 @@ export default function ProductsTable({
                   <CategoryPicker
                     selected={product.categoryIds ?? []}
                     categories={categories}
-                    onChange={(categoryIds) => patch(product, { categoryIds }, "Categories updated")}
+                    onChange={(categoryIds) =>
+                      patch(product, { categoryIds }, "Categories updated")
+                    }
                   />
                 </td>
                 <td className="px-4 py-3 text-right">
@@ -359,7 +438,9 @@ export default function ProductsTable({
                       ″ · from
                     </span>
                   )}
-                  <span className="font-semibold tabular-nums">{formatINR(product.price)}</span>
+                  <span className="font-semibold tabular-nums">
+                    {formatINR(product.price)}
+                  </span>
                   {product.compareAtPrice !== null && (
                     <span className="ml-1.5 text-xs text-fog line-through">
                       {formatINR(product.compareAtPrice)}
@@ -372,12 +453,18 @@ export default function ProductsTable({
                 <td className="px-4 py-3 text-center">
                   <button
                     type="button"
-                    aria-label={product.featured ? "Remove from featured" : "Mark as featured"}
+                    aria-label={
+                      product.featured
+                        ? "Remove from featured"
+                        : "Mark as featured"
+                    }
                     onClick={() =>
                       patch(
                         product,
                         { featured: !product.featured },
-                        product.featured ? "Removed from featured" : "Marked as featured"
+                        product.featured
+                          ? "Removed from featured"
+                          : "Marked as featured",
                       )
                     }
                     className="text-fog transition-colors hover:text-gold"
@@ -391,12 +478,14 @@ export default function ProductsTable({
                   <button
                     type="button"
                     aria-pressed={product.isNew}
-                    aria-label={product.isNew ? "Hide NEW badge" : "Show NEW badge"}
+                    aria-label={
+                      product.isNew ? "Hide NEW badge" : "Show NEW badge"
+                    }
                     onClick={() =>
                       patch(
                         product,
                         { isNew: !product.isNew },
-                        product.isNew ? "NEW badge hidden" : "NEW badge shown"
+                        product.isNew ? "NEW badge hidden" : "NEW badge shown",
                       )
                     }
                     className={`rounded-md px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase transition-colors ${
@@ -416,7 +505,7 @@ export default function ProductsTable({
                       patch(
                         product,
                         { isActive: next },
-                        next ? "Now open for sale" : "Hidden from the store"
+                        next ? "Now open for sale" : "Hidden from the store",
                       )
                     }
                   />
@@ -455,11 +544,17 @@ export default function ProductsTable({
             ))}
             {visible.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-sm text-fog">
+                <td
+                  colSpan={7}
+                  className="px-4 py-12 text-center text-sm text-fog"
+                >
                   {categoryFilter && !query.trim() ? (
                     <>
                       No stickers in this category yet.{" "}
-                      <Link href="/products/new" className="font-semibold text-brand hover:underline">
+                      <Link
+                        href="/products/new"
+                        className="font-semibold text-brand hover:underline"
+                      >
                         Add one →
                       </Link>
                     </>

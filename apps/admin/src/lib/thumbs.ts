@@ -1,12 +1,50 @@
 // Small WebP card images. Cards show ~200px stickers, so shipping the full
 // 1–2 MB artwork to every card wastes bandwidth; the product page keeps the
 // full image. Same settings as scripts/build-thumbs.mjs (the backfill).
+//
+// Resizing: on Cloudflare the Worker's Images binding does it (sharp is a
+// native module and can't run there); locally sharp does.
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { imageSrc } from "./img";
 import { r2Client, r2Config } from "./r2";
 
 export const THUMB_MAX_PX = 480;
 const THUMB_QUALITY = 80;
+
+type ImagesBinding = {
+  input(stream: ReadableStream): {
+    transform(opts: { width: number; height: number; fit: "scale-down" }): {
+      output(opts: { format: "image/webp"; quality: number }): Promise<{ response(): Response }>;
+    };
+  };
+};
+
+/** The Worker's Cloudflare Images binding, or null when running under Node. */
+async function imagesBinding(): Promise<ImagesBinding | null> {
+  try {
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+    return (getCloudflareContext().env as { IMAGES?: ImagesBinding }).IMAGES ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function toWebpThumb(bytes: ArrayBuffer): Promise<Uint8Array> {
+  const images = await imagesBinding();
+  if (images) {
+    const out = await images
+      .input(new Response(bytes).body!)
+      .transform({ width: THUMB_MAX_PX, height: THUMB_MAX_PX, fit: "scale-down" })
+      .output({ format: "image/webp", quality: THUMB_QUALITY });
+    return new Uint8Array(await out.response().arrayBuffer());
+  }
+  const sharpModule = "sharp"; // kept out of the Worker bundle
+  const { default: sharp } = await import(/* webpackIgnore: true */ sharpModule);
+  return sharp(Buffer.from(bytes))
+    .resize(THUMB_MAX_PX, THUMB_MAX_PX, { fit: "inside", withoutEnlargement: true })
+    .webp({ quality: THUMB_QUALITY, alphaQuality: 90 })
+    .toBuffer();
+}
 
 /** Resizes the artwork and uploads it to R2. null when R2 isn't set up or it fails. */
 export async function makeThumb(imageUrl: string): Promise<string | null> {
@@ -15,11 +53,7 @@ export async function makeThumb(imageUrl: string): Promise<string | null> {
   try {
     const res = await fetch(imageSrc(imageUrl), { cache: "no-store" });
     if (!res.ok) return null;
-    const { default: sharp } = await import("sharp");
-    const webp = await sharp(Buffer.from(await res.arrayBuffer()))
-      .resize(THUMB_MAX_PX, THUMB_MAX_PX, { fit: "inside", withoutEnlargement: true })
-      .webp({ quality: THUMB_QUALITY, alphaQuality: 90 })
-      .toBuffer();
+    const webp = await toWebpThumb(await res.arrayBuffer());
     const base =
       (imageUrl.split("/").pop() ?? "sticker").replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9-]+/g, "-") ||
       "sticker";
