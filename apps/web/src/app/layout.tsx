@@ -61,6 +61,11 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#ffffff",
+  // App-like on phones: no pinch zoom (iOS also needs the touch-action rule in globals.css).
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

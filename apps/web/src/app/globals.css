@@ -20,6 +20,9 @@
 }
 
 html {
+  /* No pinch zoom on phones (iOS Safari ignores user-scalable=no); one-finger
+     scrolling and taps work as normal. */
+  touch-action: pan-x pan-y;
   color-scheme: light;
 }
 

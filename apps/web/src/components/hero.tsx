@@ -2,7 +2,7 @@
 
 import SmartImg from "./smart-img";
 import HoverLink from "./hover-link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   BadgeCheck,
@@ -68,7 +68,12 @@ export default function Hero({
       6500,
     );
     return () => clearInterval(timer);
-  }, [slides.length, paused, engaged]);
+    // index: a swipe or dot tap restarts the wait for the next slide.
+  }, [slides.length, paused, engaged, index]);
+
+  // Swipe left / right on phones to change slide.
+  const touch = useRef<{ x: number; y: number } | null>(null);
+  const go = (step: number) => setIndex((i) => (i + step + slides.length) % slides.length);
 
   if (!slide) return null;
   const product = slide.kind === "product" ? slide.product : null;
@@ -83,6 +88,20 @@ export default function Hero({
     <section
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
+      onTouchStart={(e) => {
+        const t = e.touches[0];
+        touch.current = { x: t.clientX, y: t.clientY };
+      }}
+      onTouchEnd={(e) => {
+        const start = touch.current;
+        touch.current = null;
+        if (!start || slides.length < 2) return;
+        const t = e.changedTouches[0];
+        const dx = t.clientX - start.x;
+        const dy = t.clientY - start.y;
+        // A clear sideways swipe, not a scroll or a tap.
+        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
+      }}
       className="relative flex items-center overflow-x-clip lg:min-h-[70svh]"
     >
       {/* Background: the slide's sticker sheet / cutting mat fills the hero and
