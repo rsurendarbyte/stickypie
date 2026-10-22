@@ -3,6 +3,7 @@ import { categoryPath, inCategory } from "@stickypie/shared";
 import { getDriver } from "@/lib/data";
 import { generateStaticParams as legalSlugs } from "./legal/[slug]/page";
 import { absoluteUrl, isProductionSite } from "@/lib/site";
+import { SURFACES } from "@/lib/surfaces";
 
 // Rendered per request so stickers added from the admin app appear without a
 // redeploy (crawlers fetch it rarely, so this costs almost nothing).
@@ -14,6 +15,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const pages: MetadataRoute.Sitemap = [
     { url: absoluteUrl("/"), changeFrequency: "daily", priority: 1 },
     { url: absoluteUrl("/stickers"), changeFrequency: "daily", priority: 0.9 },
+    ...SURFACES.map((s) => ({ url: absoluteUrl(`/${s.slug}`), changeFrequency: "weekly" as const, priority: 0.9 })),
     { url: absoluteUrl("/contact"), changeFrequency: "yearly", priority: 0.3 },
     ...legalSlugs().map(({ slug }) => ({
       url: absoluteUrl(`/legal/${slug}`),

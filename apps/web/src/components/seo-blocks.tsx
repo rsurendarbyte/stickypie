@@ -1,5 +1,6 @@
 // Server-rendered text blocks that give each page real, readable content for
 // shoppers and search engines (details, how-to, FAQ). No client JS.
+import Link from "next/link";
 import { STORE_FAQ } from "@/lib/seo";
 
 export function ProductAbout({
@@ -52,8 +53,12 @@ export function StoreAbout() {
         Waterproof vinyl stickers, made for India
       </h1>
       <p className="mt-3 max-w-3xl text-[15px] leading-relaxed text-fog">
-        StickyPie is an online sticker shop for car stickers, bike stickers, laptop stickers and
-        helmet decals. Every design is printed to order on premium die-cut vinyl — waterproof,
+        StickyPie is an online sticker shop for{" "}
+        <Link href="/car-stickers" className="text-snow underline-offset-2 hover:underline">car stickers</Link>,{" "}
+        <Link href="/bike-stickers" className="text-snow underline-offset-2 hover:underline">bike stickers</Link>,{" "}
+        <Link href="/laptop-stickers" className="text-snow underline-offset-2 hover:underline">laptop stickers</Link>,{" "}
+        <Link href="/helmet-stickers" className="text-snow underline-offset-2 hover:underline">helmet stickers</Link> and{" "}
+        <Link href="/bottle-stickers" className="text-snow underline-offset-2 hover:underline">water bottle stickers</Link>. Every design is printed to order on premium die-cut vinyl — waterproof,
         scratch-resistant and UV-safe — in 3″, 6″ and 7″ sizes. Peel, stick and make anything
         yours, with delivery to pin codes across India.
       </p>

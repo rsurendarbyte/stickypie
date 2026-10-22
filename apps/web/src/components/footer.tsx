@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PaymentPartnerNote } from "./payment-partner";
+import { SURFACES } from "@/lib/surfaces";
 
 const COLUMNS: Array<{ title: string; links: Array<{ label: string; href: string }> }> = [
   {
@@ -7,6 +8,7 @@ const COLUMNS: Array<{ title: string; links: Array<{ label: string; href: string
     links: [
       { label: "All stickers", href: "/stickers" },
       { label: "New drops", href: "/stickers?sort=new" },
+      ...SURFACES.map((s) => ({ label: s.name, href: `/${s.slug}` })),
     ],
   },
   {
