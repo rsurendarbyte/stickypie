@@ -5,6 +5,9 @@ import { useEffect, useRef, useState } from "react";
 import { Download, ImagePlus, Images, Loader2, Trash2, X } from "lucide-react";
 import type { Category, Product } from "@stickypie/shared";
 import {
+  MAX_SIZES_PER_STICKER,
+  MAX_STICKER_INCHES,
+  MIN_STICKER_INCHES,
   STICKER_SIZES,
   formatDimensions,
   formatINR,
@@ -50,18 +53,48 @@ export default function ProductForm({
   const [featured, setFeatured] = useState(product?.featured ?? false);
   const [isNew, setIsNew] = useState(product?.isNew ?? true);
   const [isActive, setIsActive] = useState(product?.isActive ?? true);
+  // The usual sizes plus any extra size this sticker is already sold in.
   const [sizeRows, setSizeRows] = useState<SizeRow[]>(() =>
-    STICKER_SIZES.map((inches) => {
-      const existing = product?.sizes?.find((s) => s.inches === inches);
-      return {
-        inches,
-        // New products start with every size on; existing ones keep what they sell.
-        on: product ? Boolean(existing) : true,
-        price: existing ? String(existing.price) : "",
-        compareAt: existing?.compareAtPrice ? String(existing.compareAtPrice) : "",
-      };
-    })
+    [...new Set<number>([...STICKER_SIZES, ...(product?.sizes ?? []).map((s) => s.inches)])]
+      .sort((a, b) => a - b)
+      .map((inches) => {
+        const existing = product?.sizes?.find((s) => s.inches === inches);
+        return {
+          inches,
+          // New products start with the usual sizes on; existing ones keep what they sell.
+          on: product ? Boolean(existing) : true,
+          price: existing ? String(existing.price) : "",
+          compareAt: existing?.compareAtPrice ? String(existing.compareAtPrice) : "",
+        };
+      })
   );
+  const [newSize, setNewSize] = useState("");
+  const [newSizeError, setNewSizeError] = useState<string | null>(null);
+
+  function addSize() {
+    const inches = Number(newSize);
+    if (!Number.isInteger(inches) || inches < MIN_STICKER_INCHES || inches > MAX_STICKER_INCHES) {
+      setNewSizeError(`Enter a whole number from ${MIN_STICKER_INCHES} to ${MAX_STICKER_INCHES}`);
+      return;
+    }
+    if (sizeRows.some((row) => row.inches === inches)) {
+      setNewSizeError(`${inches} inch is already in the list`);
+      return;
+    }
+    if (sizeRows.filter((row) => row.on).length >= MAX_SIZES_PER_STICKER) {
+      setNewSizeError(`Up to ${MAX_SIZES_PER_STICKER} sizes`);
+      return;
+    }
+    setSizeRows((rows) =>
+      [...rows, { inches, on: true, price: "", compareAt: "" }].sort((a, b) => a.inches - b.inches)
+    );
+    setNewSize("");
+    setNewSizeError(null);
+  }
+
+  function removeSize(inches: number) {
+    setSizeRows((rows) => rows.filter((row) => row.inches !== inches));
+  }
   const [aspectRatio, setAspectRatio] = useState<number | null>(product?.aspectRatio ?? null);
   const sizesOn = sizeRows.filter((row) => row.on);
 
@@ -297,8 +330,44 @@ export default function ProductForm({
                 ) : (
                   <p className="pt-3 text-xs text-fog/70 sm:col-span-2">Not sold in this size</p>
                 )}
+                {!(STICKER_SIZES as readonly number[]).includes(row.inches) && (
+                  <button
+                    type="button"
+                    onClick={() => removeSize(row.inches)}
+                    className="justify-self-start text-xs font-semibold text-fog hover:text-brand sm:col-start-1"
+                  >
+                    Remove {row.inches} inch
+                  </button>
+                )}
               </div>
             ))}
+          </div>
+          <div className="mt-4 flex flex-wrap items-start gap-2 border-t border-line pt-4">
+            <TextField
+              label="Add a size (inch)"
+              value={newSize}
+              onChange={(e) => {
+                setNewSize(e.target.value.replace(/\D/g, "").slice(0, 2));
+                setNewSizeError(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addSize();
+                }
+              }}
+              inputMode="numeric"
+              error={newSizeError ?? undefined}
+              hint={`Any whole inch, ${MIN_STICKER_INCHES}–${MAX_STICKER_INCHES} (longest side)`}
+              className="w-56"
+            />
+            <button
+              type="button"
+              onClick={addSize}
+              className="h-14 rounded-xl border border-line px-4 text-sm font-semibold transition-colors hover:border-brand/60 hover:text-brand"
+            >
+              + Add size
+            </button>
           </div>
           {sizesOn.length === 0 && (
             <div className="mt-4 grid gap-4 border-t border-line pt-4 sm:grid-cols-2">

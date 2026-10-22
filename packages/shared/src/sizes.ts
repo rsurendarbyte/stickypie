@@ -2,7 +2,13 @@
 // follows the artwork's aspect ratio (width / height). Browser-safe, no deps.
 import type { Product, ProductSize } from "./types";
 
+/** Sizes offered by default for a new sticker; the admin can add any other whole-inch size. */
 export const STICKER_SIZES = [3, 6, 7] as const;
+/** Allowed range for any size (whole inches, longest side). */
+export const MIN_STICKER_INCHES = 1;
+export const MAX_STICKER_INCHES = 48;
+/** Most sizes one sticker can be sold in. */
+export const MAX_SIZES_PER_STICKER = 10;
 
 /** 3 → "3", 3.25 → "3.3" (one decimal, trailing .0 dropped). */
 export function formatInches(value: number): string {

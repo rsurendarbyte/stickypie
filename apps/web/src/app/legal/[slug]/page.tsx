@@ -50,7 +50,7 @@ function docs(biz: Business): Record<string, LegalDoc> {
           heading: "Products",
           body: [
             "Our stickers are printed on waterproof vinyl and die-cut to shape.",
-            "Sticker sizes (3″, 6″, 7″) are measured on the longest side; the other side follows the shape of the design, as shown in the size details on each product page.",
+            "Sticker sizes are measured on the longest side; the other side follows the shape of the design, as shown in the size details on each product page.",
             "The “actual size” preview is a guide — how big it looks depends on your screen. Printed colours may vary slightly from what you see on screen.",
           ],
         },

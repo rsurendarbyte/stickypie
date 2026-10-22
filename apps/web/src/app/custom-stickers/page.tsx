@@ -5,7 +5,7 @@ import { pageMetadata } from "@/lib/site";
 export const metadata: Metadata = pageMetadata({
   title: "Custom Stickers – Print Your Own Design Online in India",
   description:
-    "Get your own design printed as a waterproof die-cut vinyl sticker. Choose 3″, 6″ or 7″ and any quantity — logos, photos, artwork. Ships across India.",
+    "Get your own design printed as a waterproof die-cut vinyl sticker. Choose your size and any quantity — logos, photos, artwork. Ships across India.",
   path: "/custom-stickers",
 });
 

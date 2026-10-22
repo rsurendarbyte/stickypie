@@ -29,9 +29,9 @@ export const SURFACES: Surface[] = [
     noun: "car",
     title: "Car Stickers Online in India – Waterproof Vinyl Car Decals",
     description:
-      "Buy car stickers online in India: waterproof die-cut vinyl decals for bumpers, windows and fuel flaps — JDM, racing, warning labels and more. 3″, 6″ and 7″, shipped across India.",
+      "Buy car stickers online in India: waterproof die-cut vinyl decals for bumpers, windows and fuel flaps — JDM, racing, warning labels and more. Several sizes, shipped across India.",
     intro:
-      "Bumper, rear window, fuel flap or dashboard — our car stickers are die-cut vinyl decals made to handle sun, rain and car washes. Pick from JDM and racing designs, petrolhead slogans, warning labels and origin badges, each printed to order in 3″, 6″ or 7″.",
+      "Bumper, rear window, fuel flap or dashboard — our car stickers are die-cut vinyl decals made to handle sun, rain and car washes. Pick from JDM and racing designs, petrolhead slogans, warning labels and origin badges, each printed to order in the size you pick.",
     tags: ["car", "cars", "bumper", "jdm", "racing", "petrolhead", "fuel", "diesel", "petrol", "drift", "turbo", "tuning", "baby on board", "jeep", "4x4"],
     categories: ["cars", "jdm", "racing", "petrolhead", "signage", "warning", "origin", "off-road"],
     sections: [
@@ -67,7 +67,7 @@ export const SURFACES: Surface[] = [
     description:
       "Shop bike stickers online in India: waterproof die-cut vinyl decals for tanks, side panels, visors and helmets — rider, off-road and adventure designs. Ships across India.",
     intro:
-      "Tank, side panel, mudguard or visor — our bike stickers are die-cut vinyl decals built for riders. They're waterproof, UV-safe and tough enough for rain, dust and highway miles, with rider, off-road and adventure designs in 3″, 6″ and 7″.",
+      "Tank, side panel, mudguard or visor — our bike stickers are die-cut vinyl decals built for riders. They're waterproof, UV-safe and tough enough for rain, dust and highway miles, with rider, off-road and adventure designs in several sizes.",
     tags: ["bike", "bikes", "biker", "bikers", "motorcycle", "motocross", "ride", "rider", "helmet", "offroad", "trail", "adventure", "mountains"],
     categories: ["bikers", "off-road", "adventure", "racing"],
     sections: [

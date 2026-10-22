@@ -65,7 +65,7 @@ export default function SizePicker({
       <div
         role="radiogroup"
         aria-label="Sticker size"
-        className="inline-flex gap-0.5 rounded-full bg-snow/[0.06] p-0.5"
+        className="no-scrollbar inline-flex max-w-full gap-0.5 overflow-x-auto rounded-full bg-snow/[0.06] p-0.5"
       >
         {sizes.map((s) => {
           const active = s.inches === value;
@@ -95,7 +95,7 @@ export default function SizePicker({
       <p className="text-xs font-semibold tracking-wider text-fog uppercase">
         Size
       </p>
-      <div role="radiogroup" aria-label="Sticker size" className="mt-2 grid max-w-md grid-cols-3 gap-2">
+      <div role="radiogroup" aria-label="Sticker size" className="mt-2 grid max-w-md grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-2">
         {sizes.map((s) => {
           const active = s.inches === value;
           return (

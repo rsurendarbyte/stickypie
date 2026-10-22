@@ -160,7 +160,7 @@ export default function Hero({
                 />
               </div>
             ) : (
-              <CustomSlideArt />
+              <CustomSlideArt sizes={custom} />
             )}
           </div>
 
@@ -235,7 +235,7 @@ function ProductSlideCopy({
  * line with scissors, a peeling corner, a second copy behind and a few
  * floating labels. Pure shapes and icons (no sticker artwork).
  */
-function CustomSlideArt() {
+function CustomSlideArt({ sizes }: { sizes: { inches: number }[] }) {
   return (
     <div className="absolute inset-0 grid place-items-center">
       <div className="relative aspect-square h-[74%] max-h-[380px]">
@@ -270,7 +270,7 @@ function CustomSlideArt() {
           <Shapes className="size-3.5 text-brand" /> Any shape
         </span>
         <span className="animate-float-slow absolute top-[42%] -right-[16%] inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-snow shadow-md [animation-delay:-4s]">
-          <Ruler className="size-3.5 text-brand" /> 3″ · 6″ · 7″
+          <Ruler className="size-3.5 text-brand" /> {sizes.length > 3 ? `${formatInches(sizes[0].inches)}″ – ${formatInches(sizes[sizes.length - 1].inches)}″` : sizes.map((s) => `${formatInches(s.inches)}″`).join(" · ")}
         </span>
         <span className="animate-float-slow absolute bottom-[2%] -left-[8%] inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-snow shadow-md [animation-delay:-7s]">
           <Droplets className="size-3.5 text-mint" /> Waterproof vinyl

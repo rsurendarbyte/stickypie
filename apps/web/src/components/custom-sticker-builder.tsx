@@ -28,7 +28,7 @@ const QUICK_QTY = [5, 10, 25, 50];
 
 const STEPS = [
   { icon: ImageUp, title: "Add your design", text: "Kept on your device until you pay" },
-  { icon: Ruler, title: "Pick size & quantity", text: "3″, 6″ or 7″, any number" },
+  { icon: Ruler, title: "Pick size & quantity", text: "Any size we offer, any number" },
   { icon: CreditCard, title: "Pay securely", text: "With the rest of your cart" },
   { icon: Truck, title: "We print & ship", text: "Across India" },
 ];
@@ -243,7 +243,7 @@ export default function CustomStickerBuilder() {
           {error && <p className="mb-4 text-sm font-semibold text-brand">{error}</p>}
 
           <Step n={1} label="Size" />
-          <div role="radiogroup" aria-label="Sticker size" className="mt-2.5 grid grid-cols-3 gap-2">
+          <div role="radiogroup" aria-label="Sticker size" className="mt-2.5 grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-2">
             {sizes.map((s) => {
               const active = s.inches === chosen?.inches;
               return (

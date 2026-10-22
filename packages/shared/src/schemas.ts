@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { INDIAN_STATES, matchIndianState } from "./india";
-import { STICKER_SIZES } from "./sizes";
+import { MAX_SIZES_PER_STICKER, MAX_STICKER_INCHES, MIN_STICKER_INCHES } from "./sizes";
 
 export const phoneSchema = z
   .string()
@@ -78,12 +78,14 @@ export const productInputSchema = z.object({
       z.object({
         inches: z
           .number()
-          .refine((n) => (STICKER_SIZES as readonly number[]).includes(n), "Unknown sticker size"),
+          .int("Sizes are whole inches")
+          .min(MIN_STICKER_INCHES, `Sizes start at ${MIN_STICKER_INCHES} inch`)
+          .max(MAX_STICKER_INCHES, `Sizes go up to ${MAX_STICKER_INCHES} inches`),
         price: z.number().int().min(1, "Price must be at least ₹1").max(1000000),
         compareAtPrice: z.number().int().min(1).max(1000000).nullable().default(null),
       })
     )
-    .max(STICKER_SIZES.length)
+    .max(MAX_SIZES_PER_STICKER, `Up to ${MAX_SIZES_PER_STICKER} sizes`)
     .refine((sizes) => new Set(sizes.map((s) => s.inches)).size === sizes.length, "Each size only once")
     .default([]),
   aspectRatio: z.number().positive().max(100).nullable().default(null),
@@ -169,5 +171,12 @@ export const storeSettingsSchema = z.object({
     remote: rupees("the remote-area rate"),
   }),
   paymentGateway: z.enum(["cashfree", "razorpay"]).default("cashfree"),
-  customPrices: z.record(z.string().regex(/^\d{1,2}$/), rupees("the custom sticker price")).default({}),
+  customPrices: z
+    .record(z.string().regex(/^\d{1,2}$/), rupees("the custom sticker price"))
+    .refine(
+      (prices) =>
+        Object.keys(prices).every((k) => Number(k) >= MIN_STICKER_INCHES && Number(k) <= MAX_STICKER_INCHES),
+      `Custom sizes must be ${MIN_STICKER_INCHES}–${MAX_STICKER_INCHES} inches`
+    )
+    .default({}),
 });

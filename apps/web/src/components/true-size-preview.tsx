@@ -131,7 +131,7 @@ export default function TrueSizePreview({
           <p className="truncate font-display text-base font-semibold">{name}</p>
         </div>
         {sizes.length > 0 && (
-          <div role="radiogroup" aria-label="Sticker size" className="flex gap-1.5">
+          <div role="radiogroup" aria-label="Sticker size" className="flex flex-wrap justify-end gap-1.5">
             {sizes.map((s) => {
               const active = s.inches === inches;
               return (

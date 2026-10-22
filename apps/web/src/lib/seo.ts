@@ -60,7 +60,7 @@ export function productDetails(product: Product, categoryNames: string[]) {
 /** Intro text for a category page. */
 export function categoryIntro(category: Category, count: number): string {
   const name = category.name.toLowerCase();
-  return `Browse ${count} ${name} sticker${count === 1 ? "" : "s"} from ${SITE_NAME} — waterproof die-cut vinyl decals for your car, bike, laptop, helmet and more. Every ${name} sticker is printed to order in 3″, 6″ or 7″ and shipped across India.`;
+  return `Browse ${count} ${name} sticker${count === 1 ? "" : "s"} from ${SITE_NAME} — waterproof die-cut vinyl decals for your car, bike, laptop, helmet and more. Every ${name} sticker is printed to order in the size you pick and shipped across India.`;
 }
 
 /** Common questions — shown on the home page and given to Google as FAQ data. */
@@ -71,7 +71,7 @@ export const STORE_FAQ: { q: string; a: string }[] = [
   },
   {
     q: "What sizes do the stickers come in?",
-    a: "Most designs come in 3″, 6″ and 7″ (measured on the longest side). You can preview the real size on your screen with \"See actual size\" on any sticker.",
+    a: "Most designs come in several sizes (measured on the longest side). You can preview the real size on your screen with \"See actual size\" on any sticker.",
   },
   {
     q: "Do you ship across India?",

@@ -59,7 +59,7 @@ export function StoreAbout() {
         <Link href="/laptop-stickers" className="text-snow underline-offset-2 hover:underline">laptop stickers</Link>,{" "}
         <Link href="/helmet-stickers" className="text-snow underline-offset-2 hover:underline">helmet stickers</Link> and{" "}
         <Link href="/bottle-stickers" className="text-snow underline-offset-2 hover:underline">water bottle stickers</Link>. Every design is printed to order on premium die-cut vinyl — waterproof,
-        scratch-resistant and UV-safe — in 3″, 6″ and 7″ sizes. Peel, stick and make anything
+        scratch-resistant and UV-safe — in a range of sizes. Peel, stick and make anything
         yours, with delivery to pin codes across India.
       </p>
 
