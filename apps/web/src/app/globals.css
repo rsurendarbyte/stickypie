@@ -688,3 +688,121 @@ select option {
     mask-composite: intersect;
   }
 }
+
+/* Cart open on desktop: the shop slides left to make room for the cart panel
+   (no dark overlay — keep browsing). Fixed bars move with it. */
+@media (min-width: 1024px) {
+  body,
+  .shift-with-cart {
+    transition-property: margin-right, right, background-color, box-shadow, border-color;
+    transition-duration: 0.3s;
+    transition-timing-function: ease-out;
+  }
+  html[data-cart-open] body {
+    margin-right: 28rem;
+  }
+  html[data-cart-open] .shift-with-cart {
+    right: 28rem;
+  }
+}
+
+/* ── Cart as a sticker label: sticks on when opened, peels off when closed ── */
+.cart-label {
+  overflow: hidden;
+  backface-visibility: hidden;
+  transform-origin: 50% 100%; /* phone: hinged on the bottom edge */
+}
+/* glossy sheen that sweeps across as the label is pressed flat */
+.cart-label::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.75) 50%, transparent 65%);
+  transform: translateX(-130%);
+}
+.cart-label--on {
+  animation: label-stick-up 0.6s cubic-bezier(0.2, 0.9, 0.25, 1.05) both;
+}
+.cart-label--on::after {
+  animation: label-sheen 0.7s ease-out 0.35s both;
+}
+.cart-label--off {
+  animation: label-peel-down 0.42s cubic-bezier(0.55, 0, 0.8, 0.4) both;
+}
+@keyframes label-stick-up {
+  0% {
+    transform: perspective(1200px) rotateX(-80deg) translateY(30%);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  70% {
+    transform: perspective(1200px) rotateX(4deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes label-peel-down {
+  0% {
+    transform: none;
+  }
+  35% {
+    transform: perspective(1200px) rotateX(-18deg) rotateZ(-2deg);
+  }
+  100% {
+    transform: perspective(1200px) rotateX(-85deg) rotateZ(-4deg) translateY(35%);
+    opacity: 0;
+  }
+}
+@keyframes label-sheen {
+  from {
+    transform: translateX(-130%);
+  }
+  to {
+    transform: translateX(130%);
+  }
+}
+@media (min-width: 1024px) {
+  .cart-label {
+    transform-origin: 100% 50%; /* desktop: hinged on the right edge */
+  }
+  .cart-label--on {
+    animation-name: label-stick-side;
+    animation-duration: 0.65s;
+  }
+  .cart-label--off {
+    transform-origin: 100% 100%; /* lifts from the top-left corner first */
+    animation-name: label-peel-side;
+    animation-duration: 0.45s;
+  }
+}
+@keyframes label-stick-side {
+  0% {
+    transform: perspective(1600px) rotateY(-95deg) rotateZ(-3deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  70% {
+    transform: perspective(1600px) rotateY(5deg) rotateZ(0.4deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes label-peel-side {
+  0% {
+    transform: none;
+  }
+  35% {
+    transform: perspective(1600px) rotateY(-14deg) rotateZ(-3deg) translateX(-4px);
+  }
+  100% {
+    transform: perspective(1600px) rotateY(-100deg) rotateZ(-9deg);
+    opacity: 0;
+  }
+}

@@ -25,11 +25,12 @@ export function cartUiHidden(pathname: string): boolean {
  * back down; the sticker stack pops when something is added.
  */
 export default function CartStrip() {
-  const { items, count, subtotal, openCart } = useCart();
+  const { items, count, subtotal, openCart, isOpen } = useCart();
   const pathname = usePathname();
   const settings = useStoreSettings();
 
-  if (count === 0 || cartUiHidden(pathname)) return null;
+  // Hidden while the cart itself is open (it says the same thing).
+  if (count === 0 || isOpen || cartUiHidden(pathname)) return null;
 
   const shortBy = belowMinimum(settings, subtotal);
   const progress = Math.min(
@@ -40,7 +41,7 @@ export default function CartStrip() {
   const label = `${count} sticker${count === 1 ? "" : "s"}`;
 
   return (
-    <div className="pointer-events-none fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-30 flex justify-center cart-tape-wrap sm:bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
+    <div className="shift-with-cart pointer-events-none fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-30 flex justify-center cart-tape-wrap sm:bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
       <div className="cart-tape-box pointer-events-auto w-full max-w-[560px]">
         <div className="cart-tape flex items-center gap-2 py-2.5 pr-5 pl-4 sm:pr-7 sm:pl-6">
           <button
