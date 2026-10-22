@@ -15,6 +15,7 @@ export default function LabelModal({
   labelledBy,
   describedBy,
   role = "dialog",
+  placement = "center",
   className = "",
   children,
 }: {
@@ -23,6 +24,8 @@ export default function LabelModal({
   labelledBy: string;
   describedBy?: string;
   role?: "dialog" | "alertdialog";
+  /** "top": near the top of the screen, like a search bar (Spotlight). */
+  placement?: "center" | "top";
   /** Size and padding of the label, e.g. "max-w-sm p-6". */
   className?: string;
   children: React.ReactNode;
@@ -55,7 +58,11 @@ export default function LabelModal({
 
   if (!shown) return null;
   return (
-    <div className={`fixed inset-0 z-[80] grid place-items-center p-4 ${closing ? "pointer-events-none" : ""}`}>
+    <div
+      className={`fixed inset-0 z-[80] grid p-4 ${
+        placement === "top" ? "items-start justify-items-center px-2.5 pt-2.5 sm:px-4 sm:pt-[12vh]" : "place-items-center"
+      } ${closing ? "pointer-events-none" : ""}`}
+    >
       <div
         aria-hidden
         onClick={onClose}

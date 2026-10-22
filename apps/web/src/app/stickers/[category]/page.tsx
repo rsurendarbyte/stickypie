@@ -56,7 +56,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
   };
 
   return (
-    <div className="min-h-screen w-full px-4 pt-24 pb-24 sm:px-8 lg:px-12 2xl:px-20">
+    <div className="min-h-screen w-full px-4 pt-[76px] pb-24 sm:px-8 sm:pt-24 lg:px-12 2xl:px-20">
       <JsonLd data={[breadcrumbLd, itemListStructuredData(inThis)]} />
       <Suspense
         fallback={

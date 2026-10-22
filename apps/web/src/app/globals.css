@@ -1117,3 +1117,10 @@ html[data-lite] .card-shine {
     --peel: 1600px;
   }
 }
+
+/* Rail cards scrolled off to the side aren't laid out or painted until they
+   come close — keeps long rails cheap on phones. */
+.rail-scroller > * {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 320px;
+}

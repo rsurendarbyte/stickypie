@@ -6,7 +6,8 @@ import { useMemo } from "react";
 import { ALL_STICKERS_PATH, categoryPath, categoryTitle, inCategory } from "@stickypie/shared";
 import ProductCard from "./product-card";
 import ProductCardSkeleton from "./product-card-skeleton";
-import { SelectField } from "./field";
+import VirtualGrid from "./virtual-grid";
+import { ArrowUpDown } from "lucide-react";
 import { useLiveCatalog, type Catalog } from "@/lib/live-catalog";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
 
@@ -15,6 +16,12 @@ import { useWindowScrollMemory } from "@/lib/scroll-memory";
  * build-time snapshot, refreshes live from the Supabase API in the browser,
  * and all searching/filtering/sorting is local — zero server requests.
  */
+const SORTS = [
+  { value: "new", label: "Newest" },
+  { value: "price-asc", label: "Price: low → high" },
+  { value: "price-desc", label: "Price: high → low" },
+];
+
 export default function BrowseClient({
   initial,
   categorySlug = "",
@@ -80,7 +87,7 @@ export default function BrowseClient({
   }, [categories, products, category]);
 
   const chip = (active: boolean) =>
-    `shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium transition-all ${
+    `shrink-0 rounded-full border px-3 py-1 text-[13px] font-medium transition-all sm:px-4 sm:py-1.5 sm:text-sm ${
       active
         ? "border-transparent pie-gradient text-white shadow-md shadow-brand/20"
         : "border-line bg-ink2 text-fog hover:border-fog/40 hover:text-snow"
@@ -88,23 +95,27 @@ export default function BrowseClient({
 
   return (
     <>
-      <h1 className="font-display text-3xl font-bold sm:text-4xl">
-        {activeCategoryName ? categoryTitle(activeCategoryName) : "All stickers"}
-      </h1>
-      <p className="mt-1 text-sm text-fog">
-        {!loaded ? (
-          "Loading stickers…"
-        ) : q ? (
-          <>
-            {visible.length} result{visible.length === 1 ? "" : "s"} for “{q}”
-          </>
-        ) : (
-          <>{visible.length} stickers ready to peel</>
-        )}
-      </p>
+      {/* Title and count on one line — compact on phones */}
+      <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
+        <h1 className="font-display text-2xl font-bold sm:text-4xl">
+          {activeCategoryName ? categoryTitle(activeCategoryName) : "All stickers"}
+        </h1>
+        <p className="text-xs text-fog sm:text-sm">
+          {!loaded ? (
+            "Loading…"
+          ) : q ? (
+            <>
+              {visible.length} result{visible.length === 1 ? "" : "s"} for “{q}”
+            </>
+          ) : (
+            <>{visible.length} stickers</>
+          )}
+        </p>
+      </div>
 
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        <div className="no-scrollbar -mx-1 flex max-w-full gap-2 overflow-x-auto px-1 py-1">
+      {/* Category chips scroll sideways; sort is one small pill beside them */}
+      <div className="mt-3 flex items-center gap-2 sm:mt-5">
+        <div className="no-scrollbar -mx-1 flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-1 py-1 sm:gap-2">
           <HoverLink href={hrefFor("")} scroll={false} className={chip(!category)}>
             All
           </HoverLink>
@@ -114,22 +125,29 @@ export default function BrowseClient({
             </HoverLink>
           ))}
         </div>
-        <SelectField
-          label="Sort by"
-          value={sort}
-          onChange={(e) => update({ sort: e.target.value })}
-          className="ml-auto w-48"
-        >
-          <option value="new">Newest first</option>
-          <option value="price-asc">Price: low → high</option>
-          <option value="price-desc">Price: high → low</option>
-        </SelectField>
+        <label className="relative flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-line bg-ink2 px-2.5 text-xs font-semibold text-snow transition-colors hover:border-fog/40 sm:h-9 sm:px-3.5 sm:text-sm">
+          <ArrowUpDown className="size-3.5 text-fog" />
+          <span className="hidden sm:inline">{SORTS.find((x) => x.value === sort)?.label ?? "Newest"}</span>
+          <span className="sr-only sm:hidden">Sort</span>
+          <select
+            value={sort}
+            onChange={(e) => update({ sort: e.target.value })}
+            aria-label="Sort by"
+            className="absolute inset-0 cursor-pointer opacity-0"
+          >
+            {SORTS.map((x) => (
+              <option key={x.value} value={x.value}>
+                {x.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {!loaded ? (
         <div
           aria-busy="true"
-          className="mt-8 grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8"
+          className="mt-4 grid grid-cols-2 gap-x-3 gap-y-5 sm:mt-8 sm:gap-y-7 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8"
         >
           {Array.from({ length: 12 }, (_, i) => (
             <ProductCardSkeleton key={i} index={i} width="w-full" />
@@ -152,11 +170,13 @@ export default function BrowseClient({
           <p className="text-sm text-fog">Try a different search or category.</p>
         </div>
       ) : (
-        <div className="mt-8 grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
-          {visible.map((product) => (
-            <ProductCard key={product.id} product={product} width="w-full" />
-          ))}
-        </div>
+        // Only the rows near the screen are rendered — smooth with hundreds of stickers.
+        <VirtualGrid
+          items={visible}
+          getKey={(product) => product.id}
+          render={(product) => <ProductCard product={product} width="w-full" />}
+          className="mt-4 grid grid-cols-2 gap-x-3 gap-y-5 sm:mt-8 sm:gap-y-7 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8"
+        />
       )}
     </>
   );

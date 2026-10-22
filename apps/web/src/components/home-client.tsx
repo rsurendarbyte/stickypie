@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import Hero from "./hero";
 import ProductCard from "./product-card";
 import ProductCardSkeleton from "./product-card-skeleton";
@@ -99,14 +100,63 @@ export default function HomeClient({
     <>
       <Hero products={featured.length > 0 ? featured : [hero]} categories={categories} />
       <div className="relative z-10 mt-2 space-y-10 pb-24">
-        {homeRails.map((rail) => (
-          <Row key={rail.key} title={rail.title} href={rail.href}>
+        {homeRails.map((rail, i) => (
+          // The first two rails render straight away; the rest only when the
+          // shopper scrolls near them.
+          <LazyRail key={rail.key} eager={i < 2} title={rail.title} href={rail.href}>
             {rail.items.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
-          </Row>
+          </LazyRail>
         ))}
       </div>
     </>
+  );
+}
+
+/**
+ * A home rail that renders its cards only once it's near the screen; until
+ * then it shows its title and a few skeleton cards of the same height.
+ */
+function LazyRail({
+  eager,
+  title,
+  href,
+  children,
+}: {
+  eager: boolean;
+  title: string;
+  href?: string;
+  children: React.ReactNode;
+}) {
+  const box = useRef<HTMLDivElement>(null);
+  const [near, setNear] = useState(eager);
+  useEffect(() => {
+    const el = box.current;
+    if (near || !el) return;
+    const MARGIN = 700;
+    const show = () => setNear(true);
+    const io = new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && show(), {
+      rootMargin: `${MARGIN}px 0px`,
+    });
+    io.observe(el);
+    // Backup for in-app browsers (e.g. Instagram) that hold observers back.
+    const onScroll = () => {
+      const r = el.getBoundingClientRect();
+      if (r.top < window.innerHeight + MARGIN && r.bottom > -MARGIN) show();
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      io.disconnect();
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, [near]);
+
+  return (
+    <div ref={box}>
+      <Row title={title} href={href}>
+        {near ? children : Array.from({ length: 6 }, (_, i) => <ProductCardSkeleton key={i} index={i} />)}
+      </Row>
+    </div>
   );
 }
