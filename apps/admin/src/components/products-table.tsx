@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
-import { ChevronDown, Download, Pencil, Search, Star, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Check, ChevronDown, Download, Pencil, Plus, Search, Star, Trash2 } from "lucide-react";
 import type { Category, Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, formatINR } from "@stickypie/shared";
 import { imageDownloadHref, imageSrc } from "@/lib/img";
@@ -55,6 +55,124 @@ function StockCell({ stock }: { stock: number | null }) {
     );
   }
   return <span className="tabular-nums">{stock}</span>;
+}
+
+/**
+ * Category chips for one row; click to tick categories on and off right in the
+ * table. Each tick saves straight away. The menu is fixed-positioned so the
+ * table's horizontal scroller doesn't clip it.
+ */
+function CategoryPicker({
+  selected,
+  categories,
+  onChange,
+}: {
+  selected: string[];
+  categories: Category[];
+  onChange: (next: string[]) => void;
+}) {
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const names = new Map(categories.map((c) => [c.id, c.name]));
+  const current = selected.filter((id) => names.has(id));
+
+  useEffect(() => {
+    if (!pos) return;
+    const close = (e: Event) => {
+      const t = e.target as Node;
+      if (menuRef.current?.contains(t) || buttonRef.current?.contains(t)) return;
+      setPos(null);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setPos(null);
+    const onScroll = (e: Event) => {
+      if (!menuRef.current?.contains(e.target as Node)) setPos(null);
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [pos]);
+
+  function open() {
+    if (pos) return setPos(null);
+    const r = buttonRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const menuHeight = Math.min(categories.length * 36 + 16, 320);
+    const below = r.bottom + 6 + menuHeight < window.innerHeight;
+    setPos({ top: below ? r.bottom + 6 : Math.max(8, r.top - 6 - menuHeight), left: r.left });
+  }
+
+  function toggle(id: string) {
+    onChange(current.includes(id) ? current.filter((c) => c !== id) : [...current, id]);
+  }
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={open}
+        aria-haspopup="listbox"
+        aria-expanded={!!pos}
+        title="Change categories"
+        className={`group flex max-w-[260px] flex-wrap items-center gap-1 rounded-lg px-1.5 py-1 text-left transition-colors hover:bg-white/[0.06] ${
+          pos ? "bg-white/[0.06]" : ""
+        }`}
+      >
+        {current.map((id) => (
+          <span key={id} className="rounded-md border border-line bg-panel px-2 py-0.5 text-xs text-snow/90">
+            {names.get(id)}
+          </span>
+        ))}
+        {current.length === 0 ? (
+          <span className="flex items-center gap-1 text-xs text-fog group-hover:text-brand">
+            <Plus className="size-3.5" /> Add category
+          </span>
+        ) : (
+          <Plus className="size-3.5 text-fog/60 group-hover:text-brand" />
+        )}
+      </button>
+      {pos && (
+        <div
+          ref={menuRef}
+          role="listbox"
+          aria-multiselectable
+          style={{ top: pos.top, left: pos.left }}
+          className="fixed z-50 max-h-80 w-56 overflow-y-auto rounded-xl border border-line bg-ink2 p-1.5 shadow-2xl shadow-black/50"
+        >
+          {categories.map((c) => {
+            const on = current.includes(c.id);
+            return (
+              <button
+                key={c.id}
+                type="button"
+                role="option"
+                aria-selected={on}
+                onClick={() => toggle(c.id)}
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors hover:bg-white/[0.06]"
+              >
+                <span
+                  className={`grid size-4.5 shrink-0 place-items-center rounded border ${
+                    on ? "border-brand bg-brand text-white" : "border-fog/40"
+                  }`}
+                >
+                  {on && <Check className="size-3" strokeWidth={3} />}
+                </span>
+                <span className={on ? "text-snow" : "text-fog"}>{c.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </>
+  );
 }
 
 export default function ProductsTable({
@@ -224,8 +342,12 @@ export default function ProductsTable({
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-fog">
-                  {(product.categoryIds ?? []).filter((id) => categoryName.has(id)).map((id) => categoryName.get(id)).join(", ") || "—"}
+                <td className="px-2.5 py-3">
+                  <CategoryPicker
+                    selected={product.categoryIds ?? []}
+                    categories={categories}
+                    onChange={(categoryIds) => patch(product, { categoryIds }, "Categories updated")}
+                  />
                 </td>
                 <td className="px-4 py-3 text-right">
                   {(product.sizes?.length ?? 0) > 0 && (
