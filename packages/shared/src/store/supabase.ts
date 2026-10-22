@@ -15,6 +15,7 @@ import {
   rowToProduct,
 } from "./mappers";
 import { rowToSettings, settingsToRow, type StoreSettings } from "../shipping";
+import { rowToFeatures, type FeatureFlags } from "../features";
 import { rowToHomeRails, type HomeRail } from "../home-rails";
 import {
   REVIEW_PHOTO_BUCKET,
@@ -383,6 +384,23 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
         .single();
       if (error) throw friendly(error);
       return rowToHomeRails(data.home_rails);
+    },
+
+    async getFeatures() {
+      const { data, error } = await client.from("store_settings").select("features").eq("id", 1).maybeSingle();
+      if (error) return rowToFeatures(null);
+      return rowToFeatures(data?.features);
+    },
+
+    async updateFeatures(flags: FeatureFlags) {
+      const { data, error } = await client
+        .from("store_settings")
+        .update({ features: flags })
+        .eq("id", 1)
+        .select("features")
+        .single();
+      if (error) throw friendly(error);
+      return rowToFeatures(data.features);
     },
 
     async createContactMessage(input: ContactInput) {

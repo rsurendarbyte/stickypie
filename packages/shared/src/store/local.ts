@@ -15,6 +15,7 @@ import type {
   ProductInput,
 } from "../types";
 import { DEFAULT_STORE_SETTINGS, type StoreSettings } from "../shipping";
+import { rowToFeatures, type FeatureFlags } from "../features";
 import { DEFAULT_HOME_RAILS, type HomeRail } from "../home-rails";
 import { inCategory } from "../utils";
 import type { ContactInput, ContactMessage, NewReviewInput, Review, ReviewStatus } from "../feedback";
@@ -24,6 +25,7 @@ type StoreShape = {
   products: Product[];
   orders: Order[];
   settings?: StoreSettings;
+  features?: FeatureFlags;
   homeRails?: HomeRail[];
   contactMessages?: ContactMessage[];
   reviews?: Review[];
@@ -450,6 +452,17 @@ export function createLocalDriver(filePath: string): DataDriver {
       store.homeRails = rails;
       persist(store);
       return rails;
+    },
+
+    async getFeatures() {
+      return rowToFeatures(load().features);
+    },
+
+    async updateFeatures(flags: FeatureFlags) {
+      const store = load();
+      store.features = flags;
+      persist(store);
+      return flags;
     },
 
     async createContactMessage(input: ContactInput) {

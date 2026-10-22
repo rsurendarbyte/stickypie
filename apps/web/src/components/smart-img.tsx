@@ -15,6 +15,7 @@ export default function SmartImg({
   alt,
   className,
   priority = false,
+  imgRef,
 }: {
   full: string;
   thumb: string | null | undefined;
@@ -22,6 +23,8 @@ export default function SmartImg({
   className?: string;
   /** Above-the-fold image: fetch it first. */
   priority?: boolean;
+  /** Receives the <img> element (e.g. to measure where the art is drawn). */
+  imgRef?: (el: HTMLImageElement | null) => void;
 }) {
   const lite = useLite();
   const small = thumb || full;
@@ -42,6 +45,7 @@ export default function SmartImg({
 
   return (
     <img
+      ref={imgRef}
       src={loaded === full ? full : small}
       alt={alt}
       decoding="async"

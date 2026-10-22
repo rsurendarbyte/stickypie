@@ -199,6 +199,7 @@ export type ListProductsOpts = {
 };
 
 import type { StoreSettings } from "./shipping";
+import type { FeatureFlags } from "./features";
 import type { HomeRail } from "./home-rails";
 import type { ContactInput, ContactMessage, NewReviewInput, Review, ReviewStatus } from "./feedback";
 
@@ -263,6 +264,9 @@ export interface DataDriver {
   /** Home page layout (DEFAULT_HOME_RAILS until edited). */
   getHomeRails(): Promise<HomeRail[]>;
   updateHomeRails(rails: HomeRail[]): Promise<HomeRail[]>;
+  /** Storefront feature switches (admin → Features). */
+  getFeatures(): Promise<FeatureFlags>;
+  updateFeatures(flags: FeatureFlags): Promise<FeatureFlags>;
 
   /** Contact form (written by the storefront server, read in the admin). */
   createContactMessage(input: ContactInput): Promise<void>;

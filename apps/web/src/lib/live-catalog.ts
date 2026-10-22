@@ -17,11 +17,13 @@
 // RLS only exposes is_active products, so items taken off sale never reach the
 // browser. Demo mode (no Supabase env) keeps the server-rendered data.
 import { useEffect, useState, useSyncExternalStore } from "react";
-import type { Category, HomeRail, Product, PublicReview, StoreSettings } from "@stickypie/shared";
+import type { Category, FeatureFlags, HomeRail, Product, PublicReview, StoreSettings } from "@stickypie/shared";
 import {
+  DEFAULT_FEATURES,
   DEFAULT_STORE_SETTINGS,
   inCategory,
   rowToCategory,
+  rowToFeatures,
   rowToHomeRails,
   rowToProduct,
   rowToPublicReview,
@@ -55,6 +57,7 @@ type Bundle = Catalog & {
   version: string;
   settings: StoreSettings;
   rails: HomeRail[];
+  features: FeatureFlags;
   reviews: PublicReview[];
 };
 type CachedCatalog = Catalog & { version: string; reviews: PublicReview[] };
@@ -108,6 +111,7 @@ function loadCatalog(): Promise<Bundle> {
       ...catalog,
       settings: rowToSettings(meta),
       rails: rowToHomeRails(meta?.home_rails),
+      features: rowToFeatures(meta?.features),
     };
     memory = { bundle, at: Date.now() };
     listeners.forEach((notify) => notify());
@@ -199,6 +203,12 @@ export function useStoreSettings(): StoreSettings & { loaded: boolean } {
   const { bundle, failed } = useBundle();
   if (!liveCatalogEnabled) return { ...DEFAULT_STORE_SETTINGS, loaded: true };
   return { ...(bundle?.settings ?? DEFAULT_STORE_SETTINGS), loaded: Boolean(bundle) || failed };
+}
+
+/** Feature switches from the admin (Features); defaults until loaded. */
+export function useFeatures(): FeatureFlags {
+  const { bundle } = useBundle();
+  return bundle?.features ?? DEFAULT_FEATURES;
 }
 
 /** Home page layout from the admin (Home page). */

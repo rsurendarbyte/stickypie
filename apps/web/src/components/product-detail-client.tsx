@@ -8,7 +8,7 @@ import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR } from "@stickypie/shared";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
 import { useSkinSeed } from "@/lib/skin-seed";
-import { useLiveProduct, useRelatedProducts } from "@/lib/live-catalog";
+import { useFeatures, useLiveProduct, useRelatedProducts } from "@/lib/live-catalog";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
 import BackButton from "./back-button";
 import ProductCard from "./product-card";
@@ -18,6 +18,7 @@ import ProductReviews, { RatingSummary } from "./product-reviews";
 import ProductPurchase from "./product-purchase";
 import Row from "./row";
 import SizePicker, { useSizeChoice } from "./size-picker";
+import SizeRuler from "./size-ruler";
 import TrueSizePreview from "./true-size-preview";
 
 export default function ProductDetailClient({
@@ -46,6 +47,8 @@ export default function ProductDetailClient({
   const off = discountPercent(price, compareAtPrice);
   const out = product.stock === 0;
   const [trueSize, setTrueSize] = useState(false);
+  const [artEl, setArtEl] = useState<HTMLImageElement | null>(null);
+  const features = useFeatures();
   const low = product.stock !== null && product.stock > 0 && product.stock <= LOW_STOCK_THRESHOLD;
 
   return (
@@ -54,7 +57,7 @@ export default function ProductDetailClient({
       <div
         aria-hidden
         style={skin.art}
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[820px] [mask-image:linear-gradient(to_bottom,black_0%,black_55%,transparent_100%)]"
+        className="detail-mat pointer-events-none absolute inset-x-0 top-0 -z-10 h-[820px]"
       />
       <div className="flex items-center gap-3">
         <BackButton fallback={category ? `/stickers/${category.slug}` : "/stickers"} />
@@ -88,10 +91,12 @@ export default function ProductDetailClient({
               thumb={product.thumbUrl}
               alt={product.name}
               priority
+              imgRef={setArtEl}
               className={`sticker-cut max-h-full max-w-full object-contain ${
                 out || unavailable ? "opacity-50 saturate-50" : ""
               }`}
             />
+            {features.sizeRuler && <SizeRuler img={artEl} inches={sizes.length > 0 ? size : null} aspectRatio={product.aspectRatio} />}
           </button>
           <div className="absolute right-4 bottom-4">
             <button
