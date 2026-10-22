@@ -1,13 +1,17 @@
 "use client";
 
-import HoverLink from "./hover-link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
-import { ALL_STICKERS_PATH, categoryPath, categoryTitle, inCategory } from "@stickypie/shared";
+import {
+  ALL_STICKERS_PATH,
+  categoryPath,
+  categoryTitle,
+  inCategory,
+} from "@stickypie/shared";
 import ProductCard from "./product-card";
 import ProductCardSkeleton from "./product-card-skeleton";
 import VirtualGrid from "./virtual-grid";
-import { ArrowUpDown } from "lucide-react";
+import CategoryFilter from "./category-filter";
 import { useLiveCatalog, type Catalog } from "@/lib/live-catalog";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
 
@@ -18,8 +22,8 @@ import { useWindowScrollMemory } from "@/lib/scroll-memory";
  */
 const SORTS = [
   { value: "new", label: "Newest" },
-  { value: "price-asc", label: "Price: low → high" },
-  { value: "price-desc", label: "Price: high → low" },
+  { value: "price-asc", label: "Price low → high" },
+  { value: "price-desc", label: "Price high → low" },
 ];
 
 export default function BrowseClient({
@@ -30,7 +34,8 @@ export default function BrowseClient({
   /** From the URL path: /stickers/<slug>. Empty = all stickers. */
   categorySlug?: string;
 }) {
-  const { categories, products, loaded, failed, retry } = useLiveCatalog(initial);
+  const { categories, products, loaded, failed, retry } =
+    useLiveCatalog(initial);
   useWindowScrollMemory(loaded);
   const router = useRouter();
   const params = useSearchParams();
@@ -70,11 +75,13 @@ export default function BrowseClient({
       list = list.filter(
         (p) =>
           p.name.toLowerCase().includes(needle) ||
-          p.tags.some((t) => t.toLowerCase().includes(needle))
+          p.tags.some((t) => t.toLowerCase().includes(needle)),
       );
     }
-    if (sort === "price-asc") list = [...list].sort((a, b) => a.price - b.price);
-    else if (sort === "price-desc") list = [...list].sort((a, b) => b.price - a.price);
+    if (sort === "price-asc")
+      list = [...list].sort((a, b) => a.price - b.price);
+    else if (sort === "price-desc")
+      list = [...list].sort((a, b) => b.price - a.price);
     return list;
   }, [products, categories, q, category, sort]);
 
@@ -82,23 +89,31 @@ export default function BrowseClient({
   // Only categories that have stickers on sale (plus the one being viewed),
   // so a big category list never shows dead-end chips.
   const shownCategories = useMemo(() => {
-    const used = new Set(products.flatMap((p) => p.categoryIds ?? [p.categoryId]));
+    const used = new Set(
+      products.flatMap((p) => p.categoryIds ?? [p.categoryId]),
+    );
     return categories.filter((c) => used.has(c.id) || c.slug === category);
   }, [categories, products, category]);
 
-  const chip = (active: boolean) =>
-    `shrink-0 rounded-full border px-3 py-1 text-[13px] font-medium transition-all sm:px-4 sm:py-1.5 sm:text-sm ${
-      active
-        ? "border-transparent pie-gradient text-white shadow-md shadow-brand/20"
-        : "border-line bg-ink2 text-fog hover:border-fog/40 hover:text-snow"
-    }`;
+  // Category pop-up: every category with stickers, with its count.
+  const filterCategories = useMemo(
+    () =>
+      shownCategories.map((c) => ({
+        slug: c.slug,
+        name: c.name,
+        count: products.filter((p) => inCategory(p, c.id)).length,
+      })),
+    [shownCategories, products],
+  );
 
   return (
     <>
       {/* Title and count on one line — compact on phones */}
       <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
         <h1 className="font-display text-2xl font-bold sm:text-4xl">
-          {activeCategoryName ? categoryTitle(activeCategoryName) : "All stickers"}
+          {activeCategoryName
+            ? categoryTitle(activeCategoryName)
+            : "All stickers"}
         </h1>
         <p className="text-xs text-fog sm:text-sm">
           {!loaded ? (
@@ -113,35 +128,18 @@ export default function BrowseClient({
         </p>
       </div>
 
-      {/* Category chips scroll sideways; sort is one small pill beside them */}
-      <div className="mt-3 flex items-center gap-2 sm:mt-5">
-        <div className="no-scrollbar -mx-1 flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-1 py-1 sm:gap-2">
-          <HoverLink href={hrefFor("")} scroll={false} className={chip(!category)}>
-            All
-          </HoverLink>
-          {shownCategories.map((c) => (
-            <HoverLink key={c.id} href={hrefFor(c.slug)} scroll={false} className={chip(category === c.slug)}>
-              {c.name}
-            </HoverLink>
-          ))}
-        </div>
-        <label className="relative flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-line bg-ink2 px-2.5 text-xs font-semibold text-snow transition-colors hover:border-fog/40 sm:h-9 sm:px-3.5 sm:text-sm">
-          <ArrowUpDown className="size-3.5 text-fog" />
-          <span className="hidden sm:inline">{SORTS.find((x) => x.value === sort)?.label ?? "Newest"}</span>
-          <span className="sr-only sm:hidden">Sort</span>
-          <select
-            value={sort}
-            onChange={(e) => update({ sort: e.target.value })}
-            aria-label="Sort by"
-            className="absolute inset-0 cursor-pointer opacity-0"
-          >
-            {SORTS.map((x) => (
-              <option key={x.value} value={x.value}>
-                {x.label}
-              </option>
-            ))}
-          </select>
-        </label>
+      {/* One button: shows the chosen category, opens categories + sort */}
+      <div className="mt-3 sm:mt-5">
+        <CategoryFilter
+          categories={filterCategories}
+          total={products.length}
+          active={category}
+          activeName={activeCategoryName}
+          onPick={(slug) => router.push(hrefFor(slug), { scroll: false })}
+          sort={sort}
+          sorts={SORTS}
+          onSort={(v) => update({ sort: v })}
+        />
       </div>
 
       {!loaded ? (
@@ -155,7 +153,9 @@ export default function BrowseClient({
         </div>
       ) : failed && products.length === 0 ? (
         <div className="mt-20 flex flex-col items-center gap-3 text-center">
-          <p className="font-display text-xl font-semibold">Couldn&apos;t load the stickers</p>
+          <p className="font-display text-xl font-semibold">
+            Couldn&apos;t load the stickers
+          </p>
           <button
             type="button"
             onClick={retry}
@@ -166,8 +166,12 @@ export default function BrowseClient({
         </div>
       ) : visible.length === 0 ? (
         <div className="mt-20 flex flex-col items-center gap-2 text-center">
-          <p className="font-display text-xl font-semibold">No stickers found</p>
-          <p className="text-sm text-fog">Try a different search or category.</p>
+          <p className="font-display text-xl font-semibold">
+            No stickers found
+          </p>
+          <p className="text-sm text-fog">
+            Try a different search or category.
+          </p>
         </div>
       ) : (
         // Only the rows near the screen are rendered — smooth with hundreds of stickers.
