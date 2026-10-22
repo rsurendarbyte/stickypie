@@ -105,7 +105,7 @@ export default function ReviewsManager({ initial, products }: { initial: Review[
                         ))}
                       </span>
                       <span>{r.authorName}</span>
-                      <span>· {new Date(r.createdAt).toLocaleDateString("en-IN")}</span>
+                      <span>· {new Date(r.createdAt).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata" })}</span>
                       <Link href={`/orders/${r.orderId}`} className="text-brand hover:underline">
                         · {orderCode(r.orderId)}
                       </Link>

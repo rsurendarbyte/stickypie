@@ -44,10 +44,12 @@ export function orderCode(orderId: string): string {
   return `SP-${orderId.replace(/-/g, "").slice(0, 8).toUpperCase()}`;
 }
 
+/** Always Indian time — pages rendered on the server would otherwise show UTC. */
 export function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString("en-IN", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: "Asia/Kolkata",
   });
 }
 

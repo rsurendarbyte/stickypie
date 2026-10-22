@@ -5,7 +5,7 @@ import { useProductReviews } from "@/lib/live-catalog";
 import { Stars } from "./star-rating";
 
 const fmtDate = (iso: string) =>
-  new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
 
 /** Small "★★★★½ 4.6 · 12 reviews" line near the price; links to the list. */
 export function RatingSummary({ productId }: { productId: string }) {

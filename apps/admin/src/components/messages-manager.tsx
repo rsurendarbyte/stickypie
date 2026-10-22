@@ -62,7 +62,7 @@ export default function MessagesManager({ initial }: { initial: ContactMessage[]
                   {CONTACT_TOPICS[m.topic] ?? m.topic}
                 </span>
                 {m.orderCode && <span className="text-xs font-semibold text-gold">{m.orderCode}</span>}
-                <span className="ml-auto text-xs text-fog">{new Date(m.createdAt).toLocaleString("en-IN")}</span>
+                <span className="ml-auto text-xs text-fog">{new Date(m.createdAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}</span>
               </div>
               <div className="mt-1 flex flex-wrap gap-x-4 text-xs text-fog">
                 <a
