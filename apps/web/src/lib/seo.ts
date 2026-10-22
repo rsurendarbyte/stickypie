@@ -8,8 +8,8 @@ import { SITE_NAME, absoluteUrl } from "./site";
 import { siteUrl } from "./mode";
 
 /** Where parcels go and how long they take (matches the shipping policy). */
-const HANDLING_DAYS = { min: 1, max: 2 };
-const TRANSIT_DAYS = { min: 3, max: 7 };
+const HANDLING_DAYS = { min: 2, max: 4 };
+const TRANSIT_DAYS = { min: 3, max: 5 };
 
 /** "Made in India" → "Made in India Sticker"; leaves "… Decal/Badge/Pack" alone. */
 export function seoName(product: Product): string {
@@ -51,7 +51,7 @@ export function productDetails(product: Product, categoryNames: string[]) {
       ...(sizes ? [["Sizes", `${sizes} (longest side)`]] : []),
       ["Price", product.sizes.length > 1 ? `From ${formatINR(product.price)}` : formatINR(product.price)],
       ["Sticks on", "Cars, bikes, helmets, laptops, bottles, phones, toolboxes"],
-      ["Shipping", `Dispatched in ${HANDLING_DAYS.min}–${HANDLING_DAYS.max} days, delivered across India`],
+      ["Shipping", `Dispatched in ${HANDLING_DAYS.min}–${HANDLING_DAYS.max} days, then ${TRANSIT_DAYS.min}–${TRANSIT_DAYS.max} days to reach you anywhere in India`],
     ] as [string, string][],
     tips: "Clean and dry the surface first, peel the sticker off its backing, press it down from the centre outwards and smooth out any air bubbles. Leave it 24 hours before washing.",
   };

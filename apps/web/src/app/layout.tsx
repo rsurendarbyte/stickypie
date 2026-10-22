@@ -8,6 +8,8 @@ import Footer from "@/components/footer";
 import CartDrawer from "@/components/cart-drawer";
 import CartShell from "@/components/cart-shell";
 import NavTracker from "@/components/nav-tracker";
+import PerfProbe from "@/components/perf-probe";
+import { LITE_SCRIPT } from "@/lib/lite-script";
 import { siteUrl, supabaseConfigured } from "@/lib/mode";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, isProductionSite } from "@/lib/site";
 
@@ -62,10 +64,15 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${fredoka.variable} ${inter.variable}`}>
+    // data-lite is set by LITE_SCRIPT before React hydrates.
+    <html lang="en" className={`${fredoka.variable} ${inter.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: LITE_SCRIPT }} />
+      </head>
       <body className="bg-ink font-sans text-snow antialiased">
         <CartProvider>
           <NavTracker />
+          <PerfProbe />
           <MildBackground />
           <Nav />
           <CartShell>

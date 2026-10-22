@@ -1,5 +1,6 @@
 "use client";
 
+import SmartImg from "./smart-img";
 import HoverLink from "./hover-link";
 import { useEffect, useState } from "react";
 import { ArrowRight, BadgeCheck, Droplets, Ruler, Sparkles, Sun, Truck } from "lucide-react";
@@ -109,9 +110,11 @@ export default function Hero({
 
           <div key={product.id} className="animate-hero-img-in relative aspect-[5/4] lg:aspect-auto lg:h-[min(50vh,560px)]">
             <div className="absolute inset-0 grid place-items-center p-2 sm:p-4 lg:px-6 lg:pt-0 lg:pb-5">
-              <img
-                src={product.imageUrl}
+              <SmartImg
+                full={product.imageUrl}
+                thumb={product.thumbUrl}
                 alt={product.name}
+                priority
                 className="sticker-cut animate-float max-h-full max-w-full rotate-2 object-contain lg:max-h-[min(46vh,520px)]"
               />
             </div>

@@ -612,3 +612,34 @@ select option {
     animation: none;
   }
 }
+
+/* ── Lite mode (see lib/lite-script.ts) ─────────────────────────────────────
+   Weak device / reduced motion: heavy effects off. A slow network alone
+   ("net") only skips big image downloads (SmartImg), effects stay on. */
+/* Looping and entrance animations off — everything shows in its resting state. */
+[data-lite]:not([data-lite="net"]) *,
+[data-lite]:not([data-lite="net"]) *::before,
+[data-lite]:not([data-lite="net"]) *::after {
+  animation: none !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+/* Shadow filters on every sticker image are the costliest thing to scroll past. */
+[data-lite]:not([data-lite="net"]) .sticker-cut,
+[data-lite]:not([data-lite="net"]) .sticker-cut-sm,
+[data-lite]:not([data-lite="net"]) .cart-tape-wrap {
+  filter: none !important;
+}
+[data-lite]:not([data-lite="net"]) .cart-tape-wrap .cart-tape {
+  box-shadow: 0 6px 14px -6px rgba(16, 24, 40, 0.35);
+}
+/* Big blurred glow layers and frosted glass. */
+[data-lite]:not([data-lite="net"]) [class*="blur-["],
+[data-lite]:not([data-lite="net"]) [class*=" blur-3xl"],
+[data-lite]:not([data-lite="net"]) [class*=" blur-2xl"] {
+  display: none !important;
+}
+[data-lite]:not([data-lite="net"]) [class*="backdrop-blur"] {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}

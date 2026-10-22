@@ -225,7 +225,7 @@ function docs(biz: Business): Record<string, LegalDoc> {
           heading: "Processing & delivery time",
           body: [
             "Orders are printed, packed and handed to the courier within 2–4 business days of payment.",
-            "Delivery usually takes 3–7 business days after dispatch, and can take longer for remote areas, during festivals or in bad weather.",
+            "Delivery usually takes 3–5 business days after dispatch, and can take longer for remote areas, during festivals or in bad weather.",
           ],
         },
         {

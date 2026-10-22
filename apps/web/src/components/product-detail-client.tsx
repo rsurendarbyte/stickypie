@@ -1,5 +1,6 @@
 "use client";
 
+import SmartImg from "./smart-img";
 import HoverLink from "./hover-link";
 import { useState } from "react";
 import { BadgeCheck, Droplets, PackageX, Ruler, Sun, Truck } from "lucide-react";
@@ -82,9 +83,11 @@ export default function ProductDetailClient({
             className="absolute inset-0 grid cursor-zoom-in place-items-center p-8 sm:p-10"
             style={{ transform: `rotate(${rotate / 2}deg)` }}
           >
-            <img
-              src={product.imageUrl}
+            <SmartImg
+              full={product.imageUrl}
+              thumb={product.thumbUrl}
               alt={product.name}
+              priority
               className={`sticker-cut max-h-full max-w-full object-contain ${
                 out || unavailable ? "opacity-50 saturate-50" : ""
               }`}
