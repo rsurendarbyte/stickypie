@@ -184,6 +184,12 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                 {order.shippingFee === 0 ? "FREE" : formatINR(order.shippingFee)}
               </span>
             </div>
+            {order.gstAmount != null && order.gstAmount > 0 && (
+              <div className="flex justify-between text-fog">
+                <span>GST ({order.gstRate}%)</span>
+                <span className="text-snow">{formatINR(order.gstAmount)}</span>
+              </div>
+            )}
             <div className="flex justify-between border-t border-line pt-2 text-base font-bold">
               <span>Total</span>
               <span>{formatINR(order.total)}</span>

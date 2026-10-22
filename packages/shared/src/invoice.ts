@@ -1,6 +1,9 @@
-// GST tax invoice maths. Shop prices INCLUDE GST, so each line's taxable value
-// is worked back from the amount paid. Same state as the seller → CGST + SGST,
-// otherwise IGST. Shipping is a separate line at the same rate.
+// GST tax invoice maths. Orders store GST added ON TOP of prices (gstAmount):
+// each line's price is its taxable value and tax is rate % of it, with a
+// round-off to the whole-rupee total. Older orders (gstAmount null) had prices
+// that INCLUDED GST, so their taxable value is worked back from the amount paid.
+// Same state as the seller → CGST + SGST, otherwise IGST. Shipping is a
+// separate line at the same rate.
 import { matchIndianState } from "./india";
 import type { Order } from "./types";
 import type { BusinessDetails } from "./shipping";
@@ -9,7 +12,7 @@ export type InvoiceLine = {
   description: string;
   hsn: string;
   quantity: number;
-  /** Price per unit incl. GST. */
+  /** Price per unit as charged (excl. GST on new orders, incl. GST on older ones). */
   unitPrice: number;
   /** Line total incl. GST. */
   amount: number;
@@ -23,20 +26,29 @@ export type InvoiceTotals = {
   cgst: number;
   sgst: number;
   igst: number;
+  /** Whole-rupee rounding between taxable + tax and the amount paid. */
+  roundOff: number;
   total: number;
   intraState: boolean;
   rate: number;
+  /** true = GST was added on top of prices (newer orders). */
+  gstOnTop: boolean;
 };
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 export function computeInvoice(
-  order: Pick<Order, "items" | "shippingFee" | "total" | "state">,
+  order: Pick<Order, "items" | "shippingFee" | "total" | "state" | "gstAmount" | "gstRate">,
   business: BusinessDetails,
   sellerState: string | null
 ): InvoiceTotals {
-  const rate = business.gstRate;
+  const onTop = order.gstAmount != null;
+  const rate = onTop ? (order.gstRate ?? business.gstRate) : business.gstRate;
   const split = (amount: number) => {
+    if (onTop) {
+      const tax = r2((amount * rate) / 100);
+      return { taxable: amount, tax, amount: r2(amount + tax) };
+    }
     const taxable = r2(amount / (1 + rate / 100));
     return { taxable, tax: r2(amount - taxable) };
   };
@@ -73,9 +85,11 @@ export function computeInvoice(
     cgst: intraState ? half : 0,
     sgst: intraState ? r2(tax - half) : 0,
     igst: intraState ? 0 : tax,
+    roundOff: r2(order.total - taxable - tax),
     total: order.total,
     intraState,
     rate,
+    gstOnTop: onTop,
   };
 }
 

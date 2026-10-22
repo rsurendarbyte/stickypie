@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   belowMinimum,
   checkoutSchema,
+  gstOnTop,
   formatINR,
   shippingFor,
   priceForSize,
@@ -129,7 +130,9 @@ export async function POST(req: Request) {
   }
   // Always charged, by distance from the dispatch PIN code (zones set in the admin).
   const shippingFee = shippingFor(settings, customer.pincode, customer.state).fee;
-  const total = subtotal + shippingFee;
+  // GST is added on top of sticker prices + shipping (rate from admin → Settings).
+  const gst = gstOnTop(settings, subtotal, shippingFee);
+  const total = subtotal + shippingFee + gst.amount;
   // Gateway picked in admin → Settings (falls back to whichever has keys).
   const provider = checkoutGateway(settings.paymentGateway) ?? "simulator";
 
@@ -166,6 +169,8 @@ export async function POST(req: Request) {
     items: orderItems,
     subtotal,
     shippingFee,
+    gstAmount: gst.amount,
+    gstRate: gst.rate,
     total,
     paymentProvider: provider,
     userId,

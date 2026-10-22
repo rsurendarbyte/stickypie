@@ -16,10 +16,10 @@ import {
 } from "lucide-react";
 import {
   INDIAN_STATES,
-  PAYMENT_GATEWAY_LABELS,
   ZONE_LABELS,
   belowMinimum,
   customerSchema,
+  gstOnTop,
   formatINR,
   matchIndianState,
   shippingFor,
@@ -27,6 +27,7 @@ import {
 import { useStoreSettings } from "@/lib/live-catalog";
 import { authClient, createAccount, signIn, signOut, useShopper } from "@/lib/shopper-auth";
 import { openPayment } from "@/lib/open-payment";
+import { usePaymentPartner } from "./payment-partner";
 import { lookupPincode } from "@/lib/pincode";
 import {
   ADDRESS_TYPES,
@@ -65,6 +66,8 @@ const EMPTY: FormState = {
 };
 
 const CUSTOMER_KEY = "stickypie.customer.v1";
+
+
 
 export default function CheckoutClient() {
   const { items, count, subtotal } = useCart();
@@ -136,9 +139,13 @@ export default function CheckoutClient() {
   const addressKnown =
     /^[1-9]\d{5}$/.test(form.pincode) && (INDIAN_STATES as readonly string[]).includes(form.state);
   const quote = addressKnown && settings.loaded ? shippingFor(settings, form.pincode, form.state) : null;
-  const total = subtotal + (quote?.fee ?? 0);
+  // GST on top of stickers + shipping — the same sum the server charges.
+  const gst = gstOnTop(settings, subtotal, quote?.fee ?? 0);
+  const total = subtotal + (quote?.fee ?? 0) + gst.amount;
   const shortBy = belowMinimum(settings, subtotal);
-  const gatewayName = PAYMENT_GATEWAY_LABELS[settings.paymentGateway];
+  // Gateway switched on in admin; null until settings load (no wrong-name flash).
+  const gatewayName = usePaymentPartner();
+
 
   // Signed-in shoppers order with their account email.
   useEffect(() => {
@@ -690,7 +697,7 @@ export default function CheckoutClient() {
               ))}
             </div>
             <p className="mt-2.5 text-xs leading-relaxed text-fog">
-              You&apos;ll pay securely with {gatewayName}. Your order is confirmed the moment the payment goes
+              You&apos;ll pay securely{gatewayName ? ` with ${gatewayName}` : ""}. Your order is confirmed the moment the payment goes
               through — you&apos;re never charged twice.
             </p>
           </Step>
@@ -784,6 +791,12 @@ export default function CheckoutClient() {
                   {quote ? formatINR(quote.fee) : addressKnown ? "Calculating…" : "Add your address"}
                 </dd>
               </div>
+              {gst.rate > 0 && (
+                <div className="flex justify-between text-fog">
+                  <dt>GST ({gst.rate}%)</dt>
+                  <dd className="text-snow tabular-nums">{formatINR(gst.amount)}</dd>
+                </div>
+              )}
               <div className="flex items-baseline justify-between border-t border-line pt-2">
                 <dt className="font-semibold">Total</dt>
                 <dd className="text-xl font-bold tabular-nums">{formatINR(total)}</dd>
@@ -794,13 +807,10 @@ export default function CheckoutClient() {
 
             <ul className="mt-4 space-y-1.5 text-[11px] text-fog">
               <li className="flex items-center gap-2">
-                <ShieldCheck className="size-3.5 shrink-0 text-mint" /> Payments secured by {gatewayName}
+                <ShieldCheck className="size-3.5 shrink-0 text-mint" /> Payments secured{gatewayName ? ` by ${gatewayName}` : ""}
               </li>
               <li className="flex items-center gap-2">
                 <PackageCheck className="size-3.5 shrink-0 text-mint" /> Damaged or wrong sticker? Free replacement
-              </li>
-              <li className="flex items-center gap-2">
-                <Truck className="size-3.5 shrink-0 text-mint" /> Tracking link by email once shipped
               </li>
             </ul>
           </div>
@@ -815,13 +825,13 @@ export default function CheckoutClient() {
                 <span className="hidden sm:inline">
                   {" "}
                   · {count} sticker{count === 1 ? "" : "s"}
-                  {quote ? ` · incl. ${formatINR(quote.fee)} shipping` : ""}
+                  {quote ? ` · incl. shipping + GST` : ""}
                 </span>
               </p>
               <p className="text-lg leading-tight font-bold tabular-nums lg:text-xl">{formatINR(total)}</p>
             </div>
             <p className="hidden min-w-0 flex-1 items-center justify-end gap-1.5 text-[11px] text-fog lg:flex">
-              <ShieldCheck className="size-3.5 shrink-0 text-mint" /> UPI · Cards · NetBanking — secured by {gatewayName}
+              <ShieldCheck className="size-3.5 shrink-0 text-mint" /> UPI · Cards · NetBanking — secured{gatewayName ? ` by ${gatewayName}` : ""}
             </p>
             <span className="contents sm:hidden">{payButton("min-w-0 flex-1 py-3 text-sm", true)}</span>
             <span className="hidden sm:contents">{payButton("ml-auto min-w-0 flex-1 py-3 text-sm lg:ml-0 lg:w-[340px] lg:flex-none")}</span>

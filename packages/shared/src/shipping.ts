@@ -90,6 +90,15 @@ export function shippingFor(
   return { zone, fee: settings.rates[zone] };
 }
 
+/**
+ * GST added on top of prices at checkout, on stickers + shipping, rounded to
+ * the nearest rupee (the invoice shows the exact tax plus a round-off).
+ */
+export function gstOnTop(settings: StoreSettings, subtotal: number, shippingFee: number): { rate: number; amount: number } {
+  const rate = settings.business.gstRate;
+  return { rate, amount: Math.round(((subtotal + shippingFee) * rate) / 100) };
+}
+
 /** ₹ still needed to reach the minimum order (0 once reached). */
 export function belowMinimum(settings: StoreSettings, subtotal: number): number {
   return Math.max(settings.minOrder - subtotal, 0);

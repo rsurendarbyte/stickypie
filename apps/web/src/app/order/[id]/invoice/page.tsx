@@ -157,6 +157,12 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
                 <dd>₹{money(inv.igst)}</dd>
               </div>
             )}
+            {inv.roundOff !== 0 && (
+              <div className="flex justify-between">
+                <dt className="text-[#64708a]">Round off</dt>
+                <dd>{inv.roundOff < 0 ? "−" : ""}₹{money(Math.abs(inv.roundOff))}</dd>
+              </div>
+            )}
             <div className="flex justify-between border-t border-line pt-1.5 text-sm font-bold">
               <dt>Total (incl. GST)</dt>
               <dd>{formatINR(inv.total)}</dd>
@@ -165,7 +171,8 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
         </section>
 
         <footer className="mt-8 border-t border-line pt-4 text-[11px] text-[#64708a]">
-          Prices include GST. This is a computer-generated invoice and does not require a signature.
+          {inv.gstOnTop ? "GST added on the taxable value." : "Prices include GST."} This is a computer-generated invoice
+          and does not require a signature.
         </footer>
       </article>
     </div>

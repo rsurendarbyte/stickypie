@@ -171,6 +171,10 @@ export default function CartDrawer() {
                   <span>Shipping</span>
                   <span className="text-xs">By distance, at checkout</span>
                 </div>
+                <div className="flex justify-between text-fog">
+                  <span>GST</span>
+                  <span className="text-xs">Added at checkout</span>
+                </div>
               </div>
 
               {shortBy > 0 ? (
@@ -187,7 +191,7 @@ export default function CartDrawer() {
                   onClick={closeCart}
                   className="pie-gradient mt-4 block w-full rounded-xl py-3 text-center text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110"
                 >
-                  Checkout · {formatINR(subtotal)} + shipping
+                  Checkout · {formatINR(subtotal)} + shipping & GST
                 </Link>
               )}
             </div>

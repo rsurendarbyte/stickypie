@@ -195,7 +195,7 @@ export default function StoreSettingsForm({ initial }: { initial: StoreSettings 
       </p>
       <p className="mt-1 text-xs text-fog">
         Printed on the tax invoice shoppers download after delivery. The download stays hidden until a
-        GSTIN is set. Prices in the shop include GST; the invoice works out the tax from them.
+        GSTIN is set. Shop prices are before GST — checkout adds GST at this rate on stickers + shipping, and the invoice shows it.
       </p>
       <div className="mt-3 grid gap-4 sm:grid-cols-2">
         <TextField label="Legal business name" value={business.name} onChange={setB("name")} />

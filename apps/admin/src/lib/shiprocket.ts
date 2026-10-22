@@ -80,6 +80,10 @@ export async function createShiprocketOrder(
   hsn: string
 ): Promise<{ orderId: string; shipmentId: string }> {
   const [first, ...rest] = order.customerName.trim().split(/\s+/);
+  // Declared value incl. GST: newer orders add GST on top of prices.
+  const gstRate = order.gstAmount != null ? (order.gstRate ?? 0) : 0;
+  const withGst = (n: number) => Math.round(n * (1 + gstRate / 100) * 100) / 100;
+  const shippingCharges = withGst(order.shippingFee);
   const data = await call<{ order_id?: number | string; shipment_id?: number | string; message?: string }>(
     cfg,
     "/orders/create/adhoc",
@@ -102,14 +106,14 @@ export async function createShiprocketOrder(
         name: item.sizeInches ? `${item.name} (${item.sizeInches} in)` : item.name,
         sku: `${(item.productId ?? item.id).slice(0, 8)}-${item.sizeInches ?? "std"}`,
         units: item.quantity,
-        selling_price: item.unitPrice,
+        selling_price: withGst(item.unitPrice),
         discount: 0,
-        tax: 0,
+        tax: gstRate,
         hsn,
       })),
       payment_method: "Prepaid",
-      shipping_charges: order.shippingFee,
-      sub_total: order.subtotal,
+      shipping_charges: shippingCharges,
+      sub_total: Math.round((order.total - shippingCharges) * 100) / 100,
       length: parcel.lengthCm,
       breadth: parcel.breadthCm,
       height: parcel.heightCm,

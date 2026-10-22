@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PaymentPartnerNote } from "./payment-partner";
 
 const COLUMNS: Array<{ title: string; links: Array<{ label: string; href: string }> }> = [
   {
@@ -41,7 +42,7 @@ export default function Footer({ demoMode }: { demoMode: boolean }) {
             everything in between.
           </p>
           <p className="mt-4 text-xs text-fog/70">
-            UPI · Cards · NetBanking — secure payments via Razorpay &amp; Cashfree.
+            <PaymentPartnerNote />
           </p>
           {demoMode && (
             <p className="mt-3 inline-block rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs text-gold">

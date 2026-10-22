@@ -70,6 +70,8 @@ export function rowToOrder(r: any): Order {
     pincode: r.pincode,
     subtotal: r.subtotal,
     shippingFee: r.shipping_fee,
+    gstAmount: r.gst_amount ?? null,
+    gstRate: r.gst_rate == null ? null : Number(r.gst_rate),
     total: r.total,
     paymentProvider: r.payment_provider,
     cfOrderId: r.cf_order_id,

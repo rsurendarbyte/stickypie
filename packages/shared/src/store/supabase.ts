@@ -200,6 +200,8 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
           pincode: input.customer.pincode,
           subtotal: input.subtotal,
           shipping_fee: input.shippingFee,
+          gst_amount: input.gstAmount,
+          gst_rate: input.gstRate,
           total: input.total,
           payment_provider: input.paymentProvider,
           ...(input.userId ? { user_id: input.userId } : {}),

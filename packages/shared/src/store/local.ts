@@ -243,6 +243,8 @@ export function createLocalDriver(filePath: string): DataDriver {
         pincode: input.customer.pincode,
         subtotal: input.subtotal,
         shippingFee: input.shippingFee,
+        gstAmount: input.gstAmount,
+        gstRate: input.gstRate,
         total: input.total,
         paymentProvider: input.paymentProvider,
         cfOrderId: null,

@@ -75,7 +75,7 @@ export default function CartStrip() {
             </>
           ) : (
             <p className="text-center text-[12px] font-semibold text-mint">
-              ✓ Minimum order reached · shipping by distance at checkout
+              ✓ Minimum order reached · shipping & GST added at checkout
             </p>
           )}
         </div>

@@ -96,6 +96,10 @@ export type Order = {
   pincode: string;
   subtotal: number;
   shippingFee: number;
+  /** GST added on top (whole ₹). null = older order whose prices included GST. */
+  gstAmount: number | null;
+  gstRate: number | null;
+  /** subtotal + shippingFee + gstAmount. */
   total: number;
   paymentProvider: PaymentProvider;
   cfOrderId: string | null;
@@ -169,6 +173,8 @@ export type NewOrderInput = {
   }>;
   subtotal: number;
   shippingFee: number;
+  gstAmount: number;
+  gstRate: number;
   total: number;
   paymentProvider: PaymentProvider;
   userId: string | null;
