@@ -76,6 +76,9 @@ export async function openPayment(
     theme: { color: "#ff2e63" },
     timeout: session.timeout,
     retry: { enabled: true },
+    // UPI, cards, netbanking and wallets only — no EMI / pay-later for small
+    // orders. International cards are refused by the Razorpay account itself.
+    method: { emi: false, cardless_emi: false, paylater: false },
     handler: async (result: RazorpayResult) => {
       // Paid at Razorpay — confirm on our server, then show the order.
       await fetch("/api/pay/razorpay/verify", {
