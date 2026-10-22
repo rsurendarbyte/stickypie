@@ -70,6 +70,12 @@ export type OrderItem = {
   sizeInches: number | null;
   /** e.g. `6″ — 6 × 3.1 in`, frozen at order time for printing. */
   sizeLabel: string | null;
+  /** A custom sticker (shopper's own artwork) rather than a catalogue sticker. */
+  isCustom: boolean;
+  /** Custom stickers: the uploaded artwork's storage path; null until uploaded. */
+  customFile: string | null;
+  /** Custom stickers: links to artwork the shopper picked before paying. */
+  customRef: string | null;
 };
 
 export type CustomerInfo = {
@@ -163,13 +169,16 @@ export type CategoryInput = {
 export type NewOrderInput = {
   customer: CustomerInfo;
   items: Array<{
-    productId: string;
+    /** null for custom stickers. */
+    productId: string | null;
     name: string;
     unitPrice: number;
     quantity: number;
     imageUrl: string;
     sizeInches: number | null;
     sizeLabel: string | null;
+    isCustom?: boolean;
+    customRef?: string | null;
   }>;
   subtotal: number;
   shippingFee: number;
@@ -266,6 +275,8 @@ export interface DataDriver {
   updateHomeRails(rails: HomeRail[]): Promise<HomeRail[]>;
   /** Storefront feature switches (admin → Features). */
   getFeatures(): Promise<FeatureFlags>;
+  /** Shopper uploaded (or replaced) a custom sticker's artwork after paying. */
+  replaceCustomFile(orderId: string, itemId: string, path: string, url: string): Promise<void>;
   updateFeatures(flags: FeatureFlags): Promise<FeatureFlags>;
 
   /** Contact form (written by the storefront server, read in the admin). */

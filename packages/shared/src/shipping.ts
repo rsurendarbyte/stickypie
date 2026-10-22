@@ -16,6 +16,8 @@ export type StoreSettings = {
   business: BusinessDetails;
   /** Gateway for new checkouts (switched in admin → Settings). */
   paymentGateway: PaymentGateway;
+  /** Custom sticker price (₹) per size in inches, e.g. { "3": 49 }; 0 = not offered. */
+  customPrices: Record<string, number>;
 };
 
 export type PaymentGateway = "cashfree" | "razorpay";
@@ -42,6 +44,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   rates: { local: 40, state: 50, national: 70, remote: 90 },
   business: { name: null, gstin: null, address: null, hsn: "3919", gstRate: 18, invoicePrefix: "SP" },
   paymentGateway: "cashfree",
+  customPrices: { "3": 49, "6": 99, "7": 149 },
 };
 
 /** Couriers price these as special / remote zones. */
@@ -126,6 +129,10 @@ export function rowToSettings(r: any): StoreSettings {
       invoicePrefix: r.invoice_prefix ?? DEFAULT_STORE_SETTINGS.business.invoicePrefix,
     },
     paymentGateway: r.payment_gateway === "razorpay" ? "razorpay" : "cashfree",
+    customPrices:
+      r.custom_prices && typeof r.custom_prices === "object"
+        ? Object.fromEntries(Object.entries(r.custom_prices).map(([k, v]) => [k, Number(v) || 0]))
+        : DEFAULT_STORE_SETTINGS.customPrices,
   };
 }
 
@@ -145,5 +152,6 @@ export function settingsToRow(s: StoreSettings): Record<string, unknown> {
     gst_rate: s.business.gstRate,
     invoice_prefix: s.business.invoicePrefix,
     payment_gateway: s.paymentGateway,
+    custom_prices: s.customPrices,
   };
 }

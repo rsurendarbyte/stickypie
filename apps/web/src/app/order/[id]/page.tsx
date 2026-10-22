@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CheckCircle2, FileText, PackageX, XCircle } from "lucide-react";
-import { STATUS_LABELS, formatDateTime, formatINR, orderCode } from "@stickypie/shared";
+import { CUSTOM_UPLOAD_STATUSES, STATUS_LABELS, formatDateTime, formatINR, orderCode } from "@stickypie/shared";
 import ClearCartOnPaid from "@/components/clear-cart-on-paid";
+import CustomOrderUpload from "@/components/custom-order-upload";
 import OrderReviews from "@/components/order-reviews";
 import OrderTracking from "@/components/order-tracking";
 import PaymentPending from "@/components/payment-pending";
@@ -51,12 +52,35 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
     }
   }
 
+  // Paid custom order: the design upload is the main thing on this page.
+  const customUploadStep =
+    order.items.some((i) => i.isCustom) &&
+    (CUSTOM_UPLOAD_STATUSES as readonly string[]).includes(order.status);
+
   return (
     <div className="mx-auto min-h-screen w-full max-w-[1100px] px-4 pt-28 pb-24 sm:px-8">
       <ClearCartOnPaid orderId={order.id} paid={paid} />
 
+      {customUploadStep && (
+        <CustomOrderUpload
+          orderId={order.id}
+          orderUserId={order.userId}
+          firstName={order.customerName.split(" ")[0]}
+          items={order.items
+            .filter((i) => i.isCustom)
+            .map((i) => ({
+              id: i.id,
+              customRef: i.customRef,
+              hasFile: Boolean(i.customFile),
+              imageUrl: i.imageUrl,
+              sizeInches: i.sizeInches,
+              quantity: i.quantity,
+            }))}
+        />
+      )}
+
       <div className="text-center">
-        {paid && (
+        {paid && !customUploadStep && (
           <>
             <CheckCircle2 className="mx-auto size-16 animate-pop text-mint" />
             <h1 className="mt-4 font-display text-3xl font-bold sm:text-4xl">
@@ -150,9 +174,9 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               return (
                 <li key={item.id} className="flex items-center gap-3">
                   <span className="grid size-12 shrink-0 place-items-center rounded-lg bg-panel p-1 ring-1 ring-line">
-                    {item.imageUrl && (
+                    {(item.imageUrl || item.isCustom) && (
                       <img
-                        src={item.imageUrl}
+                        src={item.imageUrl || "/icons/custom-sticker.svg"}
                         alt=""
                         className="sticker-cut-sm max-h-full max-w-full object-contain"
                       />
@@ -164,6 +188,15 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                     </span>
                     {item.sizeInches && (
                       <span className="block text-xs text-fog">Size {item.sizeInches}″</span>
+                    )}
+                    {item.isCustom && (
+                      <span className={`block text-xs ${item.customFile ? "text-mint" : "text-fog"}`}>
+                        {item.customFile
+                          ? order.status === "paid"
+                            ? "Design received"
+                            : "Design received · locked for printing"
+                          : "Design not uploaded yet"}
+                      </span>
                     )}
                   </span>
                   <span className="text-sm font-medium">

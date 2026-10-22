@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import {
+  CUSTOM_STICKER_NAME,
   belowMinimum,
   checkoutSchema,
+  customSizeLabel,
+  customSizes,
+  isCustomProductId,
   gstOnTop,
   formatINR,
   shippingFor,
@@ -52,9 +56,36 @@ export async function POST(req: Request) {
     customer = { ...customer, email: shopper.email };
   }
 
+  const driver = getDriver();
+  const settings = await driver.getSettings();
+
+  // Custom stickers (artwork uploaded after payment) are priced per size from
+  // admin → Settings. One order line per design, so each keeps its own artwork.
+  const customItems = items.filter((item) => isCustomProductId(item.productId));
+  // Custom stickers are ordered on their own (never mixed with regular stickers).
+  if (customItems.length > 0 && customItems.length < items.length) {
+    return NextResponse.json(
+      {
+        error: "Custom stickers are ordered separately. Please check out your custom or regular stickers on their own.",
+        code: "mixed_cart",
+      },
+      { status: 400 }
+    );
+  }
+  const customPrice = new Map(customSizes(settings.customPrices).map((s) => [s.inches, s.price]));
+  for (const item of customItems) {
+    if (item.size == null || !customPrice.has(item.size)) {
+      return NextResponse.json(
+        { error: "A custom sticker size in your cart is no longer offered. Please choose a size again.", code: "size_unavailable" },
+        { status: 409 }
+      );
+    }
+  }
+
   // Merge duplicate lines (same product + size), then re-price everything server-side.
   const lines = new Map<string, { productId: string; size: number | null; quantity: number }>();
   for (const item of items) {
+    if (customItems.includes(item)) continue;
     const size = item.size ?? null;
     const key = `${item.productId}:${size ?? ""}`;
     const line = lines.get(key) ?? { productId: item.productId, size, quantity: 0 };
@@ -67,8 +98,7 @@ export async function POST(req: Request) {
     qtyById.set(line.productId, (qtyById.get(line.productId) ?? 0) + line.quantity);
   }
 
-  const driver = getDriver();
-  const products = await driver.getProductsByIds([...qtyById.keys()]);
+  const products = qtyById.size ? await driver.getProductsByIds([...qtyById.keys()]) : [];
   const byId = new Map(products.map((p) => [p.id, p]));
 
   for (const [productId, quantity] of qtyById) {
@@ -116,8 +146,21 @@ export async function POST(req: Request) {
     });
   }
 
+  for (const item of customItems) {
+    orderItems.push({
+      productId: null,
+      name: CUSTOM_STICKER_NAME,
+      unitPrice: customPrice.get(item.size!)!,
+      quantity: item.quantity,
+      imageUrl: "",
+      sizeInches: item.size!,
+      sizeLabel: customSizeLabel(item.size!),
+      isCustom: true,
+      customRef: item.customRef ?? null,
+    });
+  }
+
   const subtotal = orderItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  const settings = await driver.getSettings();
   const shortBy = belowMinimum(settings, subtotal);
   if (shortBy > 0) {
     return NextResponse.json(

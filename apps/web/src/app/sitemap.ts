@@ -15,6 +15,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const pages: MetadataRoute.Sitemap = [
     { url: absoluteUrl("/"), changeFrequency: "daily", priority: 1 },
     { url: absoluteUrl("/stickers"), changeFrequency: "daily", priority: 0.9 },
+    { url: absoluteUrl("/custom-stickers"), changeFrequency: "monthly" as const, priority: 0.8 },
     ...SURFACES.map((s) => ({ url: absoluteUrl(`/${s.slug}`), changeFrequency: "weekly" as const, priority: 0.9 })),
     { url: absoluteUrl("/contact"), changeFrequency: "yearly", priority: 0.3 },
     ...legalSlugs().map(({ slug }) => ({

@@ -41,6 +41,8 @@ export const checkoutSchema = z.object({
         quantity: z.number().int().min(1).max(99),
         /** Chosen size in inches; omitted/null for single-size products. */
         size: z.number().int().positive().nullable().optional(),
+        /** Custom stickers: id linking the line to artwork kept in the shopper's browser. */
+        customRef: z.string().uuid().optional(),
       })
     )
     .min(1, "Your cart is empty")
@@ -167,4 +169,5 @@ export const storeSettingsSchema = z.object({
     remote: rupees("the remote-area rate"),
   }),
   paymentGateway: z.enum(["cashfree", "razorpay"]).default("cashfree"),
+  customPrices: z.record(z.string().regex(/^\d{1,2}$/), rupees("the custom sticker price")).default({}),
 });

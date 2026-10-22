@@ -4,6 +4,11 @@
 import { z } from "zod";
 
 export const FEATURES = {
+  customStickers: {
+    label: "Custom stickers",
+    description: "Shoppers pick a size and quantity, pay (prices per size in Settings), then upload their artwork from the order page.",
+    default: true,
+  },
   sizeRuler: {
     label: "Size ruler on sticker pages",
     description: "Width and height arrows (in inches) around the sticker art, following the size the shopper picks.",

@@ -220,6 +220,7 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
         ...(item.sizeInches != null
           ? { size_inches: item.sizeInches, size_label: item.sizeLabel }
           : {}),
+        ...(item.isCustom ? { is_custom: true, custom_ref: item.customRef ?? null } : {}),
       }));
       const { error: itemsError } = await client.from("order_items").insert(items);
       if (itemsError) throw friendly(itemsError);
@@ -384,6 +385,16 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
         .single();
       if (error) throw friendly(error);
       return rowToHomeRails(data.home_rails);
+    },
+
+    async replaceCustomFile(orderId: string, itemId: string, path: string, url: string) {
+      const { error } = await client
+        .from("order_items")
+        .update({ custom_file: path, image_url: url })
+        .eq("id", itemId)
+        .eq("order_id", orderId)
+        .eq("is_custom", true);
+      if (error) throw friendly(error);
     },
 
     async getFeatures() {

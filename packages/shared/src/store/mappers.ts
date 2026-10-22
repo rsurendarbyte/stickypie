@@ -63,6 +63,9 @@ export function rowToItem(r: any): OrderItem {
     imageUrl: r.image_url ?? "",
     sizeInches: r.size_inches ?? null,
     sizeLabel: r.size_label ?? null,
+    isCustom: Boolean(r.is_custom),
+    customFile: r.custom_file ?? null,
+    customRef: r.custom_ref ?? null,
   };
 }
 

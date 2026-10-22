@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { Search, ShoppingBag, UserRound, X } from "lucide-react";
 import { useShopper } from "@/lib/shopper-auth";
 import { useCart } from "./cart-context";
+import { useFeatures } from "@/lib/live-catalog";
 
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
@@ -34,6 +35,7 @@ export default function Nav() {
     router.push(q ? `/stickers?q=${encodeURIComponent(q)}` : "/stickers");
   }
 
+  const features = useFeatures();
   const navLink = (href: string, label: string, hideOnMobile = false) => {
     const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
     return (
@@ -79,6 +81,7 @@ export default function Nav() {
         <nav className="flex items-center gap-1">
           {navLink("/", "Home", true)}
           {navLink("/stickers", "Stickers")}
+          {features.customStickers && navLink("/custom-stickers", "Custom")}
         </nav>
 
         <div className="ml-auto flex items-center gap-1 sm:gap-2">

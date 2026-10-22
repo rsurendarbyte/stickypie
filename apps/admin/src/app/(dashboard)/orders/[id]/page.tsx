@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, ImageUp } from "lucide-react";
 import { formatDateTime, formatINR, orderCode } from "@stickypie/shared";
 import OrderActions from "@/components/order-actions";
 import ShiprocketPanel from "@/components/shiprocket-panel";
@@ -50,6 +50,7 @@ export default async function OrderDetailPage({
             {order.items.map((item) => (
               <li key={item.id} className="flex items-center gap-3">
                 <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-panel p-1 ring-1 ring-line">
+                  {item.isCustom && !item.imageUrl && <ImageUp className="size-6 text-fog" />}
                   {item.imageUrl && (
                     <img
                       src={imageSrc(item.imageUrl)}
@@ -60,6 +61,27 @@ export default async function OrderDetailPage({
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{item.name}</p>
+                  {item.isCustom && (
+                    <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs">
+                      {item.customFile ? (
+                        <>
+                          <span className="rounded-md bg-mint/15 px-1.5 py-0.5 font-semibold text-mint">
+                            Customer artwork received
+                          </span>
+                          <a href={item.imageUrl} target="_blank" rel="noreferrer" className="font-semibold text-snow hover:underline">
+                            Open full size
+                          </a>
+                        </>
+                      ) : (
+                        <span className="rounded-md bg-gold/15 px-1.5 py-0.5 font-semibold text-gold">
+                          Waiting for customer artwork
+                        </span>
+                      )}
+                      <a href={`tel:${order.phone}`} className="font-semibold text-snow hover:underline">
+                        Call {order.phone}
+                      </a>
+                    </p>
+                  )}
                   {item.sizeLabel && (
                     <p className="mt-0.5 inline-block rounded-md bg-gold/15 px-1.5 py-0.5 text-xs font-semibold text-gold">
                       Size {item.sizeLabel}

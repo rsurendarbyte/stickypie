@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { CheckCircle2, ShoppingBag, Trash2, Truck, X } from "lucide-react";
 import { belowMinimum, formatINR } from "@stickypie/shared";
 import { useStoreSettings } from "@/lib/live-catalog";
-import { lineKey, useCart } from "./cart-context";
+import { lineKey, useCart, itemHref } from "./cart-context";
 import QtyStepper from "./qty-stepper";
 
 export default function CartDrawer() {
@@ -86,7 +86,7 @@ export default function CartDrawer() {
                 return (
                   <li key={lineKey(item)} className="flex gap-3">
                     <HoverLink
-                      href={`/sticker/${item.slug}`}
+                      href={itemHref(item)}
                       onClick={closeCart}
                       className="grid size-16 shrink-0 place-items-center rounded-xl bg-panel p-1.5 ring-1 ring-line"
                     >
@@ -101,7 +101,7 @@ export default function CartDrawer() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
                         <HoverLink
-                          href={`/sticker/${item.slug}`}
+                          href={itemHref(item)}
                           onClick={closeCart}
                           className="truncate text-sm font-medium hover:underline"
                         >

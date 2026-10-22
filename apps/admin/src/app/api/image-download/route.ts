@@ -42,7 +42,9 @@ export async function GET(req: Request) {
   } catch {
     return NextResponse.json({ error: "Invalid image URL" }, { status: 400 });
   }
-  if (!["http:", "https:"].includes(target.protocol) || !allowedOrigins().has(target.origin)) {
+  // Older images may still use the bucket's r2.dev address.
+  const r2Dev = target.protocol === "https:" && /^pub-[a-z0-9]+\.r2\.dev$/.test(target.hostname);
+  if (!["http:", "https:"].includes(target.protocol) || (!allowedOrigins().has(target.origin) && !r2Dev)) {
     return NextResponse.json({ error: "Image host not allowed" }, { status: 400 });
   }
 

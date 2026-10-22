@@ -12,6 +12,7 @@ export * from "./sizes";
 export * from "./shipping";
 export * from "./home-rails";
 export * from "./features";
+export * from "./custom";
 export * from "./feedback";
 export * from "./invoice";
 export * from "./fulfilment";

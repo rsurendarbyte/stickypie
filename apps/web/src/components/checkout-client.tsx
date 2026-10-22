@@ -328,6 +328,7 @@ export default function CheckoutClient() {
             productId: item.productId,
             quantity: item.qty,
             size: item.size,
+            ...(item.customRef ? { customRef: item.customRef } : {}),
           })),
         }),
       });

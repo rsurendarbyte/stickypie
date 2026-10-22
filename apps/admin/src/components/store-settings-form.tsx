@@ -2,9 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CreditCard, Loader2, Truck } from "lucide-react";
+import { CreditCard, ImageUp, Loader2, Truck } from "lucide-react";
 import {
   INDIAN_STATES,
+  STICKER_SIZES,
   PAYMENT_GATEWAY_LABELS,
   REMOTE_STATES,
   ZONE_LABELS,
@@ -48,6 +49,9 @@ export default function StoreSettingsForm({ initial }: { initial: StoreSettings 
   const setB = (key: keyof typeof business) => (e: { target: { value: string } }) =>
     setBusiness((b) => ({ ...b, [key]: e.target.value }));
   const [gateway, setGateway] = useState<PaymentGateway>(initial.paymentGateway);
+  const [customPrices, setCustomPrices] = useState<Record<string, string>>(
+    Object.fromEntries(STICKER_SIZES.map((s) => [String(s), String(initial.customPrices[String(s)] ?? 0)]))
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,6 +61,7 @@ export default function StoreSettingsForm({ initial }: { initial: StoreSettings 
     const num = (v: string) => (v.trim() === "" ? NaN : Number(v));
     const payload = {
       paymentGateway: gateway,
+      customPrices: Object.fromEntries(Object.entries(customPrices).map(([size, price]) => [size, Number(price) || 0])),
       minOrder: num(minOrder),
       originPincode: pincode.trim() || null,
       originState: state || null,
@@ -135,6 +140,26 @@ export default function StoreSettingsForm({ initial }: { initial: StoreSettings 
             </button>
           );
         })}
+      </div>
+
+      <div className="mt-6 flex items-center gap-2 border-t border-line pt-5">
+        <ImageUp className="size-4 text-fog" />
+        <h2 className="text-sm font-semibold">Custom stickers</h2>
+      </div>
+      <p className="mt-1 text-xs text-fog">
+        Price per custom sticker (shopper uploads their own artwork). Set a size to 0 to stop offering it.
+        Turn the whole feature on or off in Features.
+      </p>
+      <div className="mt-3 grid gap-4 sm:grid-cols-3">
+        {STICKER_SIZES.map((size) => (
+          <TextField
+            key={size}
+            label={`${size}″ custom (₹)`}
+            value={customPrices[String(size)]}
+            onChange={(e) => setCustomPrices((p) => ({ ...p, [String(size)]: digits(e.target.value) }))}
+            inputMode="numeric"
+          />
+        ))}
       </div>
 
       <div className="mt-6 flex items-center gap-2 border-t border-line pt-5">

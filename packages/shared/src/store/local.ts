@@ -279,6 +279,9 @@ export function createLocalDriver(filePath: string): DataDriver {
           imageUrl: item.imageUrl,
           sizeInches: item.sizeInches,
           sizeLabel: item.sizeLabel,
+          isCustom: Boolean(item.isCustom),
+          customFile: null,
+          customRef: item.customRef ?? null,
         })),
       };
       store.orders.unshift(order);
@@ -452,6 +455,15 @@ export function createLocalDriver(filePath: string): DataDriver {
       store.homeRails = rails;
       persist(store);
       return rails;
+    },
+
+    async replaceCustomFile(orderId: string, itemId: string, path: string, url: string) {
+      const store = load();
+      const item = store.orders.find((o) => o.id === orderId)?.items.find((i) => i.id === itemId);
+      if (!item?.isCustom) throw new Error("Not a custom sticker");
+      item.customFile = path;
+      item.imageUrl = url;
+      persist(store);
     },
 
     async getFeatures() {
