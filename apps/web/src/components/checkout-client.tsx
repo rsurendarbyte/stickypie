@@ -9,10 +9,12 @@ import {
   CheckCircle2,
   ChevronDown,
   Lock,
+  MailCheck,
   PackageCheck,
   Plus,
   ShieldCheck,
   Truck,
+  X,
 } from "lucide-react";
 import {
   INDIAN_STATES,
@@ -25,7 +27,7 @@ import {
   shippingFor,
 } from "@stickypie/shared";
 import { useStoreSettings } from "@/lib/live-catalog";
-import { authClient, createAccount, signIn, signOut, useShopper } from "@/lib/shopper-auth";
+import { authClient, finishSignup, signIn, signOut, startSignup, useShopper } from "@/lib/shopper-auth";
 import { openPayment } from "@/lib/open-payment";
 import { usePaymentPartner } from "./payment-partner";
 import { lookupPincode } from "@/lib/pincode";
@@ -86,7 +88,39 @@ export default function CheckoutClient() {
   const [authMode, setAuthMode] = useState<"create" | "signin">("create");
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState<string | null>(null);
+  // New accounts confirm their email with a 6-digit code before paying.
+  const [codeSentTo, setCodeSentTo] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [resendIn, setResendIn] = useState(0);
+  const [sendingCode, setSendingCode] = useState(false);
+  const [codeOpen, setCodeOpen] = useState(false);
   const needsAccount = shopper.enabled && !shopper.email;
+  const awaitingCode =
+    needsAccount && authMode === "create" && codeSentTo !== null && codeSentTo === form.email.trim().toLowerCase();
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = setTimeout(() => setResendIn((n) => n - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendIn]);
+
+  async function resendCode() {
+    setAuthError(null);
+    setSendingCode(true);
+    try {
+      const result = await startSignup(form.email.trim().toLowerCase(), password);
+      if ("codeSent" in result) {
+        setResendIn(60);
+        setCode("");
+      } else {
+        setCodeSentTo(null);
+      }
+    } catch (err) {
+      setAuthError(err instanceof Error ? err.message : "Couldn't send the code.");
+    } finally {
+      setSendingCode(false);
+    }
+  }
   const [pin, setPin] = useState<{
     status: "idle" | "checking" | "ok" | "notfound" | "unavailable";
     label?: string;
@@ -237,15 +271,39 @@ export default function CheckoutClient() {
 
     setSubmitting(true);
 
-    // Quick onboarding: create the account or sign in, then pay — one click.
+    // Quick onboarding: sign in, or create the account (after the emailed
+    // code confirms the address), then pay.
     let token: string | null = null;
     if (shopper.enabled) {
       try {
-        const session = !needsAccount
-          ? (await authClient()!.auth.getSession()).data.session
-          : authMode === "create"
-            ? await createAccount(parsed.data.email, password, parsed.data.name)
-            : await signIn(parsed.data.email, password);
+        let session;
+        if (!needsAccount) {
+          session = (await authClient()!.auth.getSession()).data.session;
+        } else if (authMode === "signin") {
+          session = await signIn(parsed.data.email, password);
+        } else if (!awaitingCode) {
+          const result = await startSignup(parsed.data.email, password);
+          if ("codeSent" in result) {
+            // Wait for the shopper to type the code from their email.
+            setCodeSentTo(parsed.data.email);
+            setCode("");
+            setResendIn(60);
+            setCodeOpen(true);
+            setSubmitting(false);
+            return;
+          }
+          session = result.session; // returning shopper, right password
+        } else {
+          if (!/^\d{6}$/.test(code.trim())) {
+            if (codeOpen) setAuthError("Enter the 6-digit code from your email.");
+            setCodeOpen(true);
+            setSubmitting(false);
+            return;
+          }
+          session = await finishSignup(parsed.data.email, password, parsed.data.name, code.trim());
+          setCodeSentTo(null);
+          setCodeOpen(false);
+        }
         token = session?.access_token ?? null;
       } catch (err) {
         const message = err instanceof Error ? err.message : "Could not sign you in.";
@@ -355,7 +413,7 @@ export default function CheckoutClient() {
 
   const payLabel = (compact: boolean) =>
     needsAccount
-      ? `${authMode === "create" ? "Create account" : "Sign in"} & pay${compact ? "" : ` ${formatINR(total)}`}`
+      ? `${authMode === "create" ? (awaitingCode ? "Verify" : "Create account") : "Sign in"} & pay${compact ? "" : ` ${formatINR(total)}`}`
       : compact
         ? "Pay securely"
         : `Pay ${formatINR(total)} securely`;
@@ -414,7 +472,7 @@ export default function CheckoutClient() {
         </p>
       </div>
 
-      <form onSubmit={submit} className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:gap-7">
+      <form id="checkout-form" onSubmit={submit} className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:gap-7">
         <div ref={formColumn} className="space-y-4 lg:sticky">
           {/* ── Account ───────────────────────────────────────────────── */}
           {shopper.enabled && (
@@ -838,6 +896,95 @@ export default function CheckoutClient() {
           </div>
         </div>
       </form>
+
+      {/* ── Email code pop-up (new accounts) ───────────────────────────── */}
+      {awaitingCode && codeOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="code-title"
+          className="fixed inset-0 z-[70] grid place-items-center bg-snow/40 px-4 backdrop-blur-sm"
+        >
+          <div className="w-full max-w-sm rounded-3xl border border-line bg-ink p-6 text-center shadow-2xl">
+            <div className="flex justify-end">
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={() => {
+                  setCodeOpen(false);
+                  setAuthError(null);
+                }}
+                className="-mt-2 -mr-2 grid size-9 place-items-center rounded-full text-fog transition-colors hover:bg-snow/5 hover:text-snow"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+            <span className="pie-gradient mx-auto -mt-4 grid size-14 place-items-center rounded-2xl text-white shadow-lg shadow-brand/25">
+              <MailCheck className="size-7" />
+            </span>
+            <h2 id="code-title" className="mt-4 font-display text-2xl font-bold">
+              Check your email
+            </h2>
+            <p className="mt-1.5 text-sm text-fog">
+              We sent a 6-digit code to
+              <br />
+              <b className="break-all text-snow">{codeSentTo}</b>
+            </p>
+            <input
+              value={code}
+              onChange={(e) => {
+                setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                setAuthError(null);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  (document.getElementById("checkout-form") as HTMLFormElement | null)?.requestSubmit();
+                }
+              }}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              placeholder="••••••"
+              aria-label="6-digit code"
+              autoFocus
+              className="mt-5 h-14 w-full rounded-2xl border border-line bg-ink2 px-4 text-center font-display text-2xl font-bold tracking-[0.5em] outline-none focus:border-brand/60 focus:shadow-[0_0_0_3px_rgba(255,46,99,0.12)]"
+            />
+            {authError && <p className="mt-2 text-xs font-medium text-brand">{authError}</p>}
+            <button
+              type="submit"
+              form="checkout-form"
+              disabled={submitting || code.length !== 6}
+              className="pie-gradient mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 disabled:opacity-50"
+            >
+              {submitting ? <StickerLoader size={18} variant="onBrand" /> : <Lock className="size-4" />}
+              {submitting ? "Verifying…" : `Verify & pay ${formatINR(total)}`}
+            </button>
+            <div className="mt-4 flex items-center justify-between text-xs">
+              <button
+                type="button"
+                onClick={resendCode}
+                disabled={resendIn > 0 || sendingCode}
+                className="font-semibold text-brand hover:underline disabled:text-fog disabled:no-underline"
+              >
+                {sendingCode ? "Sending…" : resendIn > 0 ? `Resend in ${resendIn}s` : "Send a new code"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCodeSentTo(null);
+                  setCode("");
+                  setCodeOpen(false);
+                  setAuthError(null);
+                }}
+                className="font-semibold text-fog hover:text-snow"
+              >
+                Use a different email
+              </button>
+            </div>
+            <p className="mt-3 text-[11px] text-fog">Can&apos;t find it? Check spam or promotions.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

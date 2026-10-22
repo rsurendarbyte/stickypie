@@ -74,14 +74,43 @@ export function isNetworkError(message: string): boolean {
   return /failed to fetch|networkerror|load failed|network request failed/i.test(message);
 }
 
-/** Creates the account (confirmed instantly) and signs straight in. */
-export async function createAccount(email: string, password: string, name: string): Promise<Session> {
+/**
+ * Step 1 of "I'm new here". If the email already has an account and the
+ * password is right, that's a returning shopper — they're simply signed in.
+ * Otherwise a 6-digit code is emailed to prove they own the address.
+ */
+export async function startSignup(
+  email: string,
+  password: string
+): Promise<{ session: Session } | { codeSent: true }> {
+  try {
+    return { session: await signIn(email, password) };
+  } catch (err) {
+    if (err instanceof Error && err.message === NETWORK_ERROR) throw err;
+  }
+  let res: Response;
+  try {
+    res = await fetch("/api/account/signup/code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+  } catch {
+    throw new Error(NETWORK_ERROR);
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Couldn't send the code. Please try again.");
+  return { codeSent: true };
+}
+
+/** Step 2: with the emailed code, creates the account and signs straight in. */
+export async function finishSignup(email: string, password: string, name: string, code: string): Promise<Session> {
   let res: Response;
   try {
     res = await fetch("/api/account/signup", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({ email, password, name, code }),
     });
   } catch {
     throw new Error(NETWORK_ERROR);
@@ -89,16 +118,9 @@ export async function createAccount(email: string, password: string, name: strin
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     if (data.code === "exists") {
-      // Returning shopper picked "New here": the right password just signs them in.
-      try {
-        return await signIn(email, password);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "";
-        if (message === NETWORK_ERROR) throw err;
-        throw new Error(
-          "An account with this email already exists, but that password doesn't match — sign in or reset your password."
-        );
-      }
+      throw new Error(
+        "An account with this email already exists, but that password doesn't match — sign in or reset your password."
+      );
     }
     throw new Error(typeof data.error === "string" ? data.error : "Could not create your account.");
   }

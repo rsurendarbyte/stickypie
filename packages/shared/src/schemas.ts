@@ -119,6 +119,15 @@ export const signupSchema = z.object({
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
   password: z.string().min(8, "Use at least 8 characters").max(72),
   name: z.string().trim().max(80).default(""),
+  /** 6-digit code emailed to prove the address belongs to the shopper. */
+  code: z
+    .string({ required_error: "Enter the 6-digit code from your email" })
+    .trim()
+    .regex(/^\d{6}$/, "Enter the 6-digit code from your email"),
+});
+
+export const signupCodeSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email"),
 });
 
 const rupees = (label: string) =>

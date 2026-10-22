@@ -6,6 +6,10 @@ export type EmailContent = { subject: string; html: string; text: string };
 
 type EmailBrand = { siteUrl: string; supportEmail: string };
 
+// Images in emails always load from the live site: inboxes can't reach
+// localhost or a preview address.
+const EMAIL_ASSETS = "https://stickypie.in";
+
 const BRAND = "#ff2e63";
 const INK = "#15161e";
 const MUTED = "#64708a";
@@ -24,7 +28,8 @@ function layout(opts: {
   preheader: string;
   heading: string;
   paragraphs: string[];
-  cta: { label: string; url: string };
+  /** Optional button (a code email has none). */
+  cta?: { label: string; url: string };
   afterCta?: string;
   footnote: string;
 }): string {
@@ -47,7 +52,7 @@ function layout(opts: {
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif">
     <tr><td style="padding:0 4px 18px">
       <a href="${brand.siteUrl}" style="text-decoration:none;font-size:24px;font-weight:800;color:${INK};letter-spacing:-0.5px">
-        <img src="${brand.siteUrl}/icons/icon-192.png" width="36" height="36" alt="StickyPie" style="display:inline-block;width:36px;height:36px;border:0;border-radius:10px;vertical-align:middle;margin-right:8px"><span style="vertical-align:middle">Sticky<span style="color:#f9530a">Pie</span></span>
+        <img src="${EMAIL_ASSETS}/icons/icon-192.png" width="36" height="36" alt="StickyPie" style="display:inline-block;width:36px;height:36px;border:0;border-radius:10px;vertical-align:middle;margin-right:8px"><span style="vertical-align:middle">Sticky<span style="color:#f9530a">Pie</span></span>
       </a>
     </td></tr>
     <tr><td style="background:#ffffff;border:1px solid #e4e7ee;border-radius:18px;overflow:hidden">
@@ -55,9 +60,13 @@ function layout(opts: {
       <div style="padding:30px 28px 26px">
         <h1 style="margin:0 0 14px;font-size:24px;line-height:1.25;color:${INK}">${opts.heading}</h1>
         ${paragraphs}
-        <table role="presentation" cellpadding="0" cellspacing="0" style="margin:22px 0 6px"><tr><td style="border-radius:12px;background:${BRAND};background-image:linear-gradient(90deg,#ff2e63,#ff7a3c)">
+        ${
+          opts.cta
+            ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:22px 0 6px"><tr><td style="border-radius:12px;background:${BRAND};background-image:linear-gradient(90deg,#ff2e63,#ff7a3c)">
           <a href="${opts.cta.url}" style="display:inline-block;padding:13px 26px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none">${escapeHtml(opts.cta.label)}</a>
-        </td></tr></table>
+        </td></tr></table>`
+            : ""
+        }
         ${opts.afterCta ? `<p style="margin:14px 0 0;font-size:13px;line-height:1.6;color:${MUTED}">${opts.afterCta}</p>` : ""}
       </div>
       <div style="padding:16px 28px;border-top:1px solid #edeff4;background:#fbfcfd">
@@ -73,6 +82,30 @@ function layout(opts: {
 </table>
 </body>
 </html>`;
+}
+
+/** The 6-digit code a new shopper types in to confirm their email. */
+export function verificationCodeEmail(brand: EmailBrand, code: string): EmailContent {
+  return {
+    subject: `${code} is your StickyPie verification code`,
+    html: layout({
+      brand,
+      preheader: `Your code is ${code} — it expires in 10 minutes.`,
+      heading: "Confirm your email",
+      paragraphs: [
+        "Enter this code on StickyPie to finish creating your account:",
+        `<span style="display:inline-block;font-size:30px;font-weight:800;letter-spacing:8px;color:#111827;background:#f6f7f9;border-radius:12px;padding:12px 20px">${code}</span>`,
+        "The code expires in 10 minutes. Never share it with anyone — StickyPie will never ask you for it.",
+      ],
+      footnote: `You're getting this because someone started creating a StickyPie account with this email. Not you? Just ignore this email — no account is created without the code.`,
+    }),
+    text: [
+      `Your StickyPie verification code: ${code}`,
+      "",
+      "Enter it on StickyPie to finish creating your account. It expires in 10 minutes.",
+      "Not you? Ignore this email — no account is created without the code.",
+    ].join("\n"),
+  };
 }
 
 /** Sent by the storefront right after a shopper creates an account. */

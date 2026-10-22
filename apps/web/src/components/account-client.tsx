@@ -15,7 +15,8 @@ import {
 } from "@stickypie/shared";
 import {
   authClient,
-  createAccount,
+  finishSignup,
+  startSignup,
   requestPasswordReset,
   signIn,
   signOut,
@@ -84,6 +85,17 @@ function SignInCard() {
   const [error, setError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Create account: a 6-digit code is emailed to confirm the address.
+  const [codeSentTo, setCodeSentTo] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [resendIn, setResendIn] = useState(0);
+  const awaitingCode = mode === "create" && codeSentTo !== null && codeSentTo === email.trim().toLowerCase();
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = setTimeout(() => setResendIn((n) => n - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendIn]);
 
   // /account?forgot opens straight on the reset form (linked from checkout).
   useEffect(() => {
@@ -112,8 +124,20 @@ function SignInCard() {
       if (mode === "forgot") {
         await requestPasswordReset(email);
         setSentTo(email.trim());
+      } else if (mode === "create" && !awaitingCode) {
+        const result = await startSignup(email.trim().toLowerCase(), password);
+        if ("codeSent" in result) {
+          setCodeSentTo(email.trim().toLowerCase());
+          setCode("");
+          setResendIn(60);
+        }
       } else if (mode === "create") {
-        await createAccount(email, password, name.trim());
+        if (!/^\d{6}$/.test(code.trim())) {
+          setError("Enter the 6-digit code from your email.");
+          return;
+        }
+        await finishSignup(email.trim().toLowerCase(), password, name.trim(), code.trim());
+        setCodeSentTo(null);
       } else {
         await signIn(email, password);
       }
@@ -128,7 +152,11 @@ function SignInCard() {
 
   const copy = {
     signin: { title: "Welcome back", sub: "Sign in to see your orders and check out faster.", button: "Sign in" },
-    create: { title: "Create your account", sub: "Takes ten seconds — no email confirmation needed.", button: "Create account" },
+    create: {
+      title: "Create your account",
+      sub: "We'll email you a 6-digit code to confirm it's you.",
+      button: awaitingCode ? "Verify & create account" : "Create account",
+    },
     forgot: { title: "Reset your password", sub: "Enter your account email and we'll send you a link to choose a new password.", button: "Send reset link" },
   }[mode];
 
@@ -211,6 +239,49 @@ function SignInCard() {
               </div>
             )}
           </div>
+
+          {awaitingCode && (
+            <div className="mt-4 rounded-2xl border border-brand/30 bg-brand/[0.04] p-4">
+              <p className="text-sm">
+                We emailed a 6-digit code to <b>{codeSentTo}</b>.
+              </p>
+              <input
+                value={code}
+                onChange={(e) => {
+                  setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                  setError(null);
+                }}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                placeholder="••••••"
+                aria-label="6-digit code"
+                autoFocus
+                className="mt-2.5 h-12 w-full rounded-xl border border-line bg-ink px-4 text-center font-display text-xl font-bold tracking-[0.5em] outline-none focus:border-brand/60"
+              />
+              <div className="mt-2 flex items-center justify-between text-xs">
+                <button
+                  type="button"
+                  disabled={resendIn > 0 || busy}
+                  onClick={async () => {
+                    setError(null);
+                    setBusy(true);
+                    try {
+                      const result = await startSignup(email.trim().toLowerCase(), password);
+                      if ("codeSent" in result) setResendIn(60);
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : "Couldn't send the code.");
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                  className="font-semibold text-brand hover:underline disabled:text-fog disabled:no-underline"
+                >
+                  {resendIn > 0 ? `Send a new code in ${resendIn}s` : "Send a new code"}
+                </button>
+                <span className="text-fog">Check spam too</span>
+              </div>
+            </div>
+          )}
 
           {error && (
             <p className="mt-4 rounded-xl border border-brand/40 bg-brand/10 px-3.5 py-2.5 text-sm text-brand">

@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { SUPPORT_EMAIL, signupSchema, welcomeEmail } from "@stickypie/shared";
 import { sendEmail } from "@/lib/email";
+import { CodeError, checkCode, clearCode } from "@/lib/email-codes";
 import { siteUrl, supabaseUrl } from "@/lib/mode";
 import { accountsEnabled } from "@/lib/shopper";
 
 /**
- * Quick onboarding from the checkout page: creates a shopper account that is
- * confirmed immediately (no verification email), so the browser can sign in
- * and pay in the same click.
+ * Step 2 of creating an account: with the 6-digit code from the email
+ * (proving the shopper owns the address), creates a confirmed account so the
+ * browser can sign in and pay straight away.
  */
 export async function POST(req: Request) {
   if (!accountsEnabled()) {
@@ -27,7 +28,15 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
-  const { email, password, name } = parsed.data;
+  const { email, password, name, code } = parsed.data;
+
+  try {
+    await checkCode(email, code);
+  } catch (err) {
+    if (err instanceof CodeError) return NextResponse.json({ error: err.message, code: "bad_code" }, { status: err.status });
+    console.error("[signup] code check failed", err);
+    return NextResponse.json({ error: "Couldn't check the code. Please try again." }, { status: 502 });
+  }
 
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
   const res = await fetch(`${supabaseUrl()}/auth/v1/admin/users`, {
@@ -42,6 +51,7 @@ export async function POST(req: Request) {
   });
 
   if (res.ok) {
+    await clearCode(email).catch(() => {});
     // A failed welcome email must never block the shopper's checkout.
     await sendEmail(email, welcomeEmail({ siteUrl: siteUrl(), supportEmail: SUPPORT_EMAIL }, name));
     return NextResponse.json({ ok: true });
