@@ -46,7 +46,9 @@
         // Separate production database (no seed data — catalog entered via admin).
         "SUPABASE_URL": "https://grybbgtdopnikfzirzxd.supabase.co",
         // Live payments. Keys are worker secrets (CASHFREE_APP_ID / CASHFREE_SECRET_KEY).
-        "CASHFREE_ENV": "production"
+        "CASHFREE_ENV": "production",
+        // Sticker images from the R2 bucket's own cached domain (dev keeps r2.dev).
+        "NEXT_PUBLIC_IMAGE_HOST": "https://stickers.stickypie.in"
       }
     }
   }

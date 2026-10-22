@@ -9,6 +9,16 @@ export function rowToCategory(r: any): Category {
   return { id: r.id, name: r.name, slug: r.slug, sort: r.sort };
 }
 
+// The production storefront serves sticker images from its own cached domain
+// (NEXT_PUBLIC_IMAGE_HOST, e.g. https://stickers.stickypie.in) instead of the
+// bucket's r2.dev address. Same files, same bucket — only the host changes, so
+// links saved with either host work. Unset (dev, admin) → links as stored.
+const R2_DEV_HOST = /^https:\/\/pub-[a-z0-9]+\.r2\.dev(?=\/)/;
+function onImageHost(url: string): string {
+  const host = process.env.NEXT_PUBLIC_IMAGE_HOST;
+  return host && url ? url.replace(R2_DEV_HOST, host.replace(/\/+$/, "")) : url;
+}
+
 export function rowToProduct(r: any): Product {
   return {
     id: r.id,
@@ -20,8 +30,8 @@ export function rowToProduct(r: any): Product {
     categoryId: r.category_id ?? null,
     // Absent until the multi-category migration runs — just the main one.
     categoryIds: Array.isArray(r.category_ids) ? r.category_ids : r.category_id ? [r.category_id] : [],
-    imageUrl: r.image_url,
-    thumbUrl: r.thumb_url ?? null,
+    imageUrl: onImageHost(r.image_url),
+    thumbUrl: r.thumb_url ? onImageHost(r.thumb_url) : null,
     tags: r.tags ?? [],
     featured: r.featured,
     // Absent until the 20261021 migration runs — treat as "not new".

@@ -27,7 +27,8 @@
     "SUPABASE_URL": "https://grybbgtdopnikfzirzxd.supabase.co",
     "NEXT_PUBLIC_WEB_URL": "https://stickypie.in",
     "R2_BUCKET": "stickypie-images",
-    "R2_PUBLIC_URL": "https://pub-41e1feb697164af7ab78004921826e6f.r2.dev",
+    // New uploads are saved with the bucket's own domain (local admins keep r2.dev).
+    "R2_PUBLIC_URL": "https://stickers.stickypie.in",
     "SHIPROCKET_PICKUP_LOCATION": "Home"
   }
 

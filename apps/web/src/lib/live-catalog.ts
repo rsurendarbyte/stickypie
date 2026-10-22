@@ -205,10 +205,21 @@ export function useStoreSettings(): StoreSettings & { loaded: boolean } {
   return { ...(bundle?.settings ?? DEFAULT_STORE_SETTINGS), loaded: Boolean(bundle) || failed };
 }
 
-/** Feature switches from the admin (Features); defaults until loaded. */
+/** Before the admin's switches arrive, nothing optional shows (no flash of a switched-off feature). */
+const FEATURES_PENDING = Object.fromEntries(
+  Object.keys(DEFAULT_FEATURES).map((key) => [key, false])
+) as FeatureFlags;
+
+/**
+ * Feature switches from the admin (Features). Everything is off until the
+ * real settings load (one small request, then cached for in-app navigation);
+ * if they can't be loaded, the defaults apply.
+ */
 export function useFeatures(): FeatureFlags {
-  const { bundle } = useBundle();
-  return bundle?.features ?? DEFAULT_FEATURES;
+  const { bundle, failed } = useBundle();
+  if (!liveCatalogEnabled) return DEFAULT_FEATURES;
+  if (bundle) return bundle.features;
+  return failed ? DEFAULT_FEATURES : FEATURES_PENDING;
 }
 
 /** Home page layout from the admin (Home page). */
