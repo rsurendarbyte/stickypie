@@ -16,7 +16,7 @@ const TEMPLATES: Record<ContactTopic, string> = {
 We'd like a bulk order for our business / event.
 
 Design(s) or theme:
-Size (3″ / 6″ / 9″):
+Size (3″ / 6″ / 7″):
 Quantity:
 Needed by (date):
 Delivery city & PIN:
@@ -28,7 +28,7 @@ Thanks!`,
 I'd like custom stickers made.
 
 What to print (idea, text or logo):
-Size (3″ / 6″ / 9″):
+Size (3″ / 6″ / 7″):
 Quantity:
 Needed by (date):
 

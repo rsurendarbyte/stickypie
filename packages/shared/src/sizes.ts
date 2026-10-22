@@ -2,7 +2,7 @@
 // follows the artwork's aspect ratio (width / height). Browser-safe, no deps.
 import type { Product, ProductSize } from "./types";
 
-export const STICKER_SIZES = [3, 6, 9] as const;
+export const STICKER_SIZES = [3, 6, 7] as const;
 
 /** 3 → "3", 3.25 → "3.3" (one decimal, trailing .0 dropped). */
 export function formatInches(value: number): string {
