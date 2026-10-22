@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRight, BadgeCheck, Droplets, Sparkles, Sun, Truck } from "lucide-react";
 import type { Category, Product } from "@stickypie/shared";
-import { discountPercent, formatINR } from "@stickypie/shared";
+import { discountPercent, formatINR, formatInches } from "@stickypie/shared";
 import { tileFor } from "@/lib/palette";
 import AddToCartButton from "./add-to-cart-button";
+import { useSizeChoice } from "./size-picker";
 
 /** Rotating hero: the featured sticker is staged on a big tilted product card. */
 export default function Hero({
@@ -19,18 +20,19 @@ export default function Hero({
   const picks = products.slice(0, 5);
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  // Shopper picked a size → stop rotating so the slide doesn't change under them.
+  const [engaged, setEngaged] = useState(false);
   const product = picks[Math.min(index, picks.length - 1)];
 
   useEffect(() => {
-    if (picks.length < 2 || paused) return;
+    if (picks.length < 2 || paused || engaged) return;
     const timer = setInterval(() => setIndex((i) => (i + 1) % picks.length), 6500);
     return () => clearInterval(timer);
-  }, [picks.length, paused]);
+  }, [picks.length, paused, engaged]);
 
   if (!product) return null;
 
   const tile = tileFor(product.slug);
-  const off = discountPercent(product.price, product.compareAtPrice);
   const categoryName = categories.find((c) => c.id === product.categoryId)?.name;
 
   return (
@@ -68,33 +70,7 @@ export default function Hero({
             {product.description}
           </p>
 
-          <div className="mt-3 flex items-baseline gap-3 sm:mt-6">
-            <span className="font-display text-4xl font-bold text-gold">
-              {formatINR(product.price)}
-            </span>
-            {product.compareAtPrice !== null && product.compareAtPrice > product.price && (
-              <>
-                <span className="text-lg text-fog/80 line-through">
-                  {formatINR(product.compareAtPrice)}
-                </span>
-                {off !== null && (
-                  <span className="rounded-full border border-mint/30 bg-mint/15 px-2.5 py-1 text-xs font-bold text-mint">
-                    SAVE {off}%
-                  </span>
-                )}
-              </>
-            )}
-          </div>
-
-          <div className="mt-4 flex flex-wrap items-center gap-3 sm:mt-8">
-            <AddToCartButton product={product} size="lg" />
-            <Link
-              href={`/sticker/${product.slug}`}
-              className="inline-flex h-12 items-center gap-2 rounded-xl border border-line bg-ink2 px-6 text-base font-semibold transition-all hover:border-fog/40 hover:bg-panel"
-            >
-              Details <ArrowRight className="size-4" />
-            </Link>
-          </div>
+          <HeroBuy key={product.id} product={product} onPickSize={() => setEngaged(true)} />
 
           <ul className="mt-8 hidden flex-wrap gap-2 text-[11px] font-semibold tracking-wide text-fog sm:flex">
             <li className="flex items-center gap-1.5 rounded-full border border-line bg-ink2 px-3 py-1.5">
@@ -154,5 +130,69 @@ export default function Hero({
       </div>
 
     </section>
+  );
+}
+
+/** Price, size choice and add-to-cart for the slide's sticker. */
+function HeroBuy({ product, onPickSize }: { product: Product; onPickSize: () => void }) {
+  const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product);
+  const off = discountPercent(price, compareAtPrice);
+
+  return (
+    <>
+      <div className="mt-3 flex items-baseline gap-3 sm:mt-6">
+        <span className="font-display text-4xl font-bold text-gold">{formatINR(price)}</span>
+        {compareAtPrice !== null && compareAtPrice > price && (
+          <>
+            <span className="text-lg text-fog/80 line-through">{formatINR(compareAtPrice)}</span>
+            {off !== null && (
+              <span className="rounded-full border border-mint/30 bg-mint/15 px-2.5 py-1 text-xs font-bold text-mint">
+                SAVE {off}%
+              </span>
+            )}
+          </>
+        )}
+      </div>
+
+      {sizes.length > 1 && (
+        <div role="radiogroup" aria-label="Sticker size" className="mt-4 flex flex-wrap gap-2">
+          {sizes.map((s) => {
+            const active = s.inches === size;
+            return (
+              <button
+                key={s.inches}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => {
+                  setSize(s.inches);
+                  onPickSize();
+                }}
+                className={`inline-flex items-baseline gap-1.5 rounded-xl border px-3.5 py-2 transition-all ${
+                  active
+                    ? "border-brand bg-brand/[0.07] ring-1 ring-brand"
+                    : "border-line bg-ink2/80 backdrop-blur-sm hover:border-snow/30"
+                }`}
+              >
+                <span className="font-display text-base font-bold">{formatInches(s.inches)}″</span>
+                <span className={`text-xs font-semibold ${active ? "text-brand" : "text-fog"}`}>
+                  {formatINR(s.price)}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="mt-4 flex flex-wrap items-center gap-3 sm:mt-6">
+        <AddToCartButton product={product} stickerSize={size} size="lg" />
+        <Link
+          href={`/sticker/${product.slug}`}
+          className="inline-flex h-12 items-center gap-2 rounded-xl border border-line bg-ink2 px-6 text-base font-semibold transition-all hover:border-fog/40 hover:bg-panel"
+        >
+          Details <ArrowRight className="size-4" />
+        </Link>
+      </div>
+    </>
   );
 }
