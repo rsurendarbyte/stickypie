@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import JsonLd from "@/components/json-ld";
 import { Suspense } from "react";
-import { categoryPath, categoryTitle } from "@stickypie/shared";
+import { categoryPath, categoryTitle, inCategory } from "@stickypie/shared";
 import BrowseClient from "@/components/browse-client";
 import StickerLoader from "@/components/sticker-loader";
 import { productSnapshot } from "@/lib/catalog-snapshot";
 import { getDriver } from "@/lib/data";
-import { absoluteUrl, jsonLd, pageMetadata } from "@/lib/site";
+import { CategoryAbout } from "@/components/seo-blocks";
+import { categoryIntro, itemListStructuredData } from "@/lib/seo";
+import { absoluteUrl, pageMetadata } from "@/lib/site";
 
 // One SEO page per category: /stickers/cars, /stickers/memes… Prerendered at
 // build; categories added later from the admin render on demand.
@@ -41,6 +44,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
   const { category, categories } = await findCategory(slug);
   if (!category) notFound();
   const products = await getDriver().listProducts({ activeOnly: true });
+  const inThis = products.filter((p) => inCategory(p, category.id));
 
   const breadcrumbLd = {
     "@context": "https://schema.org",
@@ -53,7 +57,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
 
   return (
     <div className="min-h-screen w-full px-4 pt-24 pb-24 sm:px-8 lg:px-12 2xl:px-20">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbLd) }} />
+      <JsonLd data={[breadcrumbLd, itemListStructuredData(inThis)]} />
       <Suspense
         fallback={
           <div className="grid min-h-[40vh] place-items-center">
@@ -63,6 +67,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
       >
         <BrowseClient initial={{ categories, products: productSnapshot(products) }} categorySlug={category.slug} />
       </Suspense>
+      <CategoryAbout heading={`About our ${categoryTitle(category.name).toLowerCase()}`} text={categoryIntro(category, inThis.length)} />
     </div>
   );
 }

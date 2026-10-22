@@ -7,7 +7,7 @@ import { siteUrl } from "./mode";
 export const SITE_NAME = "StickyPie";
 export const SITE_TAGLINE = "Stick Your Style";
 export const SITE_DESCRIPTION =
-  "Premium die-cut vinyl stickers for laptops, bottles, bikes and cars — waterproof, UV-safe, shipped across India. Stick your style.";
+  "Buy waterproof vinyl stickers online in India — car stickers, bike stickers, laptop stickers and helmet decals. Die-cut, UV-safe, peel and stick. Ships across India.";
 
 /**
  * Only the production build may be indexed. dev.stickypie.in, workers.dev

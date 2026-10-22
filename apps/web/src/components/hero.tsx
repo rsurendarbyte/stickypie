@@ -72,9 +72,10 @@ export default function Hero({
             )}
           </div>
 
-          <h1 className="mt-4 font-display text-4xl leading-[1.04] font-bold tracking-tight sm:text-6xl lg:mt-5 lg:text-[64px]">
+          {/* The page's H1 is in the shop intro below; a rotating product isn't the page topic. */}
+          <h2 className="mt-4 font-display text-4xl leading-[1.04] font-bold tracking-tight sm:text-6xl lg:mt-5 lg:text-[64px]">
             {product.name}
-          </h1>
+          </h2>
           <p className="mt-4 hidden max-w-lg text-base leading-relaxed text-fog sm:line-clamp-2 sm:text-lg lg:line-clamp-3">
             {product.description}
           </p>
