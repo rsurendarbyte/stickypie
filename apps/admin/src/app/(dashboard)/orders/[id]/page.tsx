@@ -138,11 +138,15 @@ export default async function OrderDetailPage({
             <dl className="mt-3 space-y-1.5 text-sm">
               <div className="flex justify-between">
                 <dt className="text-fog">Provider</dt>
-                <dd>{order.paymentProvider === "cashfree" ? "Cashfree" : "Simulator (dev)"}</dd>
+                <dd>{order.paymentProvider === "cashfree"
+                    ? "Cashfree"
+                    : order.paymentProvider === "razorpay"
+                      ? "Razorpay"
+                      : "Simulator (dev)"}</dd>
               </div>
               {order.cfOrderId && (
                 <div className="flex justify-between gap-3">
-                  <dt className="text-fog">CF order</dt>
+                  <dt className="text-fog">Gateway order</dt>
                   <dd className="truncate">{order.cfOrderId}</dd>
                 </div>
               )}

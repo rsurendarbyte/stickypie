@@ -9,15 +9,14 @@ import {
   type NewOrderInput,
   type Order,
 } from "@stickypie/shared";
-import { CF_ORDER_TTL_MINUTES, createCfOrder, getCfOrder } from "@/lib/cashfree";
 import { getDriver } from "@/lib/data";
-import { cashfreeConfigured, cashfreeEnv, paymentSimulatorAllowed, siteUrl } from "@/lib/mode";
-import { reconcileOrderPayment } from "@/lib/payments";
+import { cashfreeConfigured, checkoutGateway, paymentSimulatorAllowed, razorpayConfigured } from "@/lib/mode";
+import { openNewPayment, reopenPayment, reuseWindowStart } from "@/lib/pay-session";
 import { accountsEnabled, shopperFromRequest } from "@/lib/shopper";
 
 export async function POST(req: Request) {
-  if (!cashfreeConfigured() && !paymentSimulatorAllowed()) {
-    console.error("[checkout] Cashfree keys are not configured on the production site.");
+  if (!cashfreeConfigured() && !razorpayConfigured() && !paymentSimulatorAllowed()) {
+    console.error("[checkout] No payment gateway keys are configured on the production site.");
     return NextResponse.json(
       { error: "Payments are temporarily unavailable. Please try again soon." },
       { status: 503 }
@@ -131,14 +130,15 @@ export async function POST(req: Request) {
   // Always charged, by distance from the dispatch PIN code (zones set in the admin).
   const shippingFee = shippingFor(settings, customer.pincode, customer.state).fee;
   const total = subtotal + shippingFee;
-  const provider = cashfreeConfigured() ? "cashfree" : "simulator";
+  // Gateway picked in admin → Settings (falls back to whichever has keys).
+  const provider = checkoutGateway(settings.paymentGateway) ?? "simulator";
 
   // Same cart submitted again while an earlier attempt is still payable
-  // (double click, back from Cashfree, second tab): reuse that order and its
-  // Cashfree session instead of creating a second one that could also be paid.
-  if (provider === "cashfree" && userId) {
-    const since = new Date(Date.now() - (CF_ORDER_TTL_MINUTES - 5) * 60_000).toISOString();
+  // (double click, back from the gateway, second tab): reuse that order and
+  // its gateway payment instead of creating a second one that could also be paid.
+  if (provider !== "simulator" && userId) {
     const sameCart = (o: Order) =>
+      o.paymentProvider === provider &&
       o.total === total &&
       o.items.length === orderItems.length &&
       orderItems.every((i) =>
@@ -150,21 +150,11 @@ export async function POST(req: Request) {
             x.unitPrice === i.unitPrice
         )
       );
-    const earlier = (await driver.listPendingOrdersForUser(userId, since)).filter(sameCart);
+    const earlier = (await driver.listPendingOrdersForUser(userId, reuseWindowStart(provider))).filter(sameCart);
     for (const existing of earlier) {
       try {
-        const cf = await getCfOrder(existing.id);
-        if (cf.order_status === "PAID") {
-          await reconcileOrderPayment(existing);
-          return NextResponse.json({ mode: "paid", url: `/order/${existing.id}` });
-        }
-        if (cf.order_status === "ACTIVE" && cf.payment_session_id) {
-          return NextResponse.json({
-            mode: "cashfree",
-            cfMode: cashfreeEnv(),
-            paymentSessionId: cf.payment_session_id,
-          });
-        }
+        const session = await reopenPayment(existing);
+        if (session) return NextResponse.json(session);
       } catch (err) {
         console.error("[checkout] could not reuse order", existing.id, err);
       }
@@ -186,22 +176,9 @@ export async function POST(req: Request) {
   }
 
   try {
-    const cf = await createCfOrder({
-      orderId: order.id,
-      amount: total,
-      customer: { name: customer.name, email: customer.email, phone: customer.phone },
-      returnUrl: `${siteUrl()}/order/${order.id}`,
-      notifyUrl: `${siteUrl()}/api/webhooks/cashfree`,
-    });
-    await driver.setCfOrderId(order.id, String(cf.cf_order_id ?? order.id));
-    if (!cf.payment_session_id) throw new Error("Cashfree did not return a payment session");
-    return NextResponse.json({
-      mode: "cashfree",
-      cfMode: cashfreeEnv(),
-      paymentSessionId: cf.payment_session_id,
-    });
+    return NextResponse.json(await openNewPayment(order));
   } catch (err) {
-    console.error("[checkout] Cashfree order creation failed:", err);
+    console.error(`[checkout] ${provider} order creation failed:`, err);
     await driver
       .markOrderFailed(order.id, err instanceof Error ? err.message : "Gateway error")
       .catch(() => {});

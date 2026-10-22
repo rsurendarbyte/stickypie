@@ -56,7 +56,7 @@ export type OrderStatus =
   | "delivered"
   | "cancelled";
 
-export type PaymentProvider = "cashfree" | "simulator";
+export type PaymentProvider = "cashfree" | "razorpay" | "simulator";
 
 export type OrderItem = {
   id: string;

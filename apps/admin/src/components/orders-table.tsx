@@ -54,7 +54,7 @@ export default function OrdersTable({ orders }: { orders: Order[] }) {
                 {formatINR(order.total)}
               </td>
               <td className="px-4 py-3 text-xs text-fog">
-                {order.paymentProvider === "cashfree" ? "Cashfree" : "Simulator"}
+                {order.paymentProvider === "cashfree" ? "Cashfree" : order.paymentProvider === "razorpay" ? "Razorpay" : "Simulator"}
               </td>
               <td className="px-4 py-3">
                 <StatusBadge status={order.status} />

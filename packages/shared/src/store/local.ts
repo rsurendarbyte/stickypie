@@ -391,7 +391,7 @@ export function createLocalDriver(filePath: string): DataDriver {
           (o) =>
             o.userId === userId &&
             o.status === "pending" &&
-            o.paymentProvider === "cashfree" &&
+            o.paymentProvider !== "simulator" &&
             o.createdAt >= sinceIso
         )
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt))

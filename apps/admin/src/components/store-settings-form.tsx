@@ -2,12 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Loader2, Truck } from "lucide-react";
+import { CreditCard, Loader2, Truck } from "lucide-react";
 import {
   INDIAN_STATES,
+  PAYMENT_GATEWAY_LABELS,
   REMOTE_STATES,
   ZONE_LABELS,
   formatINR,
+  type PaymentGateway,
   type ShippingZone,
   type StoreSettings,
 } from "@stickypie/shared";
@@ -45,6 +47,7 @@ export default function StoreSettingsForm({ initial }: { initial: StoreSettings 
   });
   const setB = (key: keyof typeof business) => (e: { target: { value: string } }) =>
     setBusiness((b) => ({ ...b, [key]: e.target.value }));
+  const [gateway, setGateway] = useState<PaymentGateway>(initial.paymentGateway);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,6 +56,7 @@ export default function StoreSettingsForm({ initial }: { initial: StoreSettings 
     setError(null);
     const num = (v: string) => (v.trim() === "" ? NaN : Number(v));
     const payload = {
+      paymentGateway: gateway,
       minOrder: num(minOrder),
       originPincode: pincode.trim() || null,
       originState: state || null,
@@ -94,6 +98,46 @@ export default function StoreSettingsForm({ initial }: { initial: StoreSettings 
   return (
     <form onSubmit={save} className="rounded-2xl border border-line bg-ink2 p-5 sm:col-span-2">
       <div className="flex items-center gap-2">
+        <CreditCard className="size-4 text-fog" />
+        <h2 className="text-sm font-semibold">Payment gateway</h2>
+      </div>
+      <p className="mt-1 text-xs text-fog">
+        New checkouts use this gateway. Orders already placed keep the one they were paid with, so you can switch any
+        time. If its keys aren&apos;t set on the site, checkout uses the other one.
+      </p>
+      <div role="radiogroup" aria-label="Payment gateway" className="mt-3 grid gap-2 sm:grid-cols-2">
+        {(Object.keys(PAYMENT_GATEWAY_LABELS) as PaymentGateway[]).map((g) => {
+          const active = gateway === g;
+          return (
+            <button
+              key={g}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => setGateway(g)}
+              className={`flex items-center gap-3 rounded-xl border p-3.5 text-left transition-all ${
+                active ? "border-brand bg-brand/[0.08] ring-1 ring-brand" : "border-line hover:border-fog/40"
+              }`}
+            >
+              <span
+                className={`grid size-[18px] shrink-0 place-items-center rounded-full border-2 ${
+                  active ? "border-brand" : "border-line"
+                }`}
+              >
+                {active && <span className="size-2 rounded-full bg-brand" />}
+              </span>
+              <span>
+                <span className="block text-sm font-semibold">{PAYMENT_GATEWAY_LABELS[g]}</span>
+                <span className="block text-[11px] text-fog">
+                  {g === "razorpay" ? "Pop-up checkout on the site" : "Hosted checkout page"}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="mt-6 flex items-center gap-2 border-t border-line pt-5">
         <Truck className="size-4 text-fog" />
         <h2 className="text-sm font-semibold">Shipping &amp; checkout</h2>
       </div>

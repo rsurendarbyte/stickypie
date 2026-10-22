@@ -10,7 +10,7 @@ export const metadata: Metadata = pageMetadata({
   path: "/contact",
 });
 
-// STORE OWNER: keep these genuine — Cashfree's production review checks the
+// STORE OWNER: keep these genuine — the payment gateways' production review checks the
 // contact page.
 const CONTACT = {
   email: SUPPORT_EMAIL,

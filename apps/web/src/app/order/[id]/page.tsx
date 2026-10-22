@@ -7,9 +7,7 @@ import ClearCartOnPaid from "@/components/clear-cart-on-paid";
 import OrderReviews from "@/components/order-reviews";
 import OrderTracking from "@/components/order-tracking";
 import PaymentPending from "@/components/payment-pending";
-import { getCfLatestPaymentStatus } from "@/lib/cashfree";
-import { cashfreeConfigured } from "@/lib/mode";
-import { reconcileOrderPayment } from "@/lib/payments";
+import { latestPaymentAttempt, reconcileOrderPayment } from "@/lib/payments";
 import { getDriver } from "@/lib/data";
 import { PRIVATE_PAGE_ROBOTS } from "@/lib/site";
 
@@ -41,12 +39,12 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const pending = order.status === "pending";
 
   // Still unpaid: is a payment actually in progress, or did the shopper close
-  // Cashfree / fail an attempt? Then they get "Pay now" instead of a spinner.
+  // the payment window / fail an attempt? Then they get "Pay now", not a spinner.
   let lastAttempt: string | null = null;
   let awaitingShopper = false;
-  if (pending && order.paymentProvider === "cashfree" && cashfreeConfigured()) {
+  if (pending && order.paymentProvider !== "simulator") {
     try {
-      lastAttempt = await getCfLatestPaymentStatus(order.id);
+      lastAttempt = await latestPaymentAttempt(order);
       awaitingShopper = lastAttempt !== "PENDING" && lastAttempt !== "SUCCESS";
     } catch {
       // Unknown → keep checking.
@@ -222,7 +220,11 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               <div className="flex justify-between">
                 <dt>Method</dt>
                 <dd className="text-snow">
-                  {order.paymentProvider === "cashfree" ? "Cashfree" : "Test simulator"}
+                  {order.paymentProvider === "cashfree"
+                    ? "Cashfree"
+                    : order.paymentProvider === "razorpay"
+                      ? "Razorpay"
+                      : "Test simulator"}
                 </dd>
               </div>
               {order.cfPaymentId && (

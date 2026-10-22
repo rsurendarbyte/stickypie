@@ -340,7 +340,7 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
         .select("*, order_items(*)")
         .eq("user_id", userId)
         .eq("status", "pending")
-        .eq("payment_provider", "cashfree")
+        .neq("payment_provider", "simulator")
         .gte("created_at", sinceIso)
         .order("created_at", { ascending: false })
         .limit(5);

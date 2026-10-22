@@ -14,6 +14,14 @@ export type StoreSettings = {
   rates: Record<ShippingZone, number>;
   /** Seller details printed on GST invoices. */
   business: BusinessDetails;
+  /** Gateway for new checkouts (switched in admin → Settings). */
+  paymentGateway: PaymentGateway;
+};
+
+export type PaymentGateway = "cashfree" | "razorpay";
+export const PAYMENT_GATEWAY_LABELS: Record<PaymentGateway, string> = {
+  cashfree: "Cashfree",
+  razorpay: "Razorpay",
 };
 
 export type BusinessDetails = {
@@ -33,6 +41,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   originState: null,
   rates: { local: 40, state: 50, national: 70, remote: 90 },
   business: { name: null, gstin: null, address: null, hsn: "3919", gstRate: 18, invoicePrefix: "SP" },
+  paymentGateway: "cashfree",
 };
 
 /** Couriers price these as special / remote zones. */
@@ -107,6 +116,7 @@ export function rowToSettings(r: any): StoreSettings {
       gstRate: r.gst_rate == null ? DEFAULT_STORE_SETTINGS.business.gstRate : Number(r.gst_rate),
       invoicePrefix: r.invoice_prefix ?? DEFAULT_STORE_SETTINGS.business.invoicePrefix,
     },
+    paymentGateway: r.payment_gateway === "razorpay" ? "razorpay" : "cashfree",
   };
 }
 
@@ -125,5 +135,6 @@ export function settingsToRow(s: StoreSettings): Record<string, unknown> {
     invoice_hsn: s.business.hsn,
     gst_rate: s.business.gstRate,
     invoice_prefix: s.business.invoicePrefix,
+    payment_gateway: s.paymentGateway,
   };
 }

@@ -157,4 +157,5 @@ export const storeSettingsSchema = z.object({
     national: rupees("the rest-of-India rate"),
     remote: rupees("the remote-area rate"),
   }),
+  paymentGateway: z.enum(["cashfree", "razorpay"]).default("cashfree"),
 });

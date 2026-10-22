@@ -41,11 +41,11 @@ export default function Footer({ demoMode }: { demoMode: boolean }) {
             everything in between.
           </p>
           <p className="mt-4 text-xs text-fog/70">
-            UPI · Cards · NetBanking — payments secured by Cashfree.
+            UPI · Cards · NetBanking — secure payments via Razorpay &amp; Cashfree.
           </p>
           {demoMode && (
             <p className="mt-3 inline-block rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs text-gold">
-              Local demo mode — set Supabase &amp; Cashfree keys to go live
+              Local demo mode — set Supabase &amp; payment gateway keys to go live
             </p>
           )}
         </div>

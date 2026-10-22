@@ -9,7 +9,7 @@ type LegalDoc = {
 };
 
 // NOTE FOR THE STORE OWNER: these are starter templates. Review and customize
-// them (business name, address, timelines) before going live — Cashfree's
+// them (business name, address, timelines) before going live — the payment gateways'
 // production approval checks that these pages exist and look genuine.
 const DOCS: Record<string, LegalDoc> = {
   terms: {
@@ -28,7 +28,7 @@ const DOCS: Record<string, LegalDoc> = {
       {
         heading: "Orders & payment",
         body: [
-          "Payments are processed securely by Cashfree Payments (UPI, cards, netbanking and wallets). StickyPie never stores your card or banking details.",
+          "Payments are processed securely by our payment partners, Razorpay and Cashfree Payments (UPI, cards, netbanking and wallets). StickyPie never stores your card or banking details.",
           "An order is confirmed only after the payment is successfully captured. If money is debited but the order shows as failed, the amount is automatically refunded by the payment network, typically within 5–7 business days.",
         ],
       },
@@ -54,7 +54,7 @@ const DOCS: Record<string, LegalDoc> = {
         heading: "What we collect",
         body: [
           "Order details: your name, email, phone number and delivery address — used to process and ship your order, and to contact you about it.",
-          "Payment details are handled entirely by Cashfree Payments on their secure pages. We only receive a payment reference, never your card or bank credentials.",
+          "Payment details are handled entirely by our payment partners (Razorpay / Cashfree Payments) on their secure pages. We only receive a payment reference, never your card or bank credentials.",
         ],
       },
       {
@@ -98,7 +98,7 @@ const DOCS: Record<string, LegalDoc> = {
       {
         heading: "Refund timelines",
         body: [
-          "Approved refunds are initiated within 2 business days to the original payment method via Cashfree. Depending on your bank, the amount reflects in 5–7 business days.",
+          "Approved refunds are initiated within 2 business days to the original payment method via our payment partner. Depending on your bank, the amount reflects in 5–7 business days.",
         ],
       },
       {

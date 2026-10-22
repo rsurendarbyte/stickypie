@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import {
   INDIAN_STATES,
+  PAYMENT_GATEWAY_LABELS,
   ZONE_LABELS,
   belowMinimum,
   customerSchema,
@@ -25,6 +26,7 @@ import {
 } from "@stickypie/shared";
 import { useStoreSettings } from "@/lib/live-catalog";
 import { authClient, createAccount, signIn, signOut, useShopper } from "@/lib/shopper-auth";
+import { openPayment } from "@/lib/open-payment";
 import { lookupPincode } from "@/lib/pincode";
 import {
   ADDRESS_TYPES,
@@ -136,6 +138,7 @@ export default function CheckoutClient() {
   const quote = addressKnown && settings.loaded ? shippingFor(settings, form.pincode, form.state) : null;
   const total = subtotal + (quote?.fee ?? 0);
   const shortBy = belowMinimum(settings, subtotal);
+  const gatewayName = PAYMENT_GATEWAY_LABELS[settings.paymentGateway];
 
   // Signed-in shoppers order with their account email.
   useEffect(() => {
@@ -285,18 +288,14 @@ export default function CheckoutClient() {
           () => {}
         );
       }
-      if (data.mode === "cashfree") {
-        const { load } = await import("@cashfreepayments/cashfree-js");
-        const cashfree = await load({ mode: data.cfMode });
-        await cashfree.checkout({
-          paymentSessionId: data.paymentSessionId,
-          redirectTarget: "_self",
-        });
-      } else {
-        router.push(data.url as string);
-      }
-    } catch {
-      setServerError("Could not reach the payment service. Please try again.");
+      // Closing the Razorpay window → the order page offers "Pay now".
+      await openPayment(data, (url) => router.push(url), (orderId) => router.push(`/order/${orderId}`));
+    } catch (err) {
+      setServerError(
+        err instanceof Error && /payment window/.test(err.message)
+          ? err.message
+          : "Could not reach the payment service. Please try again."
+      );
       setSubmitting(false);
     }
   }
@@ -691,7 +690,7 @@ export default function CheckoutClient() {
               ))}
             </div>
             <p className="mt-2.5 text-xs leading-relaxed text-fog">
-              You&apos;ll pay on Cashfree&apos;s secure page. Your order is confirmed the moment the payment goes
+              You&apos;ll pay securely with {gatewayName}. Your order is confirmed the moment the payment goes
               through — you&apos;re never charged twice.
             </p>
           </Step>
@@ -795,7 +794,7 @@ export default function CheckoutClient() {
 
             <ul className="mt-4 space-y-1.5 text-[11px] text-fog">
               <li className="flex items-center gap-2">
-                <ShieldCheck className="size-3.5 shrink-0 text-mint" /> Payments secured by Cashfree
+                <ShieldCheck className="size-3.5 shrink-0 text-mint" /> Payments secured by {gatewayName}
               </li>
               <li className="flex items-center gap-2">
                 <PackageCheck className="size-3.5 shrink-0 text-mint" /> Damaged or wrong sticker? Free replacement
@@ -822,7 +821,7 @@ export default function CheckoutClient() {
               <p className="text-lg leading-tight font-bold tabular-nums lg:text-xl">{formatINR(total)}</p>
             </div>
             <p className="hidden min-w-0 flex-1 items-center justify-end gap-1.5 text-[11px] text-fog lg:flex">
-              <ShieldCheck className="size-3.5 shrink-0 text-mint" /> UPI · Cards · NetBanking — secured by Cashfree
+              <ShieldCheck className="size-3.5 shrink-0 text-mint" /> UPI · Cards · NetBanking — secured by {gatewayName}
             </p>
             <span className="contents sm:hidden">{payButton("min-w-0 flex-1 py-3 text-sm", true)}</span>
             <span className="hidden sm:contents">{payButton("ml-auto min-w-0 flex-1 py-3 text-sm lg:ml-0 lg:w-[340px] lg:flex-none")}</span>

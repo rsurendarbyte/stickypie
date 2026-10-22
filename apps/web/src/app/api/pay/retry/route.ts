@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getCfOrder } from "@/lib/cashfree";
 import { getDriver } from "@/lib/data";
-import { cashfreeConfigured, cashfreeEnv } from "@/lib/mode";
-import { reconcileOrderPayment } from "@/lib/payments";
+import { cashfreeConfigured, razorpayConfigured } from "@/lib/mode";
+import { reopenPayment } from "@/lib/pay-session";
 import { accountsEnabled, shopperFromRequest } from "@/lib/shopper";
 
 const bodySchema = z.object({ orderId: z.string().uuid() });
 
 /**
- * "Pay now" on an unpaid order: reopens the SAME Cashfree payment session
- * (never a new order, so the shopper can't end up paying twice). Once the
- * session has expired the order is marked failed and they check out again.
+ * "Pay now" on an unpaid order: reopens the SAME gateway payment (Cashfree
+ * session or Razorpay order) — never a new one, so the shopper can't end up
+ * paying twice. Once the payment window has closed the order is marked
+ * failed and they check out again.
  */
 export async function POST(req: Request) {
   const parsed = bodySchema.safeParse(await req.json().catch(() => null));
@@ -31,7 +31,10 @@ export async function POST(req: Request) {
     }
   }
 
-  if (order.paymentProvider !== "cashfree" || !cashfreeConfigured()) {
+  const gatewayReady =
+    (order.paymentProvider === "cashfree" && cashfreeConfigured()) ||
+    (order.paymentProvider === "razorpay" && razorpayConfigured());
+  if (!gatewayReady) {
     return NextResponse.json({ mode: "simulator", url: `/pay/simulator?order=${order.id}` });
   }
   if (order.status !== "pending") {
@@ -39,15 +42,8 @@ export async function POST(req: Request) {
   }
 
   try {
-    const cf = await getCfOrder(order.id);
-    if (cf.order_status === "PAID") {
-      await reconcileOrderPayment(order);
-      return NextResponse.json({ mode: "paid", url: `/order/${order.id}` });
-    }
-    if (cf.order_status === "ACTIVE" && cf.payment_session_id) {
-      return NextResponse.json({ mode: "cashfree", cfMode: cashfreeEnv(), paymentSessionId: cf.payment_session_id });
-    }
-    await reconcileOrderPayment(order);
+    const session = await reopenPayment(order);
+    if (session) return NextResponse.json(session);
     return NextResponse.json(
       { error: "This payment link has expired — please check out again.", code: "expired" },
       { status: 410 }

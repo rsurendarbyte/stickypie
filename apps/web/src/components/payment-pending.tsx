@@ -5,16 +5,17 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Clock3, CreditCard, Lock, RefreshCw } from "lucide-react";
 import { formatINR } from "@stickypie/shared";
+import { openPayment } from "@/lib/open-payment";
 import { authClient } from "@/lib/shopper-auth";
 import StickerLoader from "./sticker-loader";
 
-// Cashfree usually confirms within a few seconds of the shopper returning.
-// Each refresh re-runs the order page on the server, which asks Cashfree for
+// The gateway usually confirms within a few seconds of the shopper returning.
+// Each refresh re-runs the order page on the server, which asks the gateway for
 // the latest status and marks the order paid as soon as it is.
 const DELAYS_MS = [2000, 3000, 3000, 4000, 5000, 5000, 8000, 10000, 15000, 20000];
 
 /**
- * Order still unpaid. `awaitingShopper` = Cashfree has no payment in progress
+ * Order still unpaid. `awaitingShopper` = the gateway has no payment in progress
  * (they closed the payment page, or the attempt failed) → offer "Pay now",
  * which reopens the same payment session. Otherwise keep checking.
  */
@@ -61,14 +62,14 @@ export default function PaymentPending({
         setNeedsSignIn(data.code === "auth_required");
         throw new Error(typeof data.error === "string" ? data.error : "Couldn't open the payment page.");
       }
-      if (data.mode === "cashfree") {
-        const { load } = await import("@cashfreepayments/cashfree-js");
-        const cashfree = await load({ mode: data.cfMode });
-        await cashfree.checkout({ paymentSessionId: data.paymentSessionId, redirectTarget: "_self" });
-      } else {
-        router.push(data.url as string);
-        router.refresh();
-      }
+      await openPayment(
+        data,
+        (url) => {
+          router.push(url);
+          router.refresh();
+        },
+        () => setPaying(false)
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't open the payment page.");
       setPaying(false);

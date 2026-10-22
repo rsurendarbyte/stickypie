@@ -36,7 +36,7 @@ export default async function OrdersPage({
     <div className="w-full">
       <h1 className="font-display text-2xl font-bold sm:text-3xl">Orders</h1>
       <p className="mt-1 text-sm text-fog">
-        Payments confirm automatically (Cashfree webhook / return flow). Move paid orders through
+        Payments confirm automatically (Razorpay / Cashfree webhook and return flow). Move paid orders through
         packing and shipping here.
       </p>
 

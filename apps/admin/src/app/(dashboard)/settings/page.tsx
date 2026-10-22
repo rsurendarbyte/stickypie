@@ -65,9 +65,10 @@ export default async function SettingsPage() {
             <h2 className="text-sm font-semibold">Payments</h2>
           </div>
           <p className="mt-3 text-xs leading-relaxed text-fog">
-            Cashfree keys are configured in the <span className="text-snow">storefront</span> app
-            (apps/web/.env.local): CASHFREE_APP_ID, CASHFREE_SECRET_KEY and CASHFREE_ENV
-            (sandbox / production). Without them, checkout uses the built-in test simulator.
+            Choose the gateway below in <span className="text-snow">Payment gateway</span>. Keys live in the{" "}
+            <span className="text-snow">storefront</span> (apps/web/.env.local, and Worker secrets on the live
+            site): RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET for Razorpay; CASHFREE_APP_ID,
+            CASHFREE_SECRET_KEY, CASHFREE_ENV for Cashfree. With neither, local checkout uses the test simulator.
           </p>
         </section>
 

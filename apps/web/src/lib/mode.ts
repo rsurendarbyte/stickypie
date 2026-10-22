@@ -14,12 +14,30 @@ export function cashfreeConfigured(): boolean {
   return Boolean(process.env.CASHFREE_APP_ID && process.env.CASHFREE_SECRET_KEY);
 }
 
+export function razorpayConfigured(): boolean {
+  return Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
+}
+
+export type Gateway = "cashfree" | "razorpay";
+
 /**
- * The fake-payment simulator stands in for Cashfree in local/dev only. It must
- * never run on the production site: it would let anyone mark an order paid.
+ * Gateway for a new checkout: the one picked in admin → Settings if its keys
+ * are set here, otherwise whichever one is configured. null = none (dev/demo).
+ */
+export function checkoutGateway(preferred: Gateway): Gateway | null {
+  const ready: Record<Gateway, boolean> = { cashfree: cashfreeConfigured(), razorpay: razorpayConfigured() };
+  if (ready[preferred]) return preferred;
+  if (ready.razorpay) return "razorpay";
+  if (ready.cashfree) return "cashfree";
+  return null;
+}
+
+/**
+ * The fake-payment simulator stands in for a gateway in local/dev only. It
+ * must never run on the production site: it would let anyone mark an order paid.
  */
 export function paymentSimulatorAllowed(): boolean {
-  return !cashfreeConfigured() && process.env.SITE_ENV !== "production";
+  return !cashfreeConfigured() && !razorpayConfigured() && process.env.SITE_ENV !== "production";
 }
 
 export function cashfreeEnv(): "sandbox" | "production" {
