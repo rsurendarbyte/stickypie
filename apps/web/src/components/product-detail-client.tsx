@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import HoverLink from "./hover-link";
 import { useState } from "react";
 import { BadgeCheck, Droplets, PackageX, Ruler, Sun, Truck } from "lucide-react";
 import type { Product } from "@stickypie/shared";
@@ -58,15 +58,15 @@ export default function ProductDetailClient({
       <div className="flex items-center gap-3">
         <BackButton fallback={category ? `/stickers/${category.slug}` : "/stickers"} />
         <nav className="text-xs text-fog">
-          <Link href="/stickers" className="hover:text-snow">
+          <HoverLink href="/stickers" className="hover:text-snow">
             Stickers
-          </Link>
+          </HoverLink>
           {category && (
             <>
               <span className="mx-1.5">/</span>
-              <Link href={`/stickers/${category.slug}`} className="hover:text-snow">
+              <HoverLink href={`/stickers/${category.slug}`} className="hover:text-snow">
                 {category.name}
-              </Link>
+              </HoverLink>
             </>
           )}
         </nav>
@@ -109,12 +109,12 @@ export default function ProductDetailClient({
         {/* Details */}
         <div>
           {category && (
-            <Link
+            <HoverLink
               href={`/stickers/${category.slug}`}
               className="inline-block rounded-full border border-line bg-ink2 px-3 py-1 text-xs font-medium text-fog transition-colors hover:text-snow"
             >
               {category.name}
-            </Link>
+            </HoverLink>
           )}
           <h1 className="mt-2.5 font-display text-3xl font-bold sm:text-4xl">{product.name}</h1>
           <RatingSummary productId={product.id} />
@@ -196,13 +196,13 @@ export default function ProductDetailClient({
           {product.tags.length > 0 && (
             <div className="mt-6 flex flex-wrap gap-2">
               {product.tags.map((tag) => (
-                <Link
+                <HoverLink
                   key={tag}
                   href={`/stickers?q=${encodeURIComponent(tag)}`}
                   className="rounded-full bg-panel px-3 py-1 text-xs text-fog transition-colors hover:text-snow"
                 >
                   #{tag}
-                </Link>
+                </HoverLink>
               ))}
             </div>
           )}

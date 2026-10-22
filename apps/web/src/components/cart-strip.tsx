@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ArrowRight, ShoppingBag } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { belowMinimum, formatINR } from "@stickypie/shared";
 import { useStoreSettings } from "@/lib/live-catalog";
 import { useCart } from "./cart-context";
@@ -18,84 +18,108 @@ export function cartUiHidden(pathname: string): boolean {
 }
 
 /**
- * Always-visible cart bar pinned to the bottom (every screen size) while the
- * cart has items — tap the left side to review, or jump straight to checkout.
+ * "Your stickers are waiting" — a strip of washi tape stuck across the bottom
+ * centre while the cart has items: what's in the cart, a progress bar towards
+ * the minimum order, and Checkout / Add more. It gets slapped down from the
+ * side, and every few seconds its right end lifts off the page and presses
+ * back down; the sticker stack pops when something is added.
  */
 export default function CartStrip() {
-  const { count, subtotal, openCart } = useCart();
+  const { items, count, subtotal, openCart } = useCart();
   const pathname = usePathname();
   const settings = useStoreSettings();
 
   if (count === 0 || cartUiHidden(pathname)) return null;
 
   const shortBy = belowMinimum(settings, subtotal);
+  const progress = Math.min(
+    (subtotal / Math.max(settings.minOrder, 1)) * 100,
+    100,
+  );
+  const stack = items.slice(-3).reverse(); // newest on top
+  const label = `${count} sticker${count === 1 ? "" : "s"}`;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-30 bg-snow pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-8px_24px_-10px_rgba(16,24,40,0.35)]">
-      <div className="mx-auto flex h-16 w-full max-w-[1700px] items-center gap-3 px-4 text-white sm:h-20 sm:px-8 lg:px-12">
-        <button
-          type="button"
-          onClick={openCart}
-          className="flex min-w-0 items-center gap-2.5 rounded-lg text-left transition-opacity hover:opacity-80"
-          aria-label="Review cart"
-        >
-          <span className="relative grid size-9 shrink-0 place-items-center rounded-full bg-white/10">
-            <ShoppingBag className="size-4" />
-            <span className="pie-gradient absolute -top-1 -right-1 grid min-w-[17px] place-items-center rounded-full px-1 text-[9px] leading-[17px] font-bold">
-              {count}
-            </span>
-          </span>
-          <span className="min-w-0">
-            <span className="block text-[11px] whitespace-nowrap text-white/60">
-              {count} item{count === 1 ? "" : "s"} in cart
-              <span className="hidden sm:inline"> · tap to view</span>
-            </span>
-            <span className="block font-display text-[15px] leading-tight font-bold">
-              {formatINR(subtotal)}
-            </span>
-          </span>
-        </button>
-
-        {/* Minimum-order progress fills the middle on wider screens */}
-        <div className="mx-auto hidden min-w-0 max-w-sm flex-1 px-4 lg:block">
-          {shortBy > 0 ? (
-            <>
-              <p className="truncate text-[11px] text-white/70">
-                Add <span className="font-bold text-white">{formatINR(shortBy)}</span> more · minimum
-                order <span className="font-bold text-white">{formatINR(settings.minOrder)}</span>
-              </p>
-              <div className="mt-1 h-1 overflow-hidden rounded-full bg-white/15">
-                <div
-                  className="pie-gradient h-full rounded-full transition-all duration-500"
+    <div className="pointer-events-none fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-30 flex justify-center cart-tape-wrap sm:bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
+      <div className="cart-tape-box pointer-events-auto w-full max-w-[560px]">
+        <div className="cart-tape flex items-center gap-2 py-2.5 pr-5 pl-4 sm:pr-7 sm:pl-6">
+          <button
+            type="button"
+            onClick={openCart}
+            aria-label={`Review cart: ${label}, ${formatINR(subtotal)}`}
+            className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          >
+            {/* Fanned stack of what's in the cart; pops when the count changes */}
+            <span
+              key={count}
+              className="cart-stack relative h-11 w-14 shrink-0"
+            >
+              {stack.map((item, i) => (
+                <span
+                  key={`${item.productId}:${item.size ?? ""}`}
+                  className="absolute top-1/2 left-1/2 grid size-10 place-items-center rounded-lg border-2 border-white bg-panel p-0.5 shadow-[0_3px_8px_-3px_rgba(16,24,40,0.4)]"
                   style={{
-                    width: `${Math.min((subtotal / Math.max(settings.minOrder, 1)) * 100, 100)}%`,
+                    transform: `translate(-50%, -50%) translateX(${(i - (stack.length - 1) / 2) * 9}px) rotate(${[-8, 6, -3][i] ?? 0}deg)`,
+                    zIndex: stack.length - i,
                   }}
-                />
-              </div>
-            </>
-          ) : (
-            <p className="text-center text-[12px] font-semibold text-mint">
-              ✓ Minimum order reached · shipping & GST added at checkout
-            </p>
-          )}
-        </div>
+                >
+                  <img
+                    src={item.thumbUrl ?? item.imageUrl}
+                    alt=""
+                    className="max-h-full max-w-full object-contain"
+                  />
+                </span>
+              ))}
+              <span className="absolute -top-1.5 -right-1 z-10 grid min-w-[20px] place-items-center rounded-full border-2 border-white bg-snow px-1 text-[10px] leading-[16px] font-bold text-white">
+                {count}
+              </span>
+            </span>
 
-        {shortBy > 0 ? (
+            <span className="min-w-0 flex-1">
+              <span className="block truncate font-display text-[15px] leading-tight font-bold text-[#5a2a06]">
+                {shortBy > 0 ? (
+                  "Almost there!"
+                ) : (
+                  <>
+                    <span className="sm:hidden">Stickers waiting!</span>
+                    <span className="hidden sm:inline">
+                      Your stickers are waiting
+                    </span>
+                  </>
+                )}
+              </span>
+              <span className="mt-0.5 block truncate text-[11px] text-[#7a4318] sm:text-xs">
+                {shortBy > 0 ? (
+                  <>
+                    Add <b className="text-[#5a2a06]">{formatINR(shortBy)}</b>{" "}
+                    more to check out
+                  </>
+                ) : (
+                  <>
+                    {label} ·{" "}
+                    <b className="text-[#5a2a06]">{formatINR(subtotal)}</b>
+                    <span className="hidden sm:inline"> · ready to ship</span>
+                  </>
+                )}
+              </span>
+              {/* Progress towards the minimum order */}
+              <span className="mt-1.5 block h-1.5 w-full overflow-hidden rounded-full bg-white/55">
+                <span
+                  className="block h-full rounded-full bg-[#f9530a] transition-[width] duration-500"
+                  style={{ width: `${progress}%` }}
+                />
+              </span>
+            </span>
+          </button>
+
           <Link
-            href="/stickers"
-            className="ml-auto flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-white px-4 text-sm font-bold text-snow transition-all hover:bg-white/90 active:scale-[0.98] sm:h-12 sm:px-6 lg:ml-0"
+            href={shortBy > 0 ? "/stickers" : "/checkout"}
+            className="peel-btn peel-btn--brand flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-3.5 text-sm font-bold sm:h-11 sm:px-4"
           >
-            Add {formatINR(shortBy)} more <ArrowRight className="size-4" />
-          </Link>
-        ) : (
-          <Link
-            href="/checkout"
-            className="peel-btn peel-btn--brand ml-auto flex h-11 shrink-0 items-center gap-1.5 rounded-xl px-5 text-sm font-bold active:scale-[0.98] sm:h-12 sm:px-7 lg:ml-0"
-          >
-            Checkout<span className="hidden sm:inline"> · {formatINR(subtotal)}</span>{" "}
+            {shortBy > 0 ? "Add more" : "Checkout"}{" "}
             <ArrowRight className="size-4" />
           </Link>
-        )}
+        </div>
       </div>
     </div>
   );

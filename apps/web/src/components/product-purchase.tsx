@@ -34,14 +34,14 @@ export default function ProductPurchase({
       {/* Desktop: inline controls (the button swaps to a synced stepper once in cart) */}
       <div className="mt-5 hidden flex-wrap items-center gap-3 lg:flex">
         {/* One control: Add to cart, which becomes the − / + stepper once added */}
-        <AddToCartButton product={product} size="lg" stickerSize={stickerSize} sticker />
+        <AddToCartButton product={product} size="lg" stickerSize={stickerSize} sticker showPrice />
       </div>
 
       {/* Mobile: buy bar pinned to the bottom (above the cart strip when it's showing) */}
       <div
         className={`fixed inset-x-0 z-40 border-t border-line bg-ink/95 px-4 pt-3 shadow-[0_-8px_24px_-12px_rgba(16,24,40,0.18)] backdrop-blur-md lg:hidden ${
           count > 0
-            ? "bottom-[calc(4rem+env(safe-area-inset-bottom,0px))] pb-3 sm:bottom-[calc(5rem+env(safe-area-inset-bottom,0px))]"
+            ? "bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] pb-3 sm:bottom-[calc(6rem+env(safe-area-inset-bottom,0px))]"
             : "bottom-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
         }`}
       >

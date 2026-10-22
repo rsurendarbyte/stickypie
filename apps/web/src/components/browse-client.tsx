@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import HoverLink from "./hover-link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 import { ALL_STICKERS_PATH, categoryPath, categoryTitle, inCategory } from "@stickypie/shared";
@@ -105,13 +105,13 @@ export default function BrowseClient({
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <div className="no-scrollbar -mx-1 flex max-w-full gap-2 overflow-x-auto px-1 py-1">
-          <Link href={hrefFor("")} scroll={false} className={chip(!category)}>
+          <HoverLink href={hrefFor("")} scroll={false} className={chip(!category)}>
             All
-          </Link>
+          </HoverLink>
           {shownCategories.map((c) => (
-            <Link key={c.id} href={hrefFor(c.slug)} scroll={false} className={chip(category === c.slug)}>
+            <HoverLink key={c.id} href={hrefFor(c.slug)} scroll={false} className={chip(category === c.slug)}>
               {c.name}
-            </Link>
+            </HoverLink>
           ))}
         </div>
         <SelectField

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import HoverLink from "./hover-link";
 import { useEffect } from "react";
 import { CheckCircle2, ShoppingBag, Trash2, Truck, X } from "lucide-react";
 import { belowMinimum, formatINR } from "@stickypie/shared";
@@ -71,13 +71,13 @@ export default function CartDrawer() {
               <p className="font-display text-lg font-semibold">Nothing sticky yet</p>
               <p className="mt-1 text-sm text-fog">Your cart is empty. Let&apos;s fix that.</p>
             </div>
-            <Link
+            <HoverLink
               href="/stickers"
               onClick={closeCart}
               className="peel-btn peel-btn--brand rounded-xl px-6 py-2.5 text-sm font-semibold"
             >
               Browse stickers
-            </Link>
+            </HoverLink>
           </div>
         ) : (
           <>
@@ -85,7 +85,7 @@ export default function CartDrawer() {
               {items.map((item) => {
                 return (
                   <li key={lineKey(item)} className="flex gap-3">
-                    <Link
+                    <HoverLink
                       href={`/sticker/${item.slug}`}
                       onClick={closeCart}
                       className="grid size-16 shrink-0 place-items-center rounded-xl bg-panel p-1.5 ring-1 ring-line"
@@ -97,16 +97,16 @@ export default function CartDrawer() {
                         alt={item.name}
                         className="sticker-cut-sm max-h-full max-w-full object-contain"
                       />
-                    </Link>
+                    </HoverLink>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
-                        <Link
+                        <HoverLink
                           href={`/sticker/${item.slug}`}
                           onClick={closeCart}
                           className="truncate text-sm font-medium hover:underline"
                         >
                           {item.name}
-                        </Link>
+                        </HoverLink>
                         <button
                           type="button"
                           aria-label={`Remove ${item.name}`}
@@ -178,21 +178,21 @@ export default function CartDrawer() {
               </div>
 
               {shortBy > 0 ? (
-                <Link
+                <HoverLink
                   href="/stickers"
                   onClick={closeCart}
                   className="mt-4 block w-full rounded-xl bg-snow py-3 text-center text-sm font-bold text-white shadow-lg shadow-black/10 transition-all hover:bg-snow/90"
                 >
                   Add {formatINR(shortBy)} more — browse stickers →
-                </Link>
+                </HoverLink>
               ) : (
-                <Link
+                <HoverLink
                   href="/checkout"
                   onClick={closeCart}
                   className="peel-btn peel-btn--brand mt-4 block w-full rounded-xl py-3 text-center text-sm font-bold"
                 >
                   Checkout · {formatINR(subtotal)} + shipping & GST
-                </Link>
+                </HoverLink>
               )}
             </div>
           </>

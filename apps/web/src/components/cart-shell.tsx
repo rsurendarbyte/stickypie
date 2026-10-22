@@ -18,7 +18,7 @@ export default function CartShell({ children }: { children: React.ReactNode }) {
       <div
         className={
           active
-            ? "pb-[calc(4rem+env(safe-area-inset-bottom,0px))] sm:pb-[calc(5rem+env(safe-area-inset-bottom,0px))]"
+            ? "pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] sm:pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))]"
             : ""
         }
       >

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import HoverLink from "./hover-link";
 import { useState } from "react";
 import { Check, Ruler, ShoppingBag } from "lucide-react";
 import type { Product } from "@stickypie/shared";
@@ -49,7 +49,7 @@ export default function ProductCard({
     >
       {/* Art stage — the sticker, plus only the NEW badge and the actual-size button */}
       <div className="relative">
-      <Link href={`/sticker/${product.slug}`} className="block" tabIndex={-1} aria-hidden>
+      <HoverLink href={`/sticker/${product.slug}`} className="block" tabIndex={-1} aria-hidden>
         <div className="relative aspect-square overflow-hidden" style={skin.art}>
           <div
             className="absolute inset-0 grid place-items-center p-5 transition-transform duration-300 [transform:rotate(var(--rot))] group-hover:[transform:rotate(0deg)]"
@@ -71,7 +71,7 @@ export default function ProductCard({
             </span>
           )}
         </div>
-      </Link>
+      </HoverLink>
       {sizes.length > 0 && (
         <button
           type="button"
@@ -87,9 +87,9 @@ export default function ProductCard({
 
       {/* Info — fixed-height rows so every card lines up */}
       <div className="px-3 pt-2.5">
-        <Link href={`/sticker/${product.slug}`} className="block">
+        <HoverLink href={`/sticker/${product.slug}`} className="block">
           <p className="truncate text-[13px] font-medium text-snow/90">{product.name}</p>
-        </Link>
+        </HoverLink>
         <div className="mt-1 flex h-[18px] items-center gap-1.5 overflow-hidden text-[11px] whitespace-nowrap">
           {compareAtPrice !== null && compareAtPrice > price && (
             <>

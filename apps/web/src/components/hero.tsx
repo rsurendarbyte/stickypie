@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import HoverLink from "./hover-link";
 import { useEffect, useState } from "react";
 import { ArrowRight, BadgeCheck, Droplets, Ruler, Sparkles, Sun, Truck } from "lucide-react";
 import type { Category, Product } from "@stickypie/shared";
@@ -196,12 +196,12 @@ function HeroBuy({ product, onPickSize }: { product: Product; onPickSize: () => 
 
       <div className="mt-4 flex flex-wrap items-center gap-3 sm:mt-6">
         <AddToCartButton product={product} stickerSize={size} size="lg" sticker />
-        <Link
+        <HoverLink
           href={`/sticker/${product.slug}`}
           className="peel-btn peel-btn--light inline-flex h-12 items-center gap-2 rounded-xl px-6 text-base font-bold"
         >
           Details <ArrowRight className="size-4" />
-        </Link>
+        </HoverLink>
         {sizes.length > 0 && (
           <button
             type="button"

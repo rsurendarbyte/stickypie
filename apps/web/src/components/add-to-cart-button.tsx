@@ -13,6 +13,7 @@ export default function AddToCartButton({
   size = "md",
   stickerSize,
   sticker = false,
+  showPrice = false,
   className = "",
 }: {
   product: Product;
@@ -22,6 +23,8 @@ export default function AddToCartButton({
   stickerSize?: number | null;
   /** Sticker-style button (yellow, white die-cut edge, corner peel on hover). */
   sticker?: boolean;
+  /** "Add to cart · ₹80" — keeps the price right next to the action. */
+  showPrice?: boolean;
   className?: string;
 }) {
   const { add, items } = useCart();
@@ -73,6 +76,7 @@ export default function AddToCartButton({
       ) : (
         <>
           <ShoppingBag className={`size-5 ${sticker ? "peel-icon" : ""}`} /> Add to cart
+          {showPrice && <span className="tabular-nums">· {formatINR(price)}</span>}
         </>
       )}
     </button>
