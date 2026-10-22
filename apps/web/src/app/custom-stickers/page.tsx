@@ -5,9 +5,9 @@ import HoverLink from "@/components/hover-link";
 import { pageMetadata } from "@/lib/site";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Custom Stickers – Your Design or QR Code, Printed in India",
+  title: "Custom Stickers – Your Design, Name or QR Code, Printed in India",
   description:
-    "Make your own stickers: print your logo, photo or artwork, or create a UPI / WhatsApp / website QR code sticker. Waterproof die-cut vinyl, any quantity, shipped across India.",
+    "Make your own stickers: print your logo, photo or artwork, make a name sticker in fun fonts, or create a UPI / WhatsApp / website QR code sticker. Waterproof die-cut vinyl, any quantity, shipped across India.",
   path: "/custom-stickers",
 });
 
@@ -16,21 +16,24 @@ const OPTIONS = [
     href: "/custom-stickers/design",
     icon: ImageUp,
     title: "Your design",
-    text: "Upload your logo, photo or artwork and we print it as a die-cut sticker.",
-    cta: "Upload your design",
+    text: "Upload your logo, photo or artwork.",
   },
   {
     href: "/qr-code-stickers",
     icon: QrCode,
     title: "QR code sticker",
-    text: "UPI payments, WhatsApp, Instagram or your website — with a label like “Scan to pay”.",
-    cta: "Make a QR sticker",
+    text: "UPI, WhatsApp or website QR.",
+  },
+  {
+    href: "/name-stickers",
+    icon: Type,
+    title: "Name & text",
+    text: "Your name in fun sticker fonts.",
   },
 ];
 
 const COMING_SOON = [
-  { icon: Type, title: "Name & text stickers", text: "Your name or a short line in fun sticker fonts." },
-  { icon: Sparkles, title: "Sticker packs", text: "Pick a few designs and get them as one pack." },
+  { icon: Sparkles, title: "Sticker packs", text: "A few designs as one pack." },
 ];
 
 /** Custom stickers: choose what to make first. */
@@ -42,30 +45,32 @@ export default function CustomStickersPage() {
         What would you like to make? Waterproof die-cut vinyl, printed to order and shipped across India.
       </p>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        {OPTIONS.map(({ href, icon: Icon, title, text, cta }) => (
+      <div className="mt-5 grid gap-2.5 lg:grid-cols-3 lg:gap-3">
+        {OPTIONS.map(({ href, icon: Icon, title, text }) => (
           <HoverLink
             key={href}
             href={href}
-            className="group rounded-3xl border border-line bg-ink2 p-5 shadow-[0_20px_50px_-34px_rgba(16,24,40,0.4)] transition-all hover:-translate-y-0.5 hover:border-brand/50 sm:p-6"
+            className="group flex items-center gap-3 rounded-2xl border border-line bg-ink2 p-3 shadow-[0_14px_36px_-28px_rgba(16,24,40,0.45)] transition-all hover:-translate-y-0.5 hover:border-brand/50 sm:p-3.5"
           >
-            <span className="pie-gradient grid size-12 place-items-center rounded-2xl text-white shadow-lg shadow-brand/25">
-              <Icon className="size-6" />
+            <span className="pie-gradient grid size-11 shrink-0 place-items-center rounded-xl text-white shadow-md shadow-brand/25">
+              <Icon className="size-5" />
             </span>
-            <span className="mt-4 block font-display text-xl font-bold">{title}</span>
-            <span className="mt-1 block text-sm text-fog">{text}</span>
-            <span className="peel-btn mt-5 inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-bold">
-              {cta} <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+            <span className="min-w-0 flex-1">
+              <span className="block font-display text-base leading-tight font-bold">{title}</span>
+              <span className="mt-0.5 line-clamp-2 block text-xs leading-snug text-fog">{text}</span>
+            </span>
+            <span className="peel-btn grid size-8 shrink-0 place-items-center rounded-full transition-transform group-hover:translate-x-0.5">
+              <ArrowRight className="size-4" />
             </span>
           </HoverLink>
         ))}
       </div>
 
-      <h2 className="mt-8 text-xs font-semibold tracking-widest text-fog uppercase">Coming soon</h2>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+      <h2 className="mt-6 text-xs font-semibold tracking-widest text-fog uppercase">Coming soon</h2>
+      <div className="mt-2 grid gap-2.5 lg:grid-cols-3 lg:gap-3">
         {COMING_SOON.map(({ icon: Icon, title, text }) => (
-          <div key={title} className="flex items-center gap-3 rounded-2xl border border-dashed border-line bg-ink2/60 p-4">
-            <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-panel text-fog">
+          <div key={title} className="flex items-center gap-3 rounded-2xl border border-dashed border-line bg-ink2/60 p-3">
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-panel text-fog">
               <Icon className="size-5" />
             </span>
             <span className="min-w-0">

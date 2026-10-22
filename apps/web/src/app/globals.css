@@ -529,6 +529,272 @@ select option {
     height: 22px;
   }
 }
+/* a card as a sticker: tinted face (--tint), white die-cut edge, and the
+   top-right corner peels on hover / while pressed (order list cards) */
+.peel-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--tint, #f4f5f8);
+  border: 3px solid #ffffff;
+  box-shadow:
+    0 0 0 1px rgba(16, 24, 40, 0.07),
+    0 8px 18px -12px rgba(16, 24, 40, 0.35);
+  transition:
+    box-shadow 0.3s ease,
+    transform 0.2s ease;
+}
+.peel-card::before,
+.peel-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  transition:
+    width 0.35s cubic-bezier(0.3, 0.7, 0.2, 1),
+    height 0.35s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+.peel-card::before {
+  background: var(--color-ink);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+.peel-card::after {
+  background: linear-gradient(45deg, #c9cdd6 0%, #eceef2 38%, #ffffff 70%);
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+  border-bottom-left-radius: 8px;
+  box-shadow: -2px 2px 4px rgba(16, 24, 40, 0.12);
+}
+.peel-card:active::before,
+.peel-card:active::after {
+  width: 18px;
+  height: 18px;
+}
+@media (hover: hover) {
+  .peel-card:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 0 0 1px rgba(16, 24, 40, 0.07),
+      0 14px 24px -14px rgba(16, 24, 40, 0.4);
+  }
+  .peel-card:hover::before,
+  .peel-card:hover::after {
+    width: 20px;
+    height: 20px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .peel-card,
+  .peel-card::before,
+  .peel-card::after {
+    transition: none;
+  }
+}
+/* packed order: kraft-paper parcel with a strip of tape over the corner */
+.card-packed {
+  background:
+    repeating-linear-gradient(115deg, rgba(120, 80, 30, 0.035) 0 2px, transparent 2px 7px),
+    var(--tint);
+}
+.parcel-tape {
+  position: absolute;
+  top: 4px;
+  left: -36px;
+  width: 104px;
+  height: 22px;
+  transform: rotate(-38deg);
+  background: linear-gradient(180deg, rgba(222, 186, 120, 0.75), rgba(205, 165, 95, 0.75));
+  box-shadow: 0 1px 2px rgba(80, 50, 10, 0.18);
+  pointer-events: none;
+  /* torn tape ends */
+  clip-path: polygon(0 8%, 4% 0, 96% 6%, 100% 0, 100% 100%, 96% 92%, 4% 100%, 0 94%);
+}
+.parcel-tape::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.18) 0 3px, transparent 3px 9px);
+}
+
+/* to pay: a coupon with a dashed cut line and a soft shine sweeping across */
+.card-pending {
+  outline: 2px dashed rgba(217, 119, 6, 0.45);
+  outline-offset: -8px;
+}
+.card-shine {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.7) 50%, transparent 65%);
+  background-size: 250% 100%;
+  animation: card-shine 3.2s ease-in-out infinite;
+}
+@keyframes card-shine {
+  0% { background-position: 130% 0; }
+  60%, 100% { background-position: -30% 0; }
+}
+
+/* paid: a little confetti in the corner */
+.card-paid {
+  background:
+    radial-gradient(circle at 52% 14%, #f472b6 0 3px, transparent 3.5px),
+    radial-gradient(circle at 57% 26%, #facc15 0 2.5px, transparent 3px),
+    radial-gradient(circle at 62% 12%, #34d399 0 2.5px, transparent 3px),
+    radial-gradient(circle at 48% 28%, #60a5fa 0 2px, transparent 2.5px),
+    radial-gradient(circle at 66% 22%, #a78bfa 0 2px, transparent 2.5px),
+    var(--tint);
+}
+
+/* shipped: airmail envelope stripes along the top */
+.airmail-edge {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 6px;
+  pointer-events: none;
+  background: repeating-linear-gradient(-45deg, #e8336d 0 8px, #ffffff 8px 13px, #2563eb 13px 21px, #ffffff 21px 26px);
+}
+
+/* delivered: a round postmark stamp */
+.postmark {
+  position: absolute;
+  right: 3rem;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  transform: translateY(-50%) rotate(-14deg);
+  border-radius: 999px;
+  border: 2.5px double rgba(22, 163, 74, 0.5);
+  outline: 1.5px dashed rgba(22, 163, 74, 0.35);
+  outline-offset: 2px;
+  color: rgba(22, 163, 74, 0.6);
+  font-family: var(--font-fredoka), sans-serif;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  line-height: 1;
+  align-content: center;
+  gap: 1px;
+  pointer-events: none;
+}
+
+/* payment failed: warning stripes down the left edge */
+.hazard-edge {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 6px;
+  pointer-events: none;
+  background: repeating-linear-gradient(45deg, #e8336d 0 6px, #ffffff 6px 11px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-shine {
+    animation: none;
+  }
+}
+html[data-lite] .card-shine {
+  animation: none;
+}
+
+/* order progress: each step a little round sticker, joined by tape */
+.step-sticker {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  color: rgba(16, 24, 40, 0.3);
+  border: 2px dashed rgba(16, 24, 40, 0.2);
+}
+.step-sticker.is-done {
+  background: var(--step, #16a34a);
+  color: #ffffff;
+  border: 3px solid #ffffff;
+  box-shadow:
+    0 0 0 1px rgba(16, 24, 40, 0.08),
+    0 4px 8px -3px rgba(16, 24, 40, 0.35);
+}
+/* where the order is now: a bit bigger, with its edge just lifting */
+.step-sticker.is-current {
+  width: 36px;
+  height: 36px;
+  margin-top: -2px;
+  animation: step-stick 0.5s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+}
+.step-sticker.is-current::after {
+  content: "";
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 11px;
+  height: 11px;
+  border-radius: 0 999px 0 4px;
+  background: linear-gradient(45deg, #c9cdd6 0%, #eceef2 45%, #ffffff 75%);
+  clip-path: polygon(0 0, 100% 100%, 0 100%);
+  box-shadow: -1px 1px 2px rgba(16, 24, 40, 0.2);
+}
+@keyframes step-stick {
+  from {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+.progress-tape {
+  background:
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.3) 0 4px, transparent 4px 8px),
+    var(--step, #16a34a);
+  opacity: 0.85;
+  clip-path: polygon(0 0, 100% 10%, 98% 50%, 100% 90%, 0 100%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .step-sticker.is-current {
+    animation: none;
+  }
+}
+
+/* cancelled order: a torn-off, faded sticker with a void stamp */
+.torn-card {
+  position: relative;
+  overflow: hidden;
+  background: var(--tint, #eef0f4);
+  padding-bottom: 1.15rem !important;
+  filter: grayscale(0.7);
+  opacity: 0.88;
+  --z: 7px;
+  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / calc(2 * var(--z)) 100%;
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / calc(2 * var(--z)) 100%;
+  transition: opacity 0.2s ease;
+}
+.torn-card:hover {
+  opacity: 1;
+}
+.cancel-stamp {
+  position: absolute;
+  right: 3rem;
+  top: 50%;
+  transform: translateY(-40%) rotate(-12deg);
+  padding: 2px 10px;
+  border: 2.5px solid rgba(71, 85, 105, 0.55);
+  border-radius: 8px;
+  color: rgba(71, 85, 105, 0.6);
+  font-family: var(--font-fredoka), sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+/* pressed for good (e.g. Sign out): the corner keeps peeling before it acts —
+   works on touch screens too, where there's no hover */
+.peel-btn.is-peeling::before,
+.peel-btn.is-peeling::after {
+  width: 70%;
+  height: 100%;
+}
 .peel-btn:focus-visible {
   outline: 2px solid var(--color-brand);
   outline-offset: 2px;
@@ -746,6 +1012,94 @@ select option {
 }
 .cart-label--off {
   animation: label-peel-off 0.55s cubic-bezier(0.5, 0, 0.75, 0.45) both;
+}
+/* the same peel on a small dialog label (shorter sweep for its size) */
+.dialog-label--on {
+  animation: dialog-smooth-down 0.6s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+.dialog-label--off {
+  animation: dialog-peel-off 0.42s cubic-bezier(0.5, 0, 0.75, 0.45) both;
+}
+@keyframes dialog-smooth-down {
+  from {
+    --peel: 900px;
+  }
+  to {
+    --peel: 0px;
+  }
+}
+@keyframes dialog-peel-off {
+  from {
+    --peel: 0px;
+  }
+  to {
+    --peel: 900px;
+  }
+}
+/* accordion rows: the same peel on a small panel label */
+.panel-label--on {
+  animation: panel-smooth-down 0.55s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+.panel-label--off {
+  animation: panel-peel-off 0.36s cubic-bezier(0.5, 0, 0.75, 0.45) both;
+}
+@keyframes panel-smooth-down {
+  from {
+    --peel: 600px;
+  }
+  to {
+    --peel: 0px;
+  }
+}
+@keyframes panel-peel-off {
+  from {
+    --peel: 0px;
+  }
+  to {
+    --peel: 600px;
+  }
+}
+/* full-screen sheets (e.g. actual-size view): same peel, longer sweep */
+.screen-label--on {
+  animation: screen-smooth-down 0.7s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+.screen-label--off {
+  animation: screen-peel-off 0.5s cubic-bezier(0.5, 0, 0.75, 0.45) both;
+}
+@keyframes screen-smooth-down {
+  from {
+    --peel: var(--peel-max, 3000px);
+  }
+  to {
+    --peel: 0px;
+  }
+}
+@keyframes screen-peel-off {
+  from {
+    --peel: 0px;
+  }
+  to {
+    --peel: var(--peel-max, 3000px);
+  }
+}
+.dialog-backdrop {
+  animation: dialog-fade 0.25s ease both;
+}
+@keyframes dialog-fade {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dialog-label--on,
+  .dialog-label--off,
+  .screen-label--on,
+  .screen-label--off,
+  .panel-label--on,
+  .panel-label--off,
+  .dialog-backdrop {
+    animation-duration: 1ms;
+  }
 }
 @keyframes label-smooth-down {
   from {

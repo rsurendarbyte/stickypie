@@ -10,6 +10,7 @@ const COLUMNS: Array<{ title: string; links: Array<{ label: string; href: string
       { label: "New drops", href: "/stickers?sort=new" },
       { label: "Custom stickers", href: "/custom-stickers" },
       { label: "QR code stickers", href: "/qr-code-stickers" },
+      { label: "Name stickers", href: "/name-stickers" },
       ...SURFACES.map((s) => ({ label: s.name, href: `/${s.slug}` })),
     ],
   },

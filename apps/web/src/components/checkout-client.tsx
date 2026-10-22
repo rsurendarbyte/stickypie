@@ -27,7 +27,14 @@ import {
   shippingFor,
 } from "@stickypie/shared";
 import { useStoreSettings } from "@/lib/live-catalog";
-import { authClient, finishSignup, signIn, signOut, startSignup, useShopper } from "@/lib/shopper-auth";
+import {
+  authClient,
+  finishSignup,
+  signIn,
+  signOut,
+  startSignup,
+  useShopper,
+} from "@/lib/shopper-auth";
 import { openPayment } from "@/lib/open-payment";
 import { usePaymentPartner } from "./payment-partner";
 import { lookupPincode } from "@/lib/pincode";
@@ -43,6 +50,7 @@ import AddressTypePicker, { AddressTypeBadge } from "./address-type-picker";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
 import { CheckField, PasswordField, SelectField, TextField } from "./field";
+import LabelModal from "./label-modal";
 import StickerLoader, { PageLoader } from "./sticker-loader";
 
 type FormState = {
@@ -69,8 +77,6 @@ const EMPTY: FormState = {
 
 const CUSTOMER_KEY = "stickypie.customer.v1";
 
-
-
 export default function CheckoutClient() {
   const { items, count, subtotal } = useCart();
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -81,7 +87,9 @@ export default function CheckoutClient() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY);
-  const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof FormState, string>>
+  >({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const shopper = useShopper();
@@ -96,7 +104,10 @@ export default function CheckoutClient() {
   const [codeOpen, setCodeOpen] = useState(false);
   const needsAccount = shopper.enabled && !shopper.email;
   const awaitingCode =
-    needsAccount && authMode === "create" && codeSentTo !== null && codeSentTo === form.email.trim().toLowerCase();
+    needsAccount &&
+    authMode === "create" &&
+    codeSentTo !== null &&
+    codeSentTo === form.email.trim().toLowerCase();
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -108,7 +119,10 @@ export default function CheckoutClient() {
     setAuthError(null);
     setSendingCode(true);
     try {
-      const result = await startSignup(form.email.trim().toLowerCase(), password);
+      const result = await startSignup(
+        form.email.trim().toLowerCase(),
+        password,
+      );
       if ("codeSent" in result) {
         setResendIn(60);
         setCode("");
@@ -116,7 +130,9 @@ export default function CheckoutClient() {
         setCodeSentTo(null);
       }
     } catch (err) {
-      setAuthError(err instanceof Error ? err.message : "Couldn't send the code.");
+      setAuthError(
+        err instanceof Error ? err.message : "Couldn't send the code.",
+      );
     } finally {
       setSendingCode(false);
     }
@@ -127,14 +143,17 @@ export default function CheckoutClient() {
   }>({ status: "idle" });
 
   // Address book (signed-in shoppers): pick a saved address or add a new one.
-  const { addresses, loaded: addressesLoaded } = useSavedAddresses(shopper.email);
+  const { addresses, loaded: addressesLoaded } = useSavedAddresses(
+    shopper.email,
+  );
   const [addressChoice, setAddressChoice] = useState<string | null>(null); // address id or "new"
   const [saveAddress, setSaveAddress] = useState(true);
   const [addressType, setAddressType] = useState<AddressType>("Home");
   const savedChoice = addresses.find((a) => a.id === addressChoice) ?? null;
   // Signed-in shopper whose address book is still loading: don't flash the form.
   const addressesPending =
-    shopper.enabled && (!shopper.ready || (Boolean(shopper.email) && !addressesLoaded));
+    shopper.enabled &&
+    (!shopper.ready || (Boolean(shopper.email) && !addressesLoaded));
 
   function pickAddress(a: SavedAddress) {
     setAddressChoice(a.id);
@@ -155,7 +174,14 @@ export default function CheckoutClient() {
   function pickNewAddress() {
     setAddressChoice("new");
     // Keep who it's for; clear where it goes.
-    setForm((f) => ({ ...f, address1: "", address2: "", city: "", state: "", pincode: "" }));
+    setForm((f) => ({
+      ...f,
+      address1: "",
+      address2: "",
+      city: "",
+      state: "",
+      pincode: "",
+    }));
     // Suggest a type they haven't saved yet (Home → Work → Other).
     const used = new Set(addresses.map((a) => a.label));
     setAddressType(ADDRESS_TYPES.find((t) => !used.has(t)) ?? "Other");
@@ -164,15 +190,20 @@ export default function CheckoutClient() {
 
   // Signed in with saved addresses → start on the default one.
   useEffect(() => {
-    if (addressesLoaded && addresses.length > 0 && addressChoice === null) pickAddress(addresses[0]);
+    if (addressesLoaded && addresses.length > 0 && addressChoice === null)
+      pickAddress(addresses[0]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addressesLoaded, addresses]);
 
   // Shipping depends on distance: known once the PIN code + state are filled in.
   const settings = useStoreSettings();
   const addressKnown =
-    /^[1-9]\d{5}$/.test(form.pincode) && (INDIAN_STATES as readonly string[]).includes(form.state);
-  const quote = addressKnown && settings.loaded ? shippingFor(settings, form.pincode, form.state) : null;
+    /^[1-9]\d{5}$/.test(form.pincode) &&
+    (INDIAN_STATES as readonly string[]).includes(form.state);
+  const quote =
+    addressKnown && settings.loaded
+      ? shippingFor(settings, form.pincode, form.state)
+      : null;
   // GST on top of stickers + shipping — the same sum the server charges.
   const gst = gstOnTop(settings, subtotal, quote?.fee ?? 0);
   const total = subtotal + (quote?.fee ?? 0) + gst.amount;
@@ -180,10 +211,10 @@ export default function CheckoutClient() {
   // Gateway switched on in admin; null until settings load (no wrong-name flash).
   const gatewayName = usePaymentPartner();
 
-
   // Signed-in shoppers order with their account email.
   useEffect(() => {
-    if (shopper.email) setForm((f) => ({ ...f, email: shopper.email ?? f.email }));
+    if (shopper.email)
+      setForm((f) => ({ ...f, email: shopper.email ?? f.email }));
   }, [shopper.email]);
 
   useEffect(() => {
@@ -213,9 +244,21 @@ export default function CheckoutClient() {
     lookupPincode(code).then((result) => {
       if (cancelled) return;
       if (result.status === "ok") {
-        setForm((f) => ({ ...f, city: result.city, state: result.state ?? f.state }));
-        setErrors((e) => ({ ...e, city: undefined, state: undefined, pincode: undefined }));
-        setPin({ status: "ok", label: [result.city, result.state].filter(Boolean).join(", ") });
+        setForm((f) => ({
+          ...f,
+          city: result.city,
+          state: result.state ?? f.state,
+        }));
+        setErrors((e) => ({
+          ...e,
+          city: undefined,
+          state: undefined,
+          pincode: undefined,
+        }));
+        setPin({
+          status: "ok",
+          label: [result.city, result.state].filter(Boolean).join(", "),
+        });
       } else {
         setPin({ status: result.status });
       }
@@ -236,7 +279,7 @@ export default function CheckoutClient() {
     setAuthError(null);
     if (shortBy > 0) {
       setServerError(
-        `Minimum order is ${formatINR(settings.minOrder)} — add ${formatINR(shortBy)} more to check out.`
+        `Minimum order is ${formatINR(settings.minOrder)} — add ${formatINR(shortBy)} more to check out.`,
       );
       return;
     }
@@ -253,13 +296,24 @@ export default function CheckoutClient() {
     }
     // Only a PIN India Post doesn't know blocks the order; if the lookup
     // service is down the shopper can still continue.
-    const verified = pin.status === "checking" ? await lookupPincode(form.pincode) : pin;
+    const verified =
+      pin.status === "checking" ? await lookupPincode(form.pincode) : pin;
     if (verified.status === "notfound") {
-      setErrors((e) => ({ ...e, pincode: "We couldn't find this PIN code — please check it" }));
+      setErrors((e) => ({
+        ...e,
+        pincode: "We couldn't find this PIN code — please check it",
+      }));
       return;
     }
-    if (needsAccount && (authMode === "create" ? password.length < 8 : !password)) {
-      setAuthError(authMode === "create" ? "Choose a password of at least 8 characters." : "Enter your password.");
+    if (
+      needsAccount &&
+      (authMode === "create" ? password.length < 8 : !password)
+    ) {
+      setAuthError(
+        authMode === "create"
+          ? "Choose a password of at least 8 characters."
+          : "Enter your password.",
+      );
       return;
     }
 
@@ -295,18 +349,25 @@ export default function CheckoutClient() {
           session = result.session; // returning shopper, right password
         } else {
           if (!/^\d{6}$/.test(code.trim())) {
-            if (codeOpen) setAuthError("Enter the 6-digit code from your email.");
+            if (codeOpen)
+              setAuthError("Enter the 6-digit code from your email.");
             setCodeOpen(true);
             setSubmitting(false);
             return;
           }
-          session = await finishSignup(parsed.data.email, password, parsed.data.name, code.trim());
+          session = await finishSignup(
+            parsed.data.email,
+            password,
+            parsed.data.name,
+            code.trim(),
+          );
           setCodeSentTo(null);
           setCodeOpen(false);
         }
         token = session?.access_token ?? null;
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Could not sign you in.";
+        const message =
+          err instanceof Error ? err.message : "Could not sign you in.";
         setAuthError(message);
         if (/already exists/i.test(message)) setAuthMode("signin");
         setSubmitting(false);
@@ -341,7 +402,9 @@ export default function CheckoutClient() {
           setAuthError("Your session expired — please sign in again.");
         } else {
           setServerError(
-            typeof data.error === "string" ? data.error : "Something went wrong. Please try again."
+            typeof data.error === "string"
+              ? data.error
+              : "Something went wrong. Please try again.",
           );
         }
         setSubmitting(false);
@@ -349,35 +412,49 @@ export default function CheckoutClient() {
       }
       // Order placed: remember the address in the shopper's book (never blocks payment).
       if (shopper.enabled && token && (savedChoice || saveAddress)) {
-        const { name, phone, address1, address2, city, state, pincode } = parsed.data;
+        const { name, phone, address1, address2, city, state, pincode } =
+          parsed.data;
         const label = savedChoice ? savedChoice.label : addressType;
-        await rememberAddress({ label, name, phone, address1, address2, city, state, pincode }).catch(
-          () => {}
-        );
+        await rememberAddress({
+          label,
+          name,
+          phone,
+          address1,
+          address2,
+          city,
+          state,
+          pincode,
+        }).catch(() => {});
       }
       // Closing the Razorpay window → the order page offers "Pay now".
-      await openPayment(data, (url) => router.push(url), (orderId) => router.push(`/order/${orderId}`));
+      await openPayment(
+        data,
+        (url) => router.push(url),
+        (orderId) => router.push(`/order/${orderId}`),
+      );
     } catch (err) {
       setServerError(
         err instanceof Error && /payment window/.test(err.message)
           ? err.message
-          : "Could not reach the payment service. Please try again."
+          : "Could not reach the payment service. Please try again.",
       );
       setSubmitting(false);
     }
   }
 
   if (!mounted) {
-    return (
-      <PageLoader />
-    );
+    return <PageLoader />;
   }
 
   if (items.length === 0 && !submitting) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-4 text-center">
-        <p className="font-display text-2xl font-semibold">Your cart is empty</p>
-        <p className="text-sm text-fog">Add a few stickers before checking out.</p>
+        <p className="font-display text-2xl font-semibold">
+          Your cart is empty
+        </p>
+        <p className="text-sm text-fog">
+          Add a few stickers before checking out.
+        </p>
         <Link
           href="/stickers"
           className="peel-btn peel-btn--brand rounded-xl px-6 py-2.5 text-sm font-semibold"
@@ -392,7 +469,7 @@ export default function CheckoutClient() {
     name: keyof FormState,
     label: string,
     props: React.InputHTMLAttributes<HTMLInputElement> = {},
-    span = false
+    span = false,
   ) => (
     <TextField
       label={label}
@@ -409,9 +486,13 @@ export default function CheckoutClient() {
   const PREVIEW_LINES = 4;
   const hiddenLines = Math.max(items.length - PREVIEW_LINES, 0);
   const visibleItems = showAllItems ? items : items.slice(0, PREVIEW_LINES);
-  const steps = shopper.enabled ? (["account", "address", "payment"] as const) : (["address", "payment"] as const);
-  const stepNo = (key: (typeof steps)[number]) => steps.indexOf(key as never) + 1;
-  const addressDone = Boolean(savedChoice) && !Object.values(errors).some(Boolean);
+  const steps = shopper.enabled
+    ? (["account", "address", "payment"] as const)
+    : (["address", "payment"] as const);
+  const stepNo = (key: (typeof steps)[number]) =>
+    steps.indexOf(key as never) + 1;
+  const addressDone =
+    Boolean(savedChoice) && !Object.values(errors).some(Boolean);
 
   const payLabel = (compact: boolean) =>
     needsAccount
@@ -443,16 +524,21 @@ export default function CheckoutClient() {
       {shortBy > 0 && (
         <div className="rounded-xl border border-gold/40 bg-gold/10 px-3.5 py-2.5 text-xs text-snow">
           <p>
-            Minimum order is <b>{formatINR(settings.minOrder)}</b> — add <b>{formatINR(shortBy)}</b> more to
-            check out.
+            Minimum order is <b>{formatINR(settings.minOrder)}</b> — add{" "}
+            <b>{formatINR(shortBy)}</b> more to check out.
           </p>
-          <Link href="/stickers" className="mt-1 inline-block font-semibold text-brand hover:underline">
+          <Link
+            href="/stickers"
+            className="mt-1 inline-block font-semibold text-brand hover:underline"
+          >
             Add more stickers →
           </Link>
         </div>
       )}
       {serverError && (
-        <p className="rounded-xl border border-brand/40 bg-brand/10 px-3.5 py-2.5 text-xs text-brand">{serverError}</p>
+        <p className="rounded-xl border border-brand/40 bg-brand/10 px-3.5 py-2.5 text-xs text-brand">
+          {serverError}
+        </p>
       )}
     </>
   );
@@ -467,14 +553,20 @@ export default function CheckoutClient() {
           >
             <ArrowLeft className="size-3.5" /> Continue shopping
           </Link>
-          <h1 className="mt-1 font-display text-2xl font-bold sm:text-3xl">Checkout</h1>
+          <h1 className="mt-1 font-display text-2xl font-bold sm:text-3xl">
+            Checkout
+          </h1>
         </div>
         <p className="inline-flex items-center gap-1.5 rounded-full border border-mint/30 bg-mint/10 px-3 py-1 text-[11px] font-semibold text-mint">
           <ShieldCheck className="size-3.5" /> Secure checkout
         </p>
       </div>
 
-      <form id="checkout-form" onSubmit={submit} className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:gap-7">
+      <form
+        id="checkout-form"
+        onSubmit={submit}
+        className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:gap-7"
+      >
         <div ref={formColumn} className="space-y-4 lg:sticky">
           {/* ── Account ───────────────────────────────────────────────── */}
           {shopper.enabled && (
@@ -488,7 +580,9 @@ export default function CheckoutClient() {
                   <span className="pie-gradient grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold text-white uppercase">
                     {shopper.email!.charAt(0)}
                   </span>
-                  <p className="min-w-0 flex-1 truncate text-sm font-semibold">{shopper.email}</p>
+                  <p className="min-w-0 flex-1 truncate text-sm font-semibold">
+                    {shopper.email}
+                  </p>
                   <button
                     type="button"
                     onClick={() => signOut()}
@@ -499,7 +593,10 @@ export default function CheckoutClient() {
                 </div>
               ) : (
                 <>
-                  <div role="tablist" className="grid grid-cols-2 rounded-xl border border-line bg-ink p-1 text-sm font-semibold">
+                  <div
+                    role="tablist"
+                    className="grid grid-cols-2 rounded-xl border border-line bg-ink p-1 text-sm font-semibold"
+                  >
                     {(["create", "signin"] as const).map((mode) => (
                       <button
                         key={mode}
@@ -511,24 +608,41 @@ export default function CheckoutClient() {
                           setAuthError(null);
                         }}
                         className={`rounded-lg py-2 transition-colors ${
-                          authMode === mode ? "pie-gradient text-white shadow" : "text-fog hover:text-snow"
+                          authMode === mode
+                            ? "pie-gradient text-white shadow"
+                            : "text-fog hover:text-snow"
                         }`}
                       >
-                        {mode === "create" ? "I'm new here" : "I have an account"}
+                        {mode === "create"
+                          ? "I'm new here"
+                          : "I have an account"}
                       </button>
                     ))}
                   </div>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    {field("email", "Email", { type: "email", autoComplete: "email" })}
+                    {field("email", "Email", {
+                      type: "email",
+                      autoComplete: "email",
+                    })}
                     <PasswordField
-                      label={authMode === "create" ? "Create a password" : "Password"}
+                      label={
+                        authMode === "create" ? "Create a password" : "Password"
+                      }
                       value={password}
                       onChange={(e) => {
                         setPassword(e.target.value);
                         setAuthError(null);
                       }}
-                      autoComplete={authMode === "create" ? "new-password" : "current-password"}
-                      hint={authMode === "create" ? "8+ characters — to track your order" : undefined}
+                      autoComplete={
+                        authMode === "create"
+                          ? "new-password"
+                          : "current-password"
+                      }
+                      hint={
+                        authMode === "create"
+                          ? "8+ characters — to track your order"
+                          : undefined
+                      }
                     />
                   </div>
                   {authMode === "signin" && (
@@ -563,7 +677,11 @@ export default function CheckoutClient() {
               </p>
             )}
             {addresses.length > 0 && (
-              <div role="radiogroup" aria-label="Saved addresses" className="space-y-2">
+              <div
+                role="radiogroup"
+                aria-label="Saved addresses"
+                className="space-y-2"
+              >
                 {addresses.map((a) => {
                   const active = addressChoice === a.id;
                   return (
@@ -590,7 +708,9 @@ export default function CheckoutClient() {
                             </span>
                           )}
                         </span>
-                        <span className="mt-0.5 block text-fog">{addressLine(a)}</span>
+                        <span className="mt-0.5 block text-fog">
+                          {addressLine(a)}
+                        </span>
                         <span className="block text-fog">
                           {a.state} · {a.phone}
                         </span>
@@ -645,11 +765,21 @@ export default function CheckoutClient() {
                 autoComplete="tel-national"
                 value={form.phone}
                 onChange={(e) =>
-                  set("phone", e.target.value.replace(/\D/g, "").replace(/^91(?=\d{10})/, "").slice(0, 10))
+                  set(
+                    "phone",
+                    e.target.value
+                      .replace(/\D/g, "")
+                      .replace(/^91(?=\d{10})/, "")
+                      .slice(0, 10),
+                  )
                 }
                 error={errors.phone}
                 hint="For delivery updates from the courier"
-                className={shopper.enabled ? "col-span-2 sm:col-span-3" : "col-span-2 sm:col-span-6"}
+                className={
+                  shopper.enabled
+                    ? "col-span-2 sm:col-span-3"
+                    : "col-span-2 sm:col-span-6"
+                }
               />
 
               <TextField
@@ -657,8 +787,13 @@ export default function CheckoutClient() {
                 inputMode="numeric"
                 autoComplete="postal-code"
                 value={form.pincode}
-                onChange={(e) => set("pincode", e.target.value.replace(/\D/g, "").slice(0, 6))}
-                error={errors.pincode ?? (pin.status === "notfound" ? "PIN code not found" : undefined)}
+                onChange={(e) =>
+                  set("pincode", e.target.value.replace(/\D/g, "").slice(0, 6))
+                }
+                error={
+                  errors.pincode ??
+                  (pin.status === "notfound" ? "PIN code not found" : undefined)
+                }
                 className="sm:col-span-2"
               />
               <TextField
@@ -692,12 +827,14 @@ export default function CheckoutClient() {
               )}
               {pin.status === "ok" && (
                 <p className="col-span-2 -mt-1 flex items-center gap-1.5 text-xs font-medium text-mint sm:col-span-6">
-                  <CheckCircle2 className="size-3.5" /> PIN verified · {pin.label}
+                  <CheckCircle2 className="size-3.5" /> PIN verified ·{" "}
+                  {pin.label}
                 </p>
               )}
               {pin.status === "unavailable" && (
                 <p className="col-span-2 -mt-1 text-xs text-fog sm:col-span-6">
-                  Couldn&apos;t verify the PIN right now — please double-check city and state.
+                  Couldn&apos;t verify the PIN right now — please double-check
+                  city and state.
                 </p>
               )}
 
@@ -718,9 +855,18 @@ export default function CheckoutClient() {
               />
               {shopper.enabled && (
                 <div className="col-span-2 flex flex-wrap items-end justify-between gap-3 sm:col-span-6">
-                  {saveAddress && <AddressTypePicker value={addressType} onChange={setAddressType} />}
+                  {saveAddress && (
+                    <AddressTypePicker
+                      value={addressType}
+                      onChange={setAddressType}
+                    />
+                  )}
                   <CheckField
-                    label={<span className="text-xs text-fog">Save for next time</span>}
+                    label={
+                      <span className="text-xs text-fog">
+                        Save for next time
+                      </span>
+                    }
                     checked={saveAddress}
                     onChange={setSaveAddress}
                   />
@@ -729,7 +875,8 @@ export default function CheckoutClient() {
             </div>
             {savedChoice && Object.values(errors).some(Boolean) && (
               <p className="mt-2 text-xs text-brand">
-                This saved address needs an update — choose “Deliver to a new address” and enter it again.
+                This saved address needs an update — choose “Deliver to a new
+                address” and enter it again.
               </p>
             )}
 
@@ -737,7 +884,9 @@ export default function CheckoutClient() {
               <p className="mt-3 flex items-center gap-2 rounded-xl bg-panel px-3.5 py-2.5 text-xs text-fog">
                 <Truck className="size-4 shrink-0 text-brand" />
                 <span>
-                  Shipping to <b className="text-snow">{form.city || form.state}</b> · {ZONE_LABELS[quote.zone]} ·{" "}
+                  Shipping to{" "}
+                  <b className="text-snow">{form.city || form.state}</b> ·{" "}
+                  {ZONE_LABELS[quote.zone]} ·{" "}
                   <b className="text-snow">{formatINR(quote.fee)}</b>
                 </span>
               </p>
@@ -757,8 +906,10 @@ export default function CheckoutClient() {
               ))}
             </div>
             <p className="mt-2.5 text-xs leading-relaxed text-fog">
-              You&apos;ll pay securely{gatewayName ? ` with ${gatewayName}` : ""}. Your order is confirmed the moment the payment goes
-              through — you&apos;re never charged twice.
+              You&apos;ll pay securely
+              {gatewayName ? ` with ${gatewayName}` : ""}. Your order is
+              confirmed the moment the payment goes through — you&apos;re never
+              charged twice.
             </p>
           </Step>
 
@@ -766,7 +917,10 @@ export default function CheckoutClient() {
         </div>
 
         {/* ── Order summary (collapsible on phones) ─────────────────── */}
-        <aside ref={summaryColumn} className="order-first rounded-2xl border border-line bg-ink2 lg:sticky lg:order-none">
+        <aside
+          ref={summaryColumn}
+          className="order-first rounded-2xl border border-line bg-ink2 lg:sticky lg:order-none"
+        >
           <button
             type="button"
             onClick={() => setSummaryOpen((o) => !o)}
@@ -779,24 +933,39 @@ export default function CheckoutClient() {
                   key={lineKey(item)}
                   className="grid size-9 place-items-center rounded-lg bg-panel p-0.5 ring-2 ring-ink2"
                 >
-                  <img src={item.thumbUrl ?? item.imageUrl} alt="" className="max-h-full max-w-full object-contain" />
+                  <img
+                    src={item.thumbUrl ?? item.imageUrl}
+                    alt=""
+                    className="max-h-full max-w-full object-contain"
+                  />
                 </span>
               ))}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block font-display text-base font-semibold">Order summary</span>
+              <span className="block font-display text-base font-semibold">
+                Order summary
+              </span>
               <span className="block text-xs text-fog">
                 {count} sticker{count === 1 ? "" : "s"}
-                {items.length > 1 && <span className="hidden sm:inline"> · {items.length} designs</span>}
+                {items.length > 1 && (
+                  <span className="hidden sm:inline">
+                    {" "}
+                    · {items.length} designs
+                  </span>
+                )}
               </span>
             </span>
-            <span className="text-base font-bold tabular-nums lg:hidden">{formatINR(total)}</span>
+            <span className="text-base font-bold tabular-nums lg:hidden">
+              {formatINR(total)}
+            </span>
             <ChevronDown
               className={`size-4 text-fog transition-transform lg:hidden ${summaryOpen ? "rotate-180" : ""}`}
             />
           </button>
 
-          <div className={`${summaryOpen ? "" : "hidden"} px-4 pb-4 lg:block lg:px-5 lg:pb-5`}>
+          <div
+            className={`${summaryOpen ? "" : "hidden"} px-4 pb-4 lg:block lg:px-5 lg:pb-5`}
+          >
             <ul className="mt-1 divide-y divide-line/70">
               {visibleItems.map((item) => (
                 <li key={lineKey(item)} className="flex gap-3 py-3">
@@ -811,13 +980,19 @@ export default function CheckoutClient() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="line-clamp-2 text-[13px] leading-snug font-semibold">{item.name}</p>
+                      <p className="line-clamp-2 text-[13px] leading-snug font-semibold">
+                        {item.name}
+                      </p>
                       <span className="shrink-0 text-sm font-bold tabular-nums">
                         {formatINR(item.price * item.qty)}
                       </span>
                     </div>
                     <p className="mt-0.5 text-[11px] text-fog">
-                      {item.size && <span className="font-semibold text-snow/80">{item.size}″ · </span>}
+                      {item.size && (
+                        <span className="font-semibold text-snow/80">
+                          {item.size}″ ·{" "}
+                        </span>
+                      )}
                       {formatINR(item.price)} each
                     </p>
                     <CartStepper item={item} size="sm" className="mt-1.5" />
@@ -832,34 +1007,53 @@ export default function CheckoutClient() {
                 aria-expanded={showAllItems}
                 className="mt-1 flex w-full items-center justify-center gap-1.5 rounded-xl border border-line bg-ink py-2.5 text-xs font-semibold text-snow transition-colors hover:border-brand/50 hover:text-brand"
               >
-                {showAllItems ? "Show less" : `Show all ${items.length} items (+${hiddenLines} more)`}
-                <ChevronDown className={`size-3.5 transition-transform ${showAllItems ? "rotate-180" : ""}`} />
+                {showAllItems
+                  ? "Show less"
+                  : `Show all ${items.length} items (+${hiddenLines} more)`}
+                <ChevronDown
+                  className={`size-3.5 transition-transform ${showAllItems ? "rotate-180" : ""}`}
+                />
               </button>
             )}
 
             <dl className="mt-2 space-y-1.5 border-t border-line pt-3 text-sm">
               <div className="flex justify-between text-fog">
                 <dt>Subtotal</dt>
-                <dd className="text-snow tabular-nums">{formatINR(subtotal)}</dd>
+                <dd className="text-snow tabular-nums">
+                  {formatINR(subtotal)}
+                </dd>
               </div>
               <div className="flex justify-between gap-3 text-fog">
                 <dt>
                   Shipping
-                  {quote && <span className="text-xs"> · {ZONE_LABELS[quote.zone]}</span>}
+                  {quote && (
+                    <span className="text-xs">
+                      {" "}
+                      · {ZONE_LABELS[quote.zone]}
+                    </span>
+                  )}
                 </dt>
                 <dd className={quote ? "text-snow tabular-nums" : "text-xs"}>
-                  {quote ? formatINR(quote.fee) : addressKnown ? "Calculating…" : "Add your address"}
+                  {quote
+                    ? formatINR(quote.fee)
+                    : addressKnown
+                      ? "Calculating…"
+                      : "Add your address"}
                 </dd>
               </div>
               {gst.rate > 0 && (
                 <div className="flex justify-between text-fog">
                   <dt>GST ({gst.rate}%)</dt>
-                  <dd className="text-snow tabular-nums">{formatINR(gst.amount)}</dd>
+                  <dd className="text-snow tabular-nums">
+                    {formatINR(gst.amount)}
+                  </dd>
                 </div>
               )}
               <div className="flex items-baseline justify-between border-t border-line pt-2">
                 <dt className="font-semibold">Total</dt>
-                <dd className="text-xl font-bold tabular-nums">{formatINR(total)}</dd>
+                <dd className="text-xl font-bold tabular-nums">
+                  {formatINR(total)}
+                </dd>
               </div>
             </dl>
 
@@ -867,17 +1061,22 @@ export default function CheckoutClient() {
 
             <ul className="mt-4 space-y-1.5 text-[11px] text-fog">
               <li className="flex items-center gap-2">
-                <ShieldCheck className="size-3.5 shrink-0 text-mint" /> Payments secured{gatewayName ? ` by ${gatewayName}` : ""}
+                <ShieldCheck className="size-3.5 shrink-0 text-mint" /> Payments
+                secured{gatewayName ? ` by ${gatewayName}` : ""}
               </li>
               <li className="flex items-center gap-2">
-                <PackageCheck className="size-3.5 shrink-0 text-mint" /> Damaged or wrong sticker? Free replacement
+                <PackageCheck className="size-3.5 shrink-0 text-mint" /> Damaged
+                or wrong sticker? Free replacement
               </li>
             </ul>
           </div>
         </aside>
 
         {/* ── Pay bar, pinned to the bottom on every screen ────────────── */}
-        <div ref={payBar} className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-ink/95 pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-8px_24px_-12px_rgba(16,24,40,0.25)] backdrop-blur">
+        <div
+          ref={payBar}
+          className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-ink/95 pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-8px_24px_-12px_rgba(16,24,40,0.25)] backdrop-blur"
+        >
           <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-8 lg:gap-6">
             <div className="shrink-0">
               <p className="text-[11px] text-fog">
@@ -888,105 +1087,132 @@ export default function CheckoutClient() {
                   {quote ? ` · incl. shipping + GST` : ""}
                 </span>
               </p>
-              <p className="text-lg leading-tight font-bold tabular-nums lg:text-xl">{formatINR(total)}</p>
+              <p className="text-lg leading-tight font-bold tabular-nums lg:text-xl">
+                {formatINR(total)}
+              </p>
             </div>
             <p className="hidden min-w-0 flex-1 items-center justify-end gap-1.5 text-[11px] text-fog lg:flex">
-              <ShieldCheck className="size-3.5 shrink-0 text-mint" /> UPI · Cards · NetBanking — secured{gatewayName ? ` by ${gatewayName}` : ""}
+              <ShieldCheck className="size-3.5 shrink-0 text-mint" /> UPI ·
+              Cards · NetBanking — secured
+              {gatewayName ? ` by ${gatewayName}` : ""}
             </p>
-            <span className="contents sm:hidden">{payButton("min-w-0 flex-1 py-3 text-sm", true)}</span>
-            <span className="hidden sm:contents">{payButton("ml-auto min-w-0 flex-1 py-3 text-sm lg:ml-0 lg:w-[340px] lg:flex-none")}</span>
+            <span className="contents sm:hidden">
+              {payButton("min-w-0 flex-1 py-3 text-sm", true)}
+            </span>
+            <span className="hidden sm:contents">
+              {payButton(
+                "ml-auto min-w-0 flex-1 py-3 text-sm lg:ml-0 lg:w-[340px] lg:flex-none",
+              )}
+            </span>
           </div>
         </div>
       </form>
 
       {/* ── Email code pop-up (new accounts) ───────────────────────────── */}
-      {awaitingCode && codeOpen && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="code-title"
-          className="fixed inset-0 z-[70] grid place-items-center bg-snow/40 px-4 backdrop-blur-sm"
-        >
-          <div className="w-full max-w-sm rounded-3xl border border-line bg-ink p-6 text-center shadow-2xl">
-            <div className="flex justify-end">
-              <button
-                type="button"
-                aria-label="Close"
-                onClick={() => {
-                  setCodeOpen(false);
-                  setAuthError(null);
-                }}
-                className="-mt-2 -mr-2 grid size-9 place-items-center rounded-full text-fog transition-colors hover:bg-snow/5 hover:text-snow"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-            <span className="pie-gradient mx-auto -mt-4 grid size-14 place-items-center rounded-2xl text-white shadow-lg shadow-brand/25">
-              <MailCheck className="size-7" />
-            </span>
-            <h2 id="code-title" className="mt-4 font-display text-2xl font-bold">
-              Check your email
-            </h2>
-            <p className="mt-1.5 text-sm text-fog">
-              We sent a 6-digit code to
-              <br />
-              <b className="break-all text-snow">{codeSentTo}</b>
-            </p>
-            <input
-              value={code}
-              onChange={(e) => {
-                setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+      <LabelModal
+        open={awaitingCode && codeOpen}
+        onClose={() => {
+          setCodeOpen(false);
+          setAuthError(null);
+        }}
+        labelledBy="code-title"
+        className="max-w-sm p-6 text-center"
+      >
+        <div>
+          <div className="flex justify-end">
+            <button
+              type="button"
+              aria-label="Close"
+              onClick={() => {
+                setCodeOpen(false);
                 setAuthError(null);
               }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  (document.getElementById("checkout-form") as HTMLFormElement | null)?.requestSubmit();
-                }
-              }}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              placeholder="••••••"
-              aria-label="6-digit code"
-              autoFocus
-              className="mt-5 h-14 w-full rounded-2xl border border-line bg-ink2 px-4 text-center font-display text-2xl font-bold tracking-[0.5em] outline-none focus:border-brand/60 focus:shadow-[0_0_0_3px_rgba(255,46,99,0.12)]"
-            />
-            {authError && <p className="mt-2 text-xs font-medium text-brand">{authError}</p>}
-            <button
-              type="submit"
-              form="checkout-form"
-              disabled={submitting || code.length !== 6}
-              className="peel-btn peel-btn--brand mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold disabled:opacity-50"
+              className="-mt-2 -mr-2 grid size-9 place-items-center rounded-full text-fog transition-colors hover:bg-snow/5 hover:text-snow"
             >
-              {submitting ? <StickerLoader size={18} variant="onBrand" /> : <Lock className="size-4" />}
-              {submitting ? "Verifying…" : `Verify & pay ${formatINR(total)}`}
+              <X className="size-5" />
             </button>
-            <div className="mt-4 flex items-center justify-between text-xs">
-              <button
-                type="button"
-                onClick={resendCode}
-                disabled={resendIn > 0 || sendingCode}
-                className="font-semibold text-brand hover:underline disabled:text-fog disabled:no-underline"
-              >
-                {sendingCode ? "Sending…" : resendIn > 0 ? `Resend in ${resendIn}s` : "Send a new code"}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setCodeSentTo(null);
-                  setCode("");
-                  setCodeOpen(false);
-                  setAuthError(null);
-                }}
-                className="font-semibold text-fog hover:text-snow"
-              >
-                Use a different email
-              </button>
-            </div>
-            <p className="mt-3 text-[11px] text-fog">Can&apos;t find it? Check spam or promotions.</p>
           </div>
+          <span className="pie-gradient mx-auto -mt-4 grid size-14 place-items-center rounded-2xl text-white shadow-lg shadow-brand/25">
+            <MailCheck className="size-7" />
+          </span>
+          <h2 id="code-title" className="mt-4 font-display text-2xl font-bold">
+            Check your email
+          </h2>
+          <p className="mt-1.5 text-sm text-fog">
+            We sent a 6-digit code to
+            <br />
+            <b className="break-all text-snow">{codeSentTo}</b>
+          </p>
+          <input
+            value={code}
+            onChange={(e) => {
+              setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+              setAuthError(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                (
+                  document.getElementById(
+                    "checkout-form",
+                  ) as HTMLFormElement | null
+                )?.requestSubmit();
+              }
+            }}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            placeholder="••••••"
+            aria-label="6-digit code"
+            autoFocus
+            className="mt-5 h-14 w-full rounded-2xl border border-line bg-ink2 px-4 text-center font-display text-2xl font-bold tracking-[0.5em] outline-none focus:border-brand/60 focus:shadow-[0_0_0_3px_rgba(255,46,99,0.12)]"
+          />
+          {authError && (
+            <p className="mt-2 text-xs font-medium text-brand">{authError}</p>
+          )}
+          <button
+            type="submit"
+            form="checkout-form"
+            disabled={submitting || code.length !== 6}
+            className="peel-btn peel-btn--brand mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold disabled:opacity-50"
+          >
+            {submitting ? (
+              <StickerLoader size={18} variant="onBrand" />
+            ) : (
+              <Lock className="size-4" />
+            )}
+            {submitting ? "Verifying…" : `Verify & pay ${formatINR(total)}`}
+          </button>
+          <div className="mt-4 flex items-center justify-between text-xs">
+            <button
+              type="button"
+              onClick={resendCode}
+              disabled={resendIn > 0 || sendingCode}
+              className="font-semibold text-brand hover:underline disabled:text-fog disabled:no-underline"
+            >
+              {sendingCode
+                ? "Sending…"
+                : resendIn > 0
+                  ? `Resend in ${resendIn}s`
+                  : "Send a new code"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCodeSentTo(null);
+                setCode("");
+                setCodeOpen(false);
+                setAuthError(null);
+              }}
+              className="font-semibold text-fog hover:text-snow"
+            >
+              Use a different email
+            </button>
+          </div>
+          <p className="mt-3 text-[11px] text-fog">
+            Can&apos;t find it? Check spam or promotions.
+          </p>
         </div>
-      )}
+      </LabelModal>
     </div>
   );
 }

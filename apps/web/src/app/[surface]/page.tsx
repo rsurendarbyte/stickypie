@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import FaqItem from "@/components/faq-item";
 import { notFound } from "next/navigation";
 import JsonLd from "@/components/json-ld";
 import HoverLink from "@/components/hover-link";
@@ -17,14 +18,26 @@ export function generateStaticParams() {
   return SURFACES.map((s) => ({ surface: s.slug }));
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ surface: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ surface: string }>;
+}): Promise<Metadata> {
   const surface = surfaceBySlug((await params).surface);
   if (!surface) return {};
-  const base = pageMetadata({ title: surface.title, description: surface.description, path: `/${surface.slug}` });
+  const base = pageMetadata({
+    title: surface.title,
+    description: surface.description,
+    path: `/${surface.slug}`,
+  });
   return { ...base, title: { absolute: `${surface.title} | StickyPie` } };
 }
 
-export default async function SurfacePage({ params }: { params: Promise<{ surface: string }> }) {
+export default async function SurfacePage({
+  params,
+}: {
+  params: Promise<{ surface: string }>;
+}) {
   const surface = surfaceBySlug((await params).surface);
   if (!surface) notFound();
 
@@ -42,8 +55,18 @@ export default async function SurfacePage({ params }: { params: Promise<{ surfac
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Stickers", item: absoluteUrl("/stickers") },
-        { "@type": "ListItem", position: 2, name: surface.name, item: absoluteUrl(`/${surface.slug}`) },
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "Stickers",
+          item: absoluteUrl("/stickers"),
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: surface.name,
+          item: absoluteUrl(`/${surface.slug}`),
+        },
       ],
     },
     itemListStructuredData(listed),
@@ -68,23 +91,34 @@ export default async function SurfacePage({ params }: { params: Promise<{ surfac
         <span className="mx-1.5">/</span>
         <span>{surface.name}</span>
       </nav>
-      <h1 className="mt-2 font-display text-3xl font-bold sm:text-4xl">{surface.name}</h1>
-      <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-fog">{surface.intro}</p>
+      <h1 className="mt-2 font-display text-3xl font-bold sm:text-4xl">
+        {surface.name}
+      </h1>
+      <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-fog">
+        {surface.intro}
+      </p>
 
-      <SurfaceGrid slug={surface.slug} initial={{ categories, products: productSnapshot(products) }} />
+      <SurfaceGrid
+        slug={surface.slug}
+        initial={{ categories, products: productSnapshot(products) }}
+      />
 
       <section className="mt-16 grid max-w-5xl gap-8 md:grid-cols-2">
         {surface.sections.map((s) => (
           <div key={s.heading}>
             <h2 className="font-display text-xl font-bold">{s.heading}</h2>
-            <p className="mt-2 text-[15px] leading-relaxed text-fog">{s.body}</p>
+            <p className="mt-2 text-[15px] leading-relaxed text-fog">
+              {s.body}
+            </p>
           </div>
         ))}
       </section>
 
       {popular.length > 0 && (
         <section className="mt-12 max-w-5xl">
-          <h2 className="font-display text-xl font-bold">Popular {surface.name.toLowerCase()}</h2>
+          <h2 className="font-display text-xl font-bold">
+            Popular {surface.name.toLowerCase()}
+          </h2>
           <ul className="mt-3 flex flex-wrap gap-2">
             {popular.map((p) => (
               <li key={p.id}>
@@ -101,24 +135,20 @@ export default async function SurfacePage({ params }: { params: Promise<{ surfac
       )}
 
       <section className="mt-12 max-w-3xl">
-        <h2 className="font-display text-xl font-bold">{surface.name}: questions, answered</h2>
+        <h2 className="font-display text-xl font-bold">
+          {surface.name}: questions, answered
+        </h2>
         <div className="mt-4 divide-y divide-line rounded-2xl border border-line bg-ink2/80">
           {surface.faq.map(({ q, a }) => (
-            <details key={q} className="group px-4 py-3.5">
-              <summary className="cursor-pointer list-none font-semibold text-snow marker:hidden">
-                <span className="flex items-center justify-between gap-4">
-                  {q}
-                  <span className="text-fog transition-transform group-open:rotate-45">+</span>
-                </span>
-              </summary>
-              <p className="mt-2 text-sm leading-relaxed text-fog">{a}</p>
-            </details>
+            <FaqItem key={q} q={q} a={a} />
           ))}
         </div>
       </section>
 
       <section className="mt-12">
-        <h2 className="text-sm font-semibold tracking-wide text-fog uppercase">Stickers for everything else</h2>
+        <h2 className="text-sm font-semibold tracking-wide text-fog uppercase">
+          Stickers for everything else
+        </h2>
         <ul className="mt-3 flex flex-wrap gap-2">
           {SURFACES.filter((s) => s.slug !== surface.slug).map((s) => (
             <li key={s.slug}>

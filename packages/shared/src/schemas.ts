@@ -43,8 +43,8 @@ export const checkoutSchema = z.object({
         size: z.number().int().positive().nullable().optional(),
         /** Custom stickers: id linking the line to artwork kept in the shopper's browser. */
         customRef: z.string().uuid().optional(),
-        /** Custom stickers: "qr" = a QR code sticker made on the site (own prices). */
-        customKind: z.enum(["design", "qr"]).optional(),
+        /** Custom stickers: "qr" / "text" = made on the site (own prices). */
+        customKind: z.enum(["design", "qr", "text"]).optional(),
       })
     )
     .min(1, "Your cart is empty")
@@ -187,6 +187,14 @@ export const storeSettingsSchema = z.object({
       (prices) =>
         Object.keys(prices).every((k) => Number(k) >= MIN_STICKER_INCHES && Number(k) <= MAX_STICKER_INCHES),
       `QR sizes must be ${MIN_STICKER_INCHES}–${MAX_STICKER_INCHES} inches`
+    )
+    .default({}),
+  textPrices: z
+    .record(z.string().regex(/^\d{1,2}$/), rupees("the name sticker price"))
+    .refine(
+      (prices) =>
+        Object.keys(prices).every((k) => Number(k) >= MIN_STICKER_INCHES && Number(k) <= MAX_STICKER_INCHES),
+      `Name sticker sizes must be ${MIN_STICKER_INCHES}–${MAX_STICKER_INCHES} inches`
     )
     .default({}),
 });

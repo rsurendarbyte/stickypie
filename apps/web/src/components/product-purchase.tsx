@@ -32,7 +32,7 @@ export default function ProductPurchase({
   return (
     <>
       {/* Desktop: inline controls (the button swaps to a synced stepper once in cart) */}
-      <div className="mt-5 hidden flex-wrap items-center gap-3 lg:flex">
+      <div className="mt-4 hidden flex-wrap items-center gap-3 lg:flex">
         {/* One control: Add to cart, which becomes the − / + stepper once added */}
         <AddToCartButton product={product} size="lg" stickerSize={stickerSize} sticker showPrice />
       </div>

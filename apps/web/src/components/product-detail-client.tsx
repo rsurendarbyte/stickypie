@@ -11,6 +11,7 @@ import { useSkinSeed } from "@/lib/skin-seed";
 import { useFeatures, useLiveProduct, useRelatedProducts } from "@/lib/live-catalog";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
 import BackButton from "./back-button";
+import StickerStepper, { type Steps, useStepSwipe } from "./sticker-stepper";
 import ProductCard from "./product-card";
 import ProductCardSkeleton from "./product-card-skeleton";
 import ProductDetails from "./product-details";
@@ -25,10 +26,12 @@ export default function ProductDetailClient({
   initial,
   category,
   related,
+  steps,
 }: {
   initial: Product;
   category: { name: string; slug: string } | null;
   related: Product[];
+  steps: Steps | null;
 }) {
   // Static snapshot first paint; live stock/price/availability from Supabase.
   const { product, unavailable } = useLiveProduct(initial.slug, initial);
@@ -49,6 +52,7 @@ export default function ProductDetailClient({
   const [trueSize, setTrueSize] = useState(false);
   const [artEl, setArtEl] = useState<HTMLImageElement | null>(null);
   const features = useFeatures();
+  const swipe = useStepSwipe(steps);
   const low = product.stock !== null && product.stock > 0 && product.stock <= LOW_STOCK_THRESHOLD;
 
   return (
@@ -61,7 +65,7 @@ export default function ProductDetailClient({
       />
       <div className="flex items-center gap-3">
         <BackButton fallback={category ? `/stickers/${category.slug}` : "/stickers"} />
-        <nav className="text-xs text-fog">
+        <nav className="min-w-0 truncate text-xs text-fog">
           <HoverLink href="/stickers" className="hover:text-snow">
             Stickers
           </HoverLink>
@@ -74,16 +78,17 @@ export default function ProductDetailClient({
             </>
           )}
         </nav>
+        {steps && <StickerStepper steps={steps} />}
       </div>
 
-      <div className="mt-4 grid gap-8 lg:grid-cols-[1fr_1.1fr] lg:gap-12">
+      <div className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-10">
         {/* Art */}
-        <div className="relative aspect-square max-h-[520px] w-full">
+        <div className="relative aspect-[5/4] max-h-[440px] w-full sm:aspect-square" {...swipe}>
           <button
             type="button"
             onClick={() => setTrueSize(true)}
             aria-label="See actual size"
-            className="absolute inset-0 grid cursor-zoom-in place-items-center p-8 sm:p-10"
+            className="absolute inset-0 grid cursor-zoom-in place-items-center p-6 sm:p-10"
             style={{ transform: `rotate(${rotate / 2}deg)` }}
           >
             <SmartImg
@@ -116,18 +121,10 @@ export default function ProductDetailClient({
 
         {/* Details */}
         <div>
-          {category && (
-            <HoverLink
-              href={`/stickers/${category.slug}`}
-              className="inline-block rounded-full border border-line bg-ink2 px-3 py-1 text-xs font-medium text-fog transition-colors hover:text-snow"
-            >
-              {category.name}
-            </HoverLink>
-          )}
-          <h1 className="mt-2.5 font-display text-3xl font-bold sm:text-4xl">{product.name}</h1>
+          <h1 className="font-display text-3xl font-bold sm:text-4xl">{product.name}</h1>
           <RatingSummary productId={product.id} />
 
-          <div className="mt-2.5 flex items-baseline gap-3">
+          <div className="mt-1.5 flex items-baseline gap-3">
             <span className="font-display text-2xl font-bold text-gold">
               {formatINR(price)}
             </span>
@@ -145,7 +142,7 @@ export default function ProductDetailClient({
             </p>
           ) : (
             <>
-              <p className="mt-2 text-sm">
+              <p className="mt-1 text-sm">
                 {out ? (
                   <span className="font-semibold text-brand">Out of stock — check back soon</span>
                 ) : low ? (
@@ -157,12 +154,12 @@ export default function ProductDetailClient({
                 )}
               </p>
 
-              <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-fog">
+              <p className="mt-2 line-clamp-3 max-w-lg text-sm leading-relaxed text-fog">
                 {product.description}
               </p>
 
               {sizes.length > 0 && !out && (
-                <div className="mt-5">
+                <div className="mt-4">
                   <SizePicker
                     sizes={sizes}
                     value={size}
@@ -184,7 +181,7 @@ export default function ProductDetailClient({
             </>
           )}
 
-          <ul className="mt-6 grid max-w-md grid-cols-2 gap-2.5 text-xs text-fog">
+          <ul className="mt-4 grid max-w-md grid-cols-2 gap-2 text-xs text-fog">
             <li className="flex items-center gap-2">
               <BadgeCheck className="size-4 text-mint" /> Premium die-cut vinyl
             </li>
@@ -202,8 +199,8 @@ export default function ProductDetailClient({
           {!unavailable && <ProductDetails size={sizes.length > 0 ? size : null} />}
 
           {product.tags.length > 0 && (
-            <div className="mt-6 flex flex-wrap gap-2">
-              {product.tags.map((tag) => (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {product.tags.slice(0, 5).map((tag) => (
                 <HoverLink
                   key={tag}
                   href={`/stickers?q=${encodeURIComponent(tag)}`}
@@ -217,10 +214,8 @@ export default function ProductDetailClient({
         </div>
       </div>
 
-      <ProductReviews productId={product.id} />
-
       {(!relatedLoaded || moreLikeThis.length > 0) && (
-        <div className="mt-12 -mx-4 sm:-mx-8">
+        <div className="mt-6 -mx-4 sm:-mx-8">
           <Row
             title="More like this"
             href={category ? `/stickers/${category.slug}` : "/stickers"}
@@ -231,6 +226,8 @@ export default function ProductDetailClient({
           </Row>
         </div>
       )}
+      <ProductReviews productId={product.id} />
+
       <TrueSizePreview
         open={trueSize}
         onClose={() => setTrueSize(false)}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, AtSign, Link2, Minus, MessageCircle, Plus, ShoppingBag, Type, Wallet } from "lucide-react";
 import { CUSTOM_PRODUCT_PREFIX, QR_STICKER_NAME, customArtKey, customSizes, formatINR, formatInches } from "@stickypie/shared";
@@ -10,6 +10,7 @@ import { useFeatures, useStoreSettings } from "@/lib/live-catalog";
 import { cardSkinFor } from "@/lib/palette";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { useCart } from "./cart-context";
+import CustomBookBar from "./custom-book-bar";
 
 type Kind = "link" | "upi" | "whatsapp" | "instagram" | "text";
 
@@ -70,6 +71,7 @@ export default function QrStickerBuilder() {
   const [qty, setQty] = useState(1);
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const fieldsRef = useRef<HTMLDivElement>(null);
   const chosen = sizes.find((s) => s.inches === size) ?? sizes[0];
   const content = useMemo(() => qrContent(kind, main, extra), [kind, main, extra]);
   const ready = "value" in content;
@@ -106,7 +108,13 @@ export default function QrStickerBuilder() {
   }
 
   async function addToCart(thenCheckout: boolean) {
-    if (!chosen || !ready || busy) return;
+    if (!chosen || busy) return;
+    if (!ready) {
+      const input = fieldsRef.current?.querySelector<HTMLInputElement | HTMLTextAreaElement>("input, textarea");
+      input?.scrollIntoView({ block: "center", behavior: "smooth" });
+      input?.focus({ preventScroll: true });
+      return;
+    }
     setBusy(true);
     const ref = crypto.randomUUID();
     const art = drawSticker(content.value, label.trim());
@@ -173,7 +181,7 @@ export default function QrStickerBuilder() {
             </button>
           ))}
         </div>
-        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+        <div ref={fieldsRef} className="mt-2 grid gap-2 sm:grid-cols-2">
           {kind === "upi" && (
             <>
               <input className={field} value={main} onChange={(e) => setMain(e.target.value)} placeholder="UPI ID, e.g. shopname@okaxis" />
@@ -284,7 +292,7 @@ export default function QrStickerBuilder() {
         </div>
 
         {chosen && (
-          <div className="mt-3.5 rounded-2xl bg-ink p-3">
+          <div className="mt-3.5 hidden rounded-2xl bg-ink p-3 sm:block">
             <div className="flex items-baseline justify-between gap-3">
               <span className="text-sm text-fog">
                 {qty} × {formatInches(chosen.inches)}″ QR code sticker
@@ -294,7 +302,7 @@ export default function QrStickerBuilder() {
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <button
                 type="button"
-                disabled={!ready || busy}
+                disabled={busy}
                 onClick={() => addToCart(false)}
                 className="peel-btn peel-btn--light flex h-11 items-center justify-center gap-2 rounded-xl text-sm font-bold disabled:opacity-50"
               >
@@ -302,7 +310,7 @@ export default function QrStickerBuilder() {
               </button>
               <button
                 type="button"
-                disabled={!ready || busy}
+                disabled={busy}
                 onClick={() => addToCart(true)}
                 className="peel-btn peel-btn--brand flex h-11 items-center justify-center gap-2 rounded-xl text-sm font-bold disabled:opacity-50"
               >
@@ -313,6 +321,16 @@ export default function QrStickerBuilder() {
           </div>
         )}
       </div>
+      {chosen && (
+        <CustomBookBar
+          total={chosen.price * qty}
+          summary={`${qty} × ${formatInches(chosen.inches)}″ QR code sticker`}
+          hint={ready ? null : ("error" in content && content.error) || "Fill in what the QR should open"}
+          busy={busy}
+          onAdd={() => addToCart(false)}
+          onBook={() => addToCart(true)}
+        />
+      )}
     </div>
   );
 }

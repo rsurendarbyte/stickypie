@@ -14,6 +14,7 @@ import { useShopper } from "@/lib/shopper-auth";
 
 type Item = {
   id: string;
+  name: string;
   customRef: string | null;
   hasFile: boolean;
   imageUrl: string;
@@ -222,7 +223,7 @@ export default function CustomOrderUpload({
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold">
-                    Custom sticker{item.sizeInches ? ` · ${formatInches(item.sizeInches)}″` : ""} × {item.quantity}
+                    {item.name}{item.sizeInches ? ` · ${formatInches(item.sizeInches)}″` : ""} × {item.quantity}
                   </span>
                   <span className="block text-xs text-fog">
                     {state.kind === "done" && "Design received ✓"}

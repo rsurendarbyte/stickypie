@@ -19,6 +19,7 @@ import { cardSkinFor } from "@/lib/palette";
 import { shrinkImage } from "@/lib/shrink-image";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { useCart } from "./cart-context";
+import CustomBookBar from "./custom-book-bar";
 import CustomRequestForm from "./custom-request-form";
 
 /** Shown in the cart until the shopper sends their artwork (after paying). */
@@ -311,7 +312,7 @@ export default function CustomStickerBuilder() {
                 </span>
                 <span className="font-display text-2xl font-bold">{formatINR(chosen.price * qty)}</span>
               </div>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <div className="mt-3 hidden gap-2 sm:grid sm:grid-cols-2">
                 <button
                   type="button"
                   disabled={busy}
@@ -331,8 +332,8 @@ export default function CustomStickerBuilder() {
               </div>
               <p className="mt-2.5 text-[11px] leading-relaxed text-fog">
                 Shipping and GST are added at checkout. Your design stays on this device and uploads right after
-                payment — we check every file and call you if it needs a fix. Custom stickers are ordered on their
-                own, separately from regular stickers.
+                payment — we check every file and call you if it needs a fix. You can add regular stickers to the
+                same order.
               </p>
             </div>
           )}
@@ -355,6 +356,17 @@ export default function CustomStickerBuilder() {
       </ol>
 
       <CustomRequestForm />
+
+      {chosen && (
+        <CustomBookBar
+          total={chosen.price * qty}
+          summary={`${qty} × ${formatInches(chosen.inches)}″ custom sticker`}
+          hint={file ? null : "Add your design to start"}
+          busy={busy}
+          onAdd={() => addToCart(false)}
+          onBook={() => addToCart(true)}
+        />
+      )}
     </>
   );
 }

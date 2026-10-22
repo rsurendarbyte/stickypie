@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fredoka, Inter } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/components/cart-context";
+import { ConfirmProvider } from "@/components/confirm-dialog";
 import MildBackground from "@/components/mild-background";
 import Nav from "@/components/nav";
 import Footer from "@/components/footer";
@@ -76,6 +77,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: LITE_SCRIPT }} />
       </head>
       <body className="bg-ink font-sans text-snow antialiased">
+        <ConfirmProvider>
         <CartProvider>
           <NavTracker />
           <PerfProbe />
@@ -87,6 +89,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </CartShell>
           <CartDrawer />
         </CartProvider>
+        </ConfirmProvider>
       </body>
     </html>
   );

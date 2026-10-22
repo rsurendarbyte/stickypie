@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CheckCircle2, FileText, PackageX, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileText, PackageX, ShoppingBag, XCircle } from "lucide-react";
 import { CUSTOM_UPLOAD_STATUSES, STATUS_LABELS, formatDateTime, formatINR, orderCode } from "@stickypie/shared";
 import ClearCartOnPaid from "@/components/clear-cart-on-paid";
 import CustomOrderUpload from "@/components/custom-order-upload";
@@ -58,7 +58,25 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
     (CUSTOM_UPLOAD_STATUSES as readonly string[]).includes(order.status);
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-[1100px] px-4 pt-28 pb-24 sm:px-8">
+    <div className="mx-auto min-h-screen w-full max-w-[1100px] px-4 pt-20 pb-24 sm:px-8 sm:pt-24">
+      {/* Way out, always at the top */}
+      <div className="mb-6 flex items-center gap-2">
+        {order.userId && (
+          <Link
+            href="/account"
+            className="peel-btn peel-btn--light inline-flex h-10 items-center gap-1.5 rounded-xl px-3.5 text-sm font-bold"
+          >
+            <ArrowLeft className="size-4" /> My orders
+          </Link>
+        )}
+        <span className="hidden text-xs font-semibold text-fog sm:inline">{orderCode(order.id)}</span>
+        <Link
+          href="/stickers"
+          className="peel-btn ml-auto inline-flex h-10 items-center gap-1.5 rounded-xl px-3.5 text-sm font-bold"
+        >
+          <ShoppingBag className="peel-icon size-4" /> Shop more
+        </Link>
+      </div>
       <ClearCartOnPaid orderId={order.id} paid={paid} />
 
       {customUploadStep && (
@@ -70,6 +88,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             .filter((i) => i.isCustom)
             .map((i) => ({
               id: i.id,
+              name: i.name,
               customRef: i.customRef,
               hasFile: Boolean(i.customFile),
               imageUrl: i.imageUrl,
@@ -277,14 +296,22 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
 
-      <div className="mt-10 flex items-center justify-center gap-6 text-sm">
-        {order.userId && (
-          <Link href="/account" className="text-brand hover:underline">
-            ← My orders
+      <div className="mx-auto mt-10 grid max-w-md grid-cols-2 gap-2.5">
+        {order.userId ? (
+          <Link
+            href="/account"
+            className="peel-btn peel-btn--light inline-flex h-11 items-center justify-center gap-1.5 rounded-xl text-sm font-bold"
+          >
+            <ArrowLeft className="size-4" /> My orders
           </Link>
-        )}
-        <Link href="/stickers" className="text-brand hover:underline">
-          Continue shopping →
+        ) : null}
+        <Link
+          href="/stickers"
+          className={`peel-btn inline-flex h-11 items-center justify-center gap-1.5 rounded-xl text-sm font-bold ${
+            order.userId ? "" : "col-span-2"
+          }`}
+        >
+          <ShoppingBag className="peel-icon size-4" /> Continue shopping
         </Link>
       </div>
     </div>

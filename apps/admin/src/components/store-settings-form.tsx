@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CreditCard, ImageUp, Loader2, QrCode, Truck } from "lucide-react";
+import { CreditCard, ImageUp, Loader2, QrCode, Truck, Type } from "lucide-react";
 import {
   INDIAN_STATES,
   PAYMENT_GATEWAY_LABELS,
@@ -51,6 +51,7 @@ export default function StoreSettingsForm({ initial }: { initial: StoreSettings 
   const [gateway, setGateway] = useState<PaymentGateway>(initial.paymentGateway);
   const [customPrices, setCustomPrices] = useState(() => priceRows(initial.customPrices));
   const [qrPrices, setQrPrices] = useState(() => priceRows(initial.qrPrices));
+  const [textPrices, setTextPrices] = useState(() => priceRows(initial.textPrices));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,6 +63,7 @@ export default function StoreSettingsForm({ initial }: { initial: StoreSettings 
       paymentGateway: gateway,
       customPrices: rowsToPrices(customPrices),
       qrPrices: rowsToPrices(qrPrices),
+      textPrices: rowsToPrices(textPrices),
       minOrder: num(minOrder),
       originPincode: pincode.trim() || null,
       originState: state || null,
@@ -161,6 +163,16 @@ export default function StoreSettingsForm({ initial }: { initial: StoreSettings 
         size to 0 to stop offering it.
       </p>
       <SizePriceList value={qrPrices} onChange={setQrPrices} unit="QR" />
+
+      <div className="mt-6 flex items-center gap-2 border-t border-line pt-5">
+        <Type className="size-4 text-fog" />
+        <h2 className="text-sm font-semibold">Name &amp; text stickers</h2>
+      </div>
+      <p className="mt-1 text-xs text-fog">
+        Price per name / text sticker (shopper types a name or short line and picks a font). Set a size to 0
+        to stop offering it.
+      </p>
+      <SizePriceList value={textPrices} onChange={setTextPrices} unit="name" />
 
       <div className="mt-6 flex items-center gap-2 border-t border-line pt-5">
         <Truck className="size-4 text-fog" />

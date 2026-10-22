@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import type { CustomKind } from "@stickypie/shared";
 
 export type CartItem = {
   productId: string;
@@ -29,8 +30,8 @@ export type CartItem = {
   custom?: boolean;
   /** Custom sticker: links to the artwork kept in this browser until paid. */
   customRef?: string;
-  /** Custom sticker kind: an uploaded design or a QR code made on the site. */
-  customKind?: "design" | "qr";
+  /** Custom sticker kind: an uploaded design, or a QR / name sticker made on the site. */
+  customKind?: CustomKind;
 };
 
 export type CartProduct = Omit<CartItem, "qty">;
@@ -42,11 +43,7 @@ type CartContextValue = {
   isOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
-  /**
-   * Adds to the cart. Custom and regular stickers are ordered separately, so
-   * adding one kind to a cart of the other asks the shopper first; returns
-   * false when it's waiting on that choice.
-   */
+  /** Adds to the cart (custom and regular stickers can share one order). Returns true once added. */
   add: (product: CartProduct, qty?: number) => boolean;
   /** Lines are keyed by product + size — see lineKey(). */
   setQty: (key: string, qty: number) => void;
@@ -59,9 +56,11 @@ const CartContext = createContext<CartContextValue | null>(null);
 const STORAGE_KEY = "stickypie.cart.v1";
 
 /** Where a cart line links to: the sticker page, or the custom sticker page. */
-export function itemHref(item: { slug: string; custom?: boolean; customKind?: "design" | "qr" }): string {
+export function itemHref(item: { slug: string; custom?: boolean; customKind?: CustomKind }): string {
   if (!item.custom) return `/sticker/${item.slug}`;
-  return item.customKind === "qr" ? "/qr-code-stickers" : "/custom-stickers/design";
+  if (item.customKind === "qr") return "/qr-code-stickers";
+  if (item.customKind === "text") return "/name-stickers";
+  return "/custom-stickers/design";
 }
 
 /** One cart line per sticker per size. */
@@ -78,10 +77,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const firstPersist = useRef(true);
-  const itemsRef = useRef<CartItem[]>([]);
-  itemsRef.current = items;
   // A product waiting on "start a new order?" (custom vs regular cart).
-  const [pending, setPending] = useState<{ product: CartProduct; qty: number } | null>(null);
 
   useEffect(() => {
     try {
@@ -135,11 +131,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const add = useCallback(
     (product: CartProduct, qty = 1) => {
-      const current = itemsRef.current;
-      if (current.length > 0 && current.some((item) => Boolean(item.custom) !== Boolean(product.custom))) {
-        setPending({ product, qty });
-        return false;
-      }
       put(product, qty);
       // Don't open the drawer — the persistent cart rail/strip picks it up so
       // browsing continues uninterrupted.
@@ -190,50 +181,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   return (
     <CartContext.Provider value={value}>
       {children}
-      {pending && (
-        <div
-          role="dialog"
-          aria-modal
-          aria-labelledby="cart-kind-title"
-          className="fixed inset-0 z-[70] grid place-items-center bg-black/40 p-4 backdrop-blur-sm"
-          onClick={() => setPending(null)}
-        >
-          <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-3xl bg-ink2 p-6 shadow-2xl">
-            <h2 id="cart-kind-title" className="font-display text-xl font-bold">
-              {pending.product.custom ? "Start a custom order?" : "Start a regular order?"}
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed text-fog">
-              {pending.product.custom
-                ? "Custom stickers are ordered on their own. Your cart has regular stickers — check those out first, or clear the cart to start your custom order."
-                : "Your cart has custom stickers, which are ordered on their own. Check those out first, or clear the cart to add this sticker."}
-            </p>
-            <div className="mt-5 grid gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setItems([]);
-                  put(pending.product, pending.qty);
-                  setPending(null);
-                  setIsOpen(true);
-                }}
-                className="peel-btn peel-btn--brand h-11 rounded-xl text-sm font-bold"
-              >
-                Clear cart &amp; add this
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setPending(null);
-                  setIsOpen(true);
-                }}
-                className="peel-btn peel-btn--light h-11 rounded-xl text-sm font-bold"
-              >
-                Keep my cart
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </CartContext.Provider>
   );
 }

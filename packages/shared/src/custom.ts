@@ -12,6 +12,9 @@ export const CUSTOM_STICKER_TYPES = ["image/png", "image/jpeg", "image/webp"] as
 export const CUSTOM_PRODUCT_PREFIX = "custom:";
 export const CUSTOM_STICKER_NAME = "Custom sticker";
 export const QR_STICKER_NAME = "QR code sticker";
+export const TEXT_STICKER_NAME = "Name sticker";
+/** Kinds of custom sticker: an uploaded design, or a QR / name sticker drawn on the site. */
+export type CustomKind = "design" | "qr" | "text";
 /**
  * Order statuses in which the shopper may upload / replace the artwork: only
  * "paid". Once the admin starts working on the order (packed onwards) the

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   CUSTOM_STICKER_NAME,
   QR_STICKER_NAME,
+  TEXT_STICKER_NAME,
   formatInches,
   belowMinimum,
   checkoutSchema,
@@ -64,20 +65,14 @@ export async function POST(req: Request) {
   // Custom stickers (artwork uploaded after payment) are priced per size from
   // admin → Settings. One order line per design, so each keeps its own artwork.
   const customItems = items.filter((item) => isCustomProductId(item.productId));
-  // Custom stickers are ordered on their own (never mixed with regular stickers).
-  if (customItems.length > 0 && customItems.length < items.length) {
-    return NextResponse.json(
-      {
-        error: "Custom stickers are ordered separately. Please check out your custom or regular stickers on their own.",
-        code: "mixed_cart",
-      },
-      { status: 400 }
-    );
-  }
+  // Custom and regular stickers can share one order: regular lines are priced
+  // from the catalogue below, custom lines from these per-size prices, and the
+  // order page asks for the custom artwork once it's paid.
   const customPrice = new Map(customSizes(settings.customPrices).map((s) => [s.inches, s.price]));
   const qrPrice = new Map(customSizes(settings.qrPrices).map((s) => [s.inches, s.price]));
+  const textPrice = new Map(customSizes(settings.textPrices).map((s) => [s.inches, s.price]));
   const priceFor = (item: (typeof customItems)[number]) =>
-    (item.customKind === "qr" ? qrPrice : customPrice).get(item.size ?? -1);
+    (item.customKind === "qr" ? qrPrice : item.customKind === "text" ? textPrice : customPrice).get(item.size ?? -1);
   for (const item of customItems) {
     if (item.size == null || priceFor(item) === undefined) {
       return NextResponse.json(
@@ -154,7 +149,8 @@ export async function POST(req: Request) {
   for (const item of customItems) {
     orderItems.push({
       productId: null,
-      name: item.customKind === "qr" ? QR_STICKER_NAME : CUSTOM_STICKER_NAME,
+      name:
+        item.customKind === "qr" ? QR_STICKER_NAME : item.customKind === "text" ? TEXT_STICKER_NAME : CUSTOM_STICKER_NAME,
       unitPrice: priceFor(item)!,
       quantity: item.quantity,
       imageUrl: "",
@@ -162,7 +158,9 @@ export async function POST(req: Request) {
       sizeLabel:
         item.customKind === "qr"
           ? `${formatInches(item.size!)}″ QR code sticker — longest side ${formatInches(item.size!)} in`
-          : customSizeLabel(item.size!),
+          : item.customKind === "text"
+            ? `${formatInches(item.size!)}″ name sticker — longest side ${formatInches(item.size!)} in`
+            : customSizeLabel(item.size!),
       isCustom: true,
       customRef: item.customRef ?? null,
     });

@@ -56,6 +56,25 @@ export default function TrueSizePreview({
 
   useEffect(() => setRatio(aspectRatio), [aspectRatio]);
 
+  // Stays mounted while the sheet peels off, like every pop-up in the shop.
+  const [shown, setShown] = useState(open);
+  const [closing, setClosing] = useState(false);
+  useEffect(() => {
+    if (open) {
+      setShown(true);
+      setClosing(false);
+      return;
+    }
+    if (!shown) return;
+    setClosing(true);
+    const t = window.setTimeout(() => {
+      setShown(false);
+      setClosing(false);
+    }, 520);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   // Load the device calibration (or a best guess) when opened.
   useEffect(() => {
     if (!open) return;
@@ -118,10 +137,20 @@ export default function TrueSizePreview({
     [cell]
   );
 
-  if (!open || typeof document === "undefined") return null;
+  if (!shown || typeof document === "undefined") return null;
 
   return createPortal(
-    <div role="dialog" aria-modal="true" aria-label={`${name} at actual size`} className="fixed inset-0 z-[80] flex flex-col bg-[#f7f7f9]">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${name} at actual size`}
+      // the peel sweeps the screen's diagonal, whatever its size
+      style={{ "--peel-max": `${window.innerWidth + window.innerHeight}px` } as React.CSSProperties}
+      className={`cart-label fixed inset-0 z-[80] flex flex-col bg-[#f7f7f9] ${
+        closing ? "screen-label--off pointer-events-none" : "screen-label--on"
+      }`}
+    >
+      <span aria-hidden className="cart-label-flap" />
       {/* Top bar */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line bg-white/90 px-4 py-3 backdrop-blur sm:px-6">
         <div className="min-w-0 flex-1">

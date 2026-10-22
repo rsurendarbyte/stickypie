@@ -5,6 +5,7 @@ import { CheckCircle2, Send, Wand2 } from "lucide-react";
 import { CONTACT_TOPICS, type ContactTopic } from "@stickypie/shared";
 import { useShopper } from "@/lib/shopper-auth";
 import { SelectField, TextField } from "./field";
+import { useConfirm } from "./confirm-dialog";
 import StickerLoader from "./sticker-loader";
 
 const EMPTY = { name: "", email: "", phone: "", orderCode: "", message: "" };
@@ -54,6 +55,7 @@ Sticker ideas I'd buy:`,
 export default function ContactForm() {
   const shopper = useShopper();
   const [form, setForm] = useState(EMPTY);
+  const confirm = useConfirm();
   const [topic, setTopic] = useState<ContactTopic>("bulk");
   const [website, setWebsite] = useState("");
   const [sending, setSending] = useState(false);
@@ -171,10 +173,18 @@ export default function ContactForm() {
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 const template = TEMPLATES[topic];
                 const hasOwnText = form.message.trim() && form.message.trim() !== template.trim();
-                if (hasOwnText && !confirm("Replace your message with the template?")) return;
+                if (
+                  hasOwnText &&
+                  !(await confirm({
+                    title: "Replace your message?",
+                    message: "The template will take the place of what you've typed.",
+                    confirmLabel: "Use template",
+                  }))
+                )
+                  return;
                 setForm((f) => ({ ...f, message: template }));
               }}
               className="inline-flex items-center gap-1.5 rounded-full border border-brand/40 bg-brand/5 px-3.5 py-1.5 text-xs font-semibold text-brand transition-colors hover:bg-brand/10"

@@ -217,13 +217,20 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
         unit_price: item.unitPrice,
         quantity: item.quantity,
         image_url: item.imageUrl,
-        ...(item.sizeInches != null
-          ? { size_inches: item.sizeInches, size_label: item.sizeLabel }
-          : {}),
-        ...(item.isCustom ? { is_custom: true, custom_ref: item.customRef ?? null } : {}),
+        // Every row carries every column: a bulk insert fills a column some
+        // rows leave out with null (not its default), which breaks mixed
+        // custom + regular orders on the not-null is_custom.
+        size_inches: item.sizeInches ?? null,
+        size_label: item.sizeInches != null ? item.sizeLabel : null,
+        is_custom: Boolean(item.isCustom),
+        custom_ref: item.isCustom ? (item.customRef ?? null) : null,
       }));
       const { error: itemsError } = await client.from("order_items").insert(items);
-      if (itemsError) throw friendly(itemsError);
+      if (itemsError) {
+        // Don't leave an empty pending order behind.
+        await client.from("orders").delete().eq("id", orderRow.id);
+        throw friendly(itemsError);
+      }
       return getOrderOrThrow(orderRow.id);
     },
 

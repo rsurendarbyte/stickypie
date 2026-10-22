@@ -49,11 +49,21 @@ export default async function ProductPage({
 
   const categories = await driver.listCategories();
   const category = categories.find((c) => c.id === product.categoryId) ?? null;
-  const related = category
-    ? (await driver.listProducts({ activeOnly: true, categorySlug: category.slug }))
-        .filter((p) => p.id !== product.id)
-        .slice(0, 10)
-    : [];
+  const siblings = await driver.listProducts(
+    category ? { activeOnly: true, categorySlug: category.slug } : { activeOnly: true }
+  );
+  const related = category ? siblings.filter((p) => p.id !== product.id).slice(0, 10) : [];
+
+  // Previous / next sticker in the same order as the category page (wraps).
+  const at = siblings.findIndex((p) => p.id === product.id);
+  const pick = (i: number) => {
+    const p = siblings[(i + siblings.length) % siblings.length];
+    return { slug: p.slug, name: p.name, imageUrl: p.imageUrl };
+  };
+  const steps =
+    at >= 0 && siblings.length > 1
+      ? { prev: pick(at - 1), next: pick(at + 1), index: at, total: siblings.length }
+      : null;
 
   // Approved reviews feed Google's star ratings; never block the page on them.
   const reviews = await driver
@@ -74,6 +84,7 @@ export default async function ProductPage({
         initial={product}
         category={category ? { name: category.name, slug: category.slug } : null}
         related={productSnapshot(related)}
+        steps={steps}
       />
       <ProductAbout {...details} />
     </div>
