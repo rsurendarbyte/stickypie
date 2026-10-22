@@ -144,6 +144,11 @@ process.on("SIGINT", () => {
   process.exit(130);
 });
 
+// Next keeps Supabase responses from earlier builds in its fetch cache and
+// would reuse them, baking stale names/prices into prerendered pages. Every
+// deploy must read the database fresh.
+fs.rmSync(path.join(appDir, ".next/cache/fetch-cache"), { recursive: true, force: true });
+
 let status;
 try {
   status = run("npx", ["opennextjs-cloudflare", "build", ...envArgs]);
