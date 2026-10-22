@@ -16,7 +16,10 @@
   "compatibility_flags": ["nodejs_compat"],
   "assets": {
     "directory": ".open-next/assets",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    // Serve files like the Google verification .html exactly as named (no
+    // redirect to an extension-less URL — Google won't verify through one).
+    "html_handling": "none"
   },
 
   // ---- dev (top level) ----
