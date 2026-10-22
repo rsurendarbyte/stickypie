@@ -706,103 +706,60 @@ select option {
   }
 }
 
-/* ── Cart as a sticker label: sticks on when opened, peels off when closed ── */
-.cart-label {
-  overflow: hidden;
-  backface-visibility: hidden;
-  transform-origin: 50% 100%; /* phone: hinged on the bottom edge */
+/* ── Cart as a sticker label ───────────────────────────────────────────────
+   A real label peel: a fold line sweeps diagonally from the top-left corner.
+   Above the line the label is lifted away (clipped off); the folded-back part
+   shows its paper backing as a flap lying on the label. Opening runs the peel
+   in reverse (the label is smoothed down); closing peels it off. */
+@property --peel {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
 }
-/* glossy sheen that sweeps across as the label is pressed flat */
-.cart-label::after {
-  content: "";
+.cart-label {
+  --peel: 0px;
+  overflow: hidden;
+  clip-path: polygon(
+    min(var(--peel), 100%) max(0px, calc(var(--peel) - 100%)),
+    100% max(0px, calc(var(--peel) - 100%)),
+    100% 100%,
+    max(0px, calc(var(--peel) - 100%)) 100%,
+    max(0px, calc(var(--peel) - 100%)) min(var(--peel), 100%)
+  );
+}
+/* the folded-back corner: paper backing, shaded towards the crease */
+.cart-label-flap {
   position: absolute;
   inset: 0;
+  z-index: 20;
   pointer-events: none;
-  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.75) 50%, transparent 65%);
-  transform: translateX(-130%);
+  background: linear-gradient(135deg, #ffffff 0%, #f3f4f7 45%, #d9dde5 100%);
+  filter: drop-shadow(-6px -6px 10px rgba(16, 24, 40, 0.18));
+  clip-path: polygon(
+    min(var(--peel), 100%) max(0px, calc(var(--peel) - 100%)),
+    min(var(--peel), 100%) min(var(--peel), 100%),
+    max(0px, calc(var(--peel) - 100%)) min(var(--peel), 100%)
+  );
 }
 .cart-label--on {
-  animation: label-stick-up 0.6s cubic-bezier(0.2, 0.9, 0.25, 1.05) both;
-}
-.cart-label--on::after {
-  animation: label-sheen 0.7s ease-out 0.35s both;
+  animation: label-smooth-down 0.75s cubic-bezier(0.22, 0.8, 0.3, 1) both;
 }
 .cart-label--off {
-  animation: label-peel-down 0.42s cubic-bezier(0.55, 0, 0.8, 0.4) both;
+  animation: label-peel-off 0.55s cubic-bezier(0.5, 0, 0.75, 0.45) both;
 }
-@keyframes label-stick-up {
-  0% {
-    transform: perspective(1200px) rotateX(-80deg) translateY(30%);
-    opacity: 0;
-  }
-  25% {
-    opacity: 1;
-  }
-  70% {
-    transform: perspective(1200px) rotateX(4deg);
-  }
-  100% {
-    transform: none;
-  }
-}
-@keyframes label-peel-down {
-  0% {
-    transform: none;
-  }
-  35% {
-    transform: perspective(1200px) rotateX(-18deg) rotateZ(-2deg);
-  }
-  100% {
-    transform: perspective(1200px) rotateX(-85deg) rotateZ(-4deg) translateY(35%);
-    opacity: 0;
-  }
-}
-@keyframes label-sheen {
+@keyframes label-smooth-down {
   from {
-    transform: translateX(-130%);
+    --peel: 1600px;
   }
   to {
-    transform: translateX(130%);
+    --peel: 0px;
   }
 }
-@media (min-width: 1024px) {
-  .cart-label {
-    transform-origin: 100% 50%; /* desktop: hinged on the right edge */
+@keyframes label-peel-off {
+  from {
+    --peel: 0px;
   }
-  .cart-label--on {
-    animation-name: label-stick-side;
-    animation-duration: 0.65s;
-  }
-  .cart-label--off {
-    transform-origin: 100% 100%; /* lifts from the top-left corner first */
-    animation-name: label-peel-side;
-    animation-duration: 0.45s;
-  }
-}
-@keyframes label-stick-side {
-  0% {
-    transform: perspective(1600px) rotateY(-95deg) rotateZ(-3deg);
-    opacity: 0;
-  }
-  20% {
-    opacity: 1;
-  }
-  70% {
-    transform: perspective(1600px) rotateY(5deg) rotateZ(0.4deg);
-  }
-  100% {
-    transform: none;
-  }
-}
-@keyframes label-peel-side {
-  0% {
-    transform: none;
-  }
-  35% {
-    transform: perspective(1600px) rotateY(-14deg) rotateZ(-3deg) translateX(-4px);
-  }
-  100% {
-    transform: perspective(1600px) rotateY(-100deg) rotateZ(-9deg);
-    opacity: 0;
+  to {
+    --peel: 1600px;
   }
 }

@@ -76,6 +76,8 @@ export default function CartDrawer() {
           role="dialog"
           aria-label="Shopping cart"
         >
+          {/* folded-back corner of the label while it peels */}
+          <span aria-hidden className="cart-label-flap" />
           {/* sheet handle (phone) */}
           <button
             type="button"
