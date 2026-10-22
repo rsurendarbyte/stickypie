@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowRight, BadgeCheck, Droplets, Sparkles, Sun, Truck } from "lucide-react";
+import { ArrowRight, BadgeCheck, Droplets, Ruler, Sparkles, Sun, Truck } from "lucide-react";
 import type { Category, Product } from "@stickypie/shared";
 import { discountPercent, formatINR, formatInches } from "@stickypie/shared";
 import { tileFor } from "@/lib/palette";
 import AddToCartButton from "./add-to-cart-button";
 import { useSizeChoice } from "./size-picker";
+import TrueSizePreview from "./true-size-preview";
 
 /** Rotating hero: the featured sticker is staged on a big tilted product card. */
 export default function Hero({
@@ -137,6 +138,7 @@ export default function Hero({
 function HeroBuy({ product, onPickSize }: { product: Product; onPickSize: () => void }) {
   const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product);
   const off = discountPercent(price, compareAtPrice);
+  const [trueSize, setTrueSize] = useState(false);
 
   return (
     <>
@@ -192,7 +194,34 @@ function HeroBuy({ product, onPickSize }: { product: Product; onPickSize: () => 
         >
           Details <ArrowRight className="size-4" />
         </Link>
+        {sizes.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setTrueSize(true);
+              onPickSize();
+            }}
+            className="inline-flex h-12 items-center gap-2 rounded-xl px-3 text-sm font-semibold text-fog transition-colors hover:text-brand"
+          >
+            <Ruler className="size-4" /> Actual size
+          </button>
+        )}
       </div>
+      {trueSize && (
+        <TrueSizePreview
+          open
+          onClose={() => setTrueSize(false)}
+          name={product.name}
+          imageUrl={product.imageUrl}
+          aspectRatio={product.aspectRatio}
+          sizes={sizes}
+          size={size}
+          onSizeChange={(inches) => {
+            setSize(inches);
+            onPickSize();
+          }}
+        />
+      )}
     </>
   );
 }

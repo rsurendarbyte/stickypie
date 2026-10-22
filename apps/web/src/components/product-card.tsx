@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Check, ShoppingBag } from "lucide-react";
+import { useState } from "react";
+import { Check, Ruler, ShoppingBag } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR } from "@stickypie/shared";
 import { rotationFor } from "@/lib/palette";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
 import SizePicker, { toCartProduct, useSizeChoice } from "./size-picker";
+import TrueSizePreview from "./true-size-preview";
 
 // E-commerce product card: die-cut art on a dark stage, prominent price with
 // the discount called out, and an always-visible Add to cart button.
@@ -32,6 +34,7 @@ export default function ProductCard({
   const low = product.stock !== null && product.stock > 0 && product.stock <= LOW_STOCK_THRESHOLD;
   const isNew = product.isNew;
   const off = discountPercent(price, compareAtPrice);
+  const [trueSize, setTrueSize] = useState(false);
 
   function addToCart() {
     if (out) return;
@@ -85,11 +88,6 @@ export default function ProductCard({
             )}
           </div>
 
-          {inCartAnySize > 0 && (
-          <span className="absolute top-2.5 right-2.5 flex items-center gap-1 rounded-full bg-mint px-2.5 py-1 text-[10px] font-bold text-white shadow-md">
-            <Check className="size-3" strokeWidth={3.5} /> {inCartAnySize}
-          </span>
-        )}
 
           {out && (
             <span className="absolute inset-x-0 bottom-0 bg-snow/85 py-1.5 text-center text-[10px] font-bold tracking-[0.18em] text-white/90 uppercase">
@@ -98,6 +96,36 @@ export default function ProductCard({
           )}
         </div>
       </Link>
+      <div className="absolute top-2.5 right-2.5 flex flex-col items-end gap-1.5">
+        {inCartAnySize > 0 && (
+          <span className="flex items-center gap-1 rounded-full bg-mint px-2.5 py-1 text-[10px] font-bold text-white shadow-md">
+            <Check className="size-3" strokeWidth={3.5} /> {inCartAnySize}
+          </span>
+        )}
+        {sizes.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setTrueSize(true)}
+            aria-label={`See ${product.name} at actual size`}
+            title="See actual size"
+            className="grid size-7 place-items-center rounded-full bg-white/90 text-fog shadow-[0_2px_8px_rgba(16,24,40,0.15)] ring-1 ring-black/5 backdrop-blur-sm transition-colors hover:text-brand"
+          >
+            <Ruler className="size-3.5" />
+          </button>
+        )}
+      </div>
+      {trueSize && (
+        <TrueSizePreview
+          open
+          onClose={() => setTrueSize(false)}
+          name={product.name}
+          imageUrl={product.imageUrl}
+          aspectRatio={product.aspectRatio}
+          sizes={sizes}
+          size={size}
+          onSizeChange={setSize}
+        />
+      )}
       {sizes.length > 1 && !out && (
         <div className="absolute inset-x-0 bottom-2 flex justify-center px-2">
           <SizePicker compact sizes={sizes} value={size} onChange={setSize} />

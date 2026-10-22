@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { BadgeCheck, Droplets, PackageX, Sun, Truck } from "lucide-react";
+import { useState } from "react";
+import { BadgeCheck, Droplets, PackageX, Ruler, Sun, Truck } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR } from "@stickypie/shared";
 import { rotationFor } from "@/lib/palette";
@@ -15,6 +16,7 @@ import ProductReviews, { RatingSummary } from "./product-reviews";
 import ProductPurchase from "./product-purchase";
 import Row from "./row";
 import SizePicker, { useSizeChoice } from "./size-picker";
+import TrueSizePreview from "./true-size-preview";
 
 export default function ProductDetailClient({
   initial,
@@ -39,6 +41,7 @@ export default function ProductDetailClient({
   const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product);
   const off = discountPercent(price, compareAtPrice);
   const out = product.stock === 0;
+  const [trueSize, setTrueSize] = useState(false);
   const low = product.stock !== null && product.stock > 0 && product.stock <= LOW_STOCK_THRESHOLD;
 
   return (
@@ -66,8 +69,11 @@ export default function ProductDetailClient({
           className="relative aspect-square max-h-[520px] w-full overflow-hidden rounded-3xl border border-line bg-ink shadow-[0_24px_60px_-24px_rgba(16,24,40,0.25)]">
           <div className="bg-dots absolute inset-0 opacity-35" />
           <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/[0.03] to-transparent" />
-          <div
-            className="absolute inset-0 grid place-items-center p-8 sm:p-10"
+          <button
+            type="button"
+            onClick={() => setTrueSize(true)}
+            aria-label="See actual size"
+            className="absolute inset-0 grid cursor-zoom-in place-items-center p-8 sm:p-10"
             style={{ transform: `rotate(${rotate / 2}deg)` }}
           >
             <img
@@ -77,7 +83,14 @@ export default function ProductDetailClient({
                 out || unavailable ? "opacity-50 saturate-50" : ""
               }`}
             />
-          </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setTrueSize(true)}
+            className="absolute right-4 bottom-4 inline-flex items-center gap-1.5 rounded-full border border-line bg-white/90 px-3.5 py-2 text-xs font-bold text-snow shadow-md backdrop-blur transition-colors hover:border-brand/50 hover:text-brand"
+          >
+            <Ruler className="size-4" /> See actual size
+          </button>
           {off !== null && !unavailable && (
             <span className="pie-gradient absolute top-4 left-4 rounded-full px-3 py-1 text-xs font-bold text-white">
               SAVE {off}%
@@ -143,6 +156,15 @@ export default function ProductDetailClient({
               )}
 
               <ProductPurchase product={product} stickerSize={size} price={price} />
+              {sizes.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setTrueSize(true)}
+                  className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-fog transition-colors hover:text-brand"
+                >
+                  <Ruler className="size-3.5" /> Not sure about the size? See it at actual size
+                </button>
+              )}
             </>
           )}
 
@@ -193,6 +215,16 @@ export default function ProductDetailClient({
           </Row>
         </div>
       )}
+      <TrueSizePreview
+        open={trueSize}
+        onClose={() => setTrueSize(false)}
+        name={product.name}
+        imageUrl={product.imageUrl}
+        aspectRatio={product.aspectRatio}
+        sizes={sizes}
+        size={size}
+        onSizeChange={setSize}
+      />
     </>
   );
 }
