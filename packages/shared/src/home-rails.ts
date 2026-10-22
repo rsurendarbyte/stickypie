@@ -30,7 +30,7 @@ export const HOME_RAIL_KINDS: Record<HomeRailKind, { label: string; hint: string
   featured: { label: "Top picks", hint: "Products marked Featured" },
   new: { label: "New drops", hint: "Newest stickers first" },
   category: { label: "One category", hint: "Stickers from one category" },
-  categories: { label: "All categories", hint: "A rail for every category with stickers" },
+  categories: { label: "All categories", hint: "A rail per category — stickers already shown above aren't repeated" },
 };
 
 export const DEFAULT_HOME_RAILS: HomeRail[] = [
@@ -75,6 +75,12 @@ export type ResolvedRail = { key: string; title: string; href?: string; items: P
 /**
  * Turns the layout into rails of products. `products` must be the on-sale
  * catalog, newest first. Hidden rails and rails with nothing to show are dropped.
+ *
+ * Stickers can sit in several categories, so category rails don't repeat each
+ * other: a category rail only fills itself with stickers no earlier category
+ * rail has shown (stickers pinned to a rail always show). A category whose
+ * stickers were all shown above gets no rail. Top picks / New drops /
+ * hand-picked rails are left as they are.
  */
 export function resolveHomeRails(
   rails: HomeRail[],
@@ -87,6 +93,9 @@ export function resolveHomeRails(
     rails.filter((r) => r.visible && r.kind === "category" && r.categoryId).map((r) => r.categoryId)
   );
   const out: ResolvedRail[] = [];
+  const shownInCategoryRails = new Set<string>();
+  const notShownYet = (p: Product) => !shownInCategoryRails.has(p.id);
+  const markShown = (items: Product[]) => items.forEach((p) => shownInCategoryRails.add(p.id));
   // Pinned (on-sale) stickers first, then the automatic list without repeats.
   const pinnedFirst = (pins: string[], auto: Product[]) => {
     const pinned = pins.map((id) => byId.get(id)).filter((p): p is Product => Boolean(p));
@@ -101,7 +110,8 @@ export function resolveHomeRails(
         if (explicitCategories.has(category.id)) continue;
         const inThis = (p: Product) => inCategory(p, category.id);
         const pins = rail.productIds.filter((id) => byId.get(id) && inThis(byId.get(id)!));
-        const items = pinnedFirst(pins, products.filter(inThis)).slice(0, rail.limit);
+        const items = pinnedFirst(pins, products.filter((p) => inThis(p) && notShownYet(p))).slice(0, rail.limit);
+        markShown(items);
         if (items.length > 0) {
           out.push({ key: `${rail.id}:${category.id}`, title: category.name, href: categoryPath(category.slug), items });
         }
@@ -118,12 +128,13 @@ export function resolveHomeRails(
     } else if (rail.kind === "category") {
       const category = rail.categoryId ? catById.get(rail.categoryId) : undefined;
       if (!category) continue;
-      items = products.filter((p) => inCategory(p, category.id));
+      items = products.filter((p) => inCategory(p, category.id) && notShownYet(p));
       title = title || category.name;
       href = categoryPath(category.slug);
     }
     items = pinnedFirst(rail.productIds, rail.kind === "custom" ? [] : items);
     items = items.slice(0, rail.limit);
+    if (rail.kind === "category") markShown(items);
     if (items.length > 0) out.push({ key: rail.id, title, href, items });
   }
   return out;
