@@ -2,12 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CreditCard, ImageUp, Loader2, Truck } from "lucide-react";
+import { CreditCard, ImageUp, Loader2, QrCode, Truck } from "lucide-react";
 import {
   INDIAN_STATES,
-  MAX_STICKER_INCHES,
-  MIN_STICKER_INCHES,
-  STICKER_SIZES,
   PAYMENT_GATEWAY_LABELS,
   REMOTE_STATES,
   ZONE_LABELS,
@@ -17,6 +14,7 @@ import {
   type StoreSettings,
 } from "@stickypie/shared";
 import { SelectField, TextField } from "./field";
+import SizePriceList, { priceRows, rowsToPrices } from "./size-price-list";
 import { useToast } from "./toast";
 
 const ZONE_HINTS: Record<ShippingZone, string> = {
@@ -51,33 +49,8 @@ export default function StoreSettingsForm({ initial }: { initial: StoreSettings 
   const setB = (key: keyof typeof business) => (e: { target: { value: string } }) =>
     setBusiness((b) => ({ ...b, [key]: e.target.value }));
   const [gateway, setGateway] = useState<PaymentGateway>(initial.paymentGateway);
-  // The usual sizes plus any extra custom size already set.
-  const [customPrices, setCustomPrices] = useState<Record<string, string>>(() =>
-    Object.fromEntries(
-      [...new Set<number>([...STICKER_SIZES, ...Object.keys(initial.customPrices).map(Number)])]
-        .filter((n) => Number.isFinite(n) && n > 0)
-        .sort((a, b) => a - b)
-        .map((n) => [String(n), String(initial.customPrices[String(n)] ?? 0)])
-    )
-  );
-  const [newCustomSize, setNewCustomSize] = useState("");
-  const [newCustomError, setNewCustomError] = useState<string | null>(null);
-  function addCustomSize() {
-    const inches = Number(newCustomSize);
-    if (!Number.isInteger(inches) || inches < MIN_STICKER_INCHES || inches > MAX_STICKER_INCHES) {
-      setNewCustomError(`Enter a whole number from ${MIN_STICKER_INCHES} to ${MAX_STICKER_INCHES}`);
-      return;
-    }
-    if (String(inches) in customPrices) {
-      setNewCustomError(`${inches} inch is already in the list`);
-      return;
-    }
-    setCustomPrices((p) =>
-      Object.fromEntries([...Object.entries(p), [String(inches), ""]].sort((a, b) => Number(a[0]) - Number(b[0])))
-    );
-    setNewCustomSize("");
-    setNewCustomError(null);
-  }
+  const [customPrices, setCustomPrices] = useState(() => priceRows(initial.customPrices));
+  const [qrPrices, setQrPrices] = useState(() => priceRows(initial.qrPrices));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -87,7 +60,8 @@ export default function StoreSettingsForm({ initial }: { initial: StoreSettings 
     const num = (v: string) => (v.trim() === "" ? NaN : Number(v));
     const payload = {
       paymentGateway: gateway,
-      customPrices: Object.fromEntries(Object.entries(customPrices).map(([size, price]) => [size, Number(price) || 0])),
+      customPrices: rowsToPrices(customPrices),
+      qrPrices: rowsToPrices(qrPrices),
       minOrder: num(minOrder),
       originPincode: pincode.trim() || null,
       originState: state || null,
@@ -176,56 +150,17 @@ export default function StoreSettingsForm({ initial }: { initial: StoreSettings 
         Price per custom sticker (shopper uploads their own artwork). Set a size to 0 to stop offering it.
         Turn the whole feature on or off in Features.
       </p>
-      <div className="mt-3 grid gap-4 sm:grid-cols-3">
-        {Object.keys(customPrices).map((size) => (
-          <div key={size}>
-            <TextField
-              label={`${size}″ custom (₹)`}
-              value={customPrices[size]}
-              onChange={(e) => setCustomPrices((p) => ({ ...p, [size]: digits(e.target.value) }))}
-              inputMode="numeric"
-            />
-            {!(STICKER_SIZES as readonly number[]).includes(Number(size)) && (
-              <button
-                type="button"
-                onClick={() =>
-                  setCustomPrices((p) => Object.fromEntries(Object.entries(p).filter(([k]) => k !== size)))
-                }
-                className="mt-1 text-xs font-semibold text-fog hover:text-brand"
-              >
-                Remove {size} inch
-              </button>
-            )}
-          </div>
-        ))}
+      <SizePriceList value={customPrices} onChange={setCustomPrices} unit="custom" />
+
+      <div className="mt-6 flex items-center gap-2 border-t border-line pt-5">
+        <QrCode className="size-4 text-fog" />
+        <h2 className="text-sm font-semibold">QR code stickers</h2>
       </div>
-      <div className="mt-3 flex flex-wrap items-start gap-2">
-        <TextField
-          label="Add a size (inch)"
-          value={newCustomSize}
-          onChange={(e) => {
-            setNewCustomSize(digits(e.target.value).slice(0, 2));
-            setNewCustomError(null);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              addCustomSize();
-            }
-          }}
-          inputMode="numeric"
-          error={newCustomError ?? undefined}
-          hint={`Any whole inch, ${MIN_STICKER_INCHES}–${MAX_STICKER_INCHES}`}
-          className="w-56"
-        />
-        <button
-          type="button"
-          onClick={addCustomSize}
-          className="h-14 rounded-xl border border-line px-4 text-sm font-semibold transition-colors hover:border-brand/60 hover:text-brand"
-        >
-          + Add size
-        </button>
-      </div>
+      <p className="mt-1 text-xs text-fog">
+        Price per QR code sticker (made on the custom page from a UPI ID, link, WhatsApp number…). Set a
+        size to 0 to stop offering it.
+      </p>
+      <SizePriceList value={qrPrices} onChange={setQrPrices} unit="QR" />
 
       <div className="mt-6 flex items-center gap-2 border-t border-line pt-5">
         <Truck className="size-4 text-fog" />

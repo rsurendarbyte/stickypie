@@ -29,6 +29,8 @@ export type CartItem = {
   custom?: boolean;
   /** Custom sticker: links to the artwork kept in this browser until paid. */
   customRef?: string;
+  /** Custom sticker kind: an uploaded design or a QR code made on the site. */
+  customKind?: "design" | "qr";
 };
 
 export type CartProduct = Omit<CartItem, "qty">;
@@ -57,8 +59,9 @@ const CartContext = createContext<CartContextValue | null>(null);
 const STORAGE_KEY = "stickypie.cart.v1";
 
 /** Where a cart line links to: the sticker page, or the custom sticker page. */
-export function itemHref(item: { slug: string; custom?: boolean }): string {
-  return item.custom ? "/custom-stickers" : `/sticker/${item.slug}`;
+export function itemHref(item: { slug: string; custom?: boolean; customKind?: "design" | "qr" }): string {
+  if (!item.custom) return `/sticker/${item.slug}`;
+  return item.customKind === "qr" ? "/qr-code-stickers" : "/custom-stickers/design";
 }
 
 /** One cart line per sticker per size. */

@@ -8,12 +8,16 @@ import {
   BadgeCheck,
   Droplets,
   ImageUp,
+  Link2,
+  MessageCircle,
+  QrCode,
   Ruler,
   Scissors,
   Shapes,
   Sparkles,
   Sun,
   Truck,
+  Wallet,
 } from "lucide-react";
 import type { Category, Product } from "@stickypie/shared";
 import {
@@ -28,6 +32,7 @@ import AddToCartButton from "./add-to-cart-button";
 import { useSizeChoice } from "./size-picker";
 import TrueSizePreview from "./true-size-preview";
 import { useFeatures, useStoreSettings } from "@/lib/live-catalog";
+import { drawSticker } from "@/lib/qr-art";
 
 /** Rotating hero: the featured sticker is staged on a big tilted product card. */
 export default function Hero({
@@ -43,17 +48,11 @@ export default function Hero({
   const custom = features.customStickers
     ? customSizes(settings.customPrices)
     : [];
-  // Second slide (when on): print your own design.
-  const slides: Slide[] =
-    custom.length > 0 && picks.length > 0
-      ? [
-          { kind: "product", product: picks[0] },
-          { kind: "custom" },
-          ...picks
-            .slice(1)
-            .map((p) => ({ kind: "product" as const, product: p })),
-        ]
-      : picks.map((p) => ({ kind: "product" as const, product: p }));
+  const qr = features.customStickers ? customSizes(settings.qrPrices) : [];
+  // Sticker slides, with "your own design" second and "QR code sticker" fourth (when on).
+  const slides: Slide[] = picks.map((p) => ({ kind: "product" as const, product: p }));
+  if (picks.length > 0 && custom.length > 0) slides.splice(1, 0, { kind: "custom" });
+  if (picks.length > 0 && qr.length > 0) slides.splice(Math.min(3, slides.length), 0, { kind: "qr" });
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const seed = useSkinSeed();
@@ -77,8 +76,8 @@ export default function Hero({
 
   if (!slide) return null;
   const product = slide.kind === "product" ? slide.product : null;
-  const key = product ? product.id : "custom";
-  const skinSlug = product ? product.slug : "custom-stickers";
+  const key = product ? product.id : slide.kind;
+  const skinSlug = product ? product.slug : slide.kind === "qr" ? "qr-code-stickers" : "custom-stickers";
 
   const tile = tileFor(skinSlug);
   // Each slide sits on a sticker sheet or cutting mat — a new mix every load.
@@ -124,7 +123,7 @@ export default function Hero({
             const active = i === index;
             return (
               <div
-                key={s.kind === "product" ? s.product.id : "custom"}
+                key={s.kind === "product" ? s.product.id : s.kind}
                 aria-hidden={!active}
                 inert={!active}
                 className={`col-start-1 row-start-1 self-end ${active ? "animate-hero-in" : "pointer-events-none invisible"}`}
@@ -136,7 +135,7 @@ export default function Hero({
                     onPickSize={() => setEngaged(true)}
                   />
                 ) : (
-                  <CustomSlideCopy sizes={custom} />
+                  <CustomSlideCopy kind={s.kind} sizes={s.kind === "qr" ? qr : custom} />
                 )}
               </div>
             );
@@ -178,6 +177,8 @@ export default function Hero({
                   className="sticker-cut animate-float max-h-full max-w-full rotate-2 object-contain lg:max-h-[min(46vh,520px)]"
                 />
               </div>
+            ) : slide.kind === "qr" ? (
+              <QrSlideArt />
             ) : (
               <CustomSlideArt sizes={custom} />
             )}
@@ -188,18 +189,20 @@ export default function Hero({
             <div className="relative z-10 mt-4 flex items-center justify-center gap-2 lg:mt-7">
               {slides.map((s, i) => (
                 <button
-                  key={s.kind === "product" ? s.product.id : "custom"}
+                  key={s.kind === "product" ? s.product.id : s.kind}
                   type="button"
                   aria-label={
                     s.kind === "product"
                       ? `Show ${s.product.name}`
-                      : "Show custom stickers"
+                      : s.kind === "qr"
+                        ? "Show QR code stickers"
+                        : "Show custom stickers"
                   }
                   onClick={() => setIndex(i)}
                   className={`h-2.5 rounded-full transition-all duration-300 ${
                     i === index
                       ? "pie-gradient w-9 shadow-sm shadow-brand/40"
-                      : s.kind === "custom"
+                      : s.kind !== "product"
                         ? "w-2.5 border-[1.5px] border-dashed border-brand hover:bg-brand/20"
                         : "w-2.5 bg-snow/15 hover:bg-snow/35"
                   }`}
@@ -213,7 +216,41 @@ export default function Hero({
   );
 }
 
-type Slide = { kind: "product"; product: Product } | { kind: "custom" };
+type Slide = { kind: "product"; product: Product } | { kind: "custom" } | { kind: "qr" };
+
+/** QR slide picture: a real QR sticker (pointing at our QR page), drawn on the device. */
+function QrSlideArt() {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    try {
+      setSrc(drawSticker("https://stickypie.in/qr-code-stickers", "Scan to pay", 520).toDataURL("image/png"));
+    } catch {
+      setSrc(null);
+    }
+  }, []);
+  return (
+    <div className="absolute inset-0 grid place-items-center">
+      <div className="relative h-[74%] max-h-[380px]">
+        {src && (
+          <img
+            src={src}
+            alt=""
+            className="sticker-cut animate-float h-full w-auto -rotate-3 rounded-[28px] object-contain"
+          />
+        )}
+        <span className="animate-float-slow absolute top-[8%] -left-[22%] inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold whitespace-nowrap text-snow shadow-md">
+          <Wallet className="size-3.5 text-brand" /> UPI payments
+        </span>
+        <span className="animate-float-slow absolute top-[45%] -right-[26%] inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold whitespace-nowrap text-snow shadow-md [animation-delay:-4s]">
+          <MessageCircle className="size-3.5 text-mint" /> WhatsApp
+        </span>
+        <span className="animate-float-slow absolute bottom-[4%] -left-[18%] inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold whitespace-nowrap text-snow shadow-md [animation-delay:-7s]">
+          <Link2 className="size-3.5 text-brand" /> Website &amp; Instagram
+        </span>
+      </div>
+    </div>
+  );
+}
 
 /** A sticker slide's text: badges, name, description, price and buy controls. */
 function ProductSlideCopy({
@@ -299,20 +336,46 @@ function CustomSlideArt({ sizes }: { sizes: { inches: number }[] }) {
   );
 }
 
-/** Custom sticker slide: copy, prices per size and the call to action. */
-function CustomSlideCopy({ sizes }: { sizes: { inches: number; price: number }[] }) {
+const SPECIAL_SLIDES = {
+  custom: {
+    icon: ImageUp,
+    badge: "Custom print",
+    title: "Your design, as a sticker",
+    text: "Logo, photo or artwork on waterproof die-cut vinyl. Pick a size and quantity, book, and send your design — now or after paying.",
+    href: "/custom-stickers/design",
+    cta: "Make your sticker",
+  },
+  qr: {
+    icon: QrCode,
+    badge: "QR stickers",
+    title: "Scan-to-pay QR stickers",
+    text: "Your UPI, WhatsApp, Instagram or website as a QR sticker with a label like “Scan to pay”. Made in a minute, printed on waterproof vinyl.",
+    href: "/qr-code-stickers",
+    cta: "Make your QR sticker",
+  },
+} as const;
+
+/** Custom / QR slide: copy, prices per size and the call to action. */
+function CustomSlideCopy({
+  kind,
+  sizes,
+}: {
+  kind: keyof typeof SPECIAL_SLIDES;
+  sizes: { inches: number; price: number }[];
+}) {
+  const c = SPECIAL_SLIDES[kind];
+  const Icon = c.icon;
   const from = Math.min(...sizes.map((s) => s.price));
   return (
     <>
       <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 text-[11px] font-bold tracking-widest text-brand uppercase backdrop-blur-sm">
-        <ImageUp className="size-3.5" /> Custom print
+        <Icon className="size-3.5" /> {c.badge}
       </span>
       <h2 className="mt-4 line-clamp-2 font-display text-4xl leading-[1.04] font-bold tracking-tight sm:text-6xl lg:mt-5 lg:text-[64px]">
-        Your design, as a sticker
+        {c.title}
       </h2>
       <p className="mt-4 hidden max-w-lg text-base leading-relaxed text-fog sm:line-clamp-2 sm:text-lg lg:line-clamp-3">
-        Logo, photo or artwork on waterproof die-cut vinyl. Pick a size and quantity, book, and send your
-        design — now or after paying.
+        {c.text}
       </p>
       <div className="mt-3 flex items-baseline gap-2 sm:mt-6">
         <span className="text-sm text-fog">from</span>
@@ -331,13 +394,13 @@ function CustomSlideCopy({ sizes }: { sizes: { inches: number; price: number }[]
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-3 sm:mt-6">
         <HoverLink
-          href="/custom-stickers"
+          href={c.href}
           className="peel-btn inline-flex h-12 items-center gap-2 rounded-xl px-6 text-base font-bold"
         >
-          Make your sticker <ArrowRight className="size-4" />
+          {c.cta} <ArrowRight className="size-4" />
         </HoverLink>
         <HoverLink
-          href="/custom-stickers"
+          href={c.href}
           className="inline-flex h-12 items-center px-2 text-sm font-semibold text-fog transition-colors hover:text-brand"
         >
           Bulk or special requests

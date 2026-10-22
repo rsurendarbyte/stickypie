@@ -41,7 +41,7 @@ export default function Nav() {
     return (
       <Link
         href={href}
-        className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
+        className={`rounded-full px-2.5 py-1.5 text-sm font-medium transition-all sm:px-4 ${
           active
             ? "bg-snow/[0.07] text-snow shadow-[inset_0_0_0_1px_rgba(16,24,40,0.06)]"
             : "text-fog hover:bg-snow/5 hover:text-snow"
@@ -73,7 +73,8 @@ export default function Nav() {
               <span className="peel-flap block" />
             </span>
           </span>
-          <span className="font-display text-[22px] leading-none font-semibold tracking-tight">
+          {/* Narrow phones: the logo alone, so the cart always fits on the row. */}
+          <span className="hidden font-display text-[22px] leading-none font-semibold tracking-tight min-[420px]:inline">
             Sticky<span className="text-logo">Pie</span>
           </span>
         </Link>
@@ -82,6 +83,8 @@ export default function Nav() {
           {navLink("/", "Home", true)}
           {navLink("/stickers", "Stickers")}
           {features.customStickers && navLink("/custom-stickers", "Custom")}
+          {/* hidden on phones to keep the header to one row; linked from the custom page */}
+          {features.customStickers && navLink("/qr-code-stickers", "QR", true)}
         </nav>
 
         <div className="ml-auto flex items-center gap-1 sm:gap-2">

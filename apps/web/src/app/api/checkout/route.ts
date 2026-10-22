@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import {
   CUSTOM_STICKER_NAME,
+  QR_STICKER_NAME,
+  formatInches,
   belowMinimum,
   checkoutSchema,
   customSizeLabel,
@@ -73,8 +75,11 @@ export async function POST(req: Request) {
     );
   }
   const customPrice = new Map(customSizes(settings.customPrices).map((s) => [s.inches, s.price]));
+  const qrPrice = new Map(customSizes(settings.qrPrices).map((s) => [s.inches, s.price]));
+  const priceFor = (item: (typeof customItems)[number]) =>
+    (item.customKind === "qr" ? qrPrice : customPrice).get(item.size ?? -1);
   for (const item of customItems) {
-    if (item.size == null || !customPrice.has(item.size)) {
+    if (item.size == null || priceFor(item) === undefined) {
       return NextResponse.json(
         { error: "A custom sticker size in your cart is no longer offered. Please choose a size again.", code: "size_unavailable" },
         { status: 409 }
@@ -149,12 +154,15 @@ export async function POST(req: Request) {
   for (const item of customItems) {
     orderItems.push({
       productId: null,
-      name: CUSTOM_STICKER_NAME,
-      unitPrice: customPrice.get(item.size!)!,
+      name: item.customKind === "qr" ? QR_STICKER_NAME : CUSTOM_STICKER_NAME,
+      unitPrice: priceFor(item)!,
       quantity: item.quantity,
       imageUrl: "",
       sizeInches: item.size!,
-      sizeLabel: customSizeLabel(item.size!),
+      sizeLabel:
+        item.customKind === "qr"
+          ? `${formatInches(item.size!)}″ QR code sticker — longest side ${formatInches(item.size!)} in`
+          : customSizeLabel(item.size!),
       isCustom: true,
       customRef: item.customRef ?? null,
     });

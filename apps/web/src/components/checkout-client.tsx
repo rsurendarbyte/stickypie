@@ -329,6 +329,7 @@ export default function CheckoutClient() {
             quantity: item.qty,
             size: item.size,
             ...(item.customRef ? { customRef: item.customRef } : {}),
+            ...(item.customKind ? { customKind: item.customKind } : {}),
           })),
         }),
       });

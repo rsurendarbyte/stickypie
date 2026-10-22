@@ -18,6 +18,8 @@ export type StoreSettings = {
   paymentGateway: PaymentGateway;
   /** Custom sticker price (₹) per size in inches, e.g. { "3": 49 }; 0 = not offered. */
   customPrices: Record<string, number>;
+  /** QR code sticker price (₹) per size, same shape as customPrices. */
+  qrPrices: Record<string, number>;
 };
 
 export type PaymentGateway = "cashfree" | "razorpay";
@@ -45,6 +47,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   business: { name: null, gstin: null, address: null, hsn: "3919", gstRate: 18, invoicePrefix: "SP" },
   paymentGateway: "cashfree",
   customPrices: { "3": 49, "6": 99, "7": 149 },
+  qrPrices: { "3": 49, "6": 99, "7": 149 },
 };
 
 /** Couriers price these as special / remote zones. */
@@ -133,6 +136,10 @@ export function rowToSettings(r: any): StoreSettings {
       r.custom_prices && typeof r.custom_prices === "object"
         ? Object.fromEntries(Object.entries(r.custom_prices).map(([k, v]) => [k, Number(v) || 0]))
         : DEFAULT_STORE_SETTINGS.customPrices,
+    qrPrices:
+      r.qr_prices && typeof r.qr_prices === "object"
+        ? Object.fromEntries(Object.entries(r.qr_prices).map(([k, v]) => [k, Number(v) || 0]))
+        : DEFAULT_STORE_SETTINGS.qrPrices,
   };
 }
 
@@ -153,5 +160,6 @@ export function settingsToRow(s: StoreSettings): Record<string, unknown> {
     invoice_prefix: s.business.invoicePrefix,
     payment_gateway: s.paymentGateway,
     custom_prices: s.customPrices,
+    qr_prices: s.qrPrices,
   };
 }
