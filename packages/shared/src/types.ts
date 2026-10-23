@@ -22,6 +22,8 @@ export type Product = {
   imageUrl: string;
   /** Small WebP for cards (made by the admin); null → use imageUrl. */
   thumbUrl: string | null;
+  /** Mid-size WebP for the hero / product page art; null → use imageUrl. */
+  displayUrl: string | null;
   tags: string[];
   featured: boolean;
   /** Shows the "NEW" badge on the storefront (set by hand in the admin). */
@@ -161,6 +163,7 @@ export type ProductInput = {
   sizes: ProductSize[];
   aspectRatio: number | null;
   thumbUrl?: string | null;
+  displayUrl?: string | null;
 };
 
 export type CategoryInput = {
