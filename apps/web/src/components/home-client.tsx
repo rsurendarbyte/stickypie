@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import Hero from "./hero";
 import ProductCard from "./product-card";
 import ProductCardSkeleton from "./product-card-skeleton";
 import Row from "./row";
+import CustomRail from "./custom-rail";
 import { resolveHomeRails, type HomeRail } from "@stickypie/shared";
 import { useHomeRails, useLiveCatalog, type Catalog } from "@/lib/live-catalog";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
@@ -28,6 +29,8 @@ export default function HomeClient({
   const hero = featured[0] ?? products[0];
   // Rails, their order and contents come from the admin (Home page).
   const homeRails = resolveHomeRails(rails, products, categories);
+  const newDrops = homeRails.findIndex((r) => r.key === "new-drops");
+  const customAfter = newDrops >= 0 ? newDrops : Math.min(1, homeRails.length - 1);
 
   // Placeholders until the live (on-sale only) list arrives — never stale cards.
   if (!loaded) {
@@ -103,11 +106,15 @@ export default function HomeClient({
         {homeRails.map((rail, i) => (
           // The first two rails render straight away; the rest only when the
           // shopper scrolls near them.
-          <LazyRail key={rail.key} eager={i < 2} title={rail.title} href={rail.href}>
-            {rail.items.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </LazyRail>
+          <Fragment key={rail.key}>
+            <LazyRail eager={i < 2} title={rail.title} href={rail.href}>
+              {rail.items.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </LazyRail>
+            {/* "Make your own" sits right after New Drops (or after the 2nd rail) */}
+            {i === customAfter && <CustomRail />}
+          </Fragment>
         ))}
       </div>
     </>

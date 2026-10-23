@@ -1170,3 +1170,107 @@ html.car-cursor [contenteditable] {
     transform: rotate(720deg);
   }
 }
+
+/* Hero promo slide: diagonal wall of stickers scrolling up / down */
+.sticker-wall {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 70%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 70%, transparent 100%);
+}
+.sticker-wall-up {
+  --wall-gap: 0.25rem;
+  animation: sticker-wall-up 36s linear infinite;
+}
+.sticker-wall-down {
+  --wall-gap: 0.25rem;
+  animation: sticker-wall-down 40s linear infinite;
+}
+@media (min-width: 640px) {
+  .sticker-wall-up,
+  .sticker-wall-down {
+    --wall-gap: 0.3333rem;
+  }
+}
+@keyframes sticker-wall-up {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(calc(-100% / 3 - var(--wall-gap, 0.25rem)));
+  }
+}
+@keyframes sticker-wall-down {
+  from {
+    transform: translateY(calc(-100% / 3 - var(--wall-gap, 0.25rem)));
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sticker-wall-up,
+  .sticker-wall-down {
+    animation: none;
+  }
+}
+html[data-lite]:not([data-lite="net"]) .sticker-wall-up,
+html[data-lite]:not([data-lite="net"]) .sticker-wall-down {
+  animation: none;
+}
+
+/* Sticker wall: now and then a sticker peels — its top-right corner folds
+   back along a diagonal, showing the white backing paper in the sticker's own
+   die-cut shape, then smooths down again. --pk is how far it has peeled (0–1
+   of the tile); each tile has its own cycle (--peel-cycle / --peel-delay).
+   The flap is a copy of the sticker turned white and mirrored across the fold
+   (no extra image request, no CORS needed). */
+@property --pk {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+.wall-peel {
+  --pk: 0;
+  animation: wall-peel var(--peel-cycle, 10s) cubic-bezier(0.3, 0.7, 0.2, 1) var(--peel-delay, 0s) infinite;
+}
+@keyframes wall-peel {
+  0%,
+  74%,
+  100% {
+    --pk: 0;
+  }
+  85%,
+  91% {
+    --pk: 0.56;
+  }
+}
+/* the sticker, minus the corner that has lifted off */
+.wall-peel-front {
+  filter: drop-shadow(0 4px 6px rgba(16, 24, 40, 0.2));
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--pk) * 100%) 0,
+    100% calc(var(--pk) * 100%),
+    100% 100%,
+    0 100%
+  );
+}
+.wall-peel-shadow {
+  pointer-events: none;
+  filter: drop-shadow(-3px 4px 3px rgba(16, 24, 40, 0.4)) drop-shadow(0 0 1px rgba(16, 24, 40, 0.35));
+}
+/* the lifted corner, mirrored across the fold line and turned to white paper */
+.wall-peel-flap {
+  transform-origin: 0 0;
+  transform: translate(calc(100% - var(--pk) * 100%), calc(var(--pk) * 100% - 100%)) matrix(0, 1, 1, 0, 0, 0);
+  clip-path: polygon(calc(100% - var(--pk) * 100%) 0, 100% 0, 100% calc(var(--pk) * 100%));
+  /* backing paper: light grey so it reads against the white tile */
+  filter: brightness(0) invert(0.84);
+}
+@media (prefers-reduced-motion: reduce) {
+  .wall-peel {
+    animation: none;
+  }
+}
+html[data-lite]:not([data-lite="net"]) .wall-peel {
+  animation: none;
+}

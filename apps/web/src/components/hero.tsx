@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import SmartImg from "./smart-img";
 import HoverLink from "./hover-link";
 import { useEffect, useRef, useState } from "react";
@@ -31,7 +32,11 @@ import { useSkinSeed } from "@/lib/skin-seed";
 import AddToCartButton from "./add-to-cart-button";
 import { useSizeChoice } from "./size-picker";
 import TrueSizePreview from "./true-size-preview";
-import { useFeatures, useStoreSettings } from "@/lib/live-catalog";
+import {
+  useFeatures,
+  useLiveCatalog,
+  useStoreSettings,
+} from "@/lib/live-catalog";
 import { drawSticker } from "@/lib/qr-art";
 
 /** Rotating hero: the featured sticker is staged on a big tilted product card. */
@@ -50,9 +55,20 @@ export default function Hero({
     : [];
   const qr = features.customStickers ? customSizes(settings.qrPrices) : [];
   // Sticker slides, with "your own design" second and "QR code sticker" fourth (when on).
-  const slides: Slide[] = picks.map((p) => ({ kind: "product" as const, product: p }));
-  if (picks.length > 0 && custom.length > 0) slides.splice(1, 0, { kind: "custom" });
-  if (picks.length > 0 && qr.length > 0) slides.splice(Math.min(3, slides.length), 0, { kind: "qr" });
+  const slides: Slide[] = picks.map((p) => ({
+    kind: "product" as const,
+    product: p,
+  }));
+  if (picks.length > 0 && custom.length > 0)
+    slides.splice(1, 0, { kind: "custom" });
+  if (picks.length > 0 && qr.length > 0)
+    slides.splice(Math.min(3, slides.length), 0, { kind: "qr" });
+  // StickyPie itself always opens the hero: what we are + a nudge to order.
+  if (picks.length > 0) slides.unshift({ kind: "brand" });
+  const { products: catalog } = useLiveCatalog({
+    categories: [],
+    products: [],
+  });
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const seed = useSkinSeed();
@@ -72,12 +88,19 @@ export default function Hero({
 
   // Swipe left / right on phones to change slide.
   const touch = useRef<{ x: number; y: number } | null>(null);
-  const go = (step: number) => setIndex((i) => (i + step + slides.length) % slides.length);
+  const go = (step: number) =>
+    setIndex((i) => (i + step + slides.length) % slides.length);
 
   if (!slide) return null;
   const product = slide.kind === "product" ? slide.product : null;
   const key = product ? product.id : slide.kind;
-  const skinSlug = product ? product.slug : slide.kind === "qr" ? "qr-code-stickers" : "custom-stickers";
+  const skinSlug = product
+    ? product.slug
+    : slide.kind === "qr"
+      ? "qr-code-stickers"
+      : slide.kind === "brand"
+        ? "stickypie"
+        : "custom-stickers";
 
   const tile = tileFor(skinSlug);
   // Each slide sits on a sticker sheet or cutting mat — a new mix every load.
@@ -99,7 +122,8 @@ export default function Hero({
         const dx = t.clientX - start.x;
         const dy = t.clientY - start.y;
         // A clear sideways swipe, not a scroll or a tap.
-        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
+        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5)
+          go(dx < 0 ? 1 : -1);
       }}
       className="relative flex items-center overflow-x-clip lg:min-h-[70svh]"
     >
@@ -110,15 +134,37 @@ export default function Hero({
         style={skin.art}
         className="pointer-events-none absolute inset-0 transition-[background-color] duration-700 [mask-image:linear-gradient(to_bottom,black_0%,black_62%,transparent_100%)]"
       />
+      {slide.kind === "brand" && (
+        <>
+          <BrandSlideArt
+            key="wall"
+            stickers={(catalog.length ? catalog : products).slice(0, 30)}
+          />
+          {/* white wash behind the words: from below on phones, from the left on desktop */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,rgba(255,255,255,0.97)_0%,rgba(255,255,255,0.9)_42%,rgba(255,255,255,0.15)_75%,transparent_100%)] lg:bg-[linear-gradient(to_right,rgba(255,255,255,0.96)_0%,rgba(255,255,255,0.88)_34%,rgba(255,255,255,0.2)_58%,transparent_75%)]"
+          />
+        </>
+      )}
       <div
         className="pointer-events-none absolute top-1/3 -right-44 size-[32rem] rounded-full blur-[140px] transition-colors duration-700"
         style={{ background: `${tile.glow}1f` }}
       />
 
-      <div className="relative grid w-full items-center gap-5 px-4 pt-20 pb-8 sm:gap-8 sm:px-8 sm:pt-24 lg:grid-cols-[1fr_1.2fr] lg:gap-14 lg:px-12 lg:pt-24 lg:pb-10 2xl:px-20">
+      <div
+        className={`relative grid w-full items-center gap-3 px-4 pt-[68px] pb-5 sm:gap-8 sm:px-8 sm:pt-24 lg:grid-cols-[1fr_1.2fr] lg:gap-14 lg:px-12 lg:pt-24 lg:pb-10 2xl:px-20 ${slide.kind === "brand" ? "pointer-events-none" : ""}`}
+      >
         {/* Copy: every slide is laid out in the same cell, so the hero keeps the
             height of the tallest slide and never jumps as slides change. */}
-        <div className="order-2 grid max-w-2xl lg:order-1">
+        {/* z-10: on phones the sticker can reach down behind the text — it stays a backdrop */}
+        <div className="pointer-events-auto relative z-10 order-2 grid max-w-2xl lg:order-1">
+          {/* Phones: a soft frosted fade behind the text, so the picture above
+              melts away under it instead of clashing with the badge. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -inset-x-4 -top-14 -bottom-5 -z-10 bg-[linear-gradient(to_bottom,rgba(255,255,255,0)_0%,rgba(255,255,255,0.72)_22%,rgba(255,255,255,0.86)_55%,rgba(255,255,255,0.9)_100%)] backdrop-blur-[6px] [mask-image:linear-gradient(to_bottom,transparent_0%,black_26%)] sm:hidden"
+          />
           {slides.map((s, i) => {
             const active = i === index;
             return (
@@ -131,16 +177,45 @@ export default function Hero({
                 {s.kind === "product" ? (
                   <ProductSlideCopy
                     product={s.product}
-                    categoryName={categories.find((c) => c.id === s.product.categoryId)?.name}
+                    categoryName={
+                      categories.find((c) => c.id === s.product.categoryId)
+                        ?.name
+                    }
                     onPickSize={() => setEngaged(true)}
                   />
+                ) : s.kind === "brand" ? (
+                  <BrandSlideCopy
+                    catalog={catalog.length ? catalog : products}
+                  />
                 ) : (
-                  <CustomSlideCopy kind={s.kind} sizes={s.kind === "qr" ? qr : custom} />
+                  <CustomSlideCopy
+                    kind={s.kind}
+                    sizes={s.kind === "qr" ? qr : custom}
+                  />
                 )}
               </div>
             );
           })}
 
+          {slides.length > 1 && (
+            <div className="col-start-1 row-start-2 mt-4 flex items-center justify-center gap-2 sm:hidden">
+              {slides.map((s, i) => (
+                <button
+                  key={s.kind === "product" ? s.product.id : s.kind}
+                  type="button"
+                  aria-label={`Show slide ${i + 1}`}
+                  onClick={() => setIndex(i)}
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    i === index
+                      ? "pie-gradient w-7 shadow-sm shadow-brand/40"
+                      : s.kind !== "product"
+                        ? "w-2 border-[1.5px] border-dashed border-brand"
+                        : "w-2 bg-snow/20"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
           <ul className="col-start-1 row-start-2 mt-8 hidden flex-wrap gap-2 text-[11px] font-semibold tracking-wide text-fog sm:flex">
             <li className="flex items-center gap-1.5 rounded-full border border-line bg-ink2 px-3 py-1.5">
               <Droplets className="size-3.5 text-mint" /> Waterproof vinyl
@@ -158,15 +233,24 @@ export default function Hero({
         </div>
 
         {/* Artwork, floating on the mat */}
-        <div className="relative order-1 mx-auto w-full max-w-[340px] sm:max-w-xl lg:order-2 lg:mx-0 lg:max-w-none">
+        <div
+          className={`relative z-0 order-1 mx-auto w-full max-w-[340px] sm:max-w-xl lg:order-2 ${slide.kind === "brand" ? "pointer-events-none [&_button]:pointer-events-auto" : ""} lg:mx-0 lg:max-w-none`}
+        >
           {/* product-tinted wash behind the art */}
-          <div
-            className="pointer-events-none absolute inset-0 m-auto aspect-square w-[105%] rounded-full blur-[85px] transition-colors duration-700"
-            style={{ background: `${tile.glow}30` }}
-          />
-          <div className="pointer-events-none absolute inset-0 m-auto aspect-square w-[55%] rounded-full bg-white/70 blur-[60px]" />
+          {slide.kind !== "brand" && (
+            <>
+              <div
+                className="pointer-events-none absolute inset-0 m-auto aspect-square w-[105%] rounded-full blur-[85px] transition-colors duration-700"
+                style={{ background: `${tile.glow}30` }}
+              />
+              <div className="pointer-events-none absolute inset-0 m-auto aspect-square w-[55%] rounded-full bg-white/70 blur-[60px]" />
+            </>
+          )}
 
-          <div key={key} className="animate-hero-img-in relative aspect-[5/4] lg:aspect-auto lg:h-[min(50vh,560px)]">
+          <div
+            key={key}
+            className="animate-hero-img-in relative aspect-[16/10] sm:aspect-[5/4] lg:aspect-auto lg:h-[min(50vh,560px)]"
+          >
             {product ? (
               <div className="absolute inset-0 grid place-items-center p-2 sm:p-4 lg:px-6 lg:pt-0 lg:pb-5">
                 <SmartImg
@@ -177,7 +261,7 @@ export default function Hero({
                   className="sticker-cut animate-float max-h-full max-w-full rotate-2 object-contain lg:max-h-[min(46vh,520px)]"
                 />
               </div>
-            ) : slide.kind === "qr" ? (
+            ) : slide.kind === "brand" ? null : slide.kind === "qr" ? (
               <QrSlideArt />
             ) : (
               <CustomSlideArt sizes={custom} />
@@ -186,7 +270,7 @@ export default function Hero({
 
           {/* Slide indicator */}
           {slides.length > 1 && (
-            <div className="relative z-10 mt-4 flex items-center justify-center gap-2 lg:mt-7">
+            <div className="relative z-10 mt-4 hidden items-center justify-center gap-2 sm:flex lg:mt-7">
               {slides.map((s, i) => (
                 <button
                   key={s.kind === "product" ? s.product.id : s.kind}
@@ -196,7 +280,9 @@ export default function Hero({
                       ? `Show ${s.product.name}`
                       : s.kind === "qr"
                         ? "Show QR code stickers"
-                        : "Show custom stickers"
+                        : s.kind === "brand"
+                          ? "Show StickyPie"
+                          : "Show custom stickers"
                   }
                   onClick={() => setIndex(i)}
                   className={`h-2.5 rounded-full transition-all duration-300 ${
@@ -216,14 +302,147 @@ export default function Hero({
   );
 }
 
-type Slide = { kind: "product"; product: Product } | { kind: "custom" } | { kind: "qr" };
+type Slide =
+  | { kind: "product"; product: Product }
+  | { kind: "brand" }
+  | { kind: "custom" }
+  | { kind: "qr" };
+
+/** First slide: StickyPie in one line, a few quick facts, and two ways to order. */
+function BrandSlideCopy({ catalog }: { catalog: Product[] }) {
+  const from = catalog.length ? Math.min(...catalog.map((p) => p.price)) : null;
+  // Rounded down to a friendly "100+" style number.
+  const count =
+    catalog.length >= 20
+      ? `${Math.floor(catalog.length / 10) * 10}+`
+      : `${catalog.length}`;
+  return (
+    <>
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 text-[11px] font-bold tracking-widest text-brand uppercase backdrop-blur-sm">
+        <Sparkles className="size-3.5" /> StickyPie stickers
+      </span>
+      <h2 className="mt-2.5 font-display text-[30px] leading-[1.05] font-bold tracking-tight sm:mt-4 sm:text-6xl lg:mt-5 lg:text-[64px]">
+        Stick your style.
+      </h2>
+      <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-fog sm:mt-4 sm:text-lg">
+        Die-cut vinyl stickers for your car, bike, laptop and bottle.
+      </p>
+      {catalog.length > 0 && (
+        <p className="mt-3 text-sm font-semibold text-snow sm:mt-5">
+          {count} designs
+          {from !== null && (
+            <>
+              {" "}
+              · from{" "}
+              <span className="font-display text-gold">{formatINR(from)}</span>
+            </>
+          )}
+        </p>
+      )}
+      <div className="mt-3 flex flex-wrap items-center gap-2.5 sm:mt-6 sm:gap-3">
+        <HoverLink
+          href="/stickers"
+          className="peel-btn inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-bold sm:h-12 sm:px-6 sm:text-base"
+        >
+          Shop stickers <ArrowRight className="size-4" />
+        </HoverLink>
+        <HoverLink
+          href="/custom-stickers"
+          className="peel-btn peel-btn--light inline-flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold sm:h-12 sm:px-5"
+        >
+          <ImageUp className="size-4" /> Make your own
+        </HoverLink>
+      </div>
+    </>
+  );
+}
+
+/**
+ * First slide's backdrop: a wall of real stickers filling the whole hero —
+ * columns scrolling up and down (alternating), tilted diagonally, fading out
+ * at the top and bottom. Tiles size with the screen, so it fills any device.
+ * Each sticker opens its page; the wall keeps moving the whole time.
+ */
+function BrandSlideArt({ stickers }: { stickers: Product[] }) {
+  const COLS = 10;
+  const PER_COL = 7;
+  const pool = stickers;
+  if (!pool.length) return null;
+  const columns = Array.from({ length: COLS }, (_, c) =>
+    Array.from(
+      { length: PER_COL },
+      (_, k) => pool[(c * 7 + k * 4) % pool.length],
+    ),
+  );
+  return (
+    <div className="sticker-wall animate-hero-img-in absolute inset-0 overflow-hidden">
+      <div className="absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 -rotate-[14deg] gap-3 sm:gap-4">
+        {columns.map((col, c) => (
+          <div key={c} className="w-[clamp(92px,13vw,170px)] shrink-0">
+            {/* three copies stacked: the column scrolls by one copy and loops
+                without a seam, and the screen never reaches either end */}
+            <div
+              className={`flex flex-col gap-3 sm:gap-4 ${c % 2 ? "sticker-wall-down" : "sticker-wall-up"}`}
+              style={{ animationDuration: `${44 + (c % 4) * 7}s` }}
+            >
+              {[...col, ...col, ...col].map((p, k) => {
+                // Every tile peels its corner now and then: its own cycle length and
+                // starting point (fixed per tile, so server and browser agree).
+                const n = c * 31 + k * 17;
+                const peel = {
+                  "--peel-cycle": `${8 + (n % 9)}s`,
+                  "--peel-delay": `${-((n * 7) % 13)}s`,
+                } as React.CSSProperties;
+                return (
+                  <Link
+                    key={`${p.id}-${k}`}
+                    href={`/sticker/${p.slug}`}
+                    tabIndex={-1}
+                    aria-label={p.name}
+                    style={peel}
+                    className="wall-tile grid aspect-square place-items-center rounded-2xl bg-white/85 p-[11%] shadow-[0_10px_24px_-14px_rgba(16,24,40,0.35)] ring-1 ring-black/5 transition-transform duration-200 hover:scale-[1.06] hover:ring-brand/40"
+                  >
+                    {/* the sticker, and a white copy of it folded back over the
+                        peeling corner as its backing paper (see .wall-peel) */}
+                    <span className="wall-peel relative size-full">
+                      <img
+                        src={p.thumbUrl ?? p.imageUrl}
+                        alt=""
+                        loading="lazy"
+                        className="wall-peel-front absolute inset-0 size-full object-contain"
+                      />
+                      <span aria-hidden className="wall-peel-shadow absolute inset-0">
+                        <img
+                          src={p.thumbUrl ?? p.imageUrl}
+                          alt=""
+                          loading="lazy"
+                          className="wall-peel-flap absolute inset-0 size-full object-contain"
+                        />
+                      </span>
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /** QR slide picture: a real QR sticker (pointing at our QR page), drawn on the device. */
 function QrSlideArt() {
   const [src, setSrc] = useState<string | null>(null);
   useEffect(() => {
     try {
-      setSrc(drawSticker("https://stickypie.in/qr-code-stickers", "Scan to pay", 520).toDataURL("image/png"));
+      setSrc(
+        drawSticker(
+          "https://stickypie.in/qr-code-stickers",
+          "Scan to pay",
+          520,
+        ).toDataURL("image/png"),
+      );
     } catch {
       setSrc(null);
     }
@@ -265,7 +484,7 @@ function ProductSlideCopy({
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 text-[11px] font-bold tracking-widest text-brand uppercase backdrop-blur-sm">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-white/90 px-3.5 py-1.5 text-[11px] font-bold tracking-widest text-brand uppercase shadow-sm backdrop-blur-sm">
           <Sparkles className="size-3.5" /> Featured drop
         </span>
         {categoryName && (
@@ -275,7 +494,7 @@ function ProductSlideCopy({
         )}
       </div>
       {/* The page's H1 is in the shop intro below; a rotating product isn't the page topic. */}
-      <h2 className="mt-4 line-clamp-2 font-display text-4xl leading-[1.04] font-bold tracking-tight sm:text-6xl lg:mt-5 lg:text-[64px]">
+      <h2 className="mt-2.5 line-clamp-2 font-display text-[30px] leading-[1.05] font-bold tracking-tight sm:mt-4 sm:text-6xl lg:mt-5 lg:text-[64px]">
         {product.name}
       </h2>
       <p className="mt-4 hidden max-w-lg text-base leading-relaxed text-fog sm:line-clamp-2 sm:text-lg lg:line-clamp-3">
@@ -312,8 +531,12 @@ function CustomSlideArt({ sizes }: { sizes: { inches: number }[] }) {
                 <span className="pie-gradient mx-auto grid size-14 place-items-center rounded-2xl text-white shadow-lg shadow-brand/30 lg:size-16">
                   <ImageUp className="size-7 lg:size-8" />
                 </span>
-                <span className="mt-3 block font-display text-2xl font-bold text-snow lg:text-3xl">Your design</span>
-                <span className="mt-0.5 block text-xs font-semibold tracking-wide text-fog uppercase">logo · photo · art</span>
+                <span className="mt-3 block font-display text-2xl font-bold text-snow lg:text-3xl">
+                  Your design
+                </span>
+                <span className="mt-0.5 block text-xs font-semibold tracking-wide text-fog uppercase">
+                  logo · photo · art
+                </span>
               </span>
             </div>
             {/* peeling corner */}
@@ -326,7 +549,10 @@ function CustomSlideArt({ sizes }: { sizes: { inches: number }[] }) {
           <Shapes className="size-3.5 text-brand" /> Any shape
         </span>
         <span className="animate-float-slow absolute top-[42%] -right-[16%] inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-snow shadow-md [animation-delay:-4s]">
-          <Ruler className="size-3.5 text-brand" /> {sizes.length > 3 ? `${formatInches(sizes[0].inches)}″ – ${formatInches(sizes[sizes.length - 1].inches)}″` : sizes.map((s) => `${formatInches(s.inches)}″`).join(" · ")}
+          <Ruler className="size-3.5 text-brand" />{" "}
+          {sizes.length > 3
+            ? `${formatInches(sizes[0].inches)}″ – ${formatInches(sizes[sizes.length - 1].inches)}″`
+            : sizes.map((s) => `${formatInches(s.inches)}″`).join(" · ")}
         </span>
         <span className="animate-float-slow absolute bottom-[2%] -left-[8%] inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-snow shadow-md [animation-delay:-7s]">
           <Droplets className="size-3.5 text-mint" /> Waterproof vinyl
@@ -371,28 +597,34 @@ function CustomSlideCopy({
       <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 text-[11px] font-bold tracking-widest text-brand uppercase backdrop-blur-sm">
         <Icon className="size-3.5" /> {c.badge}
       </span>
-      <h2 className="mt-4 line-clamp-2 font-display text-4xl leading-[1.04] font-bold tracking-tight sm:text-6xl lg:mt-5 lg:text-[64px]">
+      <h2 className="mt-2.5 line-clamp-2 font-display text-[30px] leading-[1.05] font-bold tracking-tight sm:mt-4 sm:text-6xl lg:mt-5 lg:text-[64px]">
         {c.title}
       </h2>
       <p className="mt-4 hidden max-w-lg text-base leading-relaxed text-fog sm:line-clamp-2 sm:text-lg lg:line-clamp-3">
         {c.text}
       </p>
-      <div className="mt-3 flex items-baseline gap-2 sm:mt-6">
+      <div className="mt-2 flex items-baseline gap-2 sm:mt-6">
         <span className="text-sm text-fog">from</span>
-        <span className="font-display text-4xl font-bold text-gold">{formatINR(from)}</span>
+        <span className="font-display text-3xl font-bold text-gold sm:text-4xl">
+          {formatINR(from)}
+        </span>
       </div>
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap gap-2 sm:mt-4">
         {sizes.map((s) => (
           <span
             key={s.inches}
             className="inline-flex items-baseline gap-1.5 rounded-xl border border-line bg-ink2/80 px-3.5 py-2 backdrop-blur-sm"
           >
-            <span className="font-display text-base font-bold">{formatInches(s.inches)}″</span>
-            <span className="text-xs font-semibold text-fog">{formatINR(s.price)}</span>
+            <span className="font-display text-base font-bold">
+              {formatInches(s.inches)}″
+            </span>
+            <span className="text-xs font-semibold text-fog">
+              {formatINR(s.price)}
+            </span>
           </span>
         ))}
       </div>
-      <div className="mt-4 flex flex-wrap items-center gap-3 sm:mt-6">
+      <div className="mt-3 flex flex-wrap items-center gap-2.5 sm:mt-6 sm:gap-3">
         <HoverLink
           href={c.href}
           className="peel-btn inline-flex h-12 items-center gap-2 rounded-xl px-6 text-base font-bold"
@@ -401,7 +633,7 @@ function CustomSlideCopy({
         </HoverLink>
         <HoverLink
           href={c.href}
-          className="inline-flex h-12 items-center px-2 text-sm font-semibold text-fog transition-colors hover:text-brand"
+          className="hidden h-12 items-center px-2 text-sm font-semibold text-fog transition-colors hover:text-brand sm:inline-flex"
         >
           Bulk or special requests
         </HoverLink>
@@ -426,8 +658,8 @@ function HeroBuy({
 
   return (
     <>
-      <div className="mt-3 flex items-baseline gap-3 sm:mt-6">
-        <span className="font-display text-4xl font-bold text-gold">
+      <div className="mt-2 flex items-baseline gap-3 sm:mt-6">
+        <span className="font-display text-3xl font-bold text-gold sm:text-4xl">
           {formatINR(price)}
         </span>
         {compareAtPrice !== null && compareAtPrice > price && (
@@ -448,7 +680,7 @@ function HeroBuy({
         <div
           role="radiogroup"
           aria-label="Sticker size"
-          className="mt-4 flex flex-wrap gap-2"
+          className="mt-3 flex flex-wrap gap-2 sm:mt-4"
         >
           {sizes.map((s) => {
             const active = s.inches === size;
@@ -482,7 +714,7 @@ function HeroBuy({
         </div>
       )}
 
-      <div className="mt-4 flex flex-wrap items-center gap-3 sm:mt-6">
+      <div className="mt-3 flex flex-wrap items-center gap-2.5 sm:mt-6 sm:gap-3">
         <AddToCartButton
           product={product}
           stickerSize={size}
@@ -511,11 +743,13 @@ function HeroBuy({
       {features.customStickers && (
         <HoverLink
           href="/custom-stickers"
-          className="group mt-4 inline-flex items-center gap-2.5 rounded-2xl border border-dashed border-brand/40 bg-ink2/80 px-4 py-2.5 text-sm backdrop-blur-sm transition-colors hover:border-brand sm:mt-5"
+          className="group mt-4 hidden items-center gap-2.5 rounded-2xl border border-dashed border-brand/40 sm:inline-flex bg-ink2/80 px-4 py-2.5 text-sm backdrop-blur-sm transition-colors hover:border-brand sm:mt-5"
         >
           <ImageUp className="size-4.5 text-brand" />
           <span>
-            <span className="font-semibold text-snow">Got your own design?</span>{" "}
+            <span className="font-semibold text-snow">
+              Got your own design?
+            </span>{" "}
             <span className="text-fog">Make your own sticker</span>
           </span>
           <ArrowRight className="size-4 text-brand transition-transform group-hover:translate-x-0.5" />

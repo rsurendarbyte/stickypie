@@ -35,11 +35,18 @@ export default function SmartImg({
     let cancelled = false;
     const img = new Image();
     img.decoding = "async";
-    img.onload = () => !cancelled && setLoaded(full);
     img.src = full;
+    // Swap only once the big file is downloaded AND decoded: swapping on
+    // "load" alone made the art flash blank for a frame while a multi-MB PNG
+    // was still being decoded (the "blink" on the sticker page).
+    img
+      .decode()
+      .catch(() => undefined) // decode() can reject for odd formats; still swap once loaded
+      .then(() => {
+        if (!cancelled && img.complete && img.naturalWidth > 0) setLoaded(full);
+      });
     return () => {
       cancelled = true;
-      img.onload = null;
     };
   }, [full, small, lite]);
 
