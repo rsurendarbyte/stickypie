@@ -5,6 +5,7 @@ import { CartProvider } from "@/components/cart-context";
 import { ConfirmProvider } from "@/components/confirm-dialog";
 import MildBackground from "@/components/mild-background";
 import Nav from "@/components/nav";
+import CarCursor from "@/components/car-cursor";
 import Footer from "@/components/footer";
 import CartDrawer from "@/components/cart-drawer";
 import CartShell from "@/components/cart-shell";
@@ -83,6 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <PerfProbe />
           <MildBackground />
           <Nav />
+          <CarCursor />
           <CartShell>
             <main className="min-h-screen">{children}</main>
             <Footer demoMode={!supabaseConfigured()} />
