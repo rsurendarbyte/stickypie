@@ -94,7 +94,7 @@ export default function ProductDetailClient({
             style={{ transform: `rotate(${rotate / 2}deg)` }}
           >
             <SmartImg
-              full={product.imageUrl}
+              full={product.displayUrl ?? product.imageUrl}
               thumb={product.thumbUrl}
               alt={product.name}
               priority

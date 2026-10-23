@@ -258,7 +258,7 @@ export default function Hero({
                 className="absolute inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center p-2 sm:p-4 lg:px-6 lg:pt-0 lg:pb-5"
               >
                 <SmartImg
-                  full={product.imageUrl}
+                  full={product.displayUrl ?? product.imageUrl}
                   thumb={product.thumbUrl}
                   alt={product.name}
                   priority

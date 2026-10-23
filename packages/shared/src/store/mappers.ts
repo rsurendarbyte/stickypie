@@ -32,6 +32,7 @@ export function rowToProduct(r: any): Product {
     categoryIds: Array.isArray(r.category_ids) ? r.category_ids : r.category_id ? [r.category_id] : [],
     imageUrl: onImageHost(r.image_url),
     thumbUrl: r.thumb_url ? onImageHost(r.thumb_url) : null,
+    displayUrl: r.display_url ? onImageHost(r.display_url) : null,
     tags: r.tags ?? [],
     featured: r.featured,
     // Absent until the 20261021 migration runs — treat as "not new".
@@ -125,6 +126,7 @@ export function productToRow(input: Partial<ProductInput>): Record<string, unkno
   }
   if (input.imageUrl !== undefined) row.image_url = input.imageUrl;
   if (input.thumbUrl !== undefined) row.thumb_url = input.thumbUrl;
+  if (input.displayUrl !== undefined) row.display_url = input.displayUrl;
   if (input.tags !== undefined) row.tags = input.tags;
   if (input.featured !== undefined) row.featured = input.featured;
   if (input.isNew !== undefined) row.is_new = input.isNew;

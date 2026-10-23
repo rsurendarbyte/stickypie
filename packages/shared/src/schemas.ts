@@ -114,6 +114,7 @@ export const productInputSchema = z.object({
     .default([]),
   aspectRatio: z.number().positive().max(100).nullable().default(null),
   thumbUrl: z.string().trim().max(500).nullable().optional(),
+  displayUrl: z.string().trim().max(500).nullable().optional(),
 });
 
 export type ProductInputParsed = z.infer<typeof productInputSchema>;
