@@ -18,6 +18,7 @@ import {
   type Order,
 } from "@stickypie/shared";
 import { getDriver } from "@/lib/data";
+import { checkIndianAddress } from "@/lib/india-address";
 import { cashfreeConfigured, checkoutGateway, paymentSimulatorAllowed, razorpayConfigured } from "@/lib/mode";
 import { openNewPayment, reopenPayment, reuseWindowStart } from "@/lib/pay-session";
 import { accountsEnabled, shopperFromRequest } from "@/lib/shopper";
@@ -57,6 +58,12 @@ export async function POST(req: Request) {
     }
     userId = shopper.id;
     customer = { ...customer, email: shopper.email };
+  }
+
+  // India only: the PIN must be a real Indian PIN in the chosen state.
+  const where = await checkIndianAddress(customer.pincode, customer.state);
+  if (!where.ok) {
+    return NextResponse.json({ error: where.error, code: "outside_india" }, { status: 400 });
   }
 
   const driver = getDriver();

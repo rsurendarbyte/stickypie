@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Lock,
   MailCheck,
+  MapPin,
   PackageCheck,
   Plus,
   ShieldCheck,
@@ -671,6 +672,10 @@ export default function CheckoutClient() {
             title={shopper.enabled ? "Delivery address" : "Contact & delivery"}
             done={addressDone}
           >
+            <p className="mb-3 flex items-center gap-2 rounded-xl bg-mint/[0.08] px-3 py-2 text-xs font-semibold text-snow">
+              <MapPin className="size-3.5 shrink-0 text-mint" />
+              We deliver only within India — enter an Indian address and PIN code.
+            </p>
             {addressesPending && (
               <p className="flex items-center gap-2 text-xs text-fog">
                 <StickerLoader size={16} /> Loading your saved addresses…
