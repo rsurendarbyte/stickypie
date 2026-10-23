@@ -1,0 +1,70 @@
+// /llms.txt — a plain-text guide to the shop for AI assistants and AI search
+// (ChatGPT, Gemini / Google AI, Perplexity, Claude…): what StickyPie is, how
+// ordering and shipping work, and every sticker on sale with its price per
+// size and link. Rendered per request so new stickers show up without a deploy.
+import { categoryPath, formatINR, inCategory } from "@stickypie/shared";
+import { getDriver } from "@/lib/data";
+import { SURFACES } from "@/lib/surfaces";
+import { SITE_NAME, absoluteUrl, isProductionSite } from "@/lib/site";
+import { seoName } from "@/lib/seo";
+
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  if (!isProductionSite()) {
+    return new Response(`# ${SITE_NAME} (test site)\n\nThe real shop is https://stickypie.in\n`, {
+      headers: { "Content-Type": "text/plain; charset=utf-8", "X-Robots-Tag": "noindex" },
+    });
+  }
+
+  const driver = getDriver();
+  const [products, categories] = await Promise.all([
+    driver.listProducts({ activeOnly: true }),
+    driver.listCategories(),
+  ]);
+  const prices = products.flatMap((p) => (p.sizes.length ? p.sizes.map((s) => s.price) : [p.price]));
+  const from = prices.length ? formatINR(Math.min(...prices)) : null;
+
+  const lines: string[] = [
+    `# ${SITE_NAME}`,
+    "",
+    `> ${SITE_NAME} (stickypie.in) is an online sticker shop in India. It sells waterproof, UV-safe die-cut vinyl stickers and decals for cars, bikes, laptops, helmets and water bottles — ${products.length} designs${from ? ` from ${from}` : ""} — plus custom stickers printed from your own design, QR code stickers and name stickers. Ships across India.`,
+    "",
+    "## Ordering & delivery",
+    "- Prices are in Indian rupees (INR), per sticker, by size (size = the longest side in inches).",
+    "- Dispatched in 2–4 days, delivered in 3–5 days anywhere in India. Delivery within India only.",
+    "- Pay online with UPI, cards or net banking.",
+    "- Custom stickers (your own logo/photo), QR code stickers and name stickers are made to order.",
+    "",
+    "## Main pages",
+    `- [All stickers](${absoluteUrl("/stickers")})`,
+    ...SURFACES.map((s) => `- [${s.name}](${absoluteUrl(`/${s.slug}`)})`),
+    `- [Custom stickers](${absoluteUrl("/custom-stickers")}): print your own design, QR code or name`,
+    `- [QR code stickers](${absoluteUrl("/qr-code-stickers")})`,
+    `- [Name & text stickers](${absoluteUrl("/name-stickers")})`,
+    `- [Contact](${absoluteUrl("/contact")})`,
+    "",
+    "## Categories",
+    ...categories
+      .filter((c) => products.some((p) => inCategory(p, c.id)))
+      .map((c) => `- [${c.name} stickers](${absoluteUrl(categoryPath(c.slug))})`),
+    "",
+    "## Stickers and prices",
+  ];
+  for (const p of products) {
+    const sizes = [...p.sizes].sort((a, b) => a.inches - b.inches);
+    const price = sizes.length
+      ? sizes.map((s) => `${s.inches}″ ${formatINR(s.price)}`).join(", ")
+      : formatINR(p.price);
+    const stock = p.stock === 0 ? " (out of stock)" : "";
+    lines.push(`- [${seoName(p)}](${absoluteUrl(`/sticker/${p.slug}`)}): ${price}${stock}${p.description ? ` — ${p.description.trim()}` : ""}`);
+  }
+  lines.push("");
+
+  return new Response(lines.join("\n"), {
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "public, max-age=3600",
+    },
+  });
+}

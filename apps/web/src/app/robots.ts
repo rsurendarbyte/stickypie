@@ -11,12 +11,31 @@ export default function robots(): MetadataRoute.Robots {
     return { rules: { userAgent: "*", allow: "/" } };
   }
 
+  const disallow = ["/checkout", "/order/", "/pay/", "/api/"];
   return {
-    rules: {
-      userAgent: "*",
-      allow: "/",
-      disallow: ["/checkout", "/order/", "/pay/", "/api/"],
-    },
+    rules: [
+      { userAgent: "*", allow: "/", disallow },
+      // Search engines and AI assistants named outright, so the shop's
+      // stickers and prices can appear in Google, Google AI, ChatGPT,
+      // Perplexity, Claude, Bing and Apple answers.
+      {
+        userAgent: [
+          "Googlebot",
+          "Google-Extended",
+          "Bingbot",
+          "GPTBot",
+          "OAI-SearchBot",
+          "ChatGPT-User",
+          "PerplexityBot",
+          "ClaudeBot",
+          "Claude-SearchBot",
+          "Applebot",
+          "Applebot-Extended",
+        ],
+        allow: "/",
+        disallow,
+      },
+    ],
     sitemap: `${siteUrl()}/sitemap.xml`,
     host: siteUrl(),
   };

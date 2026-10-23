@@ -42,6 +42,15 @@ export function pageMetadata({
   image?: string;
 }): Metadata {
   const images = image ? [{ url: image, alt: title }] : [SHARE_IMAGE];
+  // Every page names the shop in its description too (the title already ends
+  // in "· StickyPie"), so search and AI answers tie the page to the brand.
+  if (!description.includes(SITE_NAME)) {
+    const tail = ` | ${SITE_NAME}`;
+    description =
+      description.length + tail.length > 160
+        ? `${description.slice(0, 160 - tail.length - 1).trimEnd()}…${tail}`
+        : `${description}${tail}`;
+  }
   return {
     title,
     description,

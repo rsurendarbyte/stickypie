@@ -27,7 +27,7 @@ export function productSeoTitle(product: Product): string {
 
 export function productSeoDescription(product: Product): string {
   const sizes = sizeList(product);
-  const pitch = `Buy the ${seoName(product)} online in India from ${formatINR(product.price)}${
+  const pitch = `Buy the ${seoName(product)} from ${SITE_NAME}, online in India from ${formatINR(product.price)}${
     sizes ? ` in ${sizes} sizes` : ""
   }. Waterproof, UV-safe die-cut vinyl for car, bike, laptop & helmet. Peel and stick.`;
   const lead = product.description.trim();
@@ -113,7 +113,11 @@ export function productStructuredData(
   const url = absoluteUrl(`/sticker/${product.slug}`);
   const availability =
     product.stock === 0 ? "https://schema.org/OutOfStock" : "https://schema.org/InStock";
-  const prices = product.sizes.length ? product.sizes.map((s) => s.price) : [product.price];
+  const sizes = product.sizes.length
+    ? [...product.sizes].sort((a, b) => a.inches - b.inches)
+    : [{ inches: null as number | null, price: product.price }];
+  // Prices are good for a year (Google wants a date; we change them by hand).
+  const priceValidUntil = new Date(Date.now() + 365 * 86_400_000).toISOString().slice(0, 10);
   const offerBase = {
     url,
     priceCurrency: "INR",
@@ -123,16 +127,15 @@ export function productStructuredData(
     shippingDetails: SHIPPING_DETAILS,
     hasMerchantReturnPolicy: RETURN_POLICY,
   };
-  const offers =
-    prices.length > 1
-      ? {
-          "@type": "AggregateOffer",
-          ...offerBase,
-          lowPrice: Math.min(...prices),
-          highPrice: Math.max(...prices),
-          offerCount: prices.length,
-        }
-      : { "@type": "Offer", ...offerBase, price: prices[0] };
+  // One offer per size, each with its own price — what Google Shopping and AI
+  // answers read to show "₹14 for 3″, ₹80 for 6″…".
+  const offers = sizes.map((s) => ({
+    "@type": "Offer",
+    ...offerBase,
+    ...(s.inches ? { name: `${s.inches} inch`, sku: `${product.slug}-${s.inches}in` } : {}),
+    price: s.price,
+    priceValidUntil,
+  }));
 
   const rated = reviews.filter((r) => r.rating >= 1);
   const ratingData = rated.length
@@ -159,14 +162,24 @@ export function productStructuredData(
     "@type": "Product",
     name: seoName(product),
     description: product.description || productSeoDescription(product),
-    image: [absoluteUrl(product.imageUrl)],
+    url,
+    image: [absoluteUrl(product.imageUrl), ...(product.thumbUrl ? [absoluteUrl(product.thumbUrl)] : [])],
     sku: product.slug,
     mpn: product.slug,
     brand: { "@type": "Brand", name: SITE_NAME },
     material: "Vinyl",
     ...(mainCategory ? { category: `Stickers > ${mainCategory.name}` } : { category: "Stickers" }),
     ...(product.tags.length ? { keywords: product.tags.join(", ") } : {}),
-    offers,
+    ...(sizes[0].inches
+      ? {
+          additionalProperty: {
+            "@type": "PropertyValue",
+            name: "Sizes",
+            value: sizes.map((s) => `${s.inches}″`).join(", "),
+          },
+        }
+      : {}),
+    offers: offers.length === 1 ? offers[0] : offers,
     ...ratingData,
   };
 
