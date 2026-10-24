@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/page-link";
 import SmartImg from "./smart-img";
-import HoverLink from "./hover-link";
+import PageLink from "./page-link";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -252,7 +252,10 @@ export default function Hero({
             className="animate-hero-img-in relative aspect-[16/10] sm:aspect-[5/4] lg:aspect-auto lg:h-[min(50vh,560px)]"
           >
             {product ? (
-              <div className="absolute inset-0 grid place-items-center p-2 sm:p-4 lg:px-6 lg:pt-0 lg:pb-5">
+              <div
+                // one fixed-size cell, so max-h-full has a height to fit tall art (posters) into
+                className="absolute inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center p-2 sm:p-4 lg:px-6 lg:pt-0 lg:pb-5"
+              >
                 <SmartImg
                   full={product.imageUrl}
                   thumb={product.thumbUrl}
@@ -340,18 +343,18 @@ function BrandSlideCopy({ catalog }: { catalog: Product[] }) {
         </p>
       )}
       <div className="mt-3 flex flex-wrap items-center gap-2.5 sm:mt-6 sm:gap-3">
-        <HoverLink
+        <PageLink
           href="/stickers"
           className="peel-btn inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-bold sm:h-12 sm:px-6 sm:text-base"
         >
           Shop stickers <ArrowRight className="size-4" />
-        </HoverLink>
-        <HoverLink
+        </PageLink>
+        <PageLink
           href="/custom-stickers"
           className="peel-btn peel-btn--light inline-flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold sm:h-12 sm:px-5"
         >
           <ImageUp className="size-4" /> Make your own
-        </HoverLink>
+        </PageLink>
       </div>
     </>
   );
@@ -625,18 +628,18 @@ function CustomSlideCopy({
         ))}
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2.5 sm:mt-6 sm:gap-3">
-        <HoverLink
+        <PageLink
           href={c.href}
           className="peel-btn inline-flex h-12 items-center gap-2 rounded-xl px-6 text-base font-bold"
         >
           {c.cta} <ArrowRight className="size-4" />
-        </HoverLink>
-        <HoverLink
+        </PageLink>
+        <PageLink
           href={c.href}
           className="hidden h-12 items-center px-2 text-sm font-semibold text-fog transition-colors hover:text-brand sm:inline-flex"
         >
           Bulk or special requests
-        </HoverLink>
+        </PageLink>
       </div>
     </>
   );
@@ -721,12 +724,12 @@ function HeroBuy({
           size="lg"
           sticker
         />
-        <HoverLink
+        <PageLink
           href={`/sticker/${product.slug}`}
           className="peel-btn peel-btn--light inline-flex h-12 items-center gap-2 rounded-xl px-6 text-base font-bold"
         >
           Details <ArrowRight className="size-4" />
-        </HoverLink>
+        </PageLink>
         {sizes.length > 0 && (
           <button
             type="button"
@@ -741,7 +744,7 @@ function HeroBuy({
         )}
       </div>
       {features.customStickers && (
-        <HoverLink
+        <PageLink
           href="/custom-stickers"
           className="group mt-4 hidden items-center gap-2.5 rounded-2xl border border-dashed border-brand/40 sm:inline-flex bg-ink2/80 px-4 py-2.5 text-sm backdrop-blur-sm transition-colors hover:border-brand sm:mt-5"
         >
@@ -753,7 +756,7 @@ function HeroBuy({
             <span className="text-fog">Make your own sticker</span>
           </span>
           <ArrowRight className="size-4 text-brand transition-transform group-hover:translate-x-0.5" />
-        </HoverLink>
+        </PageLink>
       )}
       {trueSize && (
         <TrueSizePreview
