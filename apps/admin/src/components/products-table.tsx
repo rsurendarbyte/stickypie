@@ -236,6 +236,10 @@ export default function ProductsTable({
   categories: Category[];
 }) {
   const [products, setProducts] = useState(initial);
+  // Rows are drawn in the browser only: server-rendering 100+ rows ran past
+  // the Worker's CPU limit on the free plan (Cloudflare error 1102).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const [query, setQuery] = useState("");
   // "" = all categories, "none" = products without a category.
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -391,7 +395,14 @@ export default function ProductsTable({
             </tr>
           </thead>
           <tbody>
-            {visible.map((product) => (
+            {!mounted && (
+              <tr>
+                <td colSpan={8} className="px-4 py-12 text-center text-sm text-fog">
+                  Loading products…
+                </td>
+              </tr>
+            )}
+            {mounted && visible.map((product) => (
               <tr
                 key={product.id}
                 className={`border-b border-line/50 transition-colors last:border-0 hover:bg-white/[0.03] ${
@@ -403,7 +414,7 @@ export default function ProductsTable({
                     <span className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-lg bg-panel p-1 ring-1 ring-line">
                       {product.imageUrl && (
                         <img
-                          src={imageSrc(product.imageUrl)}
+                          src={imageSrc(product.thumbUrl ?? product.imageUrl)}
                           alt=""
                           className="sticker-cut-sm max-h-full max-w-full object-contain"
                         />
@@ -542,7 +553,7 @@ export default function ProductsTable({
                 </td>
               </tr>
             ))}
-            {visible.length === 0 && (
+            {mounted && visible.length === 0 && (
               <tr>
                 <td
                   colSpan={7}

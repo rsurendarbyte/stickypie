@@ -32,7 +32,8 @@ export default async function ProductsPage() {
       </div>
 
       <div className="mt-6">
-        <ProductsTable products={products} categories={categories} />
+        {/* descriptions aren't shown in the table; leaving them out keeps the page light */}
+        <ProductsTable products={products.map((p) => ({ ...p, description: "" }))} categories={categories} />
       </div>
     </div>
   );
