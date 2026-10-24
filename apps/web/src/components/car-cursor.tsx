@@ -14,9 +14,9 @@ import { drawPrint, randomTyre, type Tyre } from "@/lib/mt-tyres";
  * Off on touch screens, for "reduce motion", and on weak devices (lite mode).
  */
 
-const WHEEL = 34; // px
+const WHEEL = 24; // px
 const MARK_LIFE = 1500; // ms a tread print takes to fade
-const STEP = 7; // px between tread prints along the path
+const STEP = 5; // px between tread prints along the path
 const MUD = "92, 64, 38"; // rgb
 const IDLE_MS = 260; // still for this long = stopped
 const BRAKE_SPEED = 1.1; // px/ms — faster than this, then stopping = a skid
@@ -146,6 +146,7 @@ export default function CarCursor() {
         ctx.save();
         ctx.translate(m.x, m.y);
         ctx.rotate(m.a);
+        ctx.scale(WHEEL / 34, WHEEL / 34); // prints were drawn for a 34px tyre
         ctx.fillStyle = `rgba(${MUD}, ${0.42 * (1 - age)})`;
         // this tyre's own tread pattern (x = along the path, y = across it)
         drawPrint(ctx, style, m.alt);
