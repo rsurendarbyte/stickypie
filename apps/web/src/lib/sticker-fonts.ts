@@ -8,6 +8,7 @@ import {
   Pacifico,
   Permanent_Marker,
 } from "next/font/google";
+import type { TextStickerFontId } from "@stickypie/shared";
 
 const fredoka = Fredoka({ subsets: ["latin"], weight: "700", display: "swap" });
 const pacifico = Pacifico({
@@ -29,7 +30,7 @@ const luckiest = Luckiest_Guy({
 const lobster = Lobster({ subsets: ["latin"], weight: "400", display: "swap" });
 
 export type StickerFont = {
-  id: string;
+  id: TextStickerFontId;
   label: string;
   family: string;
   weight: number;

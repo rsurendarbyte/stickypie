@@ -81,6 +81,14 @@ export async function POST(req: Request) {
   const priceFor = (item: (typeof customItems)[number]) =>
     (item.customKind === "qr" ? qrPrice : item.customKind === "text" ? textPrice : customPrice).get(item.size ?? -1);
   for (const item of customItems) {
+    // QR / name stickers carry what to draw instead of an uploaded image.
+    const drawn = item.customKind === "qr" || item.customKind === "text";
+    if (drawn && item.customSpec?.kind !== item.customKind) {
+      return NextResponse.json(
+        { error: "Please make your QR or name sticker again — its details are missing.", code: "spec_missing" },
+        { status: 409 }
+      );
+    }
     if (item.size == null || priceFor(item) === undefined) {
       return NextResponse.json(
         { error: "A custom sticker size in your cart is no longer offered. Please choose a size again.", code: "size_unavailable" },
@@ -170,6 +178,7 @@ export async function POST(req: Request) {
             : customSizeLabel(item.size!),
       isCustom: true,
       customRef: item.customRef ?? null,
+      customSpec: item.customKind === "qr" || item.customKind === "text" ? (item.customSpec ?? null) : null,
     });
   }
 

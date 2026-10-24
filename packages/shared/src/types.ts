@@ -1,3 +1,4 @@
+import type { CustomSpec } from "./custom";
 export type Category = {
   id: string;
   name: string;
@@ -76,6 +77,8 @@ export type OrderItem = {
   customFile: string | null;
   /** Custom stickers: links to artwork the shopper picked before paying. */
   customRef: string | null;
+  /** QR / name stickers: what to draw (the admin makes the print file from it). */
+  customSpec: CustomSpec | null;
 };
 
 export type CustomerInfo = {
@@ -179,6 +182,7 @@ export type NewOrderInput = {
     sizeLabel: string | null;
     isCustom?: boolean;
     customRef?: string | null;
+    customSpec?: CustomSpec | null;
   }>;
   subtotal: number;
   shippingFee: number;

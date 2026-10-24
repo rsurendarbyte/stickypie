@@ -6,12 +6,10 @@ import { ArrowRight, Minus, Plus, ShoppingBag } from "lucide-react";
 import {
   CUSTOM_PRODUCT_PREFIX,
   TEXT_STICKER_NAME,
-  customArtKey,
   customSizes,
   formatINR,
   formatInches,
 } from "@stickypie/shared";
-import { idbSet } from "@/lib/idb";
 import { STICKER_FONTS } from "@/lib/sticker-fonts";
 import { drawTextSticker, loadStickerFont, type TextSticker, type TextStickerStyle } from "@/lib/text-art";
 import { useFeatures, useStoreSettings } from "@/lib/live-catalog";
@@ -38,7 +36,6 @@ const STYLES: { id: TextStickerStyle; label: string }[] = [
 const MAX_LINE1 = 18;
 const MAX_LINE2 = 30;
 
-const toBlob = (c: HTMLCanvasElement) => new Promise<Blob | null>((res) => c.toBlob(res, "image/png"));
 
 export default function TextStickerBuilder() {
   const settings = useStoreSettings();
@@ -116,8 +113,8 @@ export default function TextStickerBuilder() {
     setBusy(true);
     await loadStickerFont(font.family, font.weight);
     const ref = crypto.randomUUID();
-    const blob = await toBlob(drawTextSticker(sticker));
-    if (blob) await idbSet(customArtKey(ref), new File([blob], "name-sticker.png", { type: "image/png" }));
+    // No image is stored or uploaded: the order keeps the text, font, colours
+    // and style, and the admin draws the print file from that.
     const thumb = drawTextSticker(sticker, 240).toDataURL("image/png");
     const added = add(
       {
@@ -133,6 +130,7 @@ export default function TextStickerBuilder() {
         custom: true,
         customRef: ref,
         customKind: "text",
+        customSpec: { kind: "text", line1: line1.trim(), line2: line2.trim(), font: font.id, color, color2, style },
       },
       qty
     );

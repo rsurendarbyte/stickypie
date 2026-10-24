@@ -282,6 +282,7 @@ export function createLocalDriver(filePath: string): DataDriver {
           isCustom: Boolean(item.isCustom),
           customFile: null,
           customRef: item.customRef ?? null,
+          customSpec: item.customSpec ?? null,
         })),
       };
       store.orders.unshift(order);

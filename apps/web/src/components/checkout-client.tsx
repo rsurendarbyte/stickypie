@@ -392,6 +392,7 @@ export default function CheckoutClient() {
             size: item.size,
             ...(item.customRef ? { customRef: item.customRef } : {}),
             ...(item.customKind ? { customKind: item.customKind } : {}),
+            ...(item.customSpec ? { customSpec: item.customSpec } : {}),
           })),
         }),
       });

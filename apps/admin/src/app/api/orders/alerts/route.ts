@@ -22,7 +22,8 @@ export async function GET() {
       stickers: o.items.reduce((n, i) => n + i.quantity, 0),
       lines: o.items.length,
       // Custom / QR / name stickers whose design hasn't been uploaded yet.
-      designsMissing: o.items.filter((i) => i.isCustom && !i.customFile).length,
+      // (QR / name stickers are drawn from their saved details — nothing to upload.)
+      designsMissing: o.items.filter((i) => i.isCustom && !i.customFile && !i.customSpec).length,
       customLines: o.items.filter((i) => i.isCustom).length,
     })),
   });

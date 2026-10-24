@@ -7,6 +7,7 @@ import ShiprocketPanel from "@/components/shiprocket-panel";
 import { shiprocketConfig } from "@/lib/shiprocket";
 import StatusBadge from "@/components/status-badge";
 import { getAdminDriver } from "@/lib/data";
+import { SpecDetails, SpecDownload, SpecThumb } from "@/components/spec-print-file";
 import { imageDownloadHref, imageSrc } from "@/lib/img";
 
 export const dynamic = "force-dynamic";
@@ -50,8 +51,12 @@ export default async function OrderDetailPage({
             {order.items.map((item) => (
               <li key={item.id} className="flex items-center gap-3">
                 <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-panel p-1 ring-1 ring-line">
-                  {item.isCustom && !item.imageUrl && <ImageUp className="size-6 text-fog" />}
-                  {item.imageUrl && (
+                  {item.customSpec ? (
+                    <SpecThumb spec={item.customSpec} />
+                  ) : (
+                    item.isCustom && !item.imageUrl && <ImageUp className="size-6 text-fog" />
+                  )}
+                  {item.imageUrl && !item.customSpec && (
                     <img
                       src={imageSrc(item.imageUrl)}
                       alt=""
@@ -61,7 +66,21 @@ export default async function OrderDetailPage({
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{item.name}</p>
-                  {item.isCustom && (
+                  {item.customSpec && (
+                    <div className="mt-1 space-y-1.5">
+                      <SpecDetails spec={item.customSpec} />
+                      <p className="flex flex-wrap items-center gap-2 text-xs">
+                        <span className="rounded-md bg-mint/15 px-1.5 py-0.5 font-semibold text-mint">
+                          Made by us — no upload needed
+                        </span>
+                        <SpecDownload
+                          spec={item.customSpec}
+                          fileName={`${orderCode(order.id)} ${item.name}${item.sizeInches ? ` ${item.sizeInches}in` : ""} x${item.quantity}`}
+                        />
+                      </p>
+                    </div>
+                  )}
+                  {item.isCustom && !item.customSpec && (
                     <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs">
                       {item.customFile ? (
                         <>
@@ -94,7 +113,7 @@ export default async function OrderDetailPage({
                 <span className="text-sm font-semibold tabular-nums">
                   {formatINR(item.unitPrice * item.quantity)}
                 </span>
-                {item.imageUrl && (
+                {item.imageUrl && !item.customSpec && (
                   <a
                     href={imageDownloadHref(
                       item.imageUrl,

@@ -53,8 +53,10 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   }
 
   // Paid custom order: the design upload is the main thing on this page.
+  // (QR / name stickers are drawn by us from their saved details — no upload.)
+  const needsUpload = (i: (typeof order.items)[number]) => i.isCustom && !i.customSpec;
   const customUploadStep =
-    order.items.some((i) => i.isCustom) &&
+    order.items.some(needsUpload) &&
     (CUSTOM_UPLOAD_STATUSES as readonly string[]).includes(order.status);
 
   return (
@@ -85,7 +87,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
           orderUserId={order.userId}
           firstName={order.customerName.split(" ")[0]}
           items={order.items
-            .filter((i) => i.isCustom)
+            .filter(needsUpload)
             .map((i) => ({
               id: i.id,
               name: i.name,
@@ -208,7 +210,14 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                     {item.sizeInches && (
                       <span className="block text-xs text-fog">Size {item.sizeInches}″</span>
                     )}
-                    {item.isCustom && (
+                    {item.isCustom && item.customSpec && (
+                      <span className="block text-xs text-mint">
+                        {item.customSpec.kind === "qr"
+                          ? `QR: ${item.customSpec.label || "no label"} · we make it from your details`
+                          : `“${item.customSpec.line1}” · we make it from your details`}
+                      </span>
+                    )}
+                    {item.isCustom && !item.customSpec && (
                       <span className={`block text-xs ${item.customFile ? "text-mint" : "text-fog"}`}>
                         {item.customFile
                           ? order.status === "paid"

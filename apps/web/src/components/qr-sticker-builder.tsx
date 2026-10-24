@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, AtSign, Link2, Minus, MessageCircle, Plus, ShoppingBag, Type, Wallet } from "lucide-react";
-import { CUSTOM_PRODUCT_PREFIX, QR_STICKER_NAME, customArtKey, customSizes, formatINR, formatInches } from "@stickypie/shared";
-import { idbSet } from "@/lib/idb";
+import { CUSTOM_PRODUCT_PREFIX, QR_STICKER_NAME, customSizes, formatINR, formatInches } from "@stickypie/shared";
 import { drawSticker } from "@/lib/qr-art";
 import { useFeatures, useStoreSettings } from "@/lib/live-catalog";
 import { cardSkinFor } from "@/lib/palette";
@@ -52,7 +51,6 @@ function qrContent(kind: Kind, a: string, b: string): { value: string } | { erro
   }
 }
 
-const toBlob = (c: HTMLCanvasElement) => new Promise<Blob | null>((res) => c.toBlob(res, "image/png"));
 
 export default function QrStickerBuilder() {
   const settings = useStoreSettings();
@@ -117,9 +115,8 @@ export default function QrStickerBuilder() {
     }
     setBusy(true);
     const ref = crypto.randomUUID();
-    const art = drawSticker(content.value, label.trim());
-    const blob = await toBlob(art);
-    if (blob) await idbSet(customArtKey(ref), new File([blob], "qr-sticker.png", { type: "image/png" }));
+    // No image is stored or uploaded: the order keeps what the QR opens and
+    // its label, and the admin draws the print file from that.
     const thumb = drawSticker(content.value, label.trim(), 200).toDataURL("image/png");
     const added = add(
       {
@@ -135,6 +132,7 @@ export default function QrStickerBuilder() {
         custom: true,
         customRef: ref,
         customKind: "qr",
+        customSpec: { kind: "qr", value: content.value, label: label.trim() },
       },
       qty
     );

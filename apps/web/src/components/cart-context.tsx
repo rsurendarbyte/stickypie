@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import type { CustomKind } from "@stickypie/shared";
+import type { CustomKind, CustomSpec } from "@stickypie/shared";
 
 export type CartItem = {
   productId: string;
@@ -32,6 +32,8 @@ export type CartItem = {
   customRef?: string;
   /** Custom sticker kind: an uploaded design, or a QR / name sticker made on the site. */
   customKind?: CustomKind;
+  /** QR / name stickers: what to draw (no image is uploaded for these). */
+  customSpec?: CustomSpec;
 };
 
 export type CartProduct = Omit<CartItem, "qty">;

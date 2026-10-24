@@ -11,6 +11,26 @@ export const phoneSchema = z
       .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number")
   );
 
+const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, "Invalid colour");
+
+/** QR / name sticker settings sent from the sticker makers. */
+export const customSpecSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("qr"),
+    value: z.string().trim().min(1).max(300),
+    label: z.string().max(22),
+  }),
+  z.object({
+    kind: z.literal("text"),
+    line1: z.string().trim().min(1).max(18),
+    line2: z.string().max(30),
+    font: z.enum(["bubbly", "comic", "script", "retro", "marker", "block"]),
+    color: hexColor,
+    color2: hexColor.nullable(),
+    style: z.enum(["cut", "label"]),
+  }),
+]);
+
 export const customerSchema = z.object({
   name: z.string().trim().min(2, "Name is too short").max(80),
   email: z.string().trim().email("Enter a valid email"),
@@ -45,6 +65,8 @@ export const checkoutSchema = z.object({
         customRef: z.string().uuid().optional(),
         /** Custom stickers: "qr" / "text" = made on the site (own prices). */
         customKind: z.enum(["design", "qr", "text"]).optional(),
+        /** QR / name stickers: what to draw — saved instead of an image. */
+        customSpec: customSpecSchema.optional(),
       })
     )
     .min(1, "Your cart is empty")

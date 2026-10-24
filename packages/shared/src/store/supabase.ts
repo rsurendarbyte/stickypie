@@ -224,6 +224,7 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
         size_label: item.sizeInches != null ? item.sizeLabel : null,
         is_custom: Boolean(item.isCustom),
         custom_ref: item.isCustom ? (item.customRef ?? null) : null,
+        custom_spec: item.isCustom ? (item.customSpec ?? null) : null,
       }));
       const { error: itemsError } = await client.from("order_items").insert(items);
       if (itemsError) {

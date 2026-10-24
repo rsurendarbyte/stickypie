@@ -9,10 +9,16 @@
     ".": "./src/index.ts",
     "./local": "./src/store/local.ts",
     "./supabase": "./src/store/supabase.ts",
-    "./seed-data.json": "./src/seed-data.json"
+    "./seed-data.json": "./src/seed-data.json",
+    "./qr-art": "./src/qr-art.ts",
+    "./text-art": "./src/text-art.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.4",
-    "zod": "^3.25.0"
+    "zod": "^3.25.0",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/qrcode": "^1.5.5"
   }
 }

@@ -66,6 +66,7 @@ export function rowToItem(r: any): OrderItem {
     isCustom: Boolean(r.is_custom),
     customFile: r.custom_file ?? null,
     customRef: r.custom_ref ?? null,
+    customSpec: r.custom_spec ?? null,
   };
 }
 

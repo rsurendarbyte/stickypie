@@ -15,6 +15,39 @@ export const QR_STICKER_NAME = "QR code sticker";
 export const TEXT_STICKER_NAME = "Name sticker";
 /** Kinds of custom sticker: an uploaded design, or a QR / name sticker drawn on the site. */
 export type CustomKind = "design" | "qr" | "text";
+
+/**
+ * Fonts for name / text stickers. Each app (storefront, admin) loads the same
+ * Google fonts and maps these ids to them, so the admin draws exactly what the
+ * shopper saw.
+ */
+export const TEXT_STICKER_FONTS = [
+  { id: "bubbly", label: "Bubbly", weight: 700 },
+  { id: "comic", label: "Comic", weight: 400 },
+  { id: "script", label: "Script", weight: 400 },
+  { id: "retro", label: "Retro", weight: 400 },
+  { id: "marker", label: "Marker", weight: 400 },
+  { id: "block", label: "Block", weight: 400 },
+] as const;
+export type TextStickerFontId = (typeof TEXT_STICKER_FONTS)[number]["id"];
+
+/**
+ * What a QR or name sticker is made of. Saved on the order line instead of an
+ * image — the admin draws the print file from it when downloading, so nothing
+ * has to be uploaded after payment.
+ */
+export type QrStickerSpec = { kind: "qr"; value: string; label: string };
+export type TextStickerSpec = {
+  kind: "text";
+  line1: string;
+  line2: string;
+  font: TextStickerFontId;
+  color: string;
+  /** Small line colour; null = automatic. */
+  color2: string | null;
+  style: "cut" | "label";
+};
+export type CustomSpec = QrStickerSpec | TextStickerSpec;
 /**
  * Order statuses in which the shopper may upload / replace the artwork: only
  * "paid". Once the admin starts working on the order (packed onwards) the
