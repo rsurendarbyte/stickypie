@@ -6,12 +6,15 @@
 //     - Public sign-up off: accounts are only created by the shop's /api/account/signup
 //       (which confirms them instantly and sends the welcome email)
 //   Cloudflare (each storefront Worker):
-//     - RESEND_API_KEY secret, so the shop can send the welcome email
+//     - RESEND_API_KEY secret, so the shop can send its own emails (sign-up code, contact)
+//     - BREVO_API_KEY secret (optional): the backup sender when Resend refuses,
+//       e.g. after its 100 free emails a day
 //
 //   npm run auth:configure              (apply)
 //   npm run auth:configure -- --dry-run (show what would change, no secrets printed)
 //
-// Reads RESEND_API_KEY, SUPABASE_ACCESS_TOKEN, EMAIL_FROM_* from .env.ops (gitignored).
+// Reads RESEND_API_KEY, SUPABASE_ACCESS_TOKEN, EMAIL_FROM_* and optional
+// BREVO_API_KEY from .env.ops (gitignored).
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -87,22 +90,28 @@ for (const target of TARGETS) {
   console.log(`  site URL      ${config.site_url}`);
   console.log(`  reset links   ${target.redirects.join("  ")}`);
   console.log(`  sender        ${config.smtp_sender_name} <${config.smtp_admin_email}> via Resend`);
-  console.log(`  emails        "${reset.subject}" (Supabase) · welcome email (shop, via Resend)`);
+  console.log(`  emails        "${reset.subject}" (Supabase, via Resend) · shop emails (Resend${ops.BREVO_API_KEY ? ", Brevo as backup" : ""})`);
   console.log(`  public signup off — accounts only via the shop's checkout / account page`);
   if (dryRun) continue;
 
-  // Welcome emails are sent by the storefront Worker itself.
-  const secret = spawnSync(
-    "npx",
-    ["wrangler", "secret", "put", "RESEND_API_KEY", ...(target.wranglerEnv ? ["--env", target.wranglerEnv] : [])],
-    { cwd: path.join(root, "apps/web"), input: ops.RESEND_API_KEY, encoding: "utf8" }
-  );
-  console.log(
-    secret.status === 0
-      ? "  ✔ RESEND_API_KEY set on the storefront Worker"
-      : `  ✘ could not set the Worker secret: ${(secret.stderr || secret.stdout).slice(-200)}`
-  );
-  if (secret.status !== 0) process.exitCode = 1;
+  // The shop's own emails are sent by the storefront Worker itself (Resend, then Brevo).
+  for (const name of ["RESEND_API_KEY", "BREVO_API_KEY"]) {
+    if (!ops[name]) {
+      console.log(`  – ${name} not in .env.ops, skipped`);
+      continue;
+    }
+    const secret = spawnSync(
+      "npx",
+      ["wrangler", "secret", "put", name, ...(target.wranglerEnv ? ["--env", target.wranglerEnv] : [])],
+      { cwd: path.join(root, "apps/web"), input: ops[name], encoding: "utf8" }
+    );
+    console.log(
+      secret.status === 0
+        ? `  ✔ ${name} set on the storefront Worker`
+        : `  ✘ could not set ${name}: ${(secret.stderr || secret.stdout).slice(-200)}`
+    );
+    if (secret.status !== 0) process.exitCode = 1;
+  }
 
   const res = await fetch(`https://api.supabase.com/v1/projects/${target.ref}/config/auth`, {
     method: "PATCH",
