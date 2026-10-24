@@ -21,6 +21,8 @@ export function useCustomOptions() {
   ].filter((i) => i.from !== null);
 }
 
+const PEEL_OFF_MS = 360;
+
 export const CUSTOM_PATHS = ["/custom-stickers", "/qr-code-stickers", "/name-stickers"];
 
 /**
@@ -35,6 +37,13 @@ export default function CustomMenu() {
   const hoverClose = useRef<ReturnType<typeof setTimeout>>(undefined);
   const pointer = useRef("");
   const active = CUSTOM_PATHS.some((p) => pathname.startsWith(p));
+  // the menu is a label: it smooths down to open, and stays mounted while it peels off
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    if (open) return setShown(true);
+    const t = setTimeout(() => setShown(false), PEEL_OFF_MS);
+    return () => clearTimeout(t);
+  }, [open]);
 
   // close when the page changes (a pick was made)
   useEffect(() => setOpen(false), [pathname]);
@@ -82,11 +91,18 @@ export default function CustomMenu() {
         <ChevronDown className={`size-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
 
-      {open && (
+      {(open || shown) && (
+        // the shadow sits on this wrapper, so it follows the label as it peels
+        <div
+          className={`z-50 drop-shadow-[0_18px_24px_rgba(16,24,40,0.22)] max-sm:fixed max-sm:inset-x-3 max-sm:top-[62px] sm:absolute sm:top-full sm:left-0 sm:mt-2 sm:w-72 ${
+            open ? "" : "pointer-events-none"
+          }`}
+        >
         <div
           role="menu"
-          className="animate-dropdown-in z-50 overflow-hidden rounded-2xl border border-line bg-white p-1.5 shadow-[0_22px_48px_-18px_rgba(16,24,40,0.35)] max-sm:fixed max-sm:inset-x-3 max-sm:top-[62px] sm:absolute sm:top-full sm:left-0 sm:mt-2 sm:w-72"
+          className={`cart-label relative rounded-[20px] border-[3px] border-white bg-ink2 p-1.5 ${open ? "panel-label--on" : "panel-label--off"}`}
         >
+          <span aria-hidden className="cart-label-flap" />
           {items.map(({ href, icon: Icon, title, text, from: price }) => {
             const here = pathname.startsWith(href);
             return (
@@ -117,6 +133,7 @@ export default function CustomMenu() {
           >
             <LayoutGrid className="size-3.5" /> All custom options
           </Link>
+        </div>
         </div>
       )}
     </div>
