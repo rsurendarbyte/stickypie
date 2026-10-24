@@ -13,6 +13,11 @@ import { absoluteUrl, pageMetadata } from "@/lib/site";
 
 // One SEO page per category: /stickers/cars, /stickers/memes… Prerendered at
 // build; categories added later from the admin render on demand.
+// Stored in the R2 page cache once built (at deploy, or on the first visit
+// for a category added later) and refreshed in the background at most every
+// 10 minutes, so admin edits show up without a deploy.
+export const revalidate = 600;
+
 export async function generateStaticParams() {
   const categories = await getDriver().listCategories();
   return categories.map((c) => ({ category: c.slug }));

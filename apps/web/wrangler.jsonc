@@ -34,6 +34,10 @@
     "SUPABASE_URL": "https://liqxjqaudwtowvdkbvyi.supabase.co",
     "CASHFREE_ENV": "sandbox"
   },
+  // Page cache (see open-next.config.ts) and the Worker's link to itself for
+  // background page refreshes.
+  "r2_buckets": [{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "stickypie-next-cache-dev" }],
+  "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "stickypie-web" }],
 
   "env": {
     "production": {
@@ -52,7 +56,9 @@
         "CASHFREE_ENV": "production",
         // Sticker images from the R2 bucket's own cached domain (dev keeps r2.dev).
         "NEXT_PUBLIC_IMAGE_HOST": "https://stickers.stickypie.in"
-      }
+      },
+      "r2_buckets": [{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "stickypie-next-cache-prod" }],
+      "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "stickypie-web-production" }]
     }
   }
 

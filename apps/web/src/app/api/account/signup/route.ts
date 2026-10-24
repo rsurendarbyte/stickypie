@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { SUPPORT_EMAIL, signupSchema, welcomeEmail } from "@stickypie/shared";
-import { sendEmail } from "@/lib/email";
+import { signupSchema } from "@stickypie/shared";
 import { CodeError, checkCode, clearCode } from "@/lib/email-codes";
-import { siteUrl, supabaseUrl } from "@/lib/mode";
+import { supabaseUrl } from "@/lib/mode";
 import { accountsEnabled } from "@/lib/shopper";
 
 /**
@@ -52,8 +51,8 @@ export async function POST(req: Request) {
 
   if (res.ok) {
     await clearCode(email).catch(() => {});
-    // A failed welcome email must never block the shopper's checkout.
-    await sendEmail(email, welcomeEmail({ siteUrl: siteUrl(), supportEmail: SUPPORT_EMAIL }, name));
+    // No welcome email: the free email plan allows 100 a day, and the sign-up
+    // code already uses one per new account — keep them all for codes.
     return NextResponse.json({ ok: true });
   }
 

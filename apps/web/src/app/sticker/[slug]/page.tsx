@@ -16,6 +16,11 @@ import { pageMetadata } from "@/lib/site";
 // Every active product page is prerendered at build time (free static asset
 // on Cloudflare) and then refreshes its stock/price live from Supabase in the
 // browser. Products added after the last deploy still render on demand.
+// Stored in the R2 page cache once built (at deploy, or on the first visit
+// for a sticker added later) and refreshed in the background at most every
+// 10 minutes, so admin edits show up without a deploy.
+export const revalidate = 600;
+
 export async function generateStaticParams() {
   const products = await getDriver().listProducts({ activeOnly: true });
   return products.map((product) => ({ slug: product.slug }));

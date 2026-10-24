@@ -165,8 +165,8 @@ if (fs.existsSync(bundledEnv) && /"[A-Z0-9_]+"\s*:/.test(fs.readFileSync(bundled
 
 // Pages are NOT copied out as plain static files any more: a static file
 // can't answer the browser's in-app navigation (RSC) requests, which forced a
-// full reload on every tap. The Worker serves them from its static-assets
-// cache instead (see open-next.config.ts).
+// full reload on every tap. `opennextjs-cloudflare deploy` uploads them to the
+// environment's R2 page cache instead (see open-next.config.ts).
 
 // Static assets bypass the Worker, so their noindex header comes from
 // Cloudflare's `_headers` file rather than next.config.
