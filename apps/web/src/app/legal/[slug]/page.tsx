@@ -255,9 +255,11 @@ function docs(biz: Business): Record<string, LegalDoc> {
   };
 }
 
-// Rendered per request so the seller details and payment partner always match
-// admin → Settings (these pages get little traffic).
-export const dynamic = "force-dynamic";
+// Built once at deploy and served as free static files (every page's footer
+// links here, so rendering per request cost Worker requests). Seller details
+// and payment partner come from admin → Settings at build time: redeploy after
+// changing them.
+export const dynamicParams = false;
 
 export function generateStaticParams() {
   return Object.keys(docs({ name: "", address: null, gstin: null, payments: "" })).map((slug) => ({ slug }));

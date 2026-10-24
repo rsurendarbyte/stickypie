@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { ArrowRight, AtSign, Link2, Minus, MessageCircle, Plus, ShoppingBag, Type, Wallet } from "lucide-react";
 import { CUSTOM_PRODUCT_PREFIX, QR_STICKER_NAME, customSizes, formatINR, formatInches } from "@stickypie/shared";
 import { drawSticker } from "@/lib/qr-art";
@@ -57,7 +56,6 @@ export default function QrStickerBuilder() {
   const features = useFeatures();
   const sizes = customSizes(settings.qrPrices);
   const { add, openCart } = useCart();
-  const router = useRouter();
   const skin = cardSkinFor("qr-stickers", useSkinSeed());
 
   const [kind, setKind] = useState<Kind>("upi");
@@ -139,7 +137,7 @@ export default function QrStickerBuilder() {
     setBusy(false);
     if (!added) return;
     setQty(1);
-    if (thenCheckout) router.push("/checkout");
+    if (thenCheckout) window.location.assign("/checkout");
     else openCart();
   }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/page-link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Clock3, CreditCard, Lock, RefreshCw } from "lucide-react";

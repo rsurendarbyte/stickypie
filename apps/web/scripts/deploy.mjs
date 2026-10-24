@@ -163,10 +163,13 @@ if (fs.existsSync(bundledEnv) && /"[A-Z0-9_]+"\s*:/.test(fs.readFileSync(bundled
   process.exit(1);
 }
 
-// Pages are NOT copied out as plain static files any more: a static file
-// can't answer the browser's in-app navigation (RSC) requests, which forced a
-// full reload on every tap. `opennextjs-cloudflare deploy` uploads them to the
-// environment's R2 page cache instead (see open-next.config.ts).
+// Prerendered pages, robots.txt / sitemap / llms.txt / feed and the previous
+// deploys' JS/CSS go out as free static assets, so browsing never runs the
+// Worker (shop links are plain page loads — components/page-link.tsx).
+// Sticker pages added after this deploy still come from the Worker and its R2
+// page cache (open-next.config.ts) until the next deploy.
+status = spawnSync("node", ["scripts/copy-static-pages.mjs", target], { cwd: appDir, stdio: "inherit" }).status ?? 1;
+if (status !== 0) process.exit(status);
 
 // Static assets bypass the Worker, so their noindex header comes from
 // Cloudflare's `_headers` file rather than next.config.
@@ -197,6 +200,7 @@ try {
     "CASHFREE_APP_ID",
     "CASHFREE_SECRET_KEY",
     "RESEND_API_KEY",
+    "BREVO_API_KEY", // backup email sender
   ].filter(
     (name) => !have.has(name)
   );

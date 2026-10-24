@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useTransition } from "react";
+import Link from "@/components/page-link";
+import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 
 export type StepTarget = { slug: string; name: string; imageUrl: string };
@@ -15,26 +14,35 @@ export type Steps = {
 
 const href = (t: StepTarget) => `/sticker/${t.slug}`;
 
+/** Opens the sticker's ready-made page (a free static file — no Worker request). */
+const open = (t: StepTarget) => window.location.replace(href(t));
+
 /**
  * Previous / next sticker in the same category (wraps around). Uses replace,
  * so Back still returns to wherever the shopper came from instead of walking
  * back through every sticker they flicked past. ←/→ keys work too.
  */
 export default function StickerStepper({ steps }: { steps: Steps }) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const go = (t: StepTarget) =>
-    startTransition(() => router.replace(href(t), { scroll: true }));
+  const [pending, setPending] = useState(false);
+  const go = (t: StepTarget) => {
+    setPending(true);
+    open(t);
+  };
 
   // Load both neighbours ahead (page + picture) so the next tap is instant.
   // Weak device / slow network ("lite") gets the page only, not the pictures.
   useEffect(() => {
-    for (const t of [steps.prev, steps.next]) {
-      router.prefetch(href(t));
+    const links = [steps.prev, steps.next].map((t) => {
+      const link = document.createElement("link");
+      link.rel = "prefetch";
+      link.href = href(t);
+      document.head.appendChild(link);
       if (!document.documentElement.dataset.lite && t.imageUrl)
         new Image().src = t.imageUrl;
-    }
-  }, [router, steps]);
+      return link;
+    });
+    return () => links.forEach((l) => l.remove());
+  }, [steps]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -65,7 +73,6 @@ export default function StickerStepper({ steps }: { steps: Steps }) {
     <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
       <Link
         href={href(steps.prev)}
-        replace
         onClick={(e) => {
           e.preventDefault();
           go(steps.prev);
@@ -85,7 +92,6 @@ export default function StickerStepper({ steps }: { steps: Steps }) {
       </span>
       <Link
         href={href(steps.next)}
-        replace
         onClick={(e) => {
           e.preventDefault();
           go(steps.next);
@@ -102,8 +108,6 @@ export default function StickerStepper({ steps }: { steps: Steps }) {
 
 /** Horizontal swipe on the sticker art (phones) → previous / next sticker. */
 export function useStepSwipe(steps: Steps | null) {
-  const router = useRouter();
-  const [, startTransition] = useTransition();
   const start = useRef<{ x: number; y: number } | null>(null);
   return {
     onTouchStart: (e: React.TouchEvent) => {
@@ -120,7 +124,7 @@ export function useStepSwipe(steps: Steps | null) {
       const dy = e.changedTouches[0].clientY - from.y;
       if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
       const t = dx < 0 ? steps.next : steps.prev;
-      startTransition(() => router.replace(href(t), { scroll: true }));
+      open(t);
     },
   };
 }

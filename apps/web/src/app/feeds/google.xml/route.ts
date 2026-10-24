@@ -1,11 +1,12 @@
 // Google Merchant Center product feed (free Shopping listings).
 // Add https://stickypie.in/feeds/google.xml as a scheduled feed in Merchant
-// Center. Each size is its own item, grouped by sticker.
+// Center. Each size is its own item, grouped by sticker. Built once at deploy
+// and served as a free static file; new stickers appear with the next deploy.
 import { getDriver } from "@/lib/data";
 import { productSeoDescription, seoName } from "@/lib/seo";
 import { SITE_NAME, absoluteUrl, isProductionSite } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
+export const dynamic = "force-static";
 
 const GOOGLE_CATEGORY =
   "Arts & Entertainment > Hobbies & Creative Arts > Arts & Crafts > Art & Crafting Materials > Embellishments & Trims > Decorative Stickers";

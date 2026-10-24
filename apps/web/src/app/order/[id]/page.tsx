@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/page-link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CheckCircle2, FileText, PackageX, ShoppingBag, XCircle } from "lucide-react";
 import { CUSTOM_UPLOAD_STATUSES, STATUS_LABELS, formatDateTime, formatINR, orderCode } from "@stickypie/shared";

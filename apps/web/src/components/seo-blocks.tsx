@@ -1,7 +1,7 @@
 // Server-rendered text blocks that give each page real, readable content for
 // shoppers and search engines (details, how-to, FAQ). No client JS.
 import FaqItem from "@/components/faq-item";
-import Link from "next/link";
+import Link from "@/components/page-link";
 import { STORE_FAQ } from "@/lib/seo";
 
 export function ProductAbout({

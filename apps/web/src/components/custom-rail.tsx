@@ -5,7 +5,7 @@ import { customSizes, formatINR } from "@stickypie/shared";
 import { useFeatures, useStoreSettings } from "@/lib/live-catalog";
 import { cardSkinFor } from "@/lib/palette";
 import { useSkinSeed } from "@/lib/skin-seed";
-import HoverLink from "./hover-link";
+import PageLink from "./page-link";
 import Row from "./row";
 
 /**
@@ -55,7 +55,7 @@ export default function CustomRail() {
       {cards.map(({ href, icon: Icon, title, text, from: price, skin }) => {
         const s = cardSkinFor(skin, seed);
         return (
-          <HoverLink
+          <PageLink
             key={href}
             href={href}
             style={{ backgroundColor: s.card }}
@@ -84,7 +84,7 @@ export default function CustomRail() {
                 </span>
               </div>
             </div>
-          </HoverLink>
+          </PageLink>
         );
       })}
     </Row>

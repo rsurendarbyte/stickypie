@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/page-link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, CheckCircle2, Clock3, X, XCircle } from "lucide-react";
 import type { OrderItem, ReviewStatus } from "@stickypie/shared";

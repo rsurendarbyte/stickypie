@@ -1293,3 +1293,19 @@ html[data-lite]:not([data-lite="net"]) .sticker-wall-down {
 html[data-lite]:not([data-lite="net"]) .wall-peel {
   animation: none;
 }
+
+/* Shop links are plain page loads (free static files instead of Worker
+   requests — see components/page-link.tsx). Browsers that support it fade
+   between pages so it still feels like one app. */
+@view-transition {
+  navigation: auto;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 180ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    navigation: none;
+  }
+}

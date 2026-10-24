@@ -5,9 +5,9 @@ import { generateStaticParams as legalSlugs } from "./legal/[slug]/page";
 import { absoluteUrl, isProductionSite } from "@/lib/site";
 import { SURFACES } from "@/lib/surfaces";
 
-// Rendered per request so stickers added from the admin app appear without a
-// redeploy (crawlers fetch it rarely, so this costs almost nothing).
-export const dynamic = "force-dynamic";
+// Built once at deploy and served as a free static file; stickers added from
+// the admin app appear with the next deploy.
+export const dynamic = "force-static";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (!isProductionSite()) return [];

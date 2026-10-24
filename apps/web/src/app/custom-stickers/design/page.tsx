@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/page-link";
 import CustomStickerBuilder from "@/components/custom-sticker-builder";
 import { pageMetadata } from "@/lib/site";
 

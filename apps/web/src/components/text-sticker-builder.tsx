@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { ArrowRight, Minus, Plus, ShoppingBag } from "lucide-react";
 import {
   CUSTOM_PRODUCT_PREFIX,
@@ -42,7 +41,6 @@ export default function TextStickerBuilder() {
   const features = useFeatures();
   const sizes = customSizes(settings.textPrices);
   const { add, openCart } = useCart();
-  const router = useRouter();
   const skin = cardSkinFor("name-stickers", useSkinSeed());
 
   const [line1, setLine1] = useState("");
@@ -137,7 +135,7 @@ export default function TextStickerBuilder() {
     setBusy(false);
     if (!added) return;
     setQty(1);
-    if (thenCheckout) router.push("/checkout");
+    if (thenCheckout) window.location.assign("/checkout");
     else openCart();
   }
 

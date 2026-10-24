@@ -1,6 +1,6 @@
 "use client";
 
-import HoverLink from "./hover-link";
+import PageLink from "./page-link";
 import { useEffect, useState } from "react";
 import { CheckCircle2, ShoppingBag, Trash2, Truck, X } from "lucide-react";
 import { belowMinimum, formatINR } from "@stickypie/shared";
@@ -115,13 +115,13 @@ export default function CartDrawer() {
                   Your cart is empty. Let&apos;s fix that.
                 </p>
               </div>
-              <HoverLink
+              <PageLink
                 href="/stickers"
                 onClick={closeCart}
                 className="peel-btn peel-btn--brand rounded-xl px-6 py-2.5 text-sm font-semibold"
               >
                 Browse stickers
-              </HoverLink>
+              </PageLink>
             </div>
           ) : (
             <>
@@ -129,7 +129,7 @@ export default function CartDrawer() {
                 {items.map((item) => {
                   return (
                     <li key={lineKey(item)} className="flex gap-3">
-                      <HoverLink
+                      <PageLink
                         href={itemHref(item)}
                         onClick={closeCart}
                         className="grid size-16 shrink-0 place-items-center rounded-xl bg-panel p-1.5 ring-1 ring-line"
@@ -141,16 +141,16 @@ export default function CartDrawer() {
                           alt={item.name}
                           className="sticker-cut-sm max-h-full max-w-full object-contain"
                         />
-                      </HoverLink>
+                      </PageLink>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
-                          <HoverLink
+                          <PageLink
                             href={itemHref(item)}
                             onClick={closeCart}
                             className="truncate text-sm font-medium hover:underline"
                           >
                             {item.name}
-                          </HoverLink>
+                          </PageLink>
                           <button
                             type="button"
                             aria-label={`Remove ${item.name}`}
@@ -229,21 +229,21 @@ export default function CartDrawer() {
                 </div>
 
                 {shortBy > 0 ? (
-                  <HoverLink
+                  <PageLink
                     href="/stickers"
                     onClick={closeCart}
                     className="peel-btn mt-4 block w-full rounded-xl py-3 text-center text-sm font-bold"
                   >
                     Add {formatINR(shortBy)} more — browse stickers →
-                  </HoverLink>
+                  </PageLink>
                 ) : (
-                  <HoverLink
+                  <PageLink
                     href="/checkout"
                     onClick={closeCart}
                     className="peel-btn peel-btn--brand mt-4 block w-full rounded-xl py-3 text-center text-sm font-bold"
                   >
                     Checkout · {formatINR(subtotal)} + shipping & GST
-                  </HoverLink>
+                  </PageLink>
                 )}
               </div>
             </>

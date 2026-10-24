@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/page-link";
 import { useEffect, useState } from "react";
 import { LogOut, MapPin, Package, Plus, Trash2 } from "lucide-react";
 import { INDIAN_STATES, customerSchema } from "@stickypie/shared";

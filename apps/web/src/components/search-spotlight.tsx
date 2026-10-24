@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -65,7 +64,6 @@ export default function SearchSpotlight({
 }
 
 function SpotlightBody({ onClose }: { onClose: () => void }) {
-  const router = useRouter();
   const { categories, products, loaded } = useLiveCatalog(EMPTY);
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
@@ -133,7 +131,7 @@ function SpotlightBody({ onClose }: { onClose: () => void }) {
   function go(href: string, remember?: string) {
     if (remember?.trim()) saveRecent(remember.trim());
     onClose();
-    router.push(href);
+    window.location.assign(href); // ready-made page, no Worker request
   }
   function searchAll() {
     const t = q.trim();

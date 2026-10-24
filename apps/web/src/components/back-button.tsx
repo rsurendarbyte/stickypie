@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { markBackNavigation } from "@/lib/scroll-memory";
 import { NAV_COUNT_KEY } from "./nav-tracker";
@@ -11,7 +10,6 @@ import { NAV_COUNT_KEY } from "./nav-tracker";
  * instead of leaving the site.
  */
 export default function BackButton({ fallback = "/stickers" }: { fallback?: string }) {
-  const router = useRouter();
 
   function goBack() {
     let visited = 0;
@@ -28,9 +26,9 @@ export default function BackButton({ fallback = "/stickers" }: { fallback?: stri
     } catch {}
     if ((visited > 1 || sameSiteReferrer) && window.history.length > 1) {
       markBackNavigation();
-      router.back();
+      window.history.back();
     }
-    else router.push(fallback);
+    else window.location.assign(fallback);
   }
 
   return (

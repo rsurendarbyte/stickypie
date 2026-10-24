@@ -1,7 +1,7 @@
 "use client";
 
 import SmartImg from "./smart-img";
-import HoverLink from "./hover-link";
+import PageLink from "./page-link";
 import { useState } from "react";
 import { BadgeCheck, Car, PackageX, Ruler, Sparkles, Truck } from "lucide-react";
 import type { Product } from "@stickypie/shared";
@@ -66,15 +66,15 @@ export default function ProductDetailClient({
       <div className="flex items-center gap-3">
         <BackButton fallback={category ? `/stickers/${category.slug}` : "/stickers"} />
         <nav className="min-w-0 truncate text-xs text-fog">
-          <HoverLink href="/stickers" className="hover:text-snow">
+          <PageLink href="/stickers" className="hover:text-snow">
             Stickers
-          </HoverLink>
+          </PageLink>
           {category && (
             <>
               <span className="mx-1.5">/</span>
-              <HoverLink href={`/stickers/${category.slug}`} className="hover:text-snow">
+              <PageLink href={`/stickers/${category.slug}`} className="hover:text-snow">
                 {category.name}
-              </HoverLink>
+              </PageLink>
             </>
           )}
         </nav>
@@ -202,13 +202,13 @@ export default function ProductDetailClient({
           {product.tags.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {product.tags.slice(0, 5).map((tag) => (
-                <HoverLink
+                <PageLink
                   key={tag}
                   href={`/stickers?q=${encodeURIComponent(tag)}`}
                   className="rounded-full bg-panel px-3 py-1 text-xs text-fog transition-colors hover:text-snow"
                 >
                   #{tag}
-                </HoverLink>
+                </PageLink>
               ))}
             </div>
           )}

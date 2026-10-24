@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/page-link";
 import CustomRequestForm from "@/components/custom-request-form";
 import QrStickerBuilder from "@/components/qr-sticker-builder";
 import { pageMetadata } from "@/lib/site";

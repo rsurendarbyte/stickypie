@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/page-link";
 import { usePathname } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { belowMinimum, formatINR } from "@stickypie/shared";

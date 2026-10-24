@@ -1,14 +1,15 @@
 // /llms.txt — a plain-text guide to the shop for AI assistants and AI search
 // (ChatGPT, Gemini / Google AI, Perplexity, Claude…): what StickyPie is, how
 // ordering and shipping work, and every sticker on sale with its price per
-// size and link. Rendered per request so new stickers show up without a deploy.
+// size and link. Built once at deploy and served as a free static file (AI
+// crawlers fetch it often); new stickers appear with the next deploy.
 import { categoryPath, formatINR, inCategory } from "@stickypie/shared";
 import { getDriver } from "@/lib/data";
 import { SURFACES } from "@/lib/surfaces";
 import { SITE_NAME, absoluteUrl, isProductionSite } from "@/lib/site";
 import { seoName } from "@/lib/seo";
 
-export const dynamic = "force-dynamic";
+export const dynamic = "force-static";
 
 export async function GET() {
   if (!isProductionSite()) {

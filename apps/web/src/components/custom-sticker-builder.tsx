@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { ArrowRight, CreditCard, ImageUp, Minus, Plus, Ruler, ShoppingBag, Truck, X } from "lucide-react";
 import {
   CUSTOM_PRODUCT_PREFIX,
@@ -66,7 +65,6 @@ export default function CustomStickerBuilder() {
   const features = useFeatures();
   const sizes = customSizes(settings.customPrices);
   const { add, openCart } = useCart();
-  const router = useRouter();
   const skin = cardSkinFor("custom-stickers", useSkinSeed());
 
   const [size, setSize] = useState<number | null>(null);
@@ -153,7 +151,7 @@ export default function CustomStickerBuilder() {
     if (!added) return; // cart has regular stickers — the shopper decides in the prompt
     setQty(1);
     clearFile();
-    if (thenCheckout) router.push("/checkout");
+    if (thenCheckout) window.location.assign("/checkout");
     else openCart();
   }
 

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import FaqItem from "@/components/faq-item";
 import { notFound } from "next/navigation";
 import JsonLd from "@/components/json-ld";
-import HoverLink from "@/components/hover-link";
+import PageLink from "@/components/page-link";
 import SurfaceGrid from "@/components/surface-grid";
 import { productSnapshot } from "@/lib/catalog-snapshot";
 import { getDriver } from "@/lib/data";
@@ -85,9 +85,9 @@ export default async function SurfacePage({
     <div className="min-h-screen w-full px-4 pt-24 pb-24 sm:px-8 lg:px-12 2xl:px-20">
       <JsonLd data={structuredData} />
       <nav className="text-xs text-fog">
-        <HoverLink href="/stickers" className="hover:text-snow">
+        <PageLink href="/stickers" className="hover:text-snow">
           Stickers
-        </HoverLink>
+        </PageLink>
         <span className="mx-1.5">/</span>
         <span>{surface.name}</span>
       </nav>
@@ -122,12 +122,12 @@ export default async function SurfacePage({
           <ul className="mt-3 flex flex-wrap gap-2">
             {popular.map((p) => (
               <li key={p.id}>
-                <HoverLink
+                <PageLink
                   href={`/sticker/${p.slug}`}
                   className="inline-block rounded-full border border-line bg-ink2/80 px-3 py-1.5 text-sm text-fog hover:border-fog/40 hover:text-snow"
                 >
                   {seoName(p)}
-                </HoverLink>
+                </PageLink>
               </li>
             ))}
           </ul>
@@ -152,21 +152,21 @@ export default async function SurfacePage({
         <ul className="mt-3 flex flex-wrap gap-2">
           {SURFACES.filter((s) => s.slug !== surface.slug).map((s) => (
             <li key={s.slug}>
-              <HoverLink
+              <PageLink
                 href={`/${s.slug}`}
                 className="inline-block rounded-full border border-line bg-ink2/80 px-3.5 py-1.5 text-sm font-semibold text-snow hover:border-brand/50"
               >
                 {s.name}
-              </HoverLink>
+              </PageLink>
             </li>
           ))}
           <li>
-            <HoverLink
+            <PageLink
               href="/stickers"
               className="inline-block rounded-full border border-line bg-ink2/80 px-3.5 py-1.5 text-sm font-semibold text-snow hover:border-brand/50"
             >
               All stickers
-            </HoverLink>
+            </PageLink>
           </li>
         </ul>
       </section>

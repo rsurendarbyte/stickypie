@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 import {
   ALL_STICKERS_PATH,
@@ -37,7 +37,7 @@ export default function BrowseClient({
   const { categories, products, loaded, failed, retry } =
     useLiveCatalog(initial);
   useWindowScrollMemory(loaded);
-  const router = useRouter();
+  const pathname = usePathname();
   const params = useSearchParams();
   const q = params.get("q") ?? "";
   const category = categorySlug;
@@ -61,7 +61,17 @@ export default function BrowseClient({
     if (sortValue && sortValue !== "new") sp.set("sort", sortValue);
     const qs = sp.toString();
     const path = cat ? categoryPath(cat) : ALL_STICKERS_PATH;
-    router.push(qs ? `${path}?${qs}` : path, { scroll: false });
+    go(qs ? `${path}?${qs}` : path);
+  }
+
+  /**
+   * Same page (sort): just update the address bar — no server request.
+   * Another category: load its ready-made page (a free static file), since
+   * each category page has its own title and text.
+   */
+  function go(url: string) {
+    if (url.split("?")[0] === pathname) window.history.pushState(null, "", url);
+    else window.location.assign(url);
   }
 
   const visible = useMemo(() => {
@@ -135,7 +145,7 @@ export default function BrowseClient({
           total={products.length}
           active={category}
           activeName={activeCategoryName}
-          onPick={(slug) => router.push(hrefFor(slug), { scroll: false })}
+          onPick={(slug) => go(hrefFor(slug))}
           sort={sort}
           sorts={SORTS}
           onSort={(v) => update({ sort: v })}

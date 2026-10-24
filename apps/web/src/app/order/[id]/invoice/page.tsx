@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import Link from "@/components/page-link";
 import { notFound } from "next/navigation";
 import { FileClock } from "lucide-react";
 import { computeInvoice, formatINR, orderCode, rupeesInWords } from "@stickypie/shared";

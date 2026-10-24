@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "@/components/page-link";
 import { PaymentPartnerNote } from "./payment-partner";
 import { SURFACES } from "@/lib/surfaces";
 

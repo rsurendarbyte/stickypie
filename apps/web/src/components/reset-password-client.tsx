@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/page-link";
 import { useEffect, useState } from "react";
 import { CheckCircle2, Unlink } from "lucide-react";
 import { authClient, updatePassword } from "@/lib/shopper-auth";

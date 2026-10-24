@@ -17,9 +17,10 @@
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS",
-    // Serve files like the Google verification .html exactly as named (no
-    // redirect to an extension-less URL — Google won't verify through one).
-    "html_handling": "none"
+    // Default html handling: /stickers is served from stickers.html (pages are
+    // copied in as free static files by scripts/copy-static-pages.mjs). The
+    // Google verification .html is a Worker route instead, so it isn't redirected.
+    "html_handling": "auto-trailing-slash"
   },
 
   // ---- dev (top level) ----

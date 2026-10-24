@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ArrowRight, ImageUp, QrCode, Sparkles, Type } from "lucide-react";
 import CustomRequestForm from "@/components/custom-request-form";
-import HoverLink from "@/components/hover-link";
+import PageLink from "@/components/page-link";
 import { pageMetadata } from "@/lib/site";
 
 export const metadata: Metadata = pageMetadata({
@@ -47,7 +47,7 @@ export default function CustomStickersPage() {
 
       <div className="mt-5 grid gap-2.5 lg:grid-cols-3 lg:gap-3">
         {OPTIONS.map(({ href, icon: Icon, title, text }) => (
-          <HoverLink
+          <PageLink
             key={href}
             href={href}
             className="group flex items-center gap-3 rounded-2xl border border-line bg-ink2 p-3 shadow-[0_14px_36px_-28px_rgba(16,24,40,0.45)] transition-all hover:-translate-y-0.5 hover:border-brand/50 sm:p-3.5"
@@ -62,7 +62,7 @@ export default function CustomStickersPage() {
             <span className="peel-btn grid size-8 shrink-0 place-items-center rounded-full transition-transform group-hover:translate-x-0.5">
               <ArrowRight className="size-4" />
             </span>
-          </HoverLink>
+          </PageLink>
         ))}
       </div>
 

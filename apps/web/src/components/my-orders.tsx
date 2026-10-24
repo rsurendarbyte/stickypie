@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link from "@/components/page-link";
 import { useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
