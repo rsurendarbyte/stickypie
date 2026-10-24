@@ -187,6 +187,30 @@ const preview = flags.includes("--preview");
 status = run("npx", ["opennextjs-cloudflare", preview ? "preview" : "deploy", ...envArgs]);
 if (status !== 0 || preview) process.exit(status);
 
+// IndexNow: tell Bing (whose index ChatGPT search and Copilot use) and the other
+// IndexNow engines about every page in the sitemap, so new stickers are seen
+// within minutes instead of at the next crawl. Production only; never fatal.
+// The key is public by design: it is the <key>.txt file served from /public.
+if (indexable) {
+  try {
+    const keyFile = fs.readdirSync(path.join(appDir, "public")).find((f) => /^[0-9a-f]{32}\.txt$/.test(f));
+    const sitemap = fs.readFileSync(path.join(appDir, ".next/server/app/sitemap.xml.body"), "utf8");
+    const urlList = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]).slice(0, 10000);
+    if (keyFile && urlList.length) {
+      const key = keyFile.replace(/\.txt$/, "");
+      const host = new URL(vars.SITE_URL).host;
+      const res = await fetch("https://api.indexnow.org/indexnow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json; charset=utf-8" },
+        body: JSON.stringify({ host, key, keyLocation: `${vars.SITE_URL}/${key}.txt`, urlList }),
+      });
+      console.log(`deploy: IndexNow ${res.ok ? "accepted" : `answered ${res.status}`} for ${urlList.length} URLs`);
+    }
+  } catch (err) {
+    console.warn("deploy: IndexNow ping skipped:", err instanceof Error ? err.message : err);
+  }
+}
+
 // Nothing falls back to .env files any more, so say which secrets the
 // deployed Worker is still missing.
 const list = spawnSync("npx", ["wrangler", "secret", "list", "--format", "json", ...envArgs], {

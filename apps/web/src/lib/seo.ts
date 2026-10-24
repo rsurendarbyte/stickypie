@@ -62,8 +62,133 @@ export function categoryIntro(category: Category, count: number): string {
   return `Browse ${count} ${name} sticker${count === 1 ? "" : "s"} from ${SITE_NAME} — waterproof die-cut vinyl decals for your car, bike, laptop, helmet and more. Every ${name} sticker is printed to order in the size you pick and shipped across India.`;
 }
 
-/** Common questions — shown on the home page and given to Google as FAQ data. */
-export const STORE_FAQ: { q: string; a: string }[] = [
+export type Faq = { q: string; a: string };
+
+/** Live numbers the answers quote (see lib/shop-facts.ts); null = not offered. */
+export type ShopFacts = {
+  designs: number;
+  posters: number;
+  stickerFrom: number | null;
+  posterFrom: number | null;
+  custom: { inches: number; price: number }[];
+  qr: { inches: number; price: number }[];
+  text: { inches: number; price: number }[];
+};
+
+const fromPrice = (sizes: { price: number }[]) => (sizes.length ? Math.min(...sizes.map((s) => s.price)) : null);
+const sizePrices = (sizes: { inches: number; price: number }[]) =>
+  sizes.map((s) => `${s.inches}″ ${formatINR(s.price)}`).join(", ");
+
+/**
+ * The questions people put to Google and AI assistants, answered in plain,
+ * quotable sentences with the shop's real prices. Shown on the home page,
+ * given to search engines as FAQ data, and listed in /llms.txt.
+ */
+export function storeFaq(facts: ShopFacts): Faq[] {
+  const customFrom = fromPrice(facts.custom);
+  const qrFrom = fromPrice(facts.qr);
+  const textFrom = fromPrice(facts.text);
+  const makeYourOwn = [
+    customFrom !== null && `custom stickers from ${formatINR(customFrom)}`,
+    qrFrom !== null && `QR code stickers from ${formatINR(qrFrom)}`,
+    textFrom !== null && `name stickers from ${formatINR(textFrom)}`,
+  ].filter(Boolean);
+  return [
+    {
+      q: "Where can I buy stickers online in India?",
+      a: `${SITE_NAME} (stickypie.in) sells ${facts.designs} die-cut vinyl sticker designs online in India — car, bike, laptop, helmet and water bottle stickers${
+        facts.posters ? ", plus mini posters" : ""
+      }${facts.stickerFrom !== null ? `, from ${formatINR(facts.stickerFrom)}` : ""}. Every order is printed to order and shipped to pin codes across India.${
+        makeYourOwn.length ? ` You can also make your own: ${makeYourOwn.join(", ")}.` : ""
+      }`,
+    },
+    ...(facts.stickerFrom !== null
+      ? [
+          {
+            q: `How much do ${SITE_NAME} stickers cost?`,
+            a: `Stickers start at ${formatINR(facts.stickerFrom)} for the smallest size; bigger sizes cost more, and every sticker page lists the price of each size.${
+              makeYourOwn.length ? ` Make-your-own options: ${makeYourOwn.join(", ")}.` : ""
+            } Shipping is worked out at checkout from your pin code.`,
+          },
+        ]
+      : []),
+    ...(customFrom !== null
+      ? [
+          {
+            q: "Can I get custom stickers made with my own logo or photo?",
+            a: `Yes. Upload your logo, photo or artwork and ${SITE_NAME} prints it as a die-cut vinyl sticker in the size and quantity you pick (${sizePrices(
+              facts.custom
+            )} per sticker). You can send your design before or after paying. Start at stickypie.in/custom-stickers/design.`,
+          },
+        ]
+      : []),
+    ...(qrFrom !== null
+      ? [
+          {
+            q: "Do you make QR code stickers for UPI payments?",
+            a: `Yes. ${SITE_NAME} makes QR code stickers for UPI payments, WhatsApp, Instagram or a website, with a label like “Scan to pay” (${sizePrices(
+              facts.qr
+            )}). Make one at stickypie.in/qr-code-stickers.`,
+          },
+        ]
+      : []),
+    ...(facts.posters && facts.posterFrom !== null
+      ? [
+          {
+            q: "Do you sell mini posters?",
+            a: `Yes — ${facts.posters} mini posters of cars, bikes and more, printed as stickers you can put on a car, bike, laptop, bottle, fridge or wall, from ${formatINR(
+              facts.posterFrom
+            )}.`,
+          },
+        ]
+      : []),
+    ...BASE_FAQ,
+    {
+      q: "What payment methods do you accept? Is cash on delivery available?",
+      a: "All orders are prepaid: UPI, debit or credit cards, netbanking or wallets, through a secure payment partner. Cash on delivery isn't available.",
+    },
+    {
+      q: "Can I cancel or return an order?",
+      a: "Stickers are printed to order, so an order can't be cancelled once the payment is confirmed. If an item arrives damaged or wrong, it's replaced free of charge, shipping included.",
+    },
+  ];
+}
+
+/** Make-your-own questions with every size's price — for /custom-stickers. */
+export function customFaq(facts: ShopFacts): Faq[] {
+  return [
+    ...(facts.custom.length
+      ? [
+          {
+            q: "How much does a custom sticker cost?",
+            a: `A custom sticker printed from your own design costs ${sizePrices(facts.custom)} per sticker (size = longest side), in any quantity. Shipping is worked out at checkout from your pin code.`,
+          },
+          {
+            q: "How do I send my design?",
+            a: "Pick a size and quantity, then add your logo, photo or artwork — before paying, or later from your order page. It's printed as a die-cut sticker cut to the shape of your design.",
+          },
+        ]
+      : []),
+    ...(facts.qr.length
+      ? [
+          {
+            q: "How much does a QR code sticker cost?",
+            a: `A QR code sticker costs ${sizePrices(facts.qr)}. It can open a UPI payment, WhatsApp chat, Instagram profile or website, with a label like “Scan to pay”, and you see it drawn before you order.`,
+          },
+        ]
+      : []),
+    ...(facts.text.length
+      ? [
+          {
+            q: "How much does a name sticker cost?",
+            a: `A name sticker — your name or a short line in a fun font and colour — costs ${sizePrices(facts.text)}. Great for bottles, bags, laptops and helmets.`,
+          },
+        ]
+      : []),
+  ];
+}
+
+const BASE_FAQ: Faq[] = [
   {
     q: "Are StickyPie stickers waterproof?",
     a: "Yes. Every sticker is printed on premium vinyl that is waterproof, scratch-resistant and UV-safe, so it works on cars, bikes, helmets, bottles and laptops, indoors or out.",
@@ -211,11 +336,11 @@ export function itemListStructuredData(products: Product[]) {
   };
 }
 
-export function faqStructuredData() {
+export function faqStructuredData(faq: Faq[]) {
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: STORE_FAQ.map(({ q, a }) => ({
+    mainEntity: faq.map(({ q, a }) => ({
       "@type": "Question",
       name: q,
       acceptedAnswer: { "@type": "Answer", text: a },

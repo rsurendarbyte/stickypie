@@ -6,6 +6,7 @@ import { Check, Ruler, ShoppingBag } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR } from "@stickypie/shared";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
+import { isMiniPoster } from "@/lib/poster";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
@@ -17,10 +18,6 @@ import TrueSizePreview from "./true-size-preview";
 // sticker-style Add to cart button. Mini posters keep the same card size but
 // show the whole poster as a print taped to a soft wall instead of a die-cut.
 
-/** Mini posters are tagged "mini poster" (and their slugs end in -mini-poster). */
-export function isMiniPoster(product: Product) {
-  return product.slug.endsWith("-mini-poster") || product.tags.some((t) => t.toLowerCase() === "mini poster");
-}
 
 /** Width ÷ height of the poster stage's inner area (square art minus padding). */
 const POSTER_STAGE_RATIO = 1;

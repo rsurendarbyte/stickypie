@@ -2,7 +2,7 @@
 // shoppers and search engines (details, how-to, FAQ). No client JS.
 import FaqItem from "@/components/faq-item";
 import Link from "@/components/page-link";
-import { STORE_FAQ } from "@/lib/seo";
+import type { Faq } from "@/lib/seo";
 
 export function ProductAbout({
   heading,
@@ -63,7 +63,7 @@ export function CategoryAbout({
 }
 
 /** Home page: an H1 + short shop intro, then common questions. */
-export function StoreAbout() {
+export function StoreAbout({ faq }: { faq: Faq[] }) {
   return (
     <section className="mx-auto mt-16 w-full max-w-5xl px-4 pb-8 sm:px-8">
       <h1 className="font-display text-2xl font-bold sm:text-3xl">
@@ -114,7 +114,7 @@ export function StoreAbout() {
         Questions, answered
       </h2>
       <div className="mt-4 divide-y divide-line rounded-2xl border border-line bg-ink2/80">
-        {STORE_FAQ.map(({ q, a }) => (
+        {faq.map(({ q, a }) => (
           <FaqItem key={q} q={q} a={a} />
         ))}
       </div>

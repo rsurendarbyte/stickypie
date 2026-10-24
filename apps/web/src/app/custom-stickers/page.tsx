@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { ArrowRight, ImageUp, QrCode, Sparkles, Type } from "lucide-react";
 import CustomRequestForm from "@/components/custom-request-form";
+import FaqItem from "@/components/faq-item";
+import JsonLd from "@/components/json-ld";
 import PageLink from "@/components/page-link";
+import { customFaq, faqStructuredData } from "@/lib/seo";
+import { loadShopFacts } from "@/lib/shop-facts";
 import { pageMetadata } from "@/lib/site";
 
 export const metadata: Metadata = pageMetadata({
@@ -37,9 +41,12 @@ const COMING_SOON = [
 ];
 
 /** Custom stickers: choose what to make first. */
-export default function CustomStickersPage() {
+export default async function CustomStickersPage() {
+  // Prices answered in plain words, for shoppers and AI assistants alike.
+  const faq = customFaq(await loadShopFacts());
   return (
     <div className="mx-auto min-h-screen w-full max-w-5xl px-4 pt-24 pb-24 sm:px-8">
+      {faq.length > 0 && <JsonLd data={faqStructuredData(faq)} />}
       <h1 className="font-display text-3xl font-bold sm:text-4xl">Custom stickers</h1>
       <p className="mt-1.5 max-w-2xl text-[15px] text-fog">
         What would you like to make? Waterproof die-cut vinyl, printed to order and shipped across India.
@@ -85,6 +92,17 @@ export default function CustomStickersPage() {
       </div>
 
       <CustomRequestForm />
+
+      {faq.length > 0 && (
+        <section className="mt-10">
+          <h2 className="font-display text-xl font-bold">Custom sticker questions</h2>
+          <div className="mt-4 divide-y divide-line rounded-2xl border border-line bg-ink2/80">
+            {faq.map(({ q, a }) => (
+              <FaqItem key={q} q={q} a={a} />
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

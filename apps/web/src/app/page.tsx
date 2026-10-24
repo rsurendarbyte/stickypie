@@ -3,7 +3,8 @@ import HomeClient from "@/components/home-client";
 import JsonLd from "@/components/json-ld";
 import { StoreAbout } from "@/components/seo-blocks";
 import { SUPPORT_EMAIL } from "@stickypie/shared";
-import { faqStructuredData, storeStructuredData } from "@/lib/seo";
+import { faqStructuredData, storeFaq, storeStructuredData } from "@/lib/seo";
+import { loadShopFacts } from "@/lib/shop-facts";
 import { productSnapshot } from "@/lib/catalog-snapshot";
 import { getDriver } from "@/lib/data";
 import { siteUrl } from "@/lib/mode";
@@ -28,11 +29,13 @@ export function generateMetadata(): Metadata {
 // in the browser (on-sale only), so nothing stale or off-sale is ever shown.
 export default async function HomePage() {
   const driver = getDriver();
-  const [categories, products, rails] = await Promise.all([
+  const [categories, products, rails, facts] = await Promise.all([
     driver.listCategories(),
     driver.listProducts({ activeOnly: true }),
     driver.getHomeRails(),
+    loadShopFacts(),
   ]);
+  const faq = storeFaq(facts);
 
   const structuredData = [
     {
@@ -47,7 +50,7 @@ export default async function HomePage() {
       },
     },
     storeStructuredData(SUPPORT_EMAIL),
-    faqStructuredData(),
+    faqStructuredData(faq),
   ];
 
   return (
@@ -59,7 +62,7 @@ export default async function HomePage() {
           initialRails={rails}
         />
       </div>
-      <StoreAbout />
+      <StoreAbout faq={faq} />
     </>
   );
 }

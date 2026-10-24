@@ -3,7 +3,7 @@
 import Link from "@/components/page-link";
 import SmartImg from "./smart-img";
 import PageLink from "./page-link";
-import { isMiniPoster } from "./product-card";
+import { isMiniPoster } from "@/lib/poster";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
