@@ -3,7 +3,7 @@
 import SmartImg from "./smart-img";
 import HoverLink from "./hover-link";
 import { useState } from "react";
-import { BadgeCheck, Droplets, PackageX, Ruler, Sun, Truck } from "lucide-react";
+import { BadgeCheck, Car, PackageX, Ruler, Sparkles, Truck } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR } from "@stickypie/shared";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
@@ -183,13 +183,13 @@ export default function ProductDetailClient({
 
           <ul className="mt-4 grid max-w-md grid-cols-2 gap-2 text-xs text-fog">
             <li className="flex items-center gap-2">
-              <BadgeCheck className="size-4 text-mint" /> Premium die-cut vinyl
+              <BadgeCheck className="size-4 text-mint" /> Die-cut, peel &amp; stick
             </li>
             <li className="flex items-center gap-2">
-              <Droplets className="size-4 text-mint" /> Waterproof &amp; scratch-proof
+              <Car className="size-4 text-mint" /> Car, bike &amp; laptop
             </li>
             <li className="flex items-center gap-2">
-              <Sun className="size-4 text-mint" /> UV &amp; fade resistant
+              <Sparkles className="size-4 text-mint" /> Clean with a dry cloth
             </li>
             <li className="flex items-center gap-2">
               <Truck className="size-4 text-mint" /> Ships in 2–4 days

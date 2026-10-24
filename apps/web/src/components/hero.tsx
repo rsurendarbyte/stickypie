@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   BadgeCheck,
-  Droplets,
+  Car,
   ImageUp,
   Link2,
   MessageCircle,
@@ -16,7 +16,7 @@ import {
   Scissors,
   Shapes,
   Sparkles,
-  Sun,
+  Sticker,
   Truck,
   Wallet,
 } from "lucide-react";
@@ -218,13 +218,13 @@ export default function Hero({
           )}
           <ul className="col-start-1 row-start-2 mt-8 hidden flex-wrap gap-2 text-[11px] font-semibold tracking-wide text-fog sm:flex">
             <li className="flex items-center gap-1.5 rounded-full border border-line bg-ink2 px-3 py-1.5">
-              <Droplets className="size-3.5 text-mint" /> Waterproof vinyl
+              <Sticker className="size-3.5 text-mint" /> Peel &amp; stick
             </li>
             <li className="flex items-center gap-1.5 rounded-full border border-line bg-ink2 px-3 py-1.5">
               <BadgeCheck className="size-3.5 text-mint" /> Die-cut edges
             </li>
             <li className="flex items-center gap-1.5 rounded-full border border-line bg-ink2 px-3 py-1.5">
-              <Sun className="size-3.5 text-mint" /> UV &amp; fade safe
+              <Car className="size-3.5 text-mint" /> Car, bike &amp; laptop
             </li>
             <li className="flex items-center gap-1.5 rounded-full border border-line bg-ink2 px-3 py-1.5">
               <Truck className="size-3.5 text-mint" /> Ships across India
@@ -555,7 +555,7 @@ function CustomSlideArt({ sizes }: { sizes: { inches: number }[] }) {
             : sizes.map((s) => `${formatInches(s.inches)}″`).join(" · ")}
         </span>
         <span className="animate-float-slow absolute bottom-[2%] -left-[8%] inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-snow shadow-md [animation-delay:-7s]">
-          <Droplets className="size-3.5 text-mint" /> Waterproof vinyl
+          <Scissors className="size-3.5 text-mint" /> Clean die-cut
         </span>
       </div>
     </div>
