@@ -133,7 +133,7 @@ export default function BrowseClient({
               {visible.length} result{visible.length === 1 ? "" : "s"} for “{q}”
             </>
           ) : (
-            <>{visible.length} stickers</>
+            <>{visible.length} {category === "mini-posters" ? "posters" : "stickers"}</>
           )}
         </p>
       </div>
@@ -188,7 +188,8 @@ export default function BrowseClient({
         <VirtualGrid
           items={visible}
           getKey={(product) => product.id}
-          render={(product) => <ProductCard product={product} width="w-full" />}
+          // the Mini Posters page is all posters, so it can use the tall poster card
+          render={(product) => <ProductCard product={product} width="w-full" poster={category === "mini-posters"} />}
           className="mt-4 grid grid-cols-2 gap-x-3 gap-y-5 sm:mt-8 sm:gap-y-7 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8"
         />
       )}

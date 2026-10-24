@@ -7,10 +7,12 @@ import ProductCard from "./product-card";
 import ProductCardSkeleton from "./product-card-skeleton";
 import Row from "./row";
 import CustomRail from "./custom-rail";
-import { resolveHomeRails, type HomeRail } from "@stickypie/shared";
+import { categoryPath, inCategory, resolveHomeRails, type HomeRail } from "@stickypie/shared";
 import { useHomeRails, useLiveCatalog, type Catalog } from "@/lib/live-catalog";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
 import StickerLoader from "./sticker-loader";
+
+const POSTER_CATEGORY = "mini-posters";
 
 export default function HomeClient({
   initial,
@@ -27,8 +29,12 @@ export default function HomeClient({
 
   const featured = products.filter((p) => p.featured);
   const hero = featured[0] ?? products[0];
-  // Rails, their order and contents come from the admin (Home page).
-  const homeRails = resolveHomeRails(rails, products, categories);
+  // Mini posters get their own first row and their own tall card; the
+  // admin's rails (order and contents from admin → Home page) show stickers only.
+  const posterCategory = categories.find((c) => c.slug === POSTER_CATEGORY);
+  const isPoster = (p: (typeof products)[number]) => Boolean(posterCategory && inCategory(p, posterCategory.id));
+  const posters = products.filter(isPoster);
+  const homeRails = resolveHomeRails(rails, products.filter((p) => !isPoster(p)), categories);
   const newDrops = homeRails.findIndex((r) => r.key === "new-drops");
   const customAfter = newDrops >= 0 ? newDrops : Math.min(1, homeRails.length - 1);
 
@@ -103,6 +109,13 @@ export default function HomeClient({
     <>
       <Hero products={featured.length > 0 ? featured : [hero]} categories={categories} />
       <div className="relative z-10 mt-2 space-y-10 pb-24">
+        {posters.length > 0 && (
+          <LazyRail eager title={posterCategory!.name} href={categoryPath(POSTER_CATEGORY)} poster>
+            {posters.map((product) => (
+              <ProductCard key={product.id} product={product} poster />
+            ))}
+          </LazyRail>
+        )}
         {homeRails.map((rail, i) => (
           // The first two rails render straight away; the rest only when the
           // shopper scrolls near them.
@@ -129,11 +142,13 @@ function LazyRail({
   eager,
   title,
   href,
+  poster = false,
   children,
 }: {
   eager: boolean;
   title: string;
   href?: string;
+  poster?: boolean;
   children: React.ReactNode;
 }) {
   const box = useRef<HTMLDivElement>(null);
@@ -162,7 +177,7 @@ function LazyRail({
   return (
     <div ref={box}>
       <Row title={title} href={href}>
-        {near ? children : Array.from({ length: 6 }, (_, i) => <ProductCardSkeleton key={i} index={i} />)}
+        {near ? children : Array.from({ length: 6 }, (_, i) => <ProductCardSkeleton key={i} index={i} poster={poster} />)}
       </Row>
     </div>
   );

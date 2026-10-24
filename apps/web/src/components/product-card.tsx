@@ -14,14 +14,25 @@ import TrueSizePreview from "./true-size-preview";
 
 // E-commerce product card: die-cut art on its own sticker sheet or cutting
 // mat, prominent price with the discount called out, and an always-visible
-// sticker-style Add to cart button.
+// sticker-style Add to cart button. `poster` swaps the square sticker stage for
+// a tall wall stage that shows a whole mini poster as a taped-up print.
+
+/** Width ÷ height of the poster stage's inner area (3:4 card art minus padding). */
+const POSTER_STAGE_RATIO = 0.7;
+
+/** "Jimny — The Adventure Awaits Mini Poster" → "Jimny — The Adventure Awaits". */
+export function posterTitle(name: string) {
+  return name.replace(/\s*(—\s*)?Mini Poster\s*$/i, "").trim() || name;
+}
 
 export default function ProductCard({
   product,
   width = "w-44 shrink-0 sm:w-48 md:w-52",
+  poster = false,
 }: {
   product: Product;
   width?: string;
+  poster?: boolean;
 }) {
   const { add, items } = useCart();
   const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product);
@@ -44,12 +55,45 @@ export default function ProductCard({
 
   return (
     <div
-      style={{ backgroundColor: skin.card }}
-      className={`group relative snap-start overflow-hidden rounded-2xl border border-line transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] ${width}`}
+      style={{ backgroundColor: poster ? undefined : skin.card }}
+      className={`group relative snap-start overflow-hidden rounded-2xl border border-line transition-all ${poster ? "bg-white" : ""} duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] ${width}`}
     >
       {/* Art stage — the sticker, plus only the NEW badge and the actual-size button */}
       <div className="relative">
       <PageLink href={`/sticker/${product.slug}`} className="block" tabIndex={-1} aria-hidden>
+        {poster ? (
+          <div className="poster-wall relative aspect-[3/4] overflow-hidden">
+            <div
+              className="absolute inset-x-5 top-6 bottom-4 grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center transition-transform duration-300 [transform:rotate(var(--rot))] group-hover:[transform:rotate(0deg)]"
+              style={{ "--rot": `${rotate / 2}deg` } as React.CSSProperties}
+            >
+              {/* The print keeps the poster's own shape: full height for tall posters
+                  (most), full width for squarer ones — so the tape sits on its top edge. */}
+              <span
+                className="relative block max-h-full max-w-full transition-transform duration-300 group-hover:scale-[1.03]"
+                style={
+                  (product.aspectRatio ?? 0.6) >= POSTER_STAGE_RATIO
+                    ? { width: "100%", aspectRatio: product.aspectRatio ?? 0.6 }
+                    : { height: "100%", aspectRatio: product.aspectRatio ?? 0.6 }
+                }
+              >
+                <img
+                  src={product.thumbUrl ?? product.imageUrl}
+                  alt={product.name}
+                  loading="lazy"
+                  decoding="async"
+                  className={`poster-print block size-full object-cover ${out ? "opacity-40 saturate-50" : ""}`}
+                />
+                <span aria-hidden className="poster-tape absolute -top-2 left-1/2 -ml-6 -rotate-3" />
+              </span>
+            </div>
+            {isNew && !out && (
+              <span className="absolute top-2.5 left-2.5 rounded-md bg-mint px-2 py-0.5 text-[10px] font-bold tracking-wider text-ink uppercase shadow-sm">
+                New
+              </span>
+            )}
+          </div>
+        ) : (
         <div className="relative aspect-square overflow-hidden" style={skin.art}>
           <div
             className="absolute inset-0 grid place-items-center p-5 transition-transform duration-300 [transform:rotate(var(--rot))] group-hover:[transform:rotate(0deg)]"
@@ -71,6 +115,7 @@ export default function ProductCard({
             </span>
           )}
         </div>
+        )}
       </PageLink>
       {sizes.length > 0 && (
         <button
@@ -88,7 +133,8 @@ export default function ProductCard({
       {/* Info — fixed-height rows so every card lines up */}
       <div className="px-3 pt-2.5">
         <PageLink href={`/sticker/${product.slug}`} className="block">
-          <p className="truncate text-[13px] font-medium text-snow/90">{product.name}</p>
+          {poster && <p className="text-[10px] font-bold tracking-wider text-brand uppercase">Mini poster</p>}
+          <p className="truncate text-[13px] font-medium text-snow/90">{poster ? posterTitle(product.name) : product.name}</p>
         </PageLink>
         <div className="mt-1 flex h-[18px] items-center gap-1.5 overflow-hidden text-[11px] whitespace-nowrap">
           {compareAtPrice !== null && compareAtPrice > price && (
