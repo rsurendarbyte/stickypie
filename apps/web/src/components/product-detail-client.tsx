@@ -83,6 +83,7 @@ export default function ProductDetailClient({
 
       <div className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-10">
         {/* Art */}
+        <div>
         <div className="relative aspect-[5/4] max-h-[440px] w-full sm:aspect-square" {...swipe}>
           <button
             type="button"
@@ -104,20 +105,24 @@ export default function ProductDetailClient({
             />
             {features.sizeRuler && <SizeRuler img={artEl} inches={sizes.length > 0 ? size : null} aspectRatio={product.aspectRatio} />}
           </button>
-          <div className="absolute right-4 bottom-4">
-            <button
-              type="button"
-              onClick={() => setTrueSize(true)}
-              className="peel-btn peel-btn--light inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold"
-            >
-              <Ruler className="size-4" /> See actual size
-            </button>
-          </div>
           {off !== null && !unavailable && (
             <span className="pie-gradient absolute top-4 left-4 rounded-full px-3 py-1 text-xs font-bold text-white">
               SAVE {off}%
             </span>
           )}
+        </div>
+        {/* Below the art, so it never covers it or the size ruler. Phones skip it to keep
+            the price in the first screen — the "see it at actual size" link under the
+            size picker does the same there. */}
+        <div className="mt-1 hidden justify-center sm:flex">
+          <button
+            type="button"
+            onClick={() => setTrueSize(true)}
+            className="peel-btn peel-btn--light inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold"
+          >
+            <Ruler className="size-4" /> See actual size
+          </button>
+        </div>
         </div>
 
         {/* Details */}

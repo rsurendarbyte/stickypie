@@ -14,6 +14,11 @@ export const FEATURES = {
     description: "Width and height arrows (in inches) around the sticker art, following the size the shopper picks.",
     default: true,
   },
+  wallPostersOnly: {
+    label: "Home banner wall: mini posters only",
+    description: "The moving wall on the first home banner slide shows only mini posters. Off: it shows stickers and posters mixed.",
+    default: true,
+  },
 } as const satisfies Record<string, { label: string; description: string; default: boolean }>;
 
 export type FeatureKey = keyof typeof FEATURES;

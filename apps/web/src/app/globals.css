@@ -1330,3 +1330,45 @@ html[data-lite]:not([data-lite="net"]) .wall-peel {
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.12);
   backdrop-filter: blur(1px);
 }
+/* "Mini poster" label: a strip of beige masking tape with serrated torn ends.
+   The shadow sits on the wrapper because clip-path would cut it off the tape. */
+.poster-tape-wrap {
+  filter: drop-shadow(0 1px 1.5px rgba(16, 24, 40, 0.25));
+}
+.poster-tape-label {
+  --t: 3px;
+  color: #8a1c3b;
+  background:
+    repeating-linear-gradient(0deg, rgba(120, 90, 40, 0.06) 0 1px, transparent 1px 4px),
+    rgba(236, 222, 186, 0.96);
+  clip-path: polygon(
+    0 var(--t), 17% 0, 33% var(--t), 50% 0, 67% var(--t), 83% 0, 100% var(--t),
+    100% calc(100% - var(--t)), 83% 100%, 67% calc(100% - var(--t)), 50% 100%, 33% calc(100% - var(--t)), 17% 100%, 0 calc(100% - var(--t))
+  );
+}
+/* Mini posters on the banner's sticker wall: the white die-cut edge a sticker
+   has, and the same soft shadow as the stickers. */
+.wall-poster {
+  border: 3px solid #fff;
+  border-radius: 9px;
+  background: #fff;
+}
+/* The sticker peel assumes square art (it folds along the diagonal in %). On a
+   rectangle the fold size comes from the poster's width instead (cqw), so the
+   corner folds back at 45° like the stickers'. */
+.wall-peel-poster {
+  container-type: size;
+}
+.wall-peel-poster .wall-peel-front {
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--pk) * 60cqw) 0,
+    100% calc(var(--pk) * 60cqw),
+    100% 100%,
+    0 100%
+  );
+}
+.wall-peel-poster .wall-peel-flap {
+  transform: translate(calc(100cqw - var(--pk) * 60cqw), calc(var(--pk) * 60cqw - 100cqw)) matrix(0, 1, 1, 0, 0, 0);
+  clip-path: polygon(calc(100% - var(--pk) * 60cqw) 0, 100% 0, 100% calc(var(--pk) * 60cqw));
+}

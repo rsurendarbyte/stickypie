@@ -14,11 +14,16 @@ import TrueSizePreview from "./true-size-preview";
 
 // E-commerce product card: die-cut art on its own sticker sheet or cutting
 // mat, prominent price with the discount called out, and an always-visible
-// sticker-style Add to cart button. `poster` swaps the square sticker stage for
-// a tall wall stage that shows a whole mini poster as a taped-up print.
+// sticker-style Add to cart button. Mini posters keep the same card size but
+// show the whole poster as a print taped to a soft wall instead of a die-cut.
 
-/** Width ÷ height of the poster stage's inner area (3:4 card art minus padding). */
-const POSTER_STAGE_RATIO = 0.7;
+/** Mini posters are tagged "mini poster" (and their slugs end in -mini-poster). */
+export function isMiniPoster(product: Product) {
+  return product.slug.endsWith("-mini-poster") || product.tags.some((t) => t.toLowerCase() === "mini poster");
+}
+
+/** Width ÷ height of the poster stage's inner area (square art minus padding). */
+const POSTER_STAGE_RATIO = 1;
 
 /** "Jimny — The Adventure Awaits Mini Poster" → "Jimny — The Adventure Awaits". */
 export function posterTitle(name: string) {
@@ -28,12 +33,11 @@ export function posterTitle(name: string) {
 export default function ProductCard({
   product,
   width = "w-44 shrink-0 sm:w-48 md:w-52",
-  poster = false,
 }: {
   product: Product;
   width?: string;
-  poster?: boolean;
 }) {
+  const poster = isMiniPoster(product);
   const { add, items } = useCart();
   const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product);
   const inCart = items.find((item) => lineKey(item) === lineKey({ productId: product.id, size }));
@@ -62,9 +66,9 @@ export default function ProductCard({
       <div className="relative">
       <PageLink href={`/sticker/${product.slug}`} className="block" tabIndex={-1} aria-hidden>
         {poster ? (
-          <div className="poster-wall relative aspect-[3/4] overflow-hidden">
+          <div className="poster-wall relative aspect-square overflow-hidden">
             <div
-              className="absolute inset-x-5 top-6 bottom-4 grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center transition-transform duration-300 [transform:rotate(var(--rot))] group-hover:[transform:rotate(0deg)]"
+              className="absolute inset-x-4 top-5 bottom-3 grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center transition-transform duration-300 [transform:rotate(var(--rot))] group-hover:[transform:rotate(0deg)]"
               style={{ "--rot": `${rotate / 2}deg` } as React.CSSProperties}
             >
               {/* The print keeps the poster's own shape: full height for tall posters
@@ -87,6 +91,14 @@ export default function ProductCard({
                 <span aria-hidden className="poster-tape absolute -top-2 left-1/2 -ml-6 -rotate-3" />
               </span>
             </div>
+            {/* "Mini poster" on a strip of masking tape stuck at the top right, on the
+                wall beside the poster (never over the art) — on the art stage, so the
+                card's info rows keep the same height as a sticker card's */}
+            <span className="poster-tape-wrap absolute -top-0.5 right-2.5 rotate-[3deg]">
+              <span className="poster-tape-label block pt-3 pr-[6px] pb-3 pl-[6px] font-display text-[9px] leading-none font-bold tracking-[0.2em] uppercase [writing-mode:vertical-rl]">
+                Mini poster
+              </span>
+            </span>
             {isNew && !out && (
               <span className="absolute top-2.5 left-2.5 rounded-md bg-mint px-2 py-0.5 text-[10px] font-bold tracking-wider text-ink uppercase shadow-sm">
                 New
@@ -123,7 +135,7 @@ export default function ProductCard({
           onClick={() => setTrueSize(true)}
           aria-label={`See ${product.name} at actual size`}
           title="See actual size"
-          className="absolute top-2.5 right-2.5 grid size-7 place-items-center rounded-full bg-white/90 text-fog shadow-[0_2px_8px_rgba(16,24,40,0.15)] ring-1 ring-black/5 backdrop-blur-sm transition-colors hover:text-brand"
+          className={`absolute ${poster ? "right-2.5 bottom-2.5" : "top-2.5 right-2.5"} grid size-7 place-items-center rounded-full bg-white/90 text-fog shadow-[0_2px_8px_rgba(16,24,40,0.15)] ring-1 ring-black/5 backdrop-blur-sm transition-colors hover:text-brand`}
         >
           <Ruler className="size-3.5" />
         </button>
@@ -133,7 +145,6 @@ export default function ProductCard({
       {/* Info — fixed-height rows so every card lines up */}
       <div className="px-3 pt-2.5">
         <PageLink href={`/sticker/${product.slug}`} className="block">
-          {poster && <p className="text-[10px] font-bold tracking-wider text-brand uppercase">Mini poster</p>}
           <p className="truncate text-[13px] font-medium text-snow/90">{poster ? posterTitle(product.name) : product.name}</p>
         </PageLink>
         <div className="mt-1 flex h-[18px] items-center gap-1.5 overflow-hidden text-[11px] whitespace-nowrap">

@@ -3,6 +3,7 @@
 import Link from "@/components/page-link";
 import SmartImg from "./smart-img";
 import PageLink from "./page-link";
+import { isMiniPoster } from "./product-card";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -138,7 +139,7 @@ export default function Hero({
         <>
           <BrandSlideArt
             key="wall"
-            stickers={(catalog.length ? catalog : products).slice(0, 30)}
+            stickers={wallItems(catalog.length ? catalog : products, features.wallPostersOnly)}
           />
           {/* white wash behind the words: from below on phones, from the left on desktop */}
           <div
@@ -360,6 +361,13 @@ function BrandSlideCopy({ catalog }: { catalog: Product[] }) {
   );
 }
 
+/** What the banner wall shows: only mini posters when admin → Features says so
+ *  (falls back to everything while there are none), otherwise all of it. */
+function wallItems(all: Product[], postersOnly: boolean) {
+  const posters = postersOnly ? all.filter(isMiniPoster) : [];
+  return (posters.length ? posters : all).slice(0, 30);
+}
+
 /**
  * First slide's backdrop: a wall of real stickers filling the whole hero —
  * columns scrolling up and down (alternating), tilted diagonally, fading out
@@ -396,6 +404,10 @@ function BrandSlideArt({ stickers }: { stickers: Product[] }) {
                   "--peel-cycle": `${8 + (n % 9)}s`,
                   "--peel-delay": `${-((n * 7) % 13)}s`,
                 } as React.CSSProperties;
+                // A mini poster is a rectangle, not a die-cut: it is the tile itself —
+                // no white tile around it — with a white sticker edge, trimmed to 4:5
+                // on the wall only.
+                const poster = isMiniPoster(p);
                 return (
                   <Link
                     key={`${p.id}-${k}`}
@@ -403,26 +415,53 @@ function BrandSlideArt({ stickers }: { stickers: Product[] }) {
                     tabIndex={-1}
                     aria-label={p.name}
                     style={peel}
-                    className="wall-tile grid aspect-square place-items-center rounded-2xl bg-white/85 p-[11%] shadow-[0_10px_24px_-14px_rgba(16,24,40,0.35)] ring-1 ring-black/5 transition-transform duration-200 hover:scale-[1.06] hover:ring-brand/40"
+                    className={`wall-tile grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center transition-transform duration-200 hover:scale-[1.06] ${
+                      poster
+                        ? "aspect-[4/5]"
+                        : "aspect-square rounded-2xl bg-white/85 p-[11%] shadow-[0_10px_24px_-14px_rgba(16,24,40,0.35)] ring-1 ring-black/5 hover:ring-brand/40"
+                    }`}
                   >
-                    {/* the sticker, and a white copy of it folded back over the
-                        peeling corner as its backing paper (see .wall-peel) */}
-                    <span className="wall-peel relative size-full">
-                      <img
-                        src={p.thumbUrl ?? p.imageUrl}
-                        alt=""
-                        loading="lazy"
-                        className="wall-peel-front absolute inset-0 size-full object-contain"
-                      />
-                      <span aria-hidden className="wall-peel-shadow absolute inset-0">
+                    {poster ? (
+                      // same peel as the stickers, with the fold measured from the
+                      // poster's width so it lifts a neat corner on a rectangle
+                      <span
+                        className="wall-peel wall-peel-poster relative size-full"
+                      >
                         <img
                           src={p.thumbUrl ?? p.imageUrl}
                           alt=""
                           loading="lazy"
-                          className="wall-peel-flap absolute inset-0 size-full object-contain"
+                          className="wall-peel-front wall-poster absolute inset-0 size-full object-cover"
                         />
+                        <span aria-hidden className="wall-peel-shadow absolute inset-0">
+                          <img
+                            src={p.thumbUrl ?? p.imageUrl}
+                            alt=""
+                            loading="lazy"
+                            className="wall-peel-flap wall-poster absolute inset-0 size-full object-cover"
+                          />
+                        </span>
                       </span>
-                    </span>
+                    ) : (
+                      // the sticker, and a white copy of it folded back over the
+                      // peeling corner as its backing paper (see .wall-peel)
+                      <span className="wall-peel relative size-full">
+                        <img
+                          src={p.thumbUrl ?? p.imageUrl}
+                          alt=""
+                          loading="lazy"
+                          className="wall-peel-front absolute inset-0 size-full object-contain"
+                        />
+                        <span aria-hidden className="wall-peel-shadow absolute inset-0">
+                          <img
+                            src={p.thumbUrl ?? p.imageUrl}
+                            alt=""
+                            loading="lazy"
+                            className="wall-peel-flap absolute inset-0 size-full object-contain"
+                          />
+                        </span>
+                      </span>
+                    )}
                   </Link>
                 );
               })}
