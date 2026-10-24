@@ -88,7 +88,8 @@ export default function ProductDetailClient({
             type="button"
             onClick={() => setTrueSize(true)}
             aria-label="See actual size"
-            className="absolute inset-0 grid cursor-zoom-in place-items-center p-6 sm:p-10"
+            // one fixed-size cell, so max-h-full has a height to fit tall art (posters) into
+            className="absolute inset-0 grid cursor-zoom-in grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center p-6 sm:p-10"
             style={{ transform: `rotate(${rotate / 2}deg)` }}
           >
             <SmartImg
