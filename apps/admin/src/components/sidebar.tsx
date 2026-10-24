@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { OrderAlertsToggle, useOrderAlerts } from "./order-alerts";
 import { Inbox, LayoutDashboard, LayoutList, LogOut, Package, Settings, ShoppingCart, Star, Tags, ToggleRight } from "lucide-react";
 
 const NAV = [
@@ -26,6 +27,18 @@ export default function Sidebar({
   logout: () => Promise<void>;
 }) {
   const pathname = usePathname();
+  // Paid orders waiting to be packed — a red count on Orders.
+  const { count } = useOrderAlerts();
+  const badge = (href: string, small = false) =>
+    href === "/orders" && count > 0 ? (
+      <span
+        className={`ml-auto grid min-w-5 place-items-center rounded-full bg-brand px-1.5 font-bold text-white ${
+          small ? "h-4 min-w-4 text-[9px]" : "h-5 text-[11px]"
+        }`}
+      >
+        {count}
+      </span>
+    ) : null;
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -57,10 +70,12 @@ export default function Sidebar({
             <Link key={href} href={href} className={linkClass(href)}>
               <Icon className="size-4.5" />
               {label}
+              {badge(href)}
             </Link>
           ))}
         </nav>
         <div className="border-t border-line px-5 py-4">
+          <OrderAlertsToggle className="-mx-3 mb-3 w-[calc(100%+1.5rem)]" />
           <p className="truncate text-xs font-medium text-snow/90">{userLabel}</p>
           <p className="mt-1 text-[11px] text-fog">
             {mode === "demo" ? "Local demo store" : "Supabase connected"}
@@ -84,6 +99,8 @@ export default function Sidebar({
             Sticky<span className="-ml-2 text-logo">Pie</span>{" "}
             <span className="text-xs font-normal text-fog">admin</span>
           </p>
+          <div className="flex items-center gap-1">
+          <OrderAlertsToggle />
           <form action={logout}>
             <button
               type="submit"
@@ -93,6 +110,7 @@ export default function Sidebar({
               <LogOut className="size-4" />
             </button>
           </form>
+          </div>
         </div>
         <nav className="no-scrollbar flex gap-1 overflow-x-auto px-3 py-2">
           {NAV.map(({ href, label, icon: Icon }) => (
@@ -105,6 +123,7 @@ export default function Sidebar({
             >
               <Icon className="size-3.5" />
               {label}
+              {badge(href, true)}
             </Link>
           ))}
         </nav>
