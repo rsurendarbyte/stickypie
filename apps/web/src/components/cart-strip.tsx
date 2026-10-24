@@ -41,7 +41,7 @@ export default function CartStrip() {
   const label = `${count} sticker${count === 1 ? "" : "s"}`;
 
   return (
-    <div className="shift-with-cart pointer-events-none fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] z-30 flex justify-center cart-tape-wrap sm:bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
+    <div className="shift-with-cart pointer-events-none fixed inset-x-3 bottom-[calc(0.75rem+var(--tabbar,0px)+env(safe-area-inset-bottom,0px))] z-30 flex justify-center cart-tape-wrap sm:bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
       <div className="cart-tape-box pointer-events-auto w-full max-w-[560px]">
         <div className="cart-tape flex items-center gap-2 py-2.5 pr-5 pl-4 sm:pr-7 sm:pl-6">
           <button

@@ -29,9 +29,10 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
 
   const supabase = await createServerSupabase();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error || !data.user) {
-    return { error: error?.message ?? "Sign-in failed. Check your credentials." };
-  }
+  // One message for every failure, so the form never tells anyone whether an
+  // email has an account or which part was wrong.
+  const denied = { error: "Wrong email or password." };
+  if (error || !data.user) return denied;
 
   const { data: adminRow } = await supabase
     .from("admin_users")
@@ -40,10 +41,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     .maybeSingle();
   if (!adminRow) {
     await supabase.auth.signOut();
-    return {
-      error:
-        "This account exists but has no admin access. Run supabase/make-admin.sql for this email.",
-    };
+    return denied;
   }
 
   redirect("/");

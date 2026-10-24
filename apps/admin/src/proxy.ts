@@ -49,12 +49,24 @@ export async function proxy(request: NextRequest) {
       data: { user },
       error,
     } = await supabase.auth.getUser();
-    authed = Boolean(user);
+    // Signed in is not enough: only accounts in admin_users get past this gate
+    // (a shop customer's login must never open the admin, not even its pages).
+    let notAdmin = false;
+    if (user) {
+      const { data: adminRow, error: adminError } = await supabase
+        .from("admin_users")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      authed = Boolean(adminRow);
+      notAdmin = !adminRow && !adminError; // a definite "no", not a failed lookup
+    }
     // Expired/revoked login (e.g. signed out elsewhere, or a session from the
     // other environment): drop its cookies so every later request doesn't retry it.
     // Only on a definite rejection — a network blip must not log the admin out.
     const rejected = [400, 401, 403].includes(Number(error?.status));
-    staleSession = !user && rejected && authCookies(request).length > 0;
+    // Also drop a non-admin's login, so it isn't checked again on every request.
+    staleSession = ((!user && rejected) || notAdmin) && authCookies(request).length > 0;
   }
 
   if (!authed && !isLogin) {

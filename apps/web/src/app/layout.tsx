@@ -7,6 +7,7 @@ import MildBackground from "@/components/mild-background";
 import Nav from "@/components/nav";
 import CarCursor from "@/components/car-cursor";
 import Footer from "@/components/footer";
+import MobileTabBar from "@/components/mobile-tab-bar";
 import CartDrawer from "@/components/cart-drawer";
 import CartShell from "@/components/cart-shell";
 import NavTracker from "@/components/nav-tracker";
@@ -88,6 +89,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <CartShell>
             <main className="min-h-screen">{children}</main>
             <Footer demoMode={!supabaseConfigured()} />
+            {/* keeps the footer clear of the phone tab bar */}
+            <div aria-hidden className="h-[var(--tabbar,0px)]" />
+            <MobileTabBar />
           </CartShell>
           <CartDrawer />
         </CartProvider>

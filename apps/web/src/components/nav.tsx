@@ -7,6 +7,7 @@ import { Search, ShoppingBag, UserRound } from "lucide-react";
 import { useShopper } from "@/lib/shopper-auth";
 import { useCart } from "./cart-context";
 import SearchSpotlight from "./search-spotlight";
+import CustomMenu from "./custom-menu";
 import { useFeatures } from "@/lib/live-catalog";
 
 export default function Nav() {
@@ -37,8 +38,14 @@ export default function Nav() {
         setSearchOpen(true);
       }
     };
+    // the phone tab bar's menu asks for search with this event
+    const onAsk = () => setSearchOpen(true);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("stickypie:search", onAsk);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("stickypie:search", onAsk);
+    };
   }, []);
 
   const features = useFeatures();
@@ -86,19 +93,17 @@ export default function Nav() {
                 <span className="peel-flap block" />
               </span>
             </span>
-            {/* Narrow phones: the logo alone, so the cart always fits on the row. */}
-            <span className="hidden font-display text-[22px] leading-none font-semibold tracking-tight min-[420px]:inline">
+            <span className="font-display text-[22px] leading-none font-semibold tracking-tight">
               Sticky<span className="text-logo">Pie</span>
             </span>
           </Link>
 
-          <nav className="flex items-center gap-1">
+          {/* phones: these live in the bottom tab bar instead */}
+          <nav className="hidden items-center gap-1 sm:flex">
             {navLink("/", "Home", true)}
             {navLink("/stickers", "Stickers")}
-            {features.customStickers && navLink("/custom-stickers", "Custom")}
-            {/* hidden on phones to keep the header to one row; linked from the custom page */}
-            {features.customStickers &&
-              navLink("/qr-code-stickers", "QR", true)}
+            {/* your design, QR code and name & text in one drop-down */}
+            {features.customStickers && <CustomMenu />}
           </nav>
 
           <div className="ml-auto flex items-center gap-1 sm:gap-2">

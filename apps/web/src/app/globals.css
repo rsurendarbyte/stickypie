@@ -1059,6 +1059,24 @@ html[data-lite] .card-shine {
     --peel: 600px;
   }
 }
+/* phone tab bar: the active tab's little label smooths down */
+.tab-label--on {
+  animation: tab-smooth-down 0.45s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+@keyframes tab-smooth-down {
+  from {
+    --peel: 120px;
+  }
+  to {
+    --peel: 0px;
+  }
+}
+/* room for the phone tab bar (components/mobile-tab-bar.tsx) */
+@media (max-width: 639px) {
+  html[data-tabbar] {
+    --tabbar: 3.5rem;
+  }
+}
 /* full-screen sheets (e.g. actual-size view): same peel, longer sweep */
 .screen-label--on {
   animation: screen-smooth-down 0.7s cubic-bezier(0.22, 0.8, 0.3, 1) both;
@@ -1097,6 +1115,7 @@ html[data-lite] .card-shine {
   .screen-label--off,
   .panel-label--on,
   .panel-label--off,
+  .tab-label--on,
   .dialog-backdrop {
     animation-duration: 1ms;
   }
