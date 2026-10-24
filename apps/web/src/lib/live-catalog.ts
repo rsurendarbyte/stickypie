@@ -3,16 +3,20 @@
 // Live catalog over the Supabase REST API, straight from the browser — with
 // as few requests as possible:
 //
-//   1. Every page load asks for ONE small row (store_settings: shipping
-//      settings, home layout and `catalog_version`).
+//   1. ONE small row (store_settings: shipping settings, home layout, features
+//      and `catalog_version`), asked for at most once every META_TTL_MS: shop
+//      links are plain page loads, so the row is kept in localStorage and the
+//      next pages reuse it without any request.
 //   2. The full catalog (categories + on-sale products) is kept in IndexedDB
 //      and only re-downloaded when `catalog_version` changed — the database
 //      bumps it whenever the admin edits a product/category/setting or stock
 //      moves after a sale. So everyone sees admin changes on their next page
 //      load, and nobody re-downloads an unchanged catalog.
-//   3. Within one visit, client-side navigation reuses the in-memory copy for
-//      MEMORY_TTL_MS without any request; product pages and "More like this"
-//      read from it instead of asking the API again.
+//   3. Within one page, every hook shares the in-memory copy; product pages and
+//      "More like this" read from it instead of asking the API again.
+//   So a shopper browsing for a few minutes makes one small request in total;
+//   admin changes reach them within META_TTL_MS (checkout re-checks prices and
+//   stock on the server anyway).
 //
 // RLS only exposes is_active products, so items taken off sale never reach the
 // browser. Demo mode (no Supabase env) keeps the server-rendered data.
@@ -39,6 +43,8 @@ export const liveCatalogEnabled = Boolean(SUPABASE_URL && ANON_KEY);
 /** Bump when the cached shape changes so old caches are ignored. */
 const CACHE_KEY = "catalog:v2";
 const MEMORY_TTL_MS = 60_000;
+const META_KEY = "store-settings:v1";
+const META_TTL_MS = 5 * 60_000;
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -75,12 +81,34 @@ function freshMemory(): Bundle | null {
   return memory && Date.now() - memory.at < MEMORY_TTL_MS ? memory.bundle : null;
 }
 
-/** Version check (1 small request), then the catalog from cache or network. */
+/** The store_settings row saved by an earlier page load, if still fresh. */
+function savedMeta(): any | null {
+  try {
+    const saved = JSON.parse(localStorage.getItem(META_KEY) ?? "null");
+    return saved && Date.now() - saved.at < META_TTL_MS ? saved.meta : null;
+  } catch {
+    return null; // storage blocked (private mode) or bad JSON: just ask again
+  }
+}
+
+function saveMeta(meta: any) {
+  try {
+    localStorage.setItem(META_KEY, JSON.stringify({ meta, at: Date.now() }));
+  } catch {
+    // storage full or blocked: the next page simply asks again
+  }
+}
+
+/** Version check (1 small request, skipped while a saved one is fresh), then the catalog from cache or network. */
 function loadCatalog(): Promise<Bundle> {
   const hit = freshMemory();
   if (hit) return Promise.resolve(hit);
   inflight ??= (async () => {
-    const [meta] = await rest("store_settings?select=*&id=eq.1");
+    let meta = savedMeta();
+    if (!meta) {
+      [meta] = await rest("store_settings?select=*&id=eq.1");
+      if (meta) saveMeta(meta);
+    }
     const version: string | null = meta?.catalog_version ?? null;
 
     let catalog: CachedCatalog | null = null;
