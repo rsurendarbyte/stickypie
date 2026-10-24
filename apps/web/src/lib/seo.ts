@@ -44,10 +44,9 @@ export function productDetails(product: Product, categoryNames: string[]) {
     heading: `About the ${name}`,
     intro: `The ${name} is a die-cut vinyl sticker printed for your order and cut to the shape of the design${
       cats ? ` — part of our ${cats} collection` : ""
-    }. It's waterproof and UV-safe, so it stays bright on a car, bike, helmet, laptop, water bottle or phone case. Just peel and stick.`,
+    }. It goes on a car, bike, helmet, laptop, water bottle or phone case. Just peel and stick.`,
     facts: [
       ["Material", "Premium vinyl, die-cut to shape"],
-      ["Finish", "Waterproof, scratch-resistant, UV-safe"],
       ...(sizes ? [["Sizes", `${sizes} (longest side)`]] : []),
       ["Price", product.sizes.length > 1 ? `From ${formatINR(product.price)}` : formatINR(product.price)],
       ["Sticks on", "Cars, bikes, helmets, laptops, bottles, phones, toolboxes"],
