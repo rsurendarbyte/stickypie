@@ -81,11 +81,17 @@ export type ResolvedRail = { key: string; title: string; href?: string; items: P
  * rail has shown (stickers pinned to a rail always show). A category whose
  * stickers were all shown above gets no rail. Top picks / New drops /
  * hand-picked rails are left as they are.
+ *
+ * `seed` (a random number per visit, 0 = off) shuffles what each rail shows,
+ * so returning shoppers see a fresh mix: category rails and Top picks pick a
+ * different set and order, New drops reshuffles its newest stickers. Pinned
+ * stickers keep their spot at the front, and hand-picked rails their order.
  */
 export function resolveHomeRails(
   rails: HomeRail[],
   products: Product[],
-  categories: Category[]
+  categories: Category[],
+  seed = 0
 ): ResolvedRail[] {
   const byId = new Map(products.map((p) => [p.id, p]));
   const catById = new Map(categories.map((c) => [c.id, c]));
@@ -96,6 +102,8 @@ export function resolveHomeRails(
   const shownInCategoryRails = new Set<string>();
   const notShownYet = (p: Product) => !shownInCategoryRails.has(p.id);
   const markShown = (items: Product[]) => items.forEach((p) => shownInCategoryRails.add(p.id));
+  // Same seed + rail → same order (stable while the visitor browses this page).
+  const mix = (list: Product[], salt: string) => (seed ? shuffled(list, seed, salt) : list);
   // Pinned (on-sale) stickers first, then the automatic list without repeats.
   const pinnedFirst = (pins: string[], auto: Product[]) => {
     const pinned = pins.map((id) => byId.get(id)).filter((p): p is Product => Boolean(p));
@@ -110,7 +118,7 @@ export function resolveHomeRails(
         if (explicitCategories.has(category.id)) continue;
         const inThis = (p: Product) => inCategory(p, category.id);
         const pins = rail.productIds.filter((id) => byId.get(id) && inThis(byId.get(id)!));
-        const items = pinnedFirst(pins, products.filter((p) => inThis(p) && notShownYet(p))).slice(0, rail.limit);
+        const items = pinnedFirst(pins, mix(products.filter((p) => inThis(p) && notShownYet(p)), category.id)).slice(0, rail.limit);
         markShown(items);
         if (items.length > 0) {
           out.push({ key: `${rail.id}:${category.id}`, title: category.name, href: categoryPath(category.slug), items });
@@ -121,14 +129,15 @@ export function resolveHomeRails(
     let items: Product[] = [];
     let title = rail.title;
     let href: string | undefined;
-    if (rail.kind === "featured") items = products.filter((p) => p.featured);
+    if (rail.kind === "featured") items = mix(products.filter((p) => p.featured), rail.id);
     else if (rail.kind === "new") {
-      items = products;
+      // still the newest stickers, just not always in the same order
+      items = mix(products.slice(0, rail.limit), rail.id);
       href = "/stickers?sort=new";
     } else if (rail.kind === "category") {
       const category = rail.categoryId ? catById.get(rail.categoryId) : undefined;
       if (!category) continue;
-      items = products.filter((p) => inCategory(p, category.id) && notShownYet(p));
+      items = mix(products.filter((p) => inCategory(p, category.id) && notShownYet(p)), rail.id);
       title = title || category.name;
       href = categoryPath(category.slug);
     }
@@ -136,6 +145,26 @@ export function resolveHomeRails(
     items = items.slice(0, rail.limit);
     if (rail.kind === "category") markShown(items);
     if (items.length > 0) out.push({ key: rail.id, title, href, items });
+  }
+  return out;
+}
+
+/** Deterministic Fisher–Yates shuffle from a seed and a per-rail salt. */
+function shuffled<T>(list: T[], seed: number, salt: string): T[] {
+  let h = seed >>> 0;
+  for (let i = 0; i < salt.length; i++) h = Math.imul(h ^ salt.charCodeAt(i), 2654435761) >>> 0;
+  const rand = () => {
+    // mulberry32
+    h = (h + 0x6d2b79f5) >>> 0;
+    let t = h;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const out = [...list];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
   }
   return out;
 }

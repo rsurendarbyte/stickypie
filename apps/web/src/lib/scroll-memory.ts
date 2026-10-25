@@ -118,8 +118,15 @@ export function useWindowScrollMemory(ready: boolean) {
   }, [ready]);
 }
 
-/** Saves a sideways rail's position; restores it on back. */
-export function useRailScrollMemory(ref: RefObject<HTMLElement | null>, name: string) {
+/** On a back visit, the sideways position a rail had (else null) — so a rail
+ *  that draws its cards a few at a time can draw enough to reach it. */
+export function savedRailScroll(name: string): number | null {
+  return backActive() ? read(`${pageKey()}|${name}`) : null;
+}
+
+/** Saves a sideways rail's position; restores it on back (again whenever
+ *  `size` changes, as a rail's cards arrive). */
+export function useRailScrollMemory(ref: RefObject<HTMLElement | null>, name: string, size = 0) {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
@@ -155,5 +162,5 @@ export function useRailScrollMemory(ref: RefObject<HTMLElement | null>, name: st
       clearTimeout(timer);
       if (last !== null) write(key, last);
     };
-  }, [ref, name]);
+  }, [ref, name, size]);
 }

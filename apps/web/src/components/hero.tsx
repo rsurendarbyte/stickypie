@@ -253,7 +253,12 @@ export default function Hero({
             className="animate-hero-img-in relative aspect-[16/10] sm:aspect-[5/4] lg:aspect-auto lg:h-[min(50vh,560px)]"
           >
             {product ? (
-              <div
+              // Tapping the art opens the sticker: the swipe view on phones,
+              // its page on desktop (the sticker page picks).
+              <PageLink
+                href={`/sticker/${product.slug}`}
+                aria-label={`View ${product.name}`}
+                draggable={false}
                 // one fixed-size cell, so max-h-full has a height to fit tall art (posters) into
                 className="absolute inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center p-2 sm:p-4 lg:px-6 lg:pt-0 lg:pb-5"
               >
@@ -262,9 +267,9 @@ export default function Hero({
                   thumb={product.thumbUrl}
                   alt={product.name}
                   priority
-                  className="sticker-cut animate-float max-h-full max-w-full rotate-2 object-contain lg:max-h-[min(46vh,520px)]"
+                  className="sticker-cut animate-float max-h-full max-w-full rotate-2 cursor-pointer object-contain transition-transform duration-200 hover:scale-[1.03] lg:max-h-[min(46vh,520px)]"
                 />
-              </div>
+              </PageLink>
             ) : slide.kind === "brand" ? null : slide.kind === "qr" ? (
               <QrSlideArt />
             ) : (
@@ -374,31 +379,74 @@ function wallItems(all: Product[], postersOnly: boolean) {
  * at the top and bottom. Tiles size with the screen, so it fills any device.
  * Each sticker opens its page; the wall keeps moving the whole time.
  */
+/** How many columns, and tiles per column, the wall needs to cover its box —
+ *  measured in the browser, so only what can show is drawn (a phone draws ~60
+ *  tiles, a wide screen ~120, instead of 210 everywhere). */
+function useWallSize(box: React.RefObject<HTMLDivElement | null>) {
+  const [size, setSize] = useState<{ cols: number; perCol: number } | null>(null);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    let raf = 0;
+    const measure = () => {
+      const { width: w, height: h } = el.getBoundingClientRect();
+      if (!w || !h) return;
+      const vw = window.innerWidth;
+      const step = Math.min(Math.max(92, vw * 0.13), 170) + (vw >= 640 ? 16 : 12);
+      const sin = Math.sin((14 * Math.PI) / 180);
+      const cos = Math.cos((14 * Math.PI) / 180);
+      // the tilted wall's width across the box, and the box's length along a
+      // column (one copy of a column must be at least that long — see below)
+      const cols = Math.ceil((w * cos + h * sin) / step) + 1;
+      const perCol = Math.ceil((w * sin + h * cos) / step);
+      setSize((s) => (s && s.cols === cols && s.perCol === perCol ? s : { cols, perCol }));
+    };
+    measure();
+    const onResize = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(measure);
+    };
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [box]);
+  return size;
+}
+
 function BrandSlideArt({ stickers }: { stickers: Product[] }) {
-  const COLS = 10;
-  const PER_COL = 7;
+  const box = useRef<HTMLDivElement>(null);
+  const size = useWallSize(box);
   const pool = stickers;
   if (!pool.length) return null;
-  const columns = Array.from({ length: COLS }, (_, c) =>
-    Array.from(
-      { length: PER_COL },
-      (_, k) => pool[(c * 7 + k * 4) % pool.length],
-    ),
-  );
+  const columns = size
+    ? Array.from({ length: size.cols }, (_, c) =>
+        Array.from(
+          { length: size.perCol },
+          (_, k) => pool[(c * 7 + k * 4) % pool.length],
+        ),
+      )
+    : [];
   return (
-    <div className="sticker-wall animate-hero-img-in absolute inset-0 overflow-hidden">
+    // Phones: the wall only fills the top of the hero (the words sit on white
+    // below it), so it's a smaller box with far fewer tiles.
+    <div
+      ref={box}
+      className="sticker-wall animate-hero-img-in absolute inset-x-0 top-0 bottom-[38%] overflow-hidden sm:bottom-0"
+    >
       <div className="absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 -rotate-[14deg] gap-3 sm:gap-4">
         {columns.map((col, c) => (
-          // Phones only see the middle columns of the tilted wall, so the outer
-          // four aren't drawn there (display:none — no images, no animation work).
-          <div key={c} className={`w-[clamp(92px,13vw,170px)] shrink-0 ${c < 2 || c > 7 ? "max-sm:hidden" : ""}`}>
-            {/* three copies stacked: the column scrolls by one copy and loops
-                without a seam, and the screen never reaches either end */}
+          <div key={c} className="w-[clamp(92px,13vw,170px)] shrink-0">
+            {/* two copies stacked, sliding by one copy around the middle: it
+                loops without a seam, and one copy covers the box, so the screen
+                never reaches either end */}
             <div
               className={`flex flex-col gap-3 sm:gap-4 ${c % 2 ? "sticker-wall-down" : "sticker-wall-up"}`}
-              style={{ animationDuration: `${44 + (c % 4) * 7}s` }}
+              // same speed as before, whatever the column's length
+              style={{ animationDuration: `${((44 + (c % 4) * 7) * col.length) / 7}s` }}
             >
-              {[...col, ...col, ...col].map((p, k) => {
+              {[...col, ...col].map((p, k) => {
                 // Every tile peels its corner now and then: its own cycle length and
                 // starting point (fixed per tile, so server and browser agree).
                 const n = c * 31 + k * 17;

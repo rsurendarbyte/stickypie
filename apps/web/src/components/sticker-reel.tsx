@@ -26,11 +26,11 @@ import TrueSizePreview from "./true-size-preview";
  *
  * Swiping never asks the server for anything: the catalog is already in the
  * browser (lib/live-catalog), the address bar follows the sticker on screen,
- * and only the pictures next to the one on screen are loaded.
+ * and only the stickers next to the one on screen are drawn.
  */
 
 const HINT_KEY = "stickypie.reel-hint";
-/** Pictures loaded either side of the one on screen. */
+/** Stickers drawn either side of the one on screen (the rest are empty slots). */
 const NEAR = 2;
 
 type View = "reel" | "classic";
@@ -165,8 +165,14 @@ function Reel({
   return (
     <div className="swipe-view-root fixed inset-0 z-[70] bg-ink sm:hidden" role="region" aria-label="Swipe view">
       <div ref={scroller} className="reel-scroller no-scrollbar">
+        {/* Every sticker keeps an empty full-screen slot (so the scroll length
+            and snap points stay put), but only the few next to the one on
+            screen are drawn: a handful of stickers in the page, not the whole
+            catalogue. */}
         {list.map((p, i) => (
-          <ReelItem key={p.id} index={i} product={p} near={Math.abs(i - active) <= NEAR} onPageView={() => onClassic(p.slug)} />
+          <section key={p.id} data-index={i} className="reel-item" aria-label={p.name}>
+            {Math.abs(i - active) <= NEAR && <ReelItem product={p} onPageView={() => onClassic(p.slug)} />}
+          </section>
         ))}
       </div>
 
@@ -217,14 +223,10 @@ function Reel({
 }
 
 function ReelItem({
-  index,
   product,
-  near,
   onPageView,
 }: {
-  index: number;
   product: Product;
-  near: boolean;
   onPageView: () => void;
 }) {
   const { add, items, subtotal } = useCart();
@@ -271,22 +273,18 @@ function ReelItem({
 
   const name = poster ? product.name.replace(/\s*(—\s*)?Mini Poster\s*$/i, "") : product.name;
   return (
-    <section data-index={index} className="reel-item relative flex flex-col" style={skin.art} aria-label={product.name}>
+    <div className="relative flex h-full flex-col" style={skin.art}>
       {/* Art */}
       <div
         className="relative grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center px-10 pt-[calc(4.5rem+env(safe-area-inset-top,0px))] pb-4 select-none"
         onPointerUp={onArtTap}
       >
-        {near ? (
-          <img
-            src={product.thumbUrl ?? product.imageUrl}
-            alt={product.name}
-            draggable={false}
-            className={`animate-float max-h-full max-w-full object-contain ${poster ? "poster-print" : "sticker-cut"} ${out ? "opacity-50 saturate-50" : ""}`}
-          />
-        ) : (
-          <span aria-hidden className="size-24 rounded-3xl bg-white/40" />
-        )}
+        <img
+          src={product.thumbUrl ?? product.imageUrl}
+          alt={product.name}
+          draggable={false}
+          className={`animate-float max-h-full max-w-full object-contain ${poster ? "poster-print" : "sticker-cut"} ${out ? "opacity-50 saturate-50" : ""}`}
+        />
         {pops.map((p) => (
           <span key={p.id} aria-hidden className="reel-pop pointer-events-none fixed z-10" style={{ left: p.x, top: p.y }}>
             <span className="block -translate-x-1/2 -translate-y-1/2 rounded-2xl border-[3px] border-white bg-brand px-3 py-1.5 font-display text-sm font-bold text-white shadow-lg">
@@ -389,8 +387,8 @@ function ReelItem({
         </div>
       </div>
 
-      <LabelModal open={details} onClose={() => setDetails(false)} labelledBy={`reel-details-${index}`} placement="bottom" className="max-w-md p-5">
-        <h3 id={`reel-details-${index}`} className="font-display text-lg font-bold">{name}</h3>
+      <LabelModal open={details} onClose={() => setDetails(false)} labelledBy={`reel-details-${product.id}`} placement="bottom" className="max-w-md p-5">
+        <h3 id={`reel-details-${product.id}`} className="font-display text-lg font-bold">{name}</h3>
         {product.description && <p className="mt-2 text-sm leading-relaxed text-fog">{product.description}</p>}
         <ul className="mt-3 space-y-1.5 text-sm">
           <li>Die-cut vinyl, peel and stick — size is the longest side.</li>
@@ -416,7 +414,7 @@ function ReelItem({
           onSizeChange={setSize}
         />
       )}
-    </section>
+    </div>
   );
 }
 

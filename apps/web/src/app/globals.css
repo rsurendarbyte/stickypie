@@ -1195,34 +1195,37 @@ html.car-cursor [contenteditable] {
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 70%, transparent 100%);
   mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 70%, transparent 100%);
 }
+/* Two copies of each column: it slides by one copy (half its height plus half
+   the gap between the copies), from half a slide below the middle to half a
+   slide above, so the middle of the box always shows the middle of a column. */
 .sticker-wall-up {
-  --wall-gap: 0.25rem;
+  --wall-gap: 0.375rem;
   animation: sticker-wall-up 36s linear infinite;
 }
 .sticker-wall-down {
-  --wall-gap: 0.25rem;
+  --wall-gap: 0.375rem;
   animation: sticker-wall-down 40s linear infinite;
 }
 @media (min-width: 640px) {
   .sticker-wall-up,
   .sticker-wall-down {
-    --wall-gap: 0.3333rem;
+    --wall-gap: 0.5rem;
   }
 }
 @keyframes sticker-wall-up {
   from {
-    transform: translateY(0);
+    transform: translateY(calc(25% + var(--wall-gap, 0.375rem) / 2));
   }
   to {
-    transform: translateY(calc(-100% / 3 - var(--wall-gap, 0.25rem)));
+    transform: translateY(calc(-25% - var(--wall-gap, 0.375rem) / 2));
   }
 }
 @keyframes sticker-wall-down {
   from {
-    transform: translateY(calc(-100% / 3 - var(--wall-gap, 0.25rem)));
+    transform: translateY(calc(-25% - var(--wall-gap, 0.375rem) / 2));
   }
   to {
-    transform: translateY(0);
+    transform: translateY(calc(25% + var(--wall-gap, 0.375rem) / 2));
   }
 }
 @media (prefers-reduced-motion: reduce) {
