@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ChevronUp, LayoutList, Ruler, Share2, ShoppingBag, Truck } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronUp, LayoutList, Ruler, Share2, ShoppingBag, Truck } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { discountPercent, formatINR, inCategory } from "@stickypie/shared";
 import { useLiveCatalog } from "@/lib/live-catalog";
@@ -9,7 +9,9 @@ import { cardSkinFor } from "@/lib/palette";
 import { isMiniPoster } from "@/lib/poster";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { PAGE_VIEW_ONCE_KEY } from "@/lib/view-script";
-import { useCart } from "./cart-context";
+import { lineKey, useCart } from "./cart-context";
+import CartStepper from "./cart-stepper";
+import PageLink from "./page-link";
 import LabelModal from "./label-modal";
 import { toCartProduct, useSizeChoice } from "./size-picker";
 import TrueSizePreview from "./true-size-preview";
@@ -225,12 +227,14 @@ function ReelItem({
   near: boolean;
   onPageView: () => void;
 }) {
-  const { add } = useCart();
+  const { add, items, subtotal } = useCart();
   const skin = cardSkinFor(product.slug, useSkinSeed());
   const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product);
   const off = discountPercent(price, compareAtPrice);
   const out = product.stock === 0;
   const poster = isMiniPoster(product);
+  // This size already in the cart: a quantity stepper and Checkout instead of Add to cart.
+  const inCart = items.find((item) => lineKey(item) === lineKey({ productId: product.id, size }));
   const [details, setDetails] = useState(false);
   const [trueSize, setTrueSize] = useState(false);
   const [pops, setPops] = useState<{ id: number; x: number; y: number }[]>([]);
@@ -347,26 +351,41 @@ function ReelItem({
           <button
             type="button"
             onClick={() => setDetails(true)}
-            className="peel-btn peel-btn--light flex h-12 shrink-0 items-center gap-1 rounded-2xl px-4 text-sm font-bold"
+            aria-label="Details"
+            // icon only once in the cart, to make room for the stepper + Checkout
+            className={`peel-btn peel-btn--light flex h-12 shrink-0 items-center justify-center gap-1 rounded-2xl text-sm font-bold ${inCart ? "w-12" : "px-4"}`}
           >
-            <ChevronUp className="size-4" /> Details
+            <ChevronUp className="size-4" />
+            {!inCart && "Details"}
           </button>
-          <button
-            type="button"
-            disabled={out}
-            onClick={() => addToCart()}
-            className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl text-base font-bold ${
-              out ? "cursor-not-allowed bg-panel text-fog" : "peel-btn"
-            }`}
-          >
-            {out ? (
-              "Out of stock"
-            ) : (
-              <>
-                <ShoppingBag className="peel-icon size-5" /> Add to cart · {formatINR(price)}
-              </>
-            )}
-          </button>
+          {inCart ? (
+            <>
+              <CartStepper item={inCart} size="lg" sticker className="h-12 shrink-0" />
+              <PageLink
+                href="/checkout"
+                className="peel-btn peel-btn--brand flex h-12 min-w-0 flex-1 items-center justify-center gap-1 rounded-2xl px-2 text-sm font-bold whitespace-nowrap"
+              >
+                Checkout · {formatINR(subtotal)} <ArrowRight className="size-4 shrink-0" />
+              </PageLink>
+            </>
+          ) : (
+            <button
+              type="button"
+              disabled={out}
+              onClick={() => addToCart()}
+              className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl text-base font-bold ${
+                out ? "cursor-not-allowed bg-panel text-fog" : "peel-btn"
+              }`}
+            >
+              {out ? (
+                "Out of stock"
+              ) : (
+                <>
+                  <ShoppingBag className="peel-icon size-5" /> Add to cart · {formatINR(price)}
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
 
