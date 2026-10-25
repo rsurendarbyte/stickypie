@@ -389,7 +389,9 @@ function BrandSlideArt({ stickers }: { stickers: Product[] }) {
     <div className="sticker-wall animate-hero-img-in absolute inset-0 overflow-hidden">
       <div className="absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 -rotate-[14deg] gap-3 sm:gap-4">
         {columns.map((col, c) => (
-          <div key={c} className="w-[clamp(92px,13vw,170px)] shrink-0">
+          // Phones only see the middle columns of the tilted wall, so the outer
+          // four aren't drawn there (display:none — no images, no animation work).
+          <div key={c} className={`w-[clamp(92px,13vw,170px)] shrink-0 ${c < 2 || c > 7 ? "max-sm:hidden" : ""}`}>
             {/* three copies stacked: the column scrolls by one copy and loops
                 without a seam, and the screen never reaches either end */}
             <div

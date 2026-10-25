@@ -4,12 +4,14 @@ import { useEffect } from "react";
 import { LITE_FPS_DAYS, LITE_KEY } from "@/lib/lite-script";
 
 const MEASURE_MS = 2000;
-/** Below this the device really is struggling (normal is ~60). */
-const SLOW_FPS = 20;
+/** Below this the device really is struggling (normal is ~60; 30 in battery saver). */
+const SLOW_FPS = 15;
+/** Wait for the first load (images, catalog, wall) to settle before counting. */
+const SETTLE_MS = 8000;
 
 /**
  * Once per visit, after the page has settled, counts frames for 2 s. Only a
- * device that stays clearly slow (< 20 fps) with the tab in view the whole
+ * device that stays clearly slow (< 15 fps) with the tab in view the whole
  * time gets lite mode, remembered for a week and then checked again.
  * Skipped in development, where everything is slower than the live site.
  */
@@ -49,7 +51,7 @@ export default function PerfProbe() {
         }
       };
       raf = requestAnimationFrame(tick);
-    }, 4000);
+    }, SETTLE_MS);
     return () => {
       window.clearTimeout(start);
       cancelAnimationFrame(raf);
