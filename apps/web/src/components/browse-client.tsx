@@ -14,6 +14,7 @@ import VirtualGrid from "./virtual-grid";
 import CategoryFilter from "./category-filter";
 import { useLiveCatalog, type Catalog } from "@/lib/live-catalog";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
+import { searchStickers } from "@/lib/sticker-search";
 
 /**
  * Client-side catalog browser. The page ships as a free static asset with a
@@ -80,20 +81,29 @@ export default function BrowseClient({
       const cat = categories.find((c) => c.slug === category);
       list = cat ? list.filter((p) => inCategory(p, cat.id)) : [];
     }
-    if (q) {
-      const needle = q.toLowerCase();
-      list = list.filter(
-        (p) =>
-          p.name.toLowerCase().includes(needle) ||
-          p.tags.some((t) => t.toLowerCase().includes(needle)),
-      );
-    }
+    if (q) list = searchStickers(list, categories, q).exact;
     if (sort === "price-asc")
       list = [...list].sort((a, b) => a.price - b.price);
     else if (sort === "price-desc")
       list = [...list].sort((a, b) => b.price - a.price);
     return list;
   }, [products, categories, q, category, sort]);
+
+  // A search with no exact match: the closest stickers (or popular picks)
+  // from the whole shop instead of an empty page.
+  const found = useMemo(() => (q ? searchStickers(products, categories, q) : null), [q, products, categories]);
+  const suggestions = useMemo(() => {
+    if (!found || visible.length) return null;
+    return found.related.length
+      ? { title: "You might like", products: found.related }
+      : { title: "Popular right now", products: found.popular };
+  }, [found, visible.length]);
+  // Under the search results: related stickers that weren't exact matches.
+  const moreLikeThis = useMemo(() => {
+    if (!found || !visible.length) return [];
+    const shown = new Set(visible.map((p) => p.id));
+    return found.related.filter((p) => !shown.has(p.id)).slice(0, 12);
+  }, [found, visible]);
 
   const activeCategoryName = categories.find((c) => c.slug === category)?.name;
   // Only categories that have stickers on sale (plus the one being viewed),
@@ -130,7 +140,13 @@ export default function BrowseClient({
             "Loading…"
           ) : q ? (
             <>
-              {visible.length} result{visible.length === 1 ? "" : "s"} for “{q}”
+              {visible.length ? (
+                <>
+                  {visible.length} result{visible.length === 1 ? "" : "s"} for “{q}”
+                </>
+              ) : (
+                <>No exact match for “{q}”</>
+              )}
             </>
           ) : (
             <>{visible.length} {category === "mini-posters" ? "posters" : "stickers"}</>
@@ -174,6 +190,20 @@ export default function BrowseClient({
             Try again
           </button>
         </div>
+      ) : visible.length === 0 && suggestions ? (
+        <div className="mt-6 sm:mt-8">
+          <p className="text-sm text-fog">
+            No exact match for “{q}” — {suggestions.title === "You might like" ? "here are the closest stickers:" : "here are some popular picks:"}
+          </p>
+          <h2 className="mt-3 font-display text-lg font-bold">{suggestions.title}</h2>
+          <div className="@container">
+            <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-5 sm:gap-x-4 sm:gap-y-7 @[40rem]:grid-cols-3 @[53rem]:grid-cols-4 @[67rem]:grid-cols-5 @[80rem]:grid-cols-6 @[107rem]:grid-cols-8">
+              {suggestions.products.map((product) => (
+                <ProductCard key={product.id} product={product} width="w-full" />
+              ))}
+            </div>
+          </div>
+        </div>
       ) : visible.length === 0 ? (
         <div className="mt-20 flex flex-col items-center gap-2 text-center">
           <p className="font-display text-xl font-semibold">
@@ -195,6 +225,16 @@ export default function BrowseClient({
             render={(product) => <ProductCard product={product} width="w-full" />}
             className="mt-4 grid grid-cols-2 gap-x-3 gap-y-5 sm:mt-8 sm:gap-y-7 sm:gap-x-4 @[40rem]:grid-cols-3 @[53rem]:grid-cols-4 @[67rem]:grid-cols-5 @[80rem]:grid-cols-6 @[107rem]:grid-cols-8"
           />
+          {moreLikeThis.length > 0 && (
+            <section className="mt-10">
+              <h2 className="font-display text-lg font-bold">More like this</h2>
+              <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-5 sm:gap-x-4 sm:gap-y-7 @[40rem]:grid-cols-3 @[53rem]:grid-cols-4 @[67rem]:grid-cols-5 @[80rem]:grid-cols-6 @[107rem]:grid-cols-8">
+                {moreLikeThis.map((product) => (
+                  <ProductCard key={product.id} product={product} width="w-full" />
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       )}
     </>

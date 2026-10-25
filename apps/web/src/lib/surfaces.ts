@@ -105,7 +105,7 @@ export const SURFACES: Surface[] = [
     intro:
       "Make your laptop yours. Our laptop stickers are die-cut vinyl — waterproof, scratch-resistant and easy to peel off without leaving residue — so you can build a lid full of memes, car culture and good vibes, and change it whenever you like.",
     tags: ["laptop", "macbook", "funny", "meme", "memes", "gaming", "cute", "good vibes", "positive", "aesthetic", "anime", "shaka"],
-    categories: ["laptop", "memes", "fun", "anime", "gaming", "computer-geek", "aesthetic", "hacker", "startup"],
+    categories: ["fun", "anime", "gaming", "computer-geek", "aesthetic"],
     sections: [
       {
         heading: "Stickers that look good on any lid",
@@ -177,7 +177,7 @@ export const SURFACES: Surface[] = [
     intro:
       "Your bottle goes everywhere — make it unmistakably yours. These waterproof vinyl stickers handle daily washing and cold condensation, with funny, cute and good-vibes designs in a bottle-friendly 3″ size.",
     tags: ["bottle", "water bottle", "flask", "funny", "cute", "good vibes", "positive", "shaka", "meme", "memes"],
-    categories: ["water-bottle", "fun", "memes", "aesthetic", "motivational", "inspirational"],
+    categories: ["fun", "aesthetic", "motivational"],
     sections: [
       {
         heading: "Waterproof, wash after wash",

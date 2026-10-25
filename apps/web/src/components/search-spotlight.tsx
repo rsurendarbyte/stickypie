@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { categoryPath, formatINR, type Product } from "@stickypie/shared";
 import { useLiveCatalog } from "@/lib/live-catalog";
+import { searchStickers } from "@/lib/sticker-search";
 import LabelModal from "./label-modal";
 
 const RECENT_KEY = "stickypie.recent-search";
@@ -83,33 +84,25 @@ function SpotlightBody({ onClose }: { onClose: () => void }) {
     () => new Map(categories.map((c) => [c.id, c.name])),
     [categories],
   );
-  const results = useMemo(() => {
-    if (!needle) return [];
-    const words = needle.split(/\s+/);
-    const score = (p: Product) => {
-      const name = p.name.toLowerCase();
-      const hay = `${name} ${p.tags.join(" ").toLowerCase()} ${(catName.get(p.categoryId ?? "") ?? "").toLowerCase()}`;
-      if (!words.every((w) => hay.includes(w))) return -1;
-      return name.startsWith(needle) ? 3 : name.includes(needle) ? 2 : 1;
-    };
-    return products
-      .map((p) => ({ p, s: score(p) }))
-      .filter((x) => x.s > 0)
-      .sort((a, b) => b.s - a.s)
-      .map((x) => x.p);
-  }, [needle, products, catName]);
+  const found = useMemo(() => searchStickers(products, categories, needle), [needle, products, categories]);
+  const results = found.exact;
+  // No exact match: related stickers, or popular picks — never a dead end.
+  const suggestions = found.related.length ? found.related : found.popular;
+  // Exact matches get a few related ones after them ("More like this").
+  const more = results.length ? found.related.slice(0, Math.max(0, 7 - results.length)).slice(0, 4) : [];
   const matchedCats = needle
     ? categories
         .filter((c) => c.name.toLowerCase().includes(needle))
         .slice(0, 4)
     : [];
-  const top = results.slice(0, 7);
+  const top = (results.length ? results : suggestions).slice(0, 7);
   const fresh = needle ? [] : products.slice(0, 4);
 
   // Everything you can arrow to, in order.
   type Item = { key: string; go: () => void };
   const items: Item[] = [
     ...top.map((p) => ({ key: p.id, go: () => go(`/sticker/${p.slug}`, q) })),
+    ...more.map((p) => ({ key: `m:${p.id}`, go: () => go(`/sticker/${p.slug}`, q) })),
     ...matchedCats.map((c) => ({
       key: c.id,
       go: () => go(categoryPath(c.slug)),
@@ -243,8 +236,20 @@ function SpotlightBody({ onClose }: { onClose: () => void }) {
           <>
             {top.length > 0 && (
               <>
-                <p className={heading}>Stickers</p>
+                {results.length === 0 && loaded && (
+                  <p className="px-3 pt-2 pb-1 text-sm text-fog">
+                    No exact match for “{q.trim()}” —{" "}
+                    {found.related.length ? "here are the closest stickers:" : "here are some popular picks:"}
+                  </p>
+                )}
+                <p className={heading}>{results.length ? "Stickers" : found.related.length ? "You might like" : "Popular right now"}</p>
                 {top.map((p) => productRow(p, q))}
+              </>
+            )}
+            {more.length > 0 && (
+              <>
+                <p className={heading}>More like this</p>
+                {more.map((p) => productRow(p, q))}
               </>
             )}
             {matchedCats.length > 0 && (
@@ -274,10 +279,10 @@ function SpotlightBody({ onClose }: { onClose: () => void }) {
                 })}
               </>
             )}
-            {top.length === 0 && matchedCats.length === 0 && (
+            {top.length === 0 && matchedCats.length === 0 && !loaded && (
               <p className="px-3 py-8 text-center text-sm text-fog">
                 {loaded ? (
-                  <>No stickers match “{q.trim()}”. Try another word.</>
+                  null
                 ) : (
                   "Searching…"
                 )}
@@ -295,8 +300,13 @@ function SpotlightBody({ onClose }: { onClose: () => void }) {
                   className={`${row(active === n)} mt-1 justify-between font-semibold text-brand`}
                 >
                   <span className="text-sm">
-                    See all {results.length} result
-                    {results.length === 1 ? "" : "s"} for “{q.trim()}”
+                    {results.length ? (
+                      <>
+                        See all {results.length} result{results.length === 1 ? "" : "s"} for “{q.trim()}”
+                      </>
+                    ) : (
+                      "See more stickers like these"
+                    )}
                   </span>
                   <CornerDownLeft className="size-4" />
                 </button>
