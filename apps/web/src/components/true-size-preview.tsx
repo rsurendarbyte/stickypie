@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CreditCard, Maximize2, Minimize2, Ruler, X } from "lucide-react";
+import { CreditCard, Maximize2, Minimize2, RotateCcw, Ruler, X, ZoomIn, ZoomOut } from "lucide-react";
 import type { ProductSize } from "@stickypie/shared";
 import { formatINR, formatInches, sizeDimensions } from "@stickypie/shared";
 import { estimatePxPerInch, type PpiEstimate } from "@/lib/screen-ppi";
@@ -12,6 +12,9 @@ import { estimatePxPerInch, type PpiEstimate } from "@/lib/screen-ppi";
 const CALIBRATION_KEY = "stickypie.px-per-inch.v1";
 const CARD_W = 3.37;
 const CARD_H = 2.125;
+/** Zoom range for a closer look; 1 = actual size. */
+const MAX_ZOOM = 6;
+const clampZoom = (z: number) => Math.min(MAX_ZOOM, Math.max(1, z));
 
 function loadCalibration(): number | null {
   try {
@@ -53,6 +56,18 @@ export default function TrueSizePreview({
   const [ratio, setRatio] = useState<number | null>(aspectRatio);
   const stage = useRef<HTMLDivElement>(null);
   const [stageBox, setStageBox] = useState({ w: 0, h: 0 });
+  // Closer look: pinch / wheel / double-tap / buttons. The inch grid and size
+  // labels zoom with the sticker, and the bottom bar says it's zoomed.
+  const [zoom, setZoom] = useState({ z: 1, x: 0, y: 0 });
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ d: number; z: number; mx: number; my: number; x: number; y: number } | null>(null);
+  const lastTap = useRef(0);
+  const resetZoom = () => setZoom({ z: 1, x: 0, y: 0 });
+  const zoomBy = (factor: number) =>
+    setZoom((v) => {
+      const z = clampZoom(v.z * factor);
+      return z === 1 ? { z: 1, x: 0, y: 0 } : { z, x: (v.x * z) / v.z, y: (v.y * z) / v.z };
+    });
 
   useEffect(() => setRatio(aspectRatio), [aspectRatio]);
 
@@ -109,7 +124,64 @@ export default function TrueSizePreview({
     return () => ro.disconnect();
   }, [open]);
 
+  // A new size, shape or fit starts again at actual size.
   const inches = size ?? sizes[sizes.length - 1]?.inches ?? null;
+  useEffect(() => resetZoom(), [open, inches, fit]);
+
+  // Mouse wheel / trackpad pinch zooms (not the page): needs a non-passive listener.
+  useEffect(() => {
+    const el = stage.current;
+    if (!open || !el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
+      e.preventDefault();
+      zoomBy(Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0025)));
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [open]);
+
+  function onPointerDown(e: React.PointerEvent) {
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    if (pointers.current.size === 2) {
+      const [a, b] = [...pointers.current.values()];
+      pinch.current = { d: Math.hypot(a.x - b.x, a.y - b.y), z: zoom.z, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, x: zoom.x, y: zoom.y };
+    }
+  }
+  function onPointerMove(e: React.PointerEvent) {
+    const prev = pointers.current.get(e.pointerId);
+    if (!prev) return;
+    const now = { x: e.clientX, y: e.clientY };
+    pointers.current.set(e.pointerId, now);
+    if (pointers.current.size >= 2 && pinch.current) {
+      const [a, b] = [...pointers.current.values()];
+      const p = pinch.current;
+      const z = clampZoom((p.z * Math.hypot(a.x - b.x, a.y - b.y)) / (p.d || 1));
+      setZoom(z === 1 ? { z: 1, x: 0, y: 0 } : { z, x: (p.x * z) / p.z + ((a.x + b.x) / 2 - p.mx), y: (p.y * z) / p.z + ((a.y + b.y) / 2 - p.my) });
+      return;
+    }
+    const dx = now.x - prev.x;
+    const dy = now.y - prev.y;
+    // One finger: move the zoomed picture, or scroll a real-size sticker bigger than the screen.
+    if (zoom.z > 1) setZoom((v) => ({ ...v, x: v.x + dx, y: v.y + dy }));
+    else if (stage.current) {
+      stage.current.scrollLeft -= dx;
+      stage.current.scrollTop -= dy;
+    }
+  }
+  function onPointerUp(e: React.PointerEvent) {
+    const wasPinch = pointers.current.size >= 2;
+    pointers.current.delete(e.pointerId);
+    if (pointers.current.size < 2) pinch.current = null;
+    if (wasPinch || e.pointerType === "mouse") return;
+    // Double-tap: zoom in to 2.5×, or back to actual size.
+    const t = Date.now();
+    if (t - lastTap.current < 300) {
+      lastTap.current = 0;
+      setZoom((v) => (v.z > 1 ? { z: 1, x: 0, y: 0 } : { z: 2.5, x: 0, y: 0 }));
+    } else lastTap.current = t;
+  }
   const dims = inches !== null && ratio ? sizeDimensions(inches, ratio) : null;
   const realW = dims ? dims.width * ppi : 0;
   const realH = dims ? dims.height * ppi : 0;
@@ -118,7 +190,7 @@ export default function TrueSizePreview({
   const needH = realH + 110;
   const tooBig = stageBox.w > 0 && (needW > stageBox.w || needH > stageBox.h);
   const scale = fit && tooBig ? Math.min(stageBox.w / needW, stageBox.h / needH) : 1;
-  const cell = ppi * scale;
+  const cell = ppi * scale * zoom.z;
 
   // Start scrolled to the middle when the real size is bigger than the screen.
   useEffect(() => {
@@ -132,9 +204,9 @@ export default function TrueSizePreview({
     () => ({
       backgroundImage: `linear-gradient(to right, rgba(16,24,40,0.16) 1px, transparent 1px), linear-gradient(to bottom, rgba(16,24,40,0.16) 1px, transparent 1px), linear-gradient(to right, rgba(16,24,40,0.06) 1px, transparent 1px), linear-gradient(to bottom, rgba(16,24,40,0.06) 1px, transparent 1px)`,
       backgroundSize: `${cell}px ${cell}px, ${cell}px ${cell}px, ${cell / 4}px ${cell / 4}px, ${cell / 4}px ${cell / 4}px`,
-      backgroundPosition: "center center",
+      backgroundPosition: `calc(50% + ${zoom.x}px) calc(50% + ${zoom.y}px)`,
     }),
-    [cell]
+    [cell, zoom.x, zoom.y]
   );
 
   if (!shown || typeof document === "undefined") return null;
@@ -194,10 +266,24 @@ export default function TrueSizePreview({
       </div>
 
       {/* Drawing area */}
-      <div ref={stage} className="relative min-h-0 flex-1 overflow-auto" style={grid}>
+      <div
+        ref={stage}
+        className="relative min-h-0 flex-1 touch-none overflow-auto overscroll-contain"
+        style={grid}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onDoubleClick={() => setZoom((v) => (v.z > 1 ? { z: 1, x: 0, y: 0 } : { z: 2.5, x: 0, y: 0 }))}
+      >
         <div
           className="flex min-h-full min-w-full items-center justify-center p-6"
-          style={{ width: tooBig && !fit ? needW : undefined, height: tooBig && !fit ? needH : undefined }}
+          style={{
+            width: tooBig && !fit ? needW : undefined,
+            height: tooBig && !fit ? needH : undefined,
+            transform: zoom.z === 1 ? undefined : `translate(${zoom.x}px, ${zoom.y}px) scale(${zoom.z})`,
+            transformOrigin: "center center",
+          }}
         >
           {dims ? (
             <figure className="relative" style={{ width: realW * scale, height: realH * scale }}>
@@ -243,6 +329,26 @@ export default function TrueSizePreview({
         </div>
       </div>
 
+      {/* Zoom controls, over the drawing area's corner */}
+      {dims && (
+        <div className="pointer-events-none relative">
+          <div className="pointer-events-auto absolute right-3 bottom-3 flex items-center gap-1 rounded-full border border-line bg-white/95 p-1 shadow-md backdrop-blur">
+            <button type="button" aria-label="Zoom out" onClick={() => zoomBy(1 / 1.5)} disabled={zoom.z <= 1} className="grid size-9 place-items-center rounded-full text-snow disabled:text-fog/40">
+              <ZoomOut className="size-4.5" />
+            </button>
+            <span className="min-w-11 text-center text-xs font-bold tabular-nums">{Math.round(zoom.z * 100)}%</span>
+            <button type="button" aria-label="Zoom in" onClick={() => zoomBy(1.5)} disabled={zoom.z >= MAX_ZOOM} className="grid size-9 place-items-center rounded-full text-snow disabled:text-fog/40">
+              <ZoomIn className="size-4.5" />
+            </button>
+            {zoom.z > 1 && (
+              <button type="button" onClick={resetZoom} className="ml-0.5 flex h-9 items-center gap-1 rounded-full bg-brand px-3 text-xs font-bold text-white">
+                <RotateCcw className="size-3.5" /> Reset
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Bottom bar */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line bg-white/90 px-4 py-3 text-xs backdrop-blur sm:px-6">
         <div className="w-full text-fog sm:w-auto sm:min-w-0 sm:flex-1">
@@ -251,8 +357,13 @@ export default function TrueSizePreview({
               <p>
                 Prints at <b className="text-snow">{formatInches(dims.width)} × {formatInches(dims.height)} in</b> · 1
                 square = 1 inch
-                {scale < 1 && <> · shown at {Math.round(scale * 100)}%</>}
+                {scale < 1 && zoom.z === 1 && <> · shown at {Math.round(scale * 100)}%</>}
               </p>
+              {zoom.z > 1 && (
+                <p className="font-semibold text-brand">
+                  Zoomed {Math.round(zoom.z * scale * 100)}% for a closer look · Reset for actual size
+                </p>
+              )}
               {calibrated ? (
                 <p>Sized for this screen (calibrated)</p>
               ) : auto.source === "device" ? (

@@ -13,6 +13,7 @@ import CartShell from "@/components/cart-shell";
 import NavTracker from "@/components/nav-tracker";
 import PerfProbe from "@/components/perf-probe";
 import { LITE_SCRIPT } from "@/lib/lite-script";
+import { VIEW_SCRIPT } from "@/lib/view-script";
 import { siteUrl, supabaseConfigured } from "@/lib/mode";
 import { SHARE_IMAGE, SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE, isProductionSite } from "@/lib/site";
 
@@ -73,10 +74,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    // data-lite is set by LITE_SCRIPT before React hydrates.
+    // data-lite (LITE_SCRIPT) and data-view (VIEW_SCRIPT) are set before React hydrates.
     <html lang="en" className={`${fredoka.variable} ${inter.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: LITE_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: VIEW_SCRIPT }} />
       </head>
       <body className="bg-ink font-sans text-snow antialiased">
         <ConfirmProvider>

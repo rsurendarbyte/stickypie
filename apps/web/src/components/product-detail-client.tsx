@@ -3,7 +3,7 @@
 import SmartImg from "./smart-img";
 import PageLink from "./page-link";
 import { useState } from "react";
-import { BadgeCheck, Car, PackageX, Ruler, Sparkles, Truck } from "lucide-react";
+import { BadgeCheck, Car, ChevronsUpDown, PackageX, Ruler, Sparkles, Truck } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR } from "@stickypie/shared";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
@@ -65,7 +65,8 @@ export default function ProductDetailClient({
       />
       <div className="flex items-center gap-3">
         <BackButton fallback={category ? `/stickers/${category.slug}` : "/stickers"} />
-        <nav className="min-w-0 truncate text-xs text-fog">
+        {/* phones show the Swipe view switch here instead of the breadcrumb */}
+        <nav className="min-w-0 truncate text-xs text-fog max-sm:hidden">
           <PageLink href="/stickers" className="hover:text-snow">
             Stickers
           </PageLink>
@@ -78,7 +79,17 @@ export default function ProductDetailClient({
             </>
           )}
         </nav>
-        {steps && <StickerStepper steps={steps} />}
+        <div className="ml-auto flex shrink-0 items-center gap-1.5">
+          {/* Phones: back to the full-screen swipe view (components/sticker-reel.tsx) */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event("stickypie:swipe-view"))}
+            className="peel-btn peel-btn--light inline-flex h-9 items-center gap-1 rounded-full px-3 text-xs font-bold text-brand sm:hidden"
+          >
+            <ChevronsUpDown className="size-4" /> Swipe view
+          </button>
+          {steps && <StickerStepper steps={steps} />}
+        </div>
       </div>
 
       <div className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-10">

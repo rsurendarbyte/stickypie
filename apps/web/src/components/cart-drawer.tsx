@@ -51,7 +51,8 @@ export default function CartDrawer() {
 
   return (
     <div
-      className="pointer-events-none fixed inset-0 z-50"
+      // above the phone sticker reel (z-[70])
+      className="pointer-events-none fixed inset-0 z-[75]"
       aria-hidden={!isOpen}
     >
       {/* Phone only: light scrim behind the sheet; tap to close. */}

@@ -5,9 +5,12 @@
 // in loaded the whole catalogue), so we draw the real sticker page from that
 // data straight away instead of a loader — the server's page then takes over
 // without a visible change. Without that data (a direct visit), the loader.
+// Phones get the swipe view here too, exactly as the server page draws it, so
+// a tap goes straight to the swipe view (no flash of the page view first).
 import { useParams } from "next/navigation";
 import { inCategory } from "@stickypie/shared";
 import ProductDetailClient from "@/components/product-detail-client";
+import StickerReel from "@/components/sticker-reel";
 import { PageLoader } from "@/components/sticker-loader";
 import { useLiveCatalog } from "@/lib/live-catalog";
 
@@ -33,6 +36,11 @@ export default function Loading() {
       : null;
 
   return (
+    <>
+    <StickerReel
+      initial={product}
+      category={category ? { id: category.id, name: category.name, slug: category.slug } : null}
+    />
     <div className="relative isolate overflow-x-clip">
       <div className="no-select mx-auto min-h-screen w-full max-w-6xl px-4 pt-20 pb-36 sm:px-8 lg:pb-20">
         <ProductDetailClient
@@ -43,5 +51,6 @@ export default function Loading() {
         />
       </div>
     </div>
+    </>
   );
 }

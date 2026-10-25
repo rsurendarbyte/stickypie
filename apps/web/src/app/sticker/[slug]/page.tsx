@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import JsonLd from "@/components/json-ld";
 import ProductDetailClient from "@/components/product-detail-client";
+import StickerReel from "@/components/sticker-reel";
 import { ProductAbout } from "@/components/seo-blocks";
 import { productSnapshot } from "@/lib/catalog-snapshot";
 import { getDriver } from "@/lib/data";
@@ -82,6 +83,15 @@ export default async function ProductPage({
   );
 
   return (
+    <>
+    {/* Phones: swipe view first in the HTML, so it's the first thing drawn while
+        the page is still downloading (no flash of the page view underneath);
+        a saved "page view" choice is applied in <head> (lib/view-script.ts).
+        Outside the isolated wrapper below so it can cover the header. */}
+    <StickerReel
+      initial={product}
+      category={category ? { id: category.id, name: category.name, slug: category.slug } : null}
+    />
     <div className="relative isolate overflow-x-clip">
     <div className="no-select mx-auto min-h-screen w-full max-w-6xl px-4 pt-20 pb-36 sm:px-8 lg:pb-20">
       <JsonLd data={structuredData} />
@@ -94,5 +104,6 @@ export default async function ProductPage({
       <ProductAbout {...details} />
     </div>
     </div>
+    </>
   );
 }

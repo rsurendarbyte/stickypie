@@ -1372,3 +1372,59 @@ html[data-lite]:not([data-lite="net"]) .wall-peel {
   transform: translate(calc(100cqw - var(--pk) * 60cqw), calc(var(--pk) * 60cqw - 100cqw)) matrix(0, 1, 1, 0, 0, 0);
   clip-path: polygon(calc(100% - var(--pk) * 60cqw) 0, 100% 0, 100% calc(var(--pk) * 60cqw));
 }
+
+/* Sticker reel (phones, components/sticker-reel.tsx): one sticker per screen,
+   native snap scrolling so a swipe always lands on exactly one sticker. */
+.reel-scroller {
+  height: 100dvh;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  overscroll-behavior: contain;
+}
+.reel-item {
+  height: 100dvh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+@media (max-width: 639px) {
+  html.reel-open,
+  html.reel-open body,
+  /* from the first paint, before JavaScript has started */
+  html:not([data-view="classic"]):has(.swipe-view-root),
+  html:not([data-view="classic"]):has(.swipe-view-root) body {
+    overflow: hidden;
+  }
+}
+/* a saved "page view" choice, applied before the first paint */
+html[data-view="classic"] .swipe-view-root {
+  display: none;
+}
+/* "+1 added" label popping up from where the art was double-tapped */
+.reel-pop {
+  animation: reel-pop 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes reel-pop {
+  0% { opacity: 0; transform: scale(0.4) rotate(-8deg); }
+  25% { opacity: 1; transform: scale(1.1) rotate(4deg); }
+  70% { opacity: 1; transform: translateY(-40px) scale(1) rotate(0); }
+  100% { opacity: 0; transform: translateY(-70px) scale(0.9); }
+}
+.reel-bump {
+  animation: reel-bump 0.35s ease-out;
+}
+@keyframes reel-bump {
+  50% { transform: scale(1.4); }
+}
+.reel-hint {
+  animation: reel-hint 1.2s ease-in-out infinite;
+}
+@keyframes reel-hint {
+  50% { transform: translateY(-14px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reel-pop,
+  .reel-bump,
+  .reel-hint {
+    animation: none;
+  }
+}
