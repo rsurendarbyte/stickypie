@@ -937,12 +937,12 @@ export default function CheckoutClient() {
               {items.slice(0, 3).map((item) => (
                 <span
                   key={lineKey(item)}
-                  className="grid size-9 place-items-center rounded-lg bg-panel p-0.5 ring-2 ring-ink2"
+                  className="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] size-9 place-items-center rounded-lg bg-panel p-0.5 ring-2 ring-ink2"
                 >
                   <img
                     src={item.thumbUrl ?? item.imageUrl}
                     alt=""
-                    className="max-h-full max-w-full object-contain"
+                    className="size-full object-contain"
                   />
                 </span>
               ))}
@@ -975,13 +975,13 @@ export default function CheckoutClient() {
             <ul className="mt-1 divide-y divide-line/70">
               {visibleItems.map((item) => (
                 <li key={lineKey(item)} className="flex gap-3 py-3">
-                  <span className="grid size-14 shrink-0 place-items-center rounded-xl bg-panel p-1.5 ring-1 ring-line">
+                  <span className="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] size-14 shrink-0 place-items-center rounded-xl bg-panel p-1.5 ring-1 ring-line">
                     <img
                       src={item.thumbUrl ?? item.imageUrl}
                       loading="lazy"
                       decoding="async"
                       alt=""
-                      className="sticker-cut-sm max-h-full max-w-full object-contain"
+                      className="sticker-cut-sm size-full object-contain"
                     />
                   </span>
                   <div className="min-w-0 flex-1">

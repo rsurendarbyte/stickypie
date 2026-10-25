@@ -139,9 +139,9 @@ export default function OrderReviews({
                   {toReview.slice(0, 5).map((item) => (
                     <span
                       key={item.id}
-                      className="grid size-11 place-items-center rounded-lg bg-panel p-1 ring-2 ring-ink"
+                      className="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] size-11 place-items-center rounded-lg bg-panel p-1 ring-2 ring-ink"
                     >
-                      {item.imageUrl && <img src={item.imageUrl} alt="" className="max-h-full max-w-full object-contain" />}
+                      {item.imageUrl && <img src={item.imageUrl} alt="" className="size-full object-contain" />}
                     </span>
                   ))}
                 </div>
@@ -212,8 +212,8 @@ function StickerHeading({ item, status }: { item: OrderItem; status?: ReviewStat
   const s = status ? STATUS[status] : null;
   return (
     <div className="flex items-center gap-3">
-      <span className="grid size-12 shrink-0 place-items-center rounded-lg bg-panel p-1">
-        {item.imageUrl && <img src={item.imageUrl} alt="" className="max-h-full max-w-full object-contain" />}
+      <span className="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] size-12 shrink-0 place-items-center rounded-lg bg-panel p-1">
+        {item.imageUrl && <img src={item.imageUrl} alt="" className="size-full object-contain" />}
       </span>
       <p className="min-w-0 flex-1 truncate text-sm font-semibold">{item.name}</p>
       {s && (

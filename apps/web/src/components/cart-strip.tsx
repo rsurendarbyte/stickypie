@@ -58,7 +58,7 @@ export default function CartStrip() {
               {stack.map((item, i) => (
                 <span
                   key={`${item.productId}:${item.size ?? ""}`}
-                  className="absolute top-1/2 left-1/2 grid size-10 place-items-center rounded-lg border-2 border-white bg-panel p-0.5 shadow-[0_3px_8px_-3px_rgba(16,24,40,0.4)]"
+                  className="absolute top-1/2 left-1/2 grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] size-10 place-items-center rounded-lg border-2 border-white bg-panel p-0.5 shadow-[0_3px_8px_-3px_rgba(16,24,40,0.4)]"
                   style={{
                     transform: `translate(-50%, -50%) translateX(${(i - (stack.length - 1) / 2) * 9}px) rotate(${[-8, 6, -3][i] ?? 0}deg)`,
                     zIndex: stack.length - i,
@@ -67,7 +67,7 @@ export default function CartStrip() {
                   <img
                     src={item.thumbUrl ?? item.imageUrl}
                     alt=""
-                    className="max-h-full max-w-full object-contain"
+                    className="size-full object-contain"
                   />
                 </span>
               ))}

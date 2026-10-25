@@ -326,13 +326,13 @@ function OrderCard({ order }: { order: Order }) {
           {thumbs.map((item) => (
             <span
               key={item.id}
-              className="grid size-10 place-items-center rounded-xl bg-ink p-1 ring-2 ring-white sm:size-11"
+              className="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] size-10 place-items-center rounded-xl bg-ink p-1 ring-2 ring-white sm:size-11"
             >
               {item.imageUrl ? (
                 <img
                   src={item.imageUrl}
                   alt=""
-                  className="max-h-full max-w-full object-contain"
+                  className="size-full object-contain"
                 />
               ) : (
                 <ImageUp className="size-4.5 text-fog" />

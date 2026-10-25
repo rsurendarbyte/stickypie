@@ -194,12 +194,12 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             {order.items.map((item) => {
               return (
                 <li key={item.id} className="flex items-center gap-3">
-                  <span className="grid size-12 shrink-0 place-items-center rounded-lg bg-panel p-1 ring-1 ring-line">
+                  <span className="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] size-12 shrink-0 place-items-center rounded-lg bg-panel p-1 ring-1 ring-line">
                     {(item.imageUrl || item.isCustom) && (
                       <img
                         src={item.imageUrl || "/icons/custom-sticker.svg"}
                         alt=""
-                        className="sticker-cut-sm max-h-full max-w-full object-contain"
+                        className="sticker-cut-sm size-full object-contain"
                       />
                     )}
                   </span>

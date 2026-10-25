@@ -214,9 +214,9 @@ export default function CustomOrderUpload({
           return (
             <li key={item.id} className="rounded-2xl border border-line bg-ink2 p-4">
               <div className="flex items-center gap-3">
-                <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-panel">
+                <span className="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] size-12 shrink-0 place-items-center overflow-hidden rounded-xl bg-panel">
                   {item.hasFile || state.kind === "done" ? (
-                    <img src={item.imageUrl || "/icons/custom-sticker.svg"} alt="" className="max-h-full max-w-full object-contain" />
+                    <img src={item.imageUrl || "/icons/custom-sticker.svg"} alt="" className="size-full object-contain" />
                   ) : (
                     <CloudUpload className="size-6 text-fog" />
                   )}

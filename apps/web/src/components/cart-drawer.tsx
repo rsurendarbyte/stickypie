@@ -133,14 +133,14 @@ export default function CartDrawer() {
                       <PageLink
                         href={itemHref(item)}
                         onClick={closeCart}
-                        className="grid size-16 shrink-0 place-items-center rounded-xl bg-panel p-1.5 ring-1 ring-line"
+                        className="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] size-16 shrink-0 place-items-center rounded-xl bg-panel p-1.5 ring-1 ring-line"
                       >
                         <img
                           src={item.thumbUrl ?? item.imageUrl}
                           loading="lazy"
                           decoding="async"
                           alt={item.name}
-                          className="sticker-cut-sm max-h-full max-w-full object-contain"
+                          className="sticker-cut-sm size-full object-contain"
                         />
                       </PageLink>
                       <div className="min-w-0 flex-1">
