@@ -1,5 +1,6 @@
 "use client";
 
+import { useBackToClose } from "@/lib/back-close";
 import { useEffect, useState } from "react";
 
 const PEEL_OFF_MS = 420;
@@ -34,6 +35,7 @@ export default function LabelModal({
   const [shown, setShown] = useState(open);
   const [closing, setClosing] = useState(false);
 
+  useBackToClose(open, onClose);
   useEffect(() => {
     if (open) {
       setShown(true);

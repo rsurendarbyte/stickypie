@@ -6,6 +6,7 @@ import { CreditCard, Maximize2, Minimize2, RotateCcw, Ruler, X, ZoomIn, ZoomOut 
 import type { ProductSize } from "@stickypie/shared";
 import { formatINR, formatInches, sizeDimensions } from "@stickypie/shared";
 import { estimatePxPerInch, type PpiEstimate } from "@/lib/screen-ppi";
+import { useBackToClose } from "@/lib/back-close";
 
 // A screen's "1 inch" in CSS pixels varies by device, so the shopper can
 // calibrate once against a bank card (ISO ID-1: 3.370 × 2.125 in). Saved per device.
@@ -74,6 +75,7 @@ export default function TrueSizePreview({
   // Stays mounted while the sheet peels off, like every pop-up in the shop.
   const [shown, setShown] = useState(open);
   const [closing, setClosing] = useState(false);
+  useBackToClose(open, onClose);
   useEffect(() => {
     if (open) {
       setShown(true);

@@ -7,10 +7,12 @@ import { belowMinimum, formatINR } from "@stickypie/shared";
 import { useStoreSettings } from "@/lib/live-catalog";
 import { lineKey, useCart, itemHref } from "./cart-context";
 import QtyStepper from "./qty-stepper";
+import { useBackToClose } from "@/lib/back-close";
 
 export default function CartDrawer() {
   const { items, count, subtotal, isOpen, closeCart, setQty, remove } =
     useCart();
+  useBackToClose(isOpen, closeCart);
   const settings = useStoreSettings();
   const shortBy = belowMinimum(settings, subtotal);
   // "open" = sticking on, "closing" = peeling off, then gone.

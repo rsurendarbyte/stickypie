@@ -551,6 +551,18 @@ export default function CheckoutClient() {
         <div>
           <Link
             href="/stickers"
+            // back to wherever the shopper came from (e.g. the swipe view); a
+            // direct visit to checkout goes to the stickers instead
+            onClick={(e) => {
+              let sameSite = false;
+              try {
+                sameSite = Boolean(document.referrer) && new URL(document.referrer).origin === location.origin;
+              } catch {}
+              if (sameSite && history.length > 1) {
+                e.preventDefault();
+                history.back();
+              }
+            }}
             className="inline-flex items-center gap-1 text-xs font-semibold text-fog transition-colors hover:text-brand"
           >
             <ArrowLeft className="size-3.5" /> Continue shopping
