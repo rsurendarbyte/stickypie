@@ -6,7 +6,8 @@
 //   1. ONE small row (store_settings: shipping settings, home layout, features
 //      and `catalog_version`), asked for at most once every META_TTL_MS: shop
 //      links are plain page loads, so the row is kept in localStorage and the
-//      next pages reuse it without any request.
+//      next pages reuse it without any request. Whatever is saved is shown at
+//      once and re-checked in the background (see loadCatalog).
 //   2. The full catalog (categories + on-sale products) is kept in IndexedDB
 //      and only re-downloaded when `catalog_version` changed — the database
 //      bumps it whenever the admin edits a product/category/setting or stock
@@ -81,11 +82,11 @@ function freshMemory(): Bundle | null {
   return memory && Date.now() - memory.at < MEMORY_TTL_MS ? memory.bundle : null;
 }
 
-/** The store_settings row saved by an earlier page load, if still fresh. */
-function savedMeta(): any | null {
+/** The store_settings row saved by an earlier page load (any age) and when it was saved. */
+function savedMeta(): { meta: any; at: number } | null {
   try {
     const saved = JSON.parse(localStorage.getItem(META_KEY) ?? "null");
-    return saved && Date.now() - saved.at < META_TTL_MS ? saved.meta : null;
+    return saved?.meta ? saved : null;
   } catch {
     return null; // storage blocked (private mode) or bad JSON: just ask again
   }
@@ -99,51 +100,74 @@ function saveMeta(meta: any) {
   }
 }
 
-/** Version check (1 small request, skipped while a saved one is fresh), then the catalog from cache or network. */
+async function fetchMeta(): Promise<any | null> {
+  const [meta] = await rest("store_settings?select=*&id=eq.1");
+  if (meta) saveMeta(meta);
+  return meta ?? null;
+}
+
+async function fetchCatalog(): Promise<CachedCatalog> {
+  const [categoryRows, productRows, reviewRows] = await Promise.all([
+    rest("categories?select=*&order=sort.asc,name.asc"),
+    rest("products?select=*&is_active=eq.true&order=created_at.desc"),
+    // Approved reviews only (public view). Missing view → no reviews.
+    rest("product_reviews_public?select=*&order=created_at.desc&limit=1000").catch(() => []),
+  ]);
+  return {
+    version: "",
+    categories: categoryRows.map(rowToCategory),
+    products: productRows.map(rowToProduct),
+    reviews: reviewRows.map(rowToPublicReview),
+  };
+}
+
+/** Hands a catalog + settings to every hook on the page. */
+function publish(meta: any, catalog: CachedCatalog): Bundle {
+  const bundle: Bundle = {
+    ...catalog,
+    settings: rowToSettings(meta),
+    rails: rowToHomeRails(meta?.home_rails),
+    features: rowToFeatures(meta?.features),
+  };
+  memory = { bundle, at: Date.now() };
+  listeners.forEach((notify) => notify());
+  return bundle;
+}
+
+/**
+ * Never makes the shopper wait for the network when anything is saved:
+ *   - fresh saved settings + the matching saved catalog → no request at all;
+ *   - anything saved, even out of date → shown at once, then checked in the
+ *     background and swapped in place if it changed;
+ *   - nothing saved (first visit) → settings and catalog asked for together,
+ *     not one after the other.
+ */
 function loadCatalog(): Promise<Bundle> {
   const hit = freshMemory();
   if (hit) return Promise.resolve(hit);
   inflight ??= (async () => {
-    let meta = savedMeta();
-    if (!meta) {
-      [meta] = await rest("store_settings?select=*&id=eq.1");
-      if (meta) saveMeta(meta);
+    const saved = savedMeta();
+    const cached = await idbGet<CachedCatalog>(CACHE_KEY);
+    const savedVersion = saved?.meta?.catalog_version ?? null;
+
+    if (saved && cached && cached.version === savedVersion && Date.now() - saved.at < META_TTL_MS) {
+      return publish(saved.meta, cached);
     }
+    if (saved && cached && !memory) publish(saved.meta, cached);
+
+    if (!cached) {
+      const [meta, catalog] = await Promise.all([fetchMeta(), fetchCatalog()]);
+      const version: string | null = meta?.catalog_version ?? null;
+      if (version) void idbSet(CACHE_KEY, { ...catalog, version });
+      return publish(meta, { ...catalog, version: version ?? "" });
+    }
+
+    const meta = await fetchMeta();
     const version: string | null = meta?.catalog_version ?? null;
-
-    let catalog: CachedCatalog | null = null;
-    if (version) {
-      if (memory?.bundle.version === version) catalog = memory.bundle;
-      else {
-        const cached = await idbGet<CachedCatalog>(CACHE_KEY);
-        if (cached?.version === version) catalog = cached;
-      }
-    }
-    if (!catalog) {
-      const [categoryRows, productRows, reviewRows] = await Promise.all([
-        rest("categories?select=*&order=sort.asc,name.asc"),
-        rest("products?select=*&is_active=eq.true&order=created_at.desc"),
-        // Approved reviews only (public view). Missing view → no reviews.
-        rest("product_reviews_public?select=*&order=created_at.desc&limit=1000").catch(() => []),
-      ]);
-      catalog = {
-        version: version ?? "",
-        categories: categoryRows.map(rowToCategory),
-        products: productRows.map(rowToProduct),
-        reviews: reviewRows.map(rowToPublicReview),
-      };
-      if (version) void idbSet(CACHE_KEY, catalog);
-    }
-
-    const bundle: Bundle = {
-      ...catalog,
-      settings: rowToSettings(meta),
-      rails: rowToHomeRails(meta?.home_rails),
-      features: rowToFeatures(meta?.features),
-    };
-    memory = { bundle, at: Date.now() };
-    listeners.forEach((notify) => notify());
-    return bundle;
+    if (version && cached.version === version) return publish(meta, cached);
+    const catalog = { ...(await fetchCatalog()), version: version ?? "" };
+    if (version) void idbSet(CACHE_KEY, catalog);
+    return publish(meta, catalog);
   })().finally(() => {
     inflight = null;
   });
