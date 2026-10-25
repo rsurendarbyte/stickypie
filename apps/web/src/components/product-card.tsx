@@ -19,8 +19,10 @@ import TrueSizePreview from "./true-size-preview";
 // show the whole poster as a print taped to a soft wall instead of a die-cut.
 
 
-/** Width ÷ height of the poster stage's inner area (square art minus padding). */
-const POSTER_STAGE_RATIO = 1;
+/** Width ÷ height of the poster stage's inner area (4:5 art minus padding). */
+const POSTER_STAGE_RATIO = 0.8;
+/** Very tall posters are trimmed to this shape on cards so they aren't skinny strips. */
+const POSTER_MIN_RATIO = 0.68;
 
 /** "Jimny — The Adventure Awaits Mini Poster" → "Jimny — The Adventure Awaits". */
 export function posterTitle(name: string) {
@@ -35,6 +37,7 @@ export default function ProductCard({
   width?: string;
 }) {
   const poster = isMiniPoster(product);
+  const posterRatio = Math.max(product.aspectRatio ?? 0.6, POSTER_MIN_RATIO);
   const { add, items } = useCart();
   const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product);
   const inCart = items.find((item) => lineKey(item) === lineKey({ productId: product.id, size }));
@@ -63,19 +66,19 @@ export default function ProductCard({
       <div className="relative">
       <PageLink href={`/sticker/${product.slug}`} className="block" tabIndex={-1} aria-hidden>
         {poster ? (
-          <div className="poster-wall relative aspect-square overflow-hidden">
+          <div className="poster-wall relative aspect-[4/5] overflow-hidden">
             <div
-              className="absolute inset-x-4 top-5 bottom-3 grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center transition-transform duration-300 [transform:rotate(var(--rot))] group-hover:[transform:rotate(0deg)]"
+              className="absolute inset-x-3 top-5 bottom-3 grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center transition-transform duration-300 [transform:rotate(var(--rot))] group-hover:[transform:rotate(0deg)]"
               style={{ "--rot": `${rotate / 2}deg` } as React.CSSProperties}
             >
-              {/* The print keeps the poster's own shape: full height for tall posters
-                  (most), full width for squarer ones — so the tape sits on its top edge. */}
+              {/* The print fills the stage: full height for tall posters (most), full
+                  width for squarer ones, so the tape sits on its top edge. */}
               <span
                 className="relative block max-h-full max-w-full transition-transform duration-300 group-hover:scale-[1.03]"
                 style={
-                  (product.aspectRatio ?? 0.6) >= POSTER_STAGE_RATIO
-                    ? { width: "100%", aspectRatio: product.aspectRatio ?? 0.6 }
-                    : { height: "100%", aspectRatio: product.aspectRatio ?? 0.6 }
+                  posterRatio >= POSTER_STAGE_RATIO
+                    ? { width: "100%", aspectRatio: posterRatio }
+                    : { height: "100%", aspectRatio: posterRatio }
                 }
               >
                 <img
@@ -85,25 +88,23 @@ export default function ProductCard({
                   decoding="async"
                   className={`poster-print block size-full object-cover ${out ? "opacity-40 saturate-50" : ""}`}
                 />
-                <span aria-hidden className="poster-tape absolute -top-2 left-1/2 -ml-6 -rotate-3" />
+                {/* the masking tape holding the print up doubles as its label */}
+                <span className="poster-tape-wrap absolute -top-2.5 left-1/2 -translate-x-1/2 -rotate-2">
+                  <span className="poster-tape-label block px-3 py-[5px] font-display text-[9px] leading-none font-bold tracking-[0.2em] whitespace-nowrap uppercase">
+                    Mini poster
+                  </span>
+                </span>
               </span>
             </div>
-            {/* "Mini poster" on a strip of masking tape stuck at the top right, on the
-                wall beside the poster (never over the art) — on the art stage, so the
-                card's info rows keep the same height as a sticker card's */}
-            <span className="poster-tape-wrap absolute -top-0.5 right-2.5 rotate-[3deg]">
-              <span className="poster-tape-label block pt-3 pr-[6px] pb-3 pl-[6px] font-display text-[9px] leading-none font-bold tracking-[0.2em] uppercase [writing-mode:vertical-rl]">
-                Mini poster
-              </span>
-            </span>
+            {/* bottom-left, clear of the "Mini poster" tape at the top */}
             {isNew && !out && (
-              <span className="absolute top-2.5 left-2.5 rounded-md bg-mint px-2 py-0.5 text-[10px] font-bold tracking-wider text-ink uppercase shadow-sm">
+              <span className="absolute bottom-2.5 left-2.5 rounded-md bg-mint px-2 py-0.5 text-[10px] font-bold tracking-wider text-ink uppercase shadow-sm">
                 New
               </span>
             )}
           </div>
         ) : (
-        <div className="relative aspect-square overflow-hidden" style={skin.art}>
+        <div className="relative aspect-[4/5] overflow-hidden" style={skin.art}>
           <div
             className="absolute inset-0 grid place-items-center p-5 transition-transform duration-300 [transform:rotate(var(--rot))] group-hover:[transform:rotate(0deg)]"
             style={{ "--rot": `${rotate}deg` } as React.CSSProperties}

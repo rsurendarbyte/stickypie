@@ -1341,9 +1341,10 @@ html[data-lite]:not([data-lite="net"]) .wall-peel {
   background:
     repeating-linear-gradient(0deg, rgba(120, 90, 40, 0.06) 0 1px, transparent 1px 4px),
     rgba(236, 222, 186, 0.96);
+  /* torn ends on the left and right of the horizontal strip */
   clip-path: polygon(
-    0 var(--t), 17% 0, 33% var(--t), 50% 0, 67% var(--t), 83% 0, 100% var(--t),
-    100% calc(100% - var(--t)), 83% 100%, 67% calc(100% - var(--t)), 50% 100%, 33% calc(100% - var(--t)), 17% 100%, 0 calc(100% - var(--t))
+    var(--t) 0, calc(100% - var(--t)) 0, 100% 25%, calc(100% - var(--t)) 50%, 100% 75%, calc(100% - var(--t)) 100%,
+    var(--t) 100%, 0 75%, var(--t) 50%, 0 25%
   );
 }
 /* Mini posters on the banner's sticker wall: the white die-cut edge a sticker

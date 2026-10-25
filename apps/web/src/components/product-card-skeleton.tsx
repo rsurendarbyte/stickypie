@@ -17,7 +17,7 @@ export default function ProductCardSkeleton({
       aria-hidden
       className={`snap-start overflow-hidden rounded-2xl border border-line bg-ink ${width}`}
     >
-      <div className="grid aspect-square place-items-center bg-ink2">
+      <div className="grid aspect-[4/5] place-items-center bg-ink2">
         <StickerLoader size="52%" variant="blank" delay={(index % 6) * 0.15} />
       </div>
       <div className="min-h-[46px] space-y-1.5 px-3 pt-2.5">
