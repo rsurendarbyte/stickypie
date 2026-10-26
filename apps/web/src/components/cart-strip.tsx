@@ -39,21 +39,24 @@ export default function CartStrip() {
   );
   const stack = items.slice(-3).reverse(); // newest on top
   const label = `${count} sticker${count === 1 ? "" : "s"}`;
+  // The custom sticker makers have their own bar pinned to the bottom on
+  // phones (total + Book now); two bars there would cover the form.
+  const maker = /^\/(custom-stickers\/design|name-stickers|qr-code-stickers)/.test(pathname);
 
   return (
-    <div className="shift-with-cart pointer-events-none fixed inset-x-3 bottom-[calc(0.75rem+var(--tabbar,0px)+env(safe-area-inset-bottom,0px))] z-30 flex justify-center cart-tape-wrap sm:bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))]">
+    <div className={`${maker ? "max-sm:hidden " : ""}shift-with-cart pointer-events-none fixed inset-x-3 bottom-[calc(0.75rem+var(--tabbar,0px)+env(safe-area-inset-bottom,0px))] z-30 flex justify-center cart-tape-wrap sm:bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))]`}>
       <div className="cart-tape-box pointer-events-auto w-full max-w-[560px]">
-        <div className="cart-tape flex items-center gap-2 py-2.5 pr-5 pl-4 sm:pr-7 sm:pl-6">
+        <div className="cart-tape flex items-center gap-2 py-2.5 pr-5 pl-4 max-[359px]:pr-4 max-[359px]:pl-3 sm:pr-7 sm:pl-6">
           <button
             type="button"
             onClick={openCart}
             aria-label={`Review cart: ${label}, ${formatINR(subtotal)}`}
-            className="flex min-w-0 flex-1 items-center gap-3 text-left"
+            className="flex min-w-0 flex-1 items-center gap-3 text-left max-[359px]:gap-2"
           >
             {/* Fanned stack of what's in the cart; pops when the count changes */}
             <span
               key={count}
-              className="cart-stack relative h-11 w-14 shrink-0"
+              className="cart-stack relative h-11 w-14 shrink-0 max-[359px]:w-11"
             >
               {stack.map((item, i) => (
                 <span
@@ -93,7 +96,7 @@ export default function CartStrip() {
                 {shortBy > 0 ? (
                   <>
                     Add <b className="text-[#5a2a06]">{formatINR(shortBy)}</b>{" "}
-                    more to check out
+                    more<span className="hidden sm:inline"> to check out</span>
                   </>
                 ) : (
                   <>
@@ -115,10 +118,11 @@ export default function CartStrip() {
 
           <Link
             href={shortBy > 0 ? "/stickers" : "/checkout"}
-            className="peel-btn peel-btn--brand flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-3.5 text-sm font-bold sm:h-11 sm:px-4"
+            className="peel-btn peel-btn--brand flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-3.5 text-sm font-bold max-[359px]:px-3 sm:h-11 sm:px-4"
           >
             {shortBy > 0 ? "Add more" : "Checkout"}{" "}
-            <ArrowRight className="size-4" />
+            {/* narrow phones: no arrow, so the words beside it fit */}
+            <ArrowRight className="size-4 max-[359px]:hidden" />
           </Link>
         </div>
       </div>

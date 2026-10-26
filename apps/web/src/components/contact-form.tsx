@@ -114,7 +114,7 @@ export default function ContactForm() {
     <form onSubmit={submit} className="rounded-2xl border border-line bg-ink2/40 p-3.5 sm:p-5">
       <h2 className="mb-3 hidden font-display text-lg font-bold sm:block">Send us a message</h2>
       <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-        <TextField label="Your name" autoComplete="name" value={form.name} onChange={set("name")} required />
+        <TextField label="Your name" autoComplete="name" value={form.name} onChange={set("name")} required className="max-[359px]:col-span-2" />
         <TextField
           label="Mobile (10 digits)"
           type="tel"
@@ -125,6 +125,8 @@ export default function ContactForm() {
             set("phone")({ target: { value: e.target.value.replace(/\D/g, "").replace(/^91(?=\d{10})/, "").slice(0, 10) } })
           }
           required
+          // narrow phones: name and mobile one per line, so the labels fit
+          className="max-[359px]:col-span-2"
         />
         <TextField
           label="Email"

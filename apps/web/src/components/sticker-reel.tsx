@@ -182,26 +182,41 @@ function Reel({
           type="button"
           onClick={back}
           aria-label="Back"
-          className="pointer-events-auto grid size-10 place-items-center rounded-full bg-white/90 text-snow shadow-md ring-1 ring-black/5 backdrop-blur"
+          className="pointer-events-auto grid size-10 shrink-0 place-items-center rounded-full bg-white/90 text-snow shadow-md ring-1 ring-black/5 backdrop-blur"
         >
           <ArrowLeft className="size-5" />
         </button>
-        <span className="pointer-events-auto truncate rounded-full bg-white/80 px-3 py-1.5 text-xs font-semibold text-snow shadow-sm ring-1 ring-black/5 backdrop-blur">
-          {inCat && category ? `${category.name} · ${active + 1} / ${sameCount}` : "More stickers"}
-        </span>
+        {/* all four sit on one 40px line: same height, same white pill */}
+        <div className="flex min-w-0 flex-1">
+          <span className="pointer-events-auto flex h-10 min-w-0 items-center gap-1 rounded-full bg-white/90 px-3.5 text-xs font-semibold text-snow shadow-md ring-1 ring-black/5 backdrop-blur">
+            {inCat && category ? (
+              <>
+                {/* a long category name shortens; the count always shows */}
+                <span className="truncate">{category.name}</span>
+                <span className="shrink-0 font-normal text-fog tabular-nums">
+                  {active + 1}/{sameCount}
+                </span>
+              </>
+            ) : (
+              <span className="truncate">More stickers</span>
+            )}
+          </span>
+        </div>
         <button
           type="button"
           onClick={() => onClassic(list[active]?.slug ?? initial.slug)}
           aria-label="Switch to page view"
-          className="pointer-events-auto ml-auto flex items-center gap-1 rounded-full bg-white/90 px-3 py-2 text-xs font-bold text-snow shadow-md ring-1 ring-black/5 backdrop-blur"
+          className="pointer-events-auto flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-white/90 px-3.5 text-xs font-bold max-[359px]:w-10 max-[359px]:justify-center max-[359px]:px-0 text-snow shadow-md ring-1 ring-black/5 backdrop-blur"
         >
-          <LayoutList className="size-4" /> Page view
+          <LayoutList className="size-4" />
+          {/* narrow phones: icon only, so the title keeps its room */}
+          <span className="max-[359px]:hidden">Page view</span>
         </button>
         <button
           type="button"
           onClick={openCart}
           aria-label={`Cart, ${count} item${count === 1 ? "" : "s"}`}
-          className="pointer-events-auto relative grid size-10 place-items-center rounded-full bg-white/90 text-snow shadow-md ring-1 ring-black/5 backdrop-blur"
+          className="pointer-events-auto relative grid size-10 shrink-0 place-items-center rounded-full bg-white/90 text-snow shadow-md ring-1 ring-black/5 backdrop-blur"
         >
           <ShoppingBag className="size-5" />
           {count > 0 && (
@@ -363,7 +378,10 @@ function ReelItem({
                 href="/checkout"
                 className="peel-btn peel-btn--brand flex h-12 min-w-0 flex-1 items-center justify-center gap-1 rounded-2xl px-2 text-sm font-bold whitespace-nowrap"
               >
-                Checkout · {formatINR(subtotal)} <ArrowRight className="size-4 shrink-0" />
+                Checkout
+                {/* narrow phones: just "Checkout", so it never gets cut */}
+                <span className="max-[359px]:hidden">{" · "}{formatINR(subtotal)}</span>
+                <ArrowRight className="size-4 shrink-0 max-[359px]:hidden" />
               </PageLink>
             </>
           ) : (

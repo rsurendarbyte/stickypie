@@ -197,13 +197,16 @@ export default function CartDrawer() {
                 ) : (
                   <div>
                     <p className="flex items-center gap-2 text-xs text-fog">
-                      <Truck className="size-4" />
-                      Add{" "}
-                      <span className="font-semibold text-snow">
-                        {formatINR(shortBy)}
-                      </span>{" "}
-                      more to reach the {formatINR(settings.minOrder)} minimum
-                      order
+                      <Truck className="size-4 shrink-0" />
+                      {/* one text run, so it wraps as a sentence beside the icon */}
+                      <span>
+                        Add{" "}
+                        <span className="font-semibold text-snow">
+                          {formatINR(shortBy)}
+                        </span>{" "}
+                        more to reach the {formatINR(settings.minOrder)} minimum
+                        order
+                      </span>
                     </p>
                     <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-panel">
                       <div

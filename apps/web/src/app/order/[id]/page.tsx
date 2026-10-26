@@ -184,8 +184,9 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
 
       <div className="mt-5 grid gap-5 md:grid-cols-[1.4fr_1fr]">
         <section className="rounded-2xl border border-line bg-ink2 p-5">
-          <div className="flex items-baseline justify-between">
-            <h2 className="font-display text-lg font-semibold">
+          {/* the date drops below the order number on narrow phones, never splitting it */}
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+            <h2 className="font-display text-lg font-semibold whitespace-nowrap">
               Order {orderCode(order.id)}
             </h2>
             <span className="text-xs text-fog">{formatDateTime(order.createdAt)}</span>

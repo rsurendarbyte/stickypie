@@ -18,7 +18,7 @@ export default function AddressTypePicker({
   return (
     <div className={className}>
       <p className="text-[10.5px] font-semibold tracking-widest text-fog uppercase">Address type</p>
-      <div role="radiogroup" aria-label="Address type" className="mt-1.5 flex gap-2">
+      <div role="radiogroup" aria-label="Address type" className="mt-1.5 flex flex-wrap gap-2">
         {ADDRESS_TYPES.map((type) => {
           const Icon = ADDRESS_TYPE_ICON[type];
           const active = type === value;
