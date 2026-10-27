@@ -14,7 +14,7 @@ export default function CartDrawer() {
     useCart();
   useBackToClose(isOpen, closeCart);
   const settings = useStoreSettings();
-  const shortBy = belowMinimum(settings, subtotal);
+  const shortBy = belowMinimum(settings, subtotal, items);
   // "open" = sticking on, "closing" = peeling off, then gone.
   const [phase, setPhase] = useState<"closed" | "open" | "closing">("closed");
   useEffect(() => {
@@ -164,12 +164,16 @@ export default function CartDrawer() {
                           </button>
                         </div>
                         <p className="mt-0.5 text-xs text-fog">
-                          {item.size && (
-                            <span className="font-medium text-snow/80">
-                              {item.size}″ ·{" "}
-                            </span>
+                          {item.customKind === "avatar" ? (
+
+                            <span className="font-medium text-snow/80">{item.sizeLabel} · </span>
+
+                          ) : (
+
+                            item.size && <span className="font-medium text-snow/80">{item.size}″ · </span>
+
                           )}
-                          {formatINR(item.price)} each
+                          {formatINR(item.price)} {item.customKind === "avatar" ? "per set" : "each"}
                         </p>
                         <div className="mt-2 flex items-center justify-between">
                           <QtyStepper
@@ -191,8 +195,10 @@ export default function CartDrawer() {
               <div className="border-t border-line px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
                 {shortBy === 0 ? (
                   <p className="flex items-center gap-2 text-xs font-medium text-mint">
-                    <CheckCircle2 className="size-4" /> Minimum order reached —
-                    you can check out
+                    <CheckCircle2 className="size-4" />{" "}
+                    {subtotal >= settings.minOrder
+                      ? "Minimum order reached — you can check out"
+                      : "Ready to check out"}
                   </p>
                 ) : (
                   <div>

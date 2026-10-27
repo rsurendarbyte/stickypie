@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ArrowRight, ImageUp, QrCode, Sparkles, Type } from "lucide-react";
+import { ArrowRight, ImageUp, QrCode, Smile, Sparkles, Type } from "lucide-react";
 import CustomRequestForm from "@/components/custom-request-form";
 import FaqItem from "@/components/faq-item";
 import JsonLd from "@/components/json-ld";
@@ -16,6 +16,12 @@ export const metadata: Metadata = pageMetadata({
 });
 
 const OPTIONS = [
+  {
+    href: "/avatar-stickers",
+    icon: Smile,
+    title: "Avatar stickers of you",
+    text: "Send a photo, pick trending styles — AI makes sticker packs of you.",
+  },
   {
     href: "/custom-stickers/design",
     icon: ImageUp,

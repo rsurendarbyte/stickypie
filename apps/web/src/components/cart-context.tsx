@@ -62,6 +62,7 @@ export function itemHref(item: { slug: string; custom?: boolean; customKind?: Cu
   if (!item.custom) return `/sticker/${item.slug}`;
   if (item.customKind === "qr") return "/qr-code-stickers";
   if (item.customKind === "text") return "/name-stickers";
+  if (item.customKind === "avatar") return "/avatar-stickers";
   return "/custom-stickers/design";
 }
 

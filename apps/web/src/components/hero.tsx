@@ -17,12 +17,15 @@ import {
   Scissors,
   Shapes,
   Sparkles,
+  Smile,
   Sticker,
   Truck,
   Wallet,
 } from "lucide-react";
-import type { Category, Product } from "@stickypie/shared";
+import type { AvatarBook, AvatarStyle, Category, Product } from "@stickypie/shared";
 import {
+  avatarBook,
+  avatarSheetsPrice,
   customSizes,
   discountPercent,
   formatINR,
@@ -31,6 +34,7 @@ import {
 import { cardSkinFor, tileFor } from "@/lib/palette";
 import { useSkinSeed } from "@/lib/skin-seed";
 import AddToCartButton from "./add-to-cart-button";
+import AvatarArt from "./avatar-art";
 import { useSizeChoice } from "./size-picker";
 import TrueSizePreview from "./true-size-preview";
 import {
@@ -64,8 +68,11 @@ export default function Hero({
     slides.splice(1, 0, { kind: "custom" });
   if (picks.length > 0 && qr.length > 0)
     slides.splice(Math.min(3, slides.length), 0, { kind: "qr" });
-  // StickyPie itself always opens the hero: what we are + a nudge to order.
+  // StickyPie itself opens the hero: what we are + a nudge to order…
   if (picks.length > 0) slides.unshift({ kind: "brand" });
+  // …except the avatar sticker book, the headline product, which leads when on sale.
+  const book = features.avatarStickers ? avatarBook(settings) : null;
+  if (book) slides.unshift({ kind: "avatar" });
   const { products: catalog } = useLiveCatalog({
     categories: [],
     products: [],
@@ -99,6 +106,8 @@ export default function Hero({
     ? product.slug
     : slide.kind === "qr"
       ? "qr-code-stickers"
+      : slide.kind === "avatar"
+        ? "avatar-stickers"
       : slide.kind === "brand"
         ? "stickypie"
         : "custom-stickers";
@@ -135,12 +144,16 @@ export default function Hero({
         style={skin.art}
         className="pointer-events-none absolute inset-0 transition-[background-color] duration-700 [mask-image:linear-gradient(to_bottom,black_0%,black_62%,transparent_100%)]"
       />
-      {slide.kind === "brand" && (
+      {(slide.kind === "brand" || slide.kind === "avatar") && (
         <>
-          <BrandSlideArt
-            key="wall"
-            stickers={wallItems(catalog.length ? catalog : products, features.wallPostersOnly)}
-          />
+          {slide.kind === "brand" ? (
+            <BrandSlideArt
+              key="wall"
+              stickers={wallItems(catalog.length ? catalog : products, features.wallPostersOnly)}
+            />
+          ) : (
+            <AvatarBookWall key="book-wall" styles={settings.avatarStyles} />
+          )}
           {/* white wash behind the words: from below on phones, from the left on desktop */}
           <div
             aria-hidden
@@ -154,7 +167,7 @@ export default function Hero({
       />
 
       <div
-        className={`relative grid w-full items-center gap-3 px-4 pt-[68px] pb-5 sm:gap-8 sm:px-8 sm:pt-24 lg:grid-cols-[1fr_1.2fr] lg:gap-14 lg:px-12 lg:pt-24 lg:pb-10 2xl:px-20 ${slide.kind === "brand" ? "pointer-events-none" : ""}`}
+        className={`relative grid w-full items-center gap-3 px-4 pt-[68px] pb-5 sm:gap-8 sm:px-8 sm:pt-24 lg:grid-cols-[1fr_1.2fr] lg:gap-14 lg:px-12 lg:pt-24 lg:pb-10 2xl:px-20 ${slide.kind === "brand" || slide.kind === "avatar" ? "pointer-events-none" : ""}`}
       >
         {/* Copy: every slide is laid out in the same cell, so the hero keeps the
             height of the tallest slide and never jumps as slides change. */}
@@ -188,6 +201,8 @@ export default function Hero({
                   <BrandSlideCopy
                     catalog={catalog.length ? catalog : products}
                   />
+                ) : s.kind === "avatar" ? (
+                  <AvatarSlideCopy book={book!} />
                 ) : (
                   <CustomSlideCopy
                     kind={s.kind}
@@ -235,7 +250,7 @@ export default function Hero({
 
         {/* Artwork, floating on the mat */}
         <div
-          className={`relative z-0 order-1 mx-auto w-full max-w-[340px] sm:max-w-xl lg:order-2 ${slide.kind === "brand" ? "pointer-events-none [&_button]:pointer-events-auto" : ""} lg:mx-0 lg:max-w-none`}
+          className={`relative z-0 order-1 mx-auto w-full max-w-[340px] sm:max-w-xl lg:order-2 ${slide.kind === "brand" || slide.kind === "avatar" ? "pointer-events-none [&_button]:pointer-events-auto" : ""} lg:mx-0 lg:max-w-none`}
         >
           {/* product-tinted wash behind the art */}
           {slide.kind !== "brand" && (
@@ -270,7 +285,7 @@ export default function Hero({
                   className="sticker-cut animate-float max-h-full max-w-full rotate-2 cursor-pointer object-contain transition-transform duration-200 hover:scale-[1.03] lg:max-h-[min(46vh,520px)]"
                 />
               </PageLink>
-            ) : slide.kind === "brand" ? null : slide.kind === "qr" ? (
+            ) : slide.kind === "brand" || slide.kind === "avatar" ? null : slide.kind === "qr" ? (
               <QrSlideArt />
             ) : (
               <CustomSlideArt sizes={custom} />
@@ -289,6 +304,8 @@ export default function Hero({
                       ? `Show ${s.product.name}`
                       : s.kind === "qr"
                         ? "Show QR code stickers"
+                        : s.kind === "avatar"
+                          ? "Show avatar stickers"
                         : s.kind === "brand"
                           ? "Show StickyPie"
                           : "Show custom stickers"
@@ -314,6 +331,7 @@ export default function Hero({
 type Slide =
   | { kind: "product"; product: Product }
   | { kind: "brand" }
+  | { kind: "avatar" }
   | { kind: "custom" }
   | { kind: "qr" };
 
@@ -651,6 +669,120 @@ function CustomSlideArt({ sizes }: { sizes: { inches: number }[] }) {
         </span>
       </div>
     </div>
+  );
+}
+
+
+function shuffled<T>(list: readonly T[]): T[] {
+  const out = [...list];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/**
+ * Avatar slide backdrop: a wall of style tiles filling the hero, moving like
+ * the first slide's sticker wall, in a new random order every visit. Each tile
+ * is one style's card picture (a girl's or a boy's avatar sticker, from admin →
+ * Avatar sheets) with the style's name, or a drawn stand-in avatar for a style
+ * with no card picture yet.
+ */
+function AvatarBookWall({ styles }: { styles: AvatarStyle[] }) {
+  const box = useRef<HTMLDivElement>(null);
+  const size = useWallSize(box);
+  // Shuffled in the browser only (the wall isn't drawn on the server anyway).
+  const [pool, setPool] = useState<{ label: string; url: string | null }[]>([]);
+  useEffect(() => {
+    // Every card picture, plus a drawn stand-in for each style that has none.
+    const real = styles.flatMap((s) => s.covers.map((url) => ({ label: s.label, url })));
+    const drawn = styles.filter((s) => !s.covers.length).map((s) => ({ label: s.label, url: null }));
+    setPool(shuffled([...real, ...drawn]));
+  }, [styles]);
+  const columns =
+    size && pool.length
+      ? Array.from({ length: size.cols }, (_, c) =>
+          Array.from({ length: Math.ceil(size.perCol * 0.8) + 1 }, (_, k) => ({
+            page: pool[(c * 5 + k * 3) % pool.length],
+            n: c * 31 + k * 17,
+          }))
+        )
+      : [];
+  return (
+    <div
+      ref={box}
+      className="sticker-wall animate-hero-img-in absolute inset-x-0 top-0 bottom-[38%] overflow-hidden sm:bottom-0"
+    >
+      <div className="absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 -rotate-[14deg] gap-3 sm:gap-4">
+        {columns.map((col, c) => (
+          <div key={c} className="w-[clamp(92px,13vw,170px)] shrink-0">
+            <div
+              className={`flex flex-col gap-3 sm:gap-4 ${c % 2 ? "sticker-wall-down" : "sticker-wall-up"}`}
+              style={{ animationDuration: `${((44 + (c % 4) * 7) * col.length) / 5}s` }}
+            >
+              {[...col, ...col].map(({ page, n }, k) => (
+                <Link
+                  key={k}
+                  href="/avatar-stickers"
+                  tabIndex={-1}
+                  aria-label="Make your avatar sticker packs"
+                  className={`block overflow-hidden rounded-xl bg-white shadow-[0_12px_26px_-14px_rgba(16,24,40,0.4)] ring-1 ring-black/5 transition-transform duration-200 hover:scale-[1.04] ${
+                    k % 3 === 1 ? "rotate-2" : k % 3 === 2 ? "-rotate-1" : ""
+                  }`}
+                >
+                  <span className="block aspect-square bg-gradient-to-br from-[#fff1f5] to-[#eef6ff] p-[7%]">
+                    {page.url ? (
+                      <img src={page.url} alt="" loading="lazy" className="size-full object-contain drop-shadow-md" />
+                    ) : (
+                      // a drawn stand-in until the admin uploads a card picture
+                      <AvatarArt
+                        style={page.label}
+                        mood={n % 4}
+                        className="size-full rounded-[22%] border-[3px] border-white shadow-sm"
+                      />
+                    )}
+                  </span>
+                  <span className="block truncate px-2 py-1.5 text-[clamp(9px,0.9vw,12px)] font-bold text-snow">
+                    {page.label}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Avatar slide: a sticker book of you from a photo, its price and the call to action. */
+function AvatarSlideCopy({ book }: { book: AvatarBook }) {
+  return (
+    <>
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 text-[11px] font-bold tracking-widest text-brand uppercase backdrop-blur-sm">
+        <Smile className="size-3.5" /> New · Avatar stickers
+      </span>
+      <h2 className="mt-2.5 line-clamp-2 font-display text-[30px] leading-[1.05] font-bold tracking-tight sm:mt-4 sm:text-6xl lg:mt-5 lg:text-[64px]">
+        Stickers of you, from your photo
+      </h2>
+      <p className="mt-4 hidden max-w-lg text-base leading-relaxed text-fog sm:line-clamp-2 sm:text-lg lg:line-clamp-3">
+        Send a selfie and pick trending styles — 90s retro, anime, action figure, 3D cartoon. We make AI
+        sticker packs of you, one in each style you pick ({book.pages} or more), on waterproof vinyl.
+      </p>
+      <div className="mt-2 flex items-baseline gap-2 sm:mt-6">
+        <span className="text-sm text-fog">{book.pages} packs from</span>
+        <span className="font-display text-3xl font-bold text-gold sm:text-4xl">{formatINR(avatarSheetsPrice(book, 0))}</span>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2.5 sm:mt-6 sm:gap-3">
+        <PageLink
+          href="/avatar-stickers"
+          className="peel-btn inline-flex h-12 items-center gap-2 rounded-xl px-6 text-base font-bold"
+        >
+          Make my stickers <ArrowRight className="size-4" />
+        </PageLink>
+      </div>
+    </>
   );
 }
 

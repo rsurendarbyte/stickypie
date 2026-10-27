@@ -1297,6 +1297,33 @@ html[data-lite]:not([data-lite="net"]) .wall-peel {
   animation: none;
 }
 
+/* Avatar style card: its two card pictures (a girl and a boy) take turns,
+   cross-fading every 3s; the second runs half a cycle behind (inline delay). */
+.avatar-cover-swap {
+  animation: avatar-cover-swap 6s ease-in-out infinite;
+}
+@keyframes avatar-cover-swap {
+  0%,
+  42% {
+    opacity: 1;
+  }
+  50%,
+  92% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .avatar-cover-swap {
+    animation: none;
+  }
+  .avatar-cover-swap + .avatar-cover-swap {
+    opacity: 0;
+  }
+}
+
 /* Shop links are plain page loads (free static files instead of Worker
    requests — see components/page-link.tsx). Browsers that support it fade
    between pages so it still feels like one app. */

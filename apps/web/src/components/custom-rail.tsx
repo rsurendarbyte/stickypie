@@ -1,7 +1,7 @@
 "use client";
 
-import { ArrowRight, ImageUp, QrCode, Sparkles, Type } from "lucide-react";
-import { customSizes, formatINR } from "@stickypie/shared";
+import { ArrowRight, ImageUp, QrCode, Smile, Sparkles, Type } from "lucide-react";
+import { avatarBook, avatarSheetsPrice, customSizes, formatINR } from "@stickypie/shared";
 import { useFeatures, useStoreSettings } from "@/lib/live-catalog";
 import { cardSkinFor } from "@/lib/palette";
 import { useSkinSeed } from "@/lib/skin-seed";
@@ -16,13 +16,22 @@ export default function CustomRail() {
   const features = useFeatures();
   const settings = useStoreSettings();
   const seed = useSkinSeed();
-  if (!features.customStickers) return null;
+  if (!features.customStickers && !features.avatarStickers) return null;
 
   const from = (prices: Record<string, number>) => {
     const sizes = customSizes(prices);
     return sizes.length ? Math.min(...sizes.map((s) => s.price)) : null;
   };
+  const book = features.avatarStickers ? avatarBook(settings) : null;
   const cards = [
+    {
+      href: "/avatar-stickers",
+      icon: Smile,
+      title: "Avatar stickers",
+      text: "Sticker packs of you, from a photo",
+      from: book ? avatarSheetsPrice(book, 0) : null,
+      skin: "avatar-stickers",
+    },
     {
       href: "/custom-stickers/design",
       icon: ImageUp,
@@ -47,7 +56,7 @@ export default function CustomRail() {
       from: from(settings.textPrices),
       skin: "name-stickers",
     },
-  ].filter((c) => c.from !== null);
+  ].filter((c) => c.from !== null && (c.href === "/avatar-stickers" || features.customStickers));
   if (!cards.length) return null;
 
   return (

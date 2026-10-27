@@ -1,6 +1,7 @@
 // Minimum order + distance-based shipping (zones), configured in the admin.
 // Browser-safe, no deps: used by the cart UI, checkout page and checkout API.
 import { matchIndianState } from "./india";
+import { DEFAULT_AVATAR_STYLES, type AvatarBook, type AvatarStyle } from "./custom";
 
 export type ShippingZone = "local" | "state" | "national" | "remote";
 
@@ -22,6 +23,10 @@ export type StoreSettings = {
   qrPrices: Record<string, number>;
   /** Name & text sticker price (₹) per size, same shape as customPrices. */
   textPrices: Record<string, number>;
+  /** Avatar sticker book: pages (one style each) and one price for the book. */
+  avatarBook: AvatarBook;
+  /** Styles the shopper picks from (one per page), each with a sample image. */
+  avatarStyles: AvatarStyle[];
 };
 
 export type PaymentGateway = "cashfree" | "razorpay";
@@ -51,6 +56,8 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   customPrices: { "3": 49, "6": 99, "7": 149 },
   qrPrices: { "3": 49, "6": 99, "7": 149 },
   textPrices: { "3": 39, "6": 79, "7": 119 },
+  avatarBook: { pages: 4, price: 300 },
+  avatarStyles: DEFAULT_AVATAR_STYLES,
 };
 
 /** Couriers price these as special / remote zones. */
@@ -108,12 +115,31 @@ export function gstOnTop(settings: StoreSettings, subtotal: number, shippingFee:
   return { rate, amount: Math.round(((subtotal + shippingFee) * rate) / 100) };
 }
 
-/** ₹ still needed to reach the minimum order (0 once reached). */
-export function belowMinimum(settings: StoreSettings, subtotal: number): number {
+/**
+ * ₹ still needed to reach the minimum order (0 once reached). A cart with an
+ * avatar sticker book has no minimum — a book can be ordered on its own.
+ */
+export function belowMinimum(
+  settings: StoreSettings,
+  subtotal: number,
+  items: { customKind?: string | null; customSpec?: { kind: string } | null }[] = []
+): number {
+  if (items.some((i) => i.customKind === "avatar" || i.customSpec?.kind === "avatar")) return 0;
   return Math.max(settings.minOrder - subtotal, 0);
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/**
+ * A saved style with no pictures at all takes the ones bundled with the site
+ * for the same style name (e.g. sample sheets added in a later release), so a
+ * store saved before them still shows them. Any picture uploaded in admin wins.
+ */
+function withBundledPictures(style: AvatarStyle): AvatarStyle {
+  if (style.covers.length || style.images.length) return style;
+  const bundled = DEFAULT_AVATAR_STYLES.find((d) => d.label.toLowerCase() === style.label.trim().toLowerCase());
+  return bundled ? { ...style, covers: bundled.covers, images: bundled.images } : style;
+}
+
 export function rowToSettings(r: any): StoreSettings {
   if (!r) return DEFAULT_STORE_SETTINGS;
   return {
@@ -147,6 +173,31 @@ export function rowToSettings(r: any): StoreSettings {
       r.text_prices && typeof r.text_prices === "object"
         ? Object.fromEntries(Object.entries(r.text_prices).map(([k, v]) => [k, Number(v) || 0]))
         : DEFAULT_STORE_SETTINGS.textPrices,
+    avatarBook:
+      r.avatar_book && typeof r.avatar_book === "object"
+        ? { pages: Number(r.avatar_book.pages) || 0, price: Number(r.avatar_book.price) || 0 }
+        : DEFAULT_STORE_SETTINGS.avatarBook,
+    avatarStyles: Array.isArray(r.avatar_styles)
+      ? r.avatar_styles
+          .filter((s: any) => typeof s?.label === "string" && s.label.trim())
+          .map((s: any): AvatarStyle => ({
+            label: s.label,
+            covers: Array.isArray(s.covers)
+              ? s.covers.filter((u: unknown): u is string => typeof u === "string" && !!u)
+              : typeof s.cover === "string" && s.cover
+                ? [s.cover]
+                : [],
+            images: Array.isArray(s.images)
+              ? s.images.filter((u: unknown): u is string => typeof u === "string")
+              : typeof s.url === "string"
+                ? [s.url]
+                : [],
+            ...(Array.isArray(s.poseSets)
+              ? { poseSets: s.poseSets.filter((p: unknown): p is string => typeof p === "string" && !!p.trim()) }
+              : {}),
+          }))
+          .map(withBundledPictures)
+      : DEFAULT_AVATAR_STYLES,
   };
 }
 
@@ -169,5 +220,7 @@ export function settingsToRow(s: StoreSettings): Record<string, unknown> {
     custom_prices: s.customPrices,
     qr_prices: s.qrPrices,
     text_prices: s.textPrices,
+    avatar_book: s.avatarBook,
+    avatar_styles: s.avatarStyles,
   };
 }

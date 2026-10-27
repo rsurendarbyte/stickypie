@@ -208,7 +208,7 @@ export default function CheckoutClient() {
   // GST on top of stickers + shipping — the same sum the server charges.
   const gst = gstOnTop(settings, subtotal, quote?.fee ?? 0);
   const total = subtotal + (quote?.fee ?? 0) + gst.amount;
-  const shortBy = belowMinimum(settings, subtotal);
+  const shortBy = belowMinimum(settings, subtotal, items);
   // Gateway switched on in admin; null until settings load (no wrong-name flash).
   const gatewayName = usePaymentPartner();
 
@@ -1006,12 +1006,16 @@ export default function CheckoutClient() {
                       </span>
                     </div>
                     <p className="mt-0.5 text-[11px] text-fog">
-                      {item.size && (
-                        <span className="font-semibold text-snow/80">
-                          {item.size}″ ·{" "}
-                        </span>
+                      {item.customKind === "avatar" ? (
+
+                        <span className="font-semibold text-snow/80">{item.sizeLabel} · </span>
+
+                      ) : (
+
+                        item.size && <span className="font-semibold text-snow/80">{item.size}″ · </span>
+
                       )}
-                      {formatINR(item.price)} each
+                      {formatINR(item.price)} {item.customKind === "avatar" ? "per set" : "each"}
                     </p>
                     <CartStepper item={item} size="sm" className="mt-1.5" />
                   </div>

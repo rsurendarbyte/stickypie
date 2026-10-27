@@ -79,8 +79,10 @@ export type OrderItem = {
   customFile: string | null;
   /** Custom stickers: links to artwork the shopper picked before paying. */
   customRef: string | null;
-  /** QR / name stickers: what to draw (the admin makes the print file from it). */
+  /** QR / name stickers: what to draw (the admin makes the print file from it). Avatar books: pages + styles. */
   customSpec: CustomSpec | null;
+  /** Avatar packs: the finished stickers we drew, shown to the shopper on the order page. */
+  finishedFiles: string[];
 };
 
 export type CustomerInfo = {
@@ -284,6 +286,8 @@ export interface DataDriver {
   getFeatures(): Promise<FeatureFlags>;
   /** Shopper uploaded (or replaced) a custom sticker's artwork after paying. */
   replaceCustomFile(orderId: string, itemId: string, path: string, url: string): Promise<void>;
+  /** Admin: the finished pages made for an avatar sticker book (replaces the list). */
+  setFinishedFiles(orderId: string, itemId: string, urls: string[]): Promise<void>;
   updateFeatures(flags: FeatureFlags): Promise<FeatureFlags>;
 
   /** Contact form (written by the storefront server, read in the admin). */

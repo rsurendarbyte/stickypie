@@ -285,6 +285,7 @@ export function createLocalDriver(filePath: string): DataDriver {
           customFile: null,
           customRef: item.customRef ?? null,
           customSpec: item.customSpec ?? null,
+          finishedFiles: [],
         })),
       };
       store.orders.unshift(order);
@@ -466,6 +467,14 @@ export function createLocalDriver(filePath: string): DataDriver {
       if (!item?.isCustom) throw new Error("Not a custom sticker");
       item.customFile = path;
       item.imageUrl = url;
+      persist(store);
+    },
+
+    async setFinishedFiles(orderId: string, itemId: string, urls: string[]) {
+      const store = load();
+      const item = store.orders.find((o) => o.id === orderId)?.items.find((i) => i.id === itemId);
+      if (!item?.isCustom) throw new Error("Not a custom sticker");
+      item.finishedFiles = urls;
       persist(store);
     },
 

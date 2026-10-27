@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Download, ImageUp } from "lucide-react";
-import { formatDateTime, formatINR, orderCode } from "@stickypie/shared";
+import { formatDateTime, formatINR, needsArtwork, orderCode } from "@stickypie/shared";
+import AvatarOrderPrompts from "@/components/avatar-order-prompts";
+import { avatarPoseSets } from "@/lib/avatar-prompts";
+import FinishedStickers from "@/components/finished-stickers";
 import OrderActions from "@/components/order-actions";
 import ShiprocketPanel from "@/components/shiprocket-panel";
 import { shiprocketConfig } from "@/lib/shiprocket";
@@ -23,6 +26,10 @@ export default async function OrderDetailPage({
   const driver = await getAdminDriver();
   const order = await driver.getOrder(id);
   if (!order) notFound();
+  // Avatar lines: each style's pose sets for the AI prompts (only when there are any).
+  const avatarStyles = order.items.some((i) => i.customSpec?.kind === "avatar")
+    ? (await driver.getSettings()).avatarStyles
+    : [];
 
   return (
     <div className="mx-auto w-full max-w-[1400px]">
@@ -48,15 +55,19 @@ export default async function OrderDetailPage({
         <section className="rounded-2xl border border-line bg-ink2 p-5">
           <h2 className="font-display text-lg font-semibold">Items</h2>
           <ul className="mt-4 space-y-3">
-            {order.items.map((item) => (
-              <li key={item.id} className="flex items-center gap-3">
+            {order.items.map((item) => {
+              // QR / name stickers we draw from their details; avatar packs we draw by hand.
+              const drawn = item.customSpec && item.customSpec.kind !== "avatar" ? item.customSpec : null;
+              const avatar = item.customSpec?.kind === "avatar" ? item.customSpec : null;
+              return (
+              <li key={item.id} className="flex flex-wrap items-center gap-3">
                 <span className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-panel p-1 ring-1 ring-line">
-                  {item.customSpec ? (
-                    <SpecThumb spec={item.customSpec} />
+                  {drawn ? (
+                    <SpecThumb spec={drawn} />
                   ) : (
                     item.isCustom && !item.imageUrl && <ImageUp className="size-6 text-fog" />
                   )}
-                  {item.imageUrl && !item.customSpec && (
+                  {item.imageUrl && !drawn && (
                     <img
                       src={imageSrc(item.imageUrl)}
                       alt=""
@@ -66,26 +77,50 @@ export default async function OrderDetailPage({
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{item.name}</p>
-                  {item.customSpec && (
+                  {drawn && (
                     <div className="mt-1 space-y-1.5">
-                      <SpecDetails spec={item.customSpec} />
+                      <SpecDetails spec={drawn} />
                       <p className="flex flex-wrap items-center gap-2 text-xs">
                         <span className="rounded-md bg-mint/15 px-1.5 py-0.5 font-semibold text-mint">
                           Made by us — no upload needed
                         </span>
                         <SpecDownload
-                          spec={item.customSpec}
+                          spec={drawn}
                           fileName={`${orderCode(order.id)} ${item.name}${item.sizeInches ? ` ${item.sizeInches}in` : ""} x${item.quantity}`}
                         />
                       </p>
                     </div>
                   )}
-                  {item.isCustom && !item.customSpec && (
+                  {avatar && (
+                    <div className="mt-1 space-y-0.5 text-xs">
+                      <p className="text-fog">{avatar.pages} packs, one style each:</p>
+                      <ol className="flex flex-wrap gap-1.5">
+                        {avatar.styles.map((style, n) => (
+                          <li key={style} className="rounded-full border border-line px-2 py-0.5">
+                            <span className="text-fog">#{n + 1}</span> {style}
+                          </li>
+                        ))}
+                      </ol>
+                      {avatar.note && (
+                        <p>
+                          <span className="text-fog">Note:</span> {avatar.note}
+                        </p>
+                      )}
+                      <AvatarOrderPrompts
+                        sheets={avatar.styles.map((label) => ({
+                          label,
+                          poseSets: avatarPoseSets(avatarStyles.find((st) => st.label === label) ?? { label }),
+                        }))}
+                        note={avatar.note}
+                      />
+                    </div>
+                  )}
+                  {needsArtwork(item) && (
                     <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs">
                       {item.customFile ? (
                         <>
                           <span className="rounded-md bg-mint/15 px-1.5 py-0.5 font-semibold text-mint">
-                            Customer artwork received
+                            {avatar ? "Customer photo received" : "Customer artwork received"}
                           </span>
                           <a href={item.imageUrl} target="_blank" rel="noreferrer" className="font-semibold text-snow hover:underline">
                             Open full size
@@ -93,7 +128,7 @@ export default async function OrderDetailPage({
                         </>
                       ) : (
                         <span className="rounded-md bg-gold/15 px-1.5 py-0.5 font-semibold text-gold">
-                          Waiting for customer artwork
+                          {avatar ? "Waiting for customer photo" : "Waiting for customer artwork"}
                         </span>
                       )}
                       <a href={`tel:${order.phone}`} className="font-semibold text-snow hover:underline">
@@ -113,7 +148,7 @@ export default async function OrderDetailPage({
                 <span className="text-sm font-semibold tabular-nums">
                   {formatINR(item.unitPrice * item.quantity)}
                 </span>
-                {item.imageUrl && !item.customSpec && (
+                {item.imageUrl && !drawn && (
                   <a
                     href={imageDownloadHref(
                       item.imageUrl,
@@ -127,8 +162,17 @@ export default async function OrderDetailPage({
                     <Download className="size-4" />
                   </a>
                 )}
+                {avatar && (
+                  <FinishedStickers
+                    orderId={order.id}
+                    itemId={item.id}
+                    pages={avatar.pages}
+                    initial={item.finishedFiles}
+                  />
+                )}
               </li>
-            ))}
+              );
+            })}
           </ul>
           <div className="mt-5 space-y-1.5 border-t border-line pt-4 text-sm">
             <div className="flex justify-between text-fog">

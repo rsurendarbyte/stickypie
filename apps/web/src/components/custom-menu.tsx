@@ -3,18 +3,22 @@
 import Link from "@/components/page-link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ImageUp, LayoutGrid, QrCode, Type } from "lucide-react";
-import { customSizes, formatINR } from "@stickypie/shared";
-import { useStoreSettings } from "@/lib/live-catalog";
+import { ChevronDown, ImageUp, LayoutGrid, QrCode, Smile, Type } from "lucide-react";
+import { avatarBook, avatarSheetsPrice, customSizes, formatINR } from "@stickypie/shared";
+import { useFeatures, useStoreSettings } from "@/lib/live-catalog";
 
 /** The ways to make your own sticker, each with its lowest price (hidden when unpriced). */
 export function useCustomOptions() {
   const settings = useStoreSettings();
+  const features = useFeatures();
   const from = (prices: Record<string, number>) => {
     const sizes = customSizes(prices);
     return sizes.length ? Math.min(...sizes.map((s) => s.price)) : null;
   };
+  const book = features.avatarStickers ? avatarBook(settings) : null;
   return [
+    // The headline product leads every list of custom options.
+    { href: "/avatar-stickers", icon: Smile, title: "Avatar stickers of you", text: "Sticker packs from your photo", from: book ? avatarSheetsPrice(book, 0) : null },
     { href: "/custom-stickers/design", icon: ImageUp, title: "Your design", text: "Logo, photo or artwork", from: from(settings.customPrices) },
     { href: "/qr-code-stickers", icon: QrCode, title: "QR code sticker", text: "UPI, WhatsApp, website", from: from(settings.qrPrices) },
     { href: "/name-stickers", icon: Type, title: "Name & text", text: "Your name in fun fonts", from: from(settings.textPrices) },
@@ -23,7 +27,7 @@ export function useCustomOptions() {
 
 const PEEL_OFF_MS = 360;
 
-export const CUSTOM_PATHS = ["/custom-stickers", "/qr-code-stickers", "/name-stickers"];
+export const CUSTOM_PATHS = ["/avatar-stickers", "/custom-stickers", "/qr-code-stickers", "/name-stickers"];
 
 /**
  * Header "Custom" item: a small menu of the ways to make your own sticker

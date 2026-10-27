@@ -32,16 +32,16 @@ export default function CartStrip() {
   // Hidden while the cart itself is open (it says the same thing).
   if (count === 0 || isOpen || cartUiHidden(pathname)) return null;
 
-  const shortBy = belowMinimum(settings, subtotal);
-  const progress = Math.min(
-    (subtotal / Math.max(settings.minOrder, 1)) * 100,
-    100,
-  );
+  const shortBy = belowMinimum(settings, subtotal, items);
+  const progress =
+    shortBy === 0
+      ? 100
+      : Math.min((subtotal / Math.max(settings.minOrder, 1)) * 100, 100);
   const stack = items.slice(-3).reverse(); // newest on top
   const label = `${count} sticker${count === 1 ? "" : "s"}`;
   // The custom sticker makers have their own bar pinned to the bottom on
   // phones (total + Book now); two bars there would cover the form.
-  const maker = /^\/(custom-stickers\/design|name-stickers|qr-code-stickers)/.test(pathname);
+  const maker = /^\/(custom-stickers\/design|name-stickers|qr-code-stickers|avatar-stickers)/.test(pathname);
 
   return (
     <div className={`${maker ? "max-sm:hidden " : ""}shift-with-cart pointer-events-none fixed inset-x-3 bottom-[calc(0.75rem+var(--tabbar,0px)+env(safe-area-inset-bottom,0px))] z-30 flex justify-center cart-tape-wrap sm:bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))]`}>

@@ -2,7 +2,16 @@ import type { Metadata } from "next";
 import Link from "@/components/page-link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CheckCircle2, FileText, PackageX, ShoppingBag, XCircle } from "lucide-react";
-import { CUSTOM_UPLOAD_STATUSES, STATUS_LABELS, formatDateTime, formatINR, orderCode } from "@stickypie/shared";
+import {
+  CUSTOM_UPLOAD_STATUSES,
+  STATUS_LABELS,
+  formatDateTime,
+  formatINR,
+  needsArtwork,
+  orderCode,
+  type AvatarStickerSpec,
+} from "@stickypie/shared";
+import AvatarStickersShare from "@/components/avatar-stickers-share";
 import ClearCartOnPaid from "@/components/clear-cart-on-paid";
 import CustomOrderUpload from "@/components/custom-order-upload";
 import OrderReviews from "@/components/order-reviews";
@@ -10,13 +19,18 @@ import OrderTracking from "@/components/order-tracking";
 import PaymentPending from "@/components/payment-pending";
 import { latestPaymentAttempt, reconcileOrderPayment } from "@/lib/payments";
 import { getDriver } from "@/lib/data";
-import { PRIVATE_PAGE_ROBOTS } from "@/lib/site";
+import { PRIVATE_PAGE_ROBOTS, absoluteUrl } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Your order", robots: PRIVATE_PAGE_ROBOTS };
 
 const PAID_LIKE = new Set(["paid", "packed", "shipped", "delivered"]);
+
+/** "90s Retro, Anime, …" — the sheet styles, in order. */
+function avatarSummary(spec: AvatarStickerSpec): string {
+  return spec.styles.join(", ");
+}
 
 export default async function OrderPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -52,9 +66,11 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
     }
   }
 
-  // Paid custom order: the design upload is the main thing on this page.
-  // (QR / name stickers are drawn by us from their saved details — no upload.)
-  const needsUpload = (i: (typeof order.items)[number]) => i.isCustom && !i.customSpec;
+  // Paid custom order: the design (or avatar photo) upload is the main thing
+  // on this page. (QR / name stickers are drawn by us from their saved details.)
+  const needsUpload = needsArtwork;
+  // Avatar sticker sheets we've finished making, shown with share buttons.
+  const finished = order.items.flatMap((i) => (i.customSpec?.kind === "avatar" ? i.finishedFiles : []));
   const customUploadStep =
     order.items.some(needsUpload) &&
     (CUSTOM_UPLOAD_STATUSES as readonly string[]).includes(order.status);
@@ -96,6 +112,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               imageUrl: i.imageUrl,
               sizeInches: i.sizeInches,
               quantity: i.quantity,
+              photo: i.customSpec?.kind === "avatar",
             }))}
         />
       )}
@@ -154,6 +171,10 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         )}
       </div>
 
+      {paid && finished.length > 0 && (
+        <AvatarStickersShare urls={finished} makeUrl={absoluteUrl("/avatar-stickers")} />
+      )}
+
       {paid && (
         <section className="mt-10 rounded-2xl border border-line bg-ink2 p-5">
           <h2 className="font-display text-lg font-semibold">Order tracking</h2>
@@ -182,7 +203,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         <OrderReviews orderId={order.id} orderUserId={order.userId} items={order.items} />
       )}
 
-      <div className="mt-5 grid gap-5 md:grid-cols-[1.4fr_1fr]">
+      <div className="mt-5 grid grid-cols-[minmax(0,1fr)] gap-5 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <section className="rounded-2xl border border-line bg-ink2 p-5">
           {/* the date drops below the order number on narrow phones, never splitting it */}
           <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
@@ -208,23 +229,36 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                     <span className="block truncate">
                       {item.name} <span className="text-fog">× {item.quantity}</span>
                     </span>
-                    {item.sizeInches && (
-                      <span className="block text-xs text-fog">Size {item.sizeInches}″</span>
+                    {item.customSpec?.kind === "avatar" ? (
+                      <>
+                        <span className="block text-xs text-fog">{item.sizeLabel}</span>
+                        <span className="block truncate text-xs text-fog">
+                          {avatarSummary(item.customSpec)}
+                        </span>
+                      </>
+                    ) : (
+                      item.sizeInches && <span className="block text-xs text-fog">Size {item.sizeInches}″</span>
                     )}
-                    {item.isCustom && item.customSpec && (
+                    {item.isCustom && item.customSpec && item.customSpec.kind !== "avatar" && (
                       <span className="block text-xs text-mint">
                         {item.customSpec.kind === "qr"
                           ? `QR: ${item.customSpec.label || "no label"} · we make it from your details`
                           : `“${item.customSpec.line1}” · we make it from your details`}
                       </span>
                     )}
-                    {item.isCustom && !item.customSpec && (
+                    {item.isCustom && needsArtwork(item) && (
                       <span className={`block text-xs ${item.customFile ? "text-mint" : "text-fog"}`}>
-                        {item.customFile
-                          ? order.status === "paid"
-                            ? "Design received"
-                            : "Design received · locked for printing"
-                          : "Design not uploaded yet"}
+                        {item.customSpec?.kind === "avatar"
+                          ? item.finishedFiles.length
+                            ? "Your stickers are ready ✓"
+                            : item.customFile
+                              ? "Photo received · your AI stickers are being made"
+                              : "Photo not uploaded yet"
+                          : item.customFile
+                            ? order.status === "paid"
+                              ? "Design received"
+                              : "Design received · locked for printing"
+                            : "Design not uploaded yet"}
                       </span>
                     )}
                   </span>
@@ -297,8 +331,8 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               </div>
               {order.cfPaymentId && (
                 <div className="flex justify-between gap-3">
-                  <dt>Payment ID</dt>
-                  <dd className="truncate text-snow">{order.cfPaymentId}</dd>
+                  <dt className="shrink-0">Payment ID</dt>
+                  <dd className="min-w-0 text-right break-all text-snow">{order.cfPaymentId}</dd>
                 </div>
               )}
             </dl>
