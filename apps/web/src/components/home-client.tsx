@@ -42,7 +42,7 @@ export default function HomeClient({
             <StickerLoader size={88} label="Peeling fresh stickers…" />
           </div>
         </div>
-        <div className="mt-8 space-y-10 pb-24">
+        <div className="mt-8 space-y-1 pb-24 sm:space-y-8">
           {["Top Picks This Week", "New Drops"].map((title) => (
             <Row key={title} title={title}>
               {Array.from({ length: 6 }, (_, i) => (
@@ -103,7 +103,7 @@ export default function HomeClient({
   return (
     <>
       <Hero products={featured.length > 0 ? featured : [hero]} categories={categories} />
-      <div className="relative z-10 mt-2 space-y-10 pb-24">
+      <div className="relative z-10 mt-2 space-y-1 pb-24 sm:space-y-8">
         {/* "Make your own" (led by the AI avatar styles) is the first row */}
         <CustomRail />
         {homeRails.map((rail, i) => (

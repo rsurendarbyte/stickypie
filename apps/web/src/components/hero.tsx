@@ -250,7 +250,7 @@ export default function Hero({
 
         {/* Artwork, floating on the mat */}
         <div
-          className={`relative z-0 order-1 mx-auto w-full max-w-[340px] sm:max-w-xl lg:order-2 ${slide.kind === "brand" || slide.kind === "avatar" ? "pointer-events-none [&_button]:pointer-events-auto" : ""} lg:mx-0 lg:max-w-none`}
+          className={`relative z-0 order-1 mx-auto w-full max-w-[360px] sm:max-w-xl lg:order-2 ${slide.kind === "brand" || slide.kind === "avatar" ? "pointer-events-none [&_button]:pointer-events-auto" : ""} lg:mx-0 lg:max-w-none`}
         >
           {/* product-tinted wash behind the art */}
           {slide.kind !== "brand" && (
@@ -265,7 +265,7 @@ export default function Hero({
 
           <div
             key={key}
-            className="animate-hero-img-in relative aspect-[16/10] sm:aspect-[5/4] lg:aspect-auto lg:h-[min(50vh,560px)]"
+            className="animate-hero-img-in relative aspect-[5/4] max-sm:max-h-[38svh] max-sm:w-full sm:aspect-[5/4] lg:aspect-auto lg:h-[min(50vh,560px)]"
           >
             {product ? (
               // Tapping the art opens the sticker: the swipe view on phones,
@@ -559,7 +559,7 @@ function QrSlideArt() {
   }, []);
   return (
     <div className="absolute inset-0 grid place-items-center">
-      <div className="relative h-[74%] max-h-[380px]">
+      <div className="relative h-[62%] max-h-[380px] sm:h-[74%]">
         {src && (
           <img
             src={src}
@@ -567,13 +567,13 @@ function QrSlideArt() {
             className="sticker-cut animate-float h-full w-auto -rotate-3 rounded-[28px] object-contain"
           />
         )}
-        <span className="animate-float-slow absolute top-[8%] -left-[22%] inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold whitespace-nowrap text-snow shadow-md">
+        <span className="animate-float-slow absolute top-[8%] -left-[22%] hidden sm:inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold whitespace-nowrap text-snow shadow-md">
           <Wallet className="size-3.5 text-brand" /> UPI payments
         </span>
-        <span className="animate-float-slow absolute top-[45%] -right-[26%] inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold whitespace-nowrap text-snow shadow-md [animation-delay:-4s]">
+        <span className="animate-float-slow absolute top-[45%] -right-[26%] hidden sm:inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold whitespace-nowrap text-snow shadow-md [animation-delay:-4s]">
           <MessageCircle className="size-3.5 text-mint" /> WhatsApp
         </span>
-        <span className="animate-float-slow absolute bottom-[4%] -left-[18%] inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold whitespace-nowrap text-snow shadow-md [animation-delay:-7s]">
+        <span className="animate-float-slow absolute bottom-[4%] -left-[18%] hidden sm:inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold whitespace-nowrap text-snow shadow-md [animation-delay:-7s]">
           <Link2 className="size-3.5 text-brand" /> Website &amp; Instagram
         </span>
       </div>
@@ -594,17 +594,17 @@ function ProductSlideCopy({
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-white/90 px-3.5 py-1.5 text-[11px] font-bold tracking-widest text-brand uppercase shadow-sm backdrop-blur-sm">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-white/90 px-3 py-1 text-[10px] font-bold tracking-widest text-brand uppercase shadow-sm backdrop-blur-sm sm:px-3.5 sm:py-1.5 sm:text-[11px]">
           <Sparkles className="size-3.5" /> Featured drop
         </span>
         {categoryName && (
-          <span className="hidden rounded-full border border-line bg-ink2 px-3.5 py-1.5 text-[11px] font-semibold tracking-widest text-fog uppercase sm:inline-block">
+          <span className="rounded-full border border-line bg-ink2 px-3 py-1 text-[10px] font-semibold tracking-widest text-fog uppercase sm:px-3.5 sm:py-1.5 sm:text-[11px]">
             {categoryName}
           </span>
         )}
       </div>
       {/* The page's H1 is in the shop intro below; a rotating product isn't the page topic. */}
-      <h2 className="mt-2.5 line-clamp-2 font-display text-[30px] leading-[1.05] font-bold tracking-tight sm:mt-4 sm:text-6xl lg:mt-5 lg:text-[64px]">
+      <h2 className="mt-2 line-clamp-2 font-display text-[24px] leading-[1.1] font-bold tracking-tight sm:mt-4 sm:text-6xl lg:mt-5 lg:text-[64px]">
         {product.name}
       </h2>
       <p className="mt-4 hidden max-w-lg text-base leading-relaxed text-fog sm:line-clamp-2 sm:text-lg lg:line-clamp-3">
@@ -623,7 +623,7 @@ function ProductSlideCopy({
 function CustomSlideArt({ sizes }: { sizes: { inches: number }[] }) {
   return (
     <div className="absolute inset-0 grid place-items-center">
-      <div className="relative aspect-square h-[74%] max-h-[380px]">
+      <div className="relative aspect-square h-[70%] max-h-[380px] sm:h-[74%]">
         {/* second copy peeking out behind */}
         <div className="absolute inset-0 translate-x-[9%] translate-y-[5%] rotate-[9deg] rounded-[36px] bg-white/70 shadow-lg ring-1 ring-black/5" />
 
@@ -655,16 +655,16 @@ function CustomSlideArt({ sizes }: { sizes: { inches: number }[] }) {
         </div>
 
         {/* floating labels */}
-        <span className="animate-float-slow absolute top-[6%] -left-[14%] inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-snow shadow-md">
+        <span className="animate-float-slow absolute top-[6%] -left-[14%] hidden sm:inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-snow shadow-md">
           <Shapes className="size-3.5 text-brand" /> Any shape
         </span>
-        <span className="animate-float-slow absolute top-[42%] -right-[16%] inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-snow shadow-md [animation-delay:-4s]">
+        <span className="animate-float-slow absolute top-[42%] -right-[16%] hidden sm:inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-snow shadow-md [animation-delay:-4s]">
           <Ruler className="size-3.5 text-brand" />{" "}
           {sizes.length > 3
             ? `${formatInches(sizes[0].inches)}″ – ${formatInches(sizes[sizes.length - 1].inches)}″`
             : sizes.map((s) => `${formatInches(s.inches)}″`).join(" · ")}
         </span>
-        <span className="animate-float-slow absolute bottom-[2%] -left-[8%] inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-snow shadow-md [animation-delay:-7s]">
+        <span className="animate-float-slow absolute bottom-[2%] -left-[8%] hidden sm:inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-snow shadow-md [animation-delay:-7s]">
           <Scissors className="size-3.5 text-mint" /> Clean die-cut
         </span>
       </div>
@@ -818,26 +818,39 @@ function CustomSlideCopy({
   const from = Math.min(...sizes.map((s) => s.price));
   return (
     <>
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 text-[11px] font-bold tracking-widest text-brand uppercase backdrop-blur-sm">
+      <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-3 py-1 text-[10px] font-bold tracking-widest text-brand uppercase backdrop-blur-sm sm:px-3.5 sm:py-1.5 sm:text-[11px]">
         <Icon className="size-3.5" /> {c.badge}
       </span>
-      <h2 className="mt-2.5 line-clamp-2 font-display text-[30px] leading-[1.05] font-bold tracking-tight sm:mt-4 sm:text-6xl lg:mt-5 lg:text-[64px]">
+      <h2 className="mt-2 line-clamp-2 font-display text-[24px] leading-[1.1] font-bold tracking-tight sm:mt-4 sm:text-6xl lg:mt-5 lg:text-[64px]">
         {c.title}
       </h2>
       <p className="mt-4 hidden max-w-lg text-base leading-relaxed text-fog sm:line-clamp-2 sm:text-lg lg:line-clamp-3">
         {c.text}
       </p>
-      <div className="mt-2 flex items-baseline gap-2 sm:mt-6">
+      <div className="mt-1.5 flex items-baseline gap-2 sm:mt-6">
         <span className="text-sm text-fog">from</span>
-        <span className="font-display text-3xl font-bold text-gold sm:text-4xl">
+        <span className="font-display text-[28px] leading-none font-bold text-gold sm:text-4xl">
           {formatINR(from)}
         </span>
+        {/* phones: the picture's floating labels, as one quiet line */}
+        <span className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-fog sm:hidden">
+          {kind === "qr" ? (
+            <>
+              <Wallet className="size-3.5 text-mint" /> UPI, WhatsApp, links
+            </>
+          ) : (
+            <>
+              <Scissors className="size-3.5 text-mint" /> Any shape, die-cut
+            </>
+          )}
+        </span>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2 sm:mt-4">
-        {sizes.map((s) => (
+      <div className="mt-3 grid grid-cols-3 gap-2 sm:mt-4 sm:flex sm:flex-wrap">
+        {sizes.map((s, i) => (
           <span
             key={s.inches}
-            className="inline-flex items-baseline gap-1.5 rounded-xl border border-line bg-ink2/80 px-3.5 py-2 backdrop-blur-sm"
+            // phones: one row of three
+            className={`items-baseline justify-center gap-1.5 rounded-xl border border-line bg-ink2/80 px-2 py-2 backdrop-blur-sm sm:inline-flex sm:px-3.5 ${i < 3 ? "inline-flex" : "hidden"}`}
           >
             <span className="font-display text-base font-bold">
               {formatInches(s.inches)}″
@@ -851,7 +864,7 @@ function CustomSlideCopy({
       <div className="mt-3 flex flex-wrap items-center gap-2.5 sm:mt-6 sm:gap-3">
         <PageLink
           href={c.href}
-          className="peel-btn inline-flex h-12 items-center gap-2 rounded-xl px-6 text-base font-bold"
+          className="peel-btn inline-flex h-12 items-center justify-center gap-2 rounded-xl px-6 text-base font-bold max-sm:w-full"
         >
           {c.cta} <ArrowRight className="size-4" />
         </PageLink>
@@ -882,21 +895,34 @@ function HeroBuy({
 
   return (
     <>
-      <div className="mt-2 flex items-baseline gap-3 sm:mt-6">
-        <span className="font-display text-3xl font-bold text-gold sm:text-4xl">
+      <div className="mt-1.5 flex items-center gap-2.5 sm:mt-6 sm:items-baseline sm:gap-3">
+        <span className="font-display text-[28px] leading-none font-bold text-gold sm:text-4xl">
           {formatINR(price)}
         </span>
         {compareAtPrice !== null && compareAtPrice > price && (
           <>
-            <span className="text-lg text-fog/80 line-through">
+            <span className="text-base text-fog/80 line-through sm:text-lg">
               {formatINR(compareAtPrice)}
             </span>
             {off !== null && (
-              <span className="rounded-full border border-mint/30 bg-mint/15 px-2.5 py-1 text-xs font-bold text-mint">
+              <span className="rounded-full border border-mint/30 bg-mint/15 px-2 py-0.5 text-[11px] font-bold text-mint sm:px-2.5 sm:py-1 sm:text-xs">
                 SAVE {off}%
               </span>
             )}
           </>
+        )}
+        {sizes.length > 0 && (
+          // phones: here, beside the price; bigger screens: next to the buttons
+          <button
+            type="button"
+            onClick={() => {
+              setTrueSize(true);
+              onPickSize();
+            }}
+            className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-fog transition-colors hover:text-brand sm:hidden"
+          >
+            <Ruler className="size-3.5" /> Actual size
+          </button>
         )}
       </div>
 
@@ -904,7 +930,7 @@ function HeroBuy({
         <div
           role="radiogroup"
           aria-label="Sticker size"
-          className="mt-3 flex flex-wrap gap-2 sm:mt-4"
+          className="mt-3 grid grid-cols-3 gap-2 sm:mt-4 sm:flex sm:flex-wrap"
         >
           {sizes.map((s) => {
             const active = s.inches === size;
@@ -918,7 +944,7 @@ function HeroBuy({
                   setSize(s.inches);
                   onPickSize();
                 }}
-                className={`inline-flex items-baseline gap-1.5 rounded-xl border px-3.5 py-2 transition-all ${
+                className={`inline-flex items-baseline justify-center gap-1.5 rounded-xl border px-2 py-2 transition-all sm:px-3.5 ${
                   active
                     ? "border-brand bg-brand/[0.07] ring-1 ring-brand"
                     : "border-line bg-ink2/80 backdrop-blur-sm hover:border-snow/30"
@@ -938,16 +964,17 @@ function HeroBuy({
         </div>
       )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-2.5 sm:mt-6 sm:gap-3">
+      <div className="mt-3 flex items-center gap-2.5 sm:mt-6 sm:flex-wrap sm:gap-3">
         <AddToCartButton
           product={product}
           stickerSize={size}
           size="lg"
           sticker
+          className="max-sm:min-w-0 max-sm:flex-1 max-sm:px-4"
         />
         <PageLink
           href={`/sticker/${product.slug}`}
-          className="peel-btn peel-btn--light inline-flex h-12 items-center gap-2 rounded-xl px-6 text-base font-bold"
+          className="peel-btn peel-btn--light inline-flex h-12 shrink-0 items-center gap-2 rounded-xl px-4 text-base font-bold sm:px-6"
         >
           Details <ArrowRight className="size-4" />
         </PageLink>
@@ -958,7 +985,7 @@ function HeroBuy({
               setTrueSize(true);
               onPickSize();
             }}
-            className="inline-flex h-12 items-center gap-2 rounded-xl px-3 text-sm font-semibold text-fog transition-colors hover:text-brand"
+            className="hidden h-12 items-center gap-2 rounded-xl px-3 text-sm font-semibold text-fog transition-colors hover:text-brand sm:inline-flex"
           >
             <Ruler className="size-4" /> Actual size
           </button>

@@ -71,7 +71,7 @@ export default function CustomRail() {
           key={src}
           href={`/avatar-stickers?style=${encodeURIComponent(label)}`}
           aria-label={`${label} AI avatar stickers of you`}
-          className="group relative w-44 shrink-0 snap-start overflow-hidden rounded-2xl border border-line bg-ink2 transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] sm:w-48 md:w-52"
+          className="rail-card-drawn group relative w-44 shrink-0 snap-start overflow-hidden rounded-2xl border border-line bg-ink2 transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] sm:w-48 md:w-52"
         >
           {/* art: one sample avatar of the style as a die-cut sticker */}
           <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-[#fff1f5] via-[#fff8ec] to-[#eef6ff]">
@@ -110,7 +110,7 @@ export default function CustomRail() {
             key={href}
             href={href}
             style={{ backgroundColor: s.card }}
-            className="group relative w-44 shrink-0 snap-start overflow-hidden rounded-2xl border border-line transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] sm:w-48 md:w-52"
+            className="rail-card-drawn group relative w-44 shrink-0 snap-start overflow-hidden rounded-2xl border border-line transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] sm:w-48 md:w-52"
           >
             {/* art: a blank die-cut sticker with the option's icon, slightly tilted */}
             <div className="relative grid aspect-square place-items-center overflow-hidden" style={s.art}>

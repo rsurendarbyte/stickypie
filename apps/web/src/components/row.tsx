@@ -47,7 +47,7 @@ export default function Row({
         </button>
         <div
           ref={scroller}
-          className="rail-scroller no-scrollbar flex snap-x gap-3 overflow-x-auto px-4 pt-4 pb-5 scroll-pl-4 sm:gap-4 sm:px-8 sm:scroll-pl-8 lg:px-12 lg:scroll-pl-12 2xl:px-20 2xl:scroll-pl-20"
+          className="rail-scroller no-scrollbar flex snap-x gap-3 overflow-x-auto px-4 pt-3 pb-3 scroll-pl-4 sm:pt-4 sm:pb-5 sm:gap-4 sm:px-8 sm:scroll-pl-8 lg:px-12 lg:scroll-pl-12 2xl:px-20 2xl:scroll-pl-20"
         >
           {children}
         </div>
