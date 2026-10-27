@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "@/components/page-link";
 import AvatarStickerBuilder from "@/components/avatar-sticker-builder";
 import CustomRequestForm from "@/components/custom-request-form";
 import FaqItem from "@/components/faq-item";
@@ -38,10 +37,7 @@ export default async function AvatarStickersPage() {
   return (
     <div className="mx-auto min-h-screen w-full max-w-6xl px-4 pt-20 pb-44 sm:px-8 sm:pt-24 sm:pb-24">
       {faq.length > 0 && <JsonLd data={offer ? [offer, faqStructuredData(faq)] : faqStructuredData(faq)} />}
-      <Link href="/custom-stickers" className="block w-fit text-xs font-semibold text-fog hover:text-snow">
-        ← All custom options
-      </Link>
-      <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-2.5 py-1 text-[11px] font-bold tracking-wide text-brand uppercase">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-2.5 py-1 text-[11px] font-bold tracking-wide text-brand uppercase">
         New · AI avatar sticker packs
       </span>
       <h1 className="mt-2 font-display text-[28px] leading-[1.1] font-bold sm:text-[42px]">

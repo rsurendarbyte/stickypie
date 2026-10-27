@@ -15,6 +15,7 @@ import {
   ShoppingBag,
   Shuffle,
   Truck,
+  Trash2,
   X,
 } from "lucide-react";
 import {
@@ -32,6 +33,7 @@ import {
 import { idbSet } from "@/lib/idb";
 import { useFeatures, useStoreSettings } from "@/lib/live-catalog";
 import { shrinkImage } from "@/lib/shrink-image";
+import ZoomPane from "./zoom-pane";
 import AvatarArt from "./avatar-art";
 import { useCart } from "./cart-context";
 import CustomBookBar from "./custom-book-bar";
@@ -374,9 +376,10 @@ export default function AvatarStickerBuilder() {
               }
             >
               <p className="-mt-1 mb-3 text-xs text-fog">
-                Each style is one sticker pack — select {min} or more.
+                Tap a style to add it — each one is a sticker sheet of you. Pick {min} or more.
               </p>
-              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 sm:gap-3">
+              {/* Phones: two big cards a row so the pictures read; more columns on wider screens */}
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 xl:grid-cols-4">
                 {styles.map((st, n) => {
                   const page = picked.indexOf(st.label) + 1;
                   const on = page > 0;
@@ -384,87 +387,60 @@ export default function AvatarStickerBuilder() {
                   return (
                     <div
                       key={st.label}
-                      className={`relative overflow-hidden rounded-2xl bg-ink ring-1 transition-all ${
+                      className={`relative overflow-hidden rounded-2xl ring-1 transition-all ${
                         on
-                          ? "ring-[2.5px] ring-brand"
+                          ? "bg-brand/[0.06] ring-[2.5px] ring-brand"
                           : full
-                            ? "opacity-40 ring-line"
-                            : "ring-line hover:ring-snow/30"
+                            ? "bg-ink opacity-40 ring-line"
+                            : "bg-ink ring-line hover:ring-snow/30"
                       }`}
                     >
-                      <div className="relative">
-                        <button
-                          type="button"
-                          aria-pressed={on}
-                          aria-label={
-                            on
-                              ? `${st.label}, pack ${page}`
-                              : `Pick ${st.label}`
-                          }
-                          onClick={() => toggleStyle(st.label)}
-                          className="block w-full"
-                        >
-                          <StyleCover
-                            style={st}
-                            offset={n * 0.8}
-                            className="aspect-square w-full"
-                          />
-                        </button>
-                        {/* Samples on the picture, bottom centre */}
-                        {st.images.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setGallery({
-                                title: st.label,
-                                images: st.images,
-                                at: 0,
-                              })
-                            }
-                            className="absolute bottom-1.5 left-1/2 inline-flex h-7 -translate-x-1/2 items-center gap-1 rounded-full bg-white/95 px-2.5 text-[11px] font-bold whitespace-nowrap text-brand shadow-md ring-1 ring-brand/30 backdrop-blur-sm transition-colors hover:bg-brand hover:text-white sm:text-xs"
-                          >
-                            <Eye className="size-3.5 shrink-0" /> Samples
-                          </button>
-                        )}
-                      </div>
-                      <span className="flex h-10 items-center overflow-hidden px-2 pt-1.5 text-[11px] leading-tight font-bold text-snow sm:text-xs">
-                        {st.label}
-                      </span>
-                      <div className="px-1.5 pt-0.5 pb-1.5">
+                      <button
+                        type="button"
+                        aria-pressed={on}
+                        disabled={full}
+                        aria-label={on ? `${st.label}, sheet ${page} — tap to remove` : `Add ${st.label}`}
+                        onClick={() => toggleStyle(st.label)}
+                        className="block w-full disabled:cursor-not-allowed"
+                      >
+                        <StyleCover style={st} offset={n * 0.8} className="aspect-[5/4] w-full" />
+                      </button>
+                      {on && (
+                        <span className="pie-gradient pointer-events-none absolute top-2 left-2 flex h-6 items-center gap-1 rounded-full pr-2 pl-1.5 text-[11px] font-bold text-white shadow ring-2 ring-white">
+                          <Check className="size-3.5" strokeWidth={3} /> Sheet {page}
+                        </span>
+                      )}
+                      <div className="flex items-center gap-2 px-2.5 pt-2 pb-2.5">
+                        <div className="min-w-0 flex-1">
+                          <span className="block truncate text-[13px] leading-tight font-bold text-snow">
+                            {st.label}
+                          </span>
+                          {st.images.length > 0 ? (
+                            <button
+                              type="button"
+                              onClick={() => setGallery({ title: st.label, images: st.images, at: 0 })}
+                              className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold whitespace-nowrap text-brand hover:underline"
+                            >
+                              <Eye className="size-3.5 shrink-0" /> {st.images.length} sample{st.images.length === 1 ? "" : "s"}
+                            </button>
+                          ) : (
+                            <span className="mt-1 block text-[11px] text-fog">AI sticker sheet</span>
+                          )}
+                        </div>
                         <button
                           type="button"
                           disabled={full}
                           onClick={() => toggleStyle(st.label)}
-                          className={`flex h-8 w-full items-center justify-center gap-1 rounded-xl text-[11px] font-bold transition-colors outline-none active:translate-y-px disabled:cursor-not-allowed sm:text-xs ${
+                          aria-label={on ? `Remove ${st.label}` : `Add ${st.label}`}
+                          className={`grid size-9 shrink-0 place-items-center rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand active:scale-95 disabled:cursor-not-allowed ${
                             on
-                              ? "bg-white text-brand ring-[1.5px] ring-brand hover:bg-brand hover:text-white"
-                              : "pie-gradient text-white shadow-[0_2px_0_rgba(232,51,109,0.25)]"
+                              ? "bg-white text-red-500 shadow ring-1 ring-red-500/30 hover:bg-red-500 hover:text-white"
+                              : "bg-white text-brand ring-[1.5px] ring-brand/40 hover:bg-brand hover:text-white"
                           }`}
                         >
-                          {on ? (
-                            <X className="size-3.5 shrink-0" />
-                          ) : (
-                            <Plus className="size-3.5 shrink-0" />
-                          )}
-                          {on ? "Remove" : "Select"}
+                          {on ? <Trash2 className="size-4" strokeWidth={2.25} /> : <Plus className="size-4.5" strokeWidth={2.5} />}
                         </button>
                       </div>
-                      {on && (
-                        <>
-                          <span className="pie-gradient pointer-events-none absolute top-1.5 left-1.5 grid size-6 place-items-center rounded-full text-[11px] font-bold text-white shadow ring-2 ring-white">
-                            {page}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => toggleStyle(st.label)}
-                            aria-label={`Remove ${st.label}`}
-                            title="Remove"
-                            className="absolute top-1.5 right-1.5 grid size-7 place-items-center rounded-full bg-white text-neutral-900 shadow ring-1 ring-black/10 transition-colors hover:bg-brand hover:text-white"
-                          >
-                            <X className="size-4" />
-                          </button>
-                        </>
-                      )}
                     </div>
                   );
                 })}
@@ -700,8 +676,9 @@ export default function AvatarStickerBuilder() {
           </div>
           <div className="relative grid min-h-0 flex-1 place-items-center py-3">
             {/* the sheet, sized to fit the screen, with a SAMPLE watermark over it */}
+            {/* pinch / double-tap / +− to look closer; the watermark zooms with it */}
+            <ZoomPane resetKey={`${gallery.title}-${gallery.at}`}>
             <span
-              onClick={(e) => e.stopPropagation()}
               onContextMenu={(e) => e.preventDefault()}
               className="relative inline-block overflow-hidden rounded-xl bg-white select-none"
             >
@@ -709,7 +686,7 @@ export default function AvatarStickerBuilder() {
                 src={gallery.images[gallery.at]}
                 alt={`${gallery.title} sample`}
                 draggable={false}
-                className="block max-h-[calc(100dvh-190px)] max-w-[calc(100vw-120px)] object-contain max-sm:max-w-[calc(100vw-32px)]"
+                className="block max-h-[calc(100dvh-250px)] max-w-[calc(100vw-120px)] object-contain max-sm:max-w-[calc(100vw-32px)]"
               />
               <span
                 aria-hidden
@@ -720,6 +697,7 @@ export default function AvatarStickerBuilder() {
                 Sample
               </span>
             </span>
+            </ZoomPane>
             {gallery.images.length > 1 &&
               ([-1, 1] as const).map((by) => (
                 <button
@@ -736,7 +714,7 @@ export default function AvatarStickerBuilder() {
                     );
                   }}
                   aria-label={by < 0 ? "Previous" : "Next"}
-                  className={`absolute top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-neutral-900 shadow ${
+                  className={`absolute top-1/2 z-10 grid size-11 -translate-y-1/2 place-items-center rounded-full bg-white/90 text-neutral-900 shadow ${
                     by < 0 ? "left-0" : "right-0"
                   }`}
                 >
