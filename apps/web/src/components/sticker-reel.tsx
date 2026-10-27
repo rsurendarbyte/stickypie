@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, ChevronUp, LayoutList, Ruler, Share2, ShoppingBag, Truck } from "lucide-react";
 import type { Product } from "@stickypie/shared";
-import { discountPercent, formatINR, inCategory } from "@stickypie/shared";
-import { useLiveCatalog } from "@/lib/live-catalog";
+import { belowMinimum, discountPercent, formatINR, inCategory } from "@stickypie/shared";
+import { useLiveCatalog, useStoreSettings } from "@/lib/live-catalog";
 import { cardSkinFor } from "@/lib/palette";
 import { isMiniPoster } from "@/lib/poster";
 import { useSkinSeed } from "@/lib/skin-seed";
@@ -245,6 +245,9 @@ function ReelItem({
   onPageView: () => void;
 }) {
   const { add, items, subtotal } = useCart();
+  const settings = useStoreSettings();
+  // Below the minimum order: no Checkout yet, just how much more to add.
+  const shortBy = belowMinimum(settings, subtotal, items);
   const skin = cardSkinFor(product.slug, useSkinSeed());
   const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product);
   const off = discountPercent(price, compareAtPrice);
@@ -373,16 +376,39 @@ function ReelItem({
           </button>
           {inCart ? (
             <>
+              {shortBy > 0 ? (
+                // below the minimum: Checkout can't be used yet; it fills up towards the minimum
+                <button
+                  type="button"
+                  disabled
+                  aria-disabled
+                  className="relative flex h-12 min-w-0 flex-1 cursor-not-allowed flex-col items-center justify-center overflow-hidden rounded-2xl bg-brand/[0.06] px-2 ring-1 ring-brand/20"
+                >
+                  <span
+                    aria-hidden
+                    className="pie-gradient absolute inset-y-0 left-0 opacity-25 transition-[width] duration-500"
+                    style={{ width: `${Math.min((subtotal / Math.max(settings.minOrder, 1)) * 100, 100)}%` }}
+                  />
+                  <span className="relative text-[13px] leading-tight font-bold whitespace-nowrap text-snow">
+                    Add {formatINR(shortBy)} more
+                  </span>
+                  <span className="relative text-[11px] leading-tight font-semibold whitespace-nowrap text-fog">
+                    to checkout
+                  </span>
+                </button>
+              ) : (
+                <PageLink
+                  href="/checkout"
+                  className="peel-btn peel-btn--brand flex h-12 min-w-0 flex-1 items-center justify-center gap-1 rounded-2xl px-2 text-sm font-bold whitespace-nowrap"
+                >
+                  Checkout
+                  {/* narrow phones: just "Checkout", so it never gets cut */}
+                  <span className="max-[359px]:hidden">{" · "}{formatINR(subtotal)}</span>
+                  <ArrowRight className="size-4 shrink-0 max-[359px]:hidden" />
+                </PageLink>
+              )}
+              {/* quantity on the right, Add more / Checkout in the middle */}
               <CartStepper item={inCart} size="lg" sticker className="h-12 shrink-0" />
-              <PageLink
-                href="/checkout"
-                className="peel-btn peel-btn--brand flex h-12 min-w-0 flex-1 items-center justify-center gap-1 rounded-2xl px-2 text-sm font-bold whitespace-nowrap"
-              >
-                Checkout
-                {/* narrow phones: just "Checkout", so it never gets cut */}
-                <span className="max-[359px]:hidden">{" · "}{formatINR(subtotal)}</span>
-                <ArrowRight className="size-4 shrink-0 max-[359px]:hidden" />
-              </PageLink>
             </>
           ) : (
             <button

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "@/components/page-link";
 import CustomRequestForm from "@/components/custom-request-form";
 import TextStickerBuilder from "@/components/text-sticker-builder";
 import { pageMetadata } from "@/lib/site";
@@ -14,10 +13,7 @@ export const metadata: Metadata = pageMetadata({
 export default function NameStickersPage() {
   return (
     <div className="mx-auto min-h-screen w-full max-w-5xl px-4 pt-24 pb-44 sm:px-8 sm:pb-24">
-      <Link href="/custom-stickers" className="text-xs font-semibold text-fog hover:text-snow">
-        ← All custom options
-      </Link>
-      <h1 className="mt-2 font-display text-3xl font-bold sm:text-4xl">Name &amp; text stickers</h1>
+      <h1 className="font-display text-3xl font-bold sm:text-4xl">Name &amp; text stickers</h1>
       <p className="mt-1.5 max-w-2xl text-[15px] text-fog">
         Your name or a short line in a fun sticker font — for bottles, bags, laptops and helmets. Waterproof
         die-cut vinyl.

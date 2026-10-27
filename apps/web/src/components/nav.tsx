@@ -8,7 +8,16 @@ import { useShopper } from "@/lib/shopper-auth";
 import { useCart } from "./cart-context";
 import SearchSpotlight from "./search-spotlight";
 import CustomMenu from "./custom-menu";
+import BackButton from "./back-button";
 import { useFeatures } from "@/lib/live-catalog";
+
+// Pages with a Back button in the header, and where it goes on a direct visit.
+const BACK_PAGES: Record<string, string> = {
+  "/avatar-stickers": "/custom-stickers",
+  "/name-stickers": "/custom-stickers",
+  "/qr-code-stickers": "/custom-stickers",
+  "/checkout": "/stickers",
+};
 
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
@@ -16,6 +25,10 @@ export default function Nav() {
   const { count, openCart } = useCart();
   const shopper = useShopper();
   const pathname = usePathname();
+  // Custom makers and checkout: a Back button (to wherever the shopper came from) in
+  // place of the logo on phones, before it on bigger screens.
+  const backTo = BACK_PAGES[pathname];
+  const backPage = Boolean(backTo);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -75,7 +88,11 @@ export default function Nav() {
         }`}
       >
         <div className="flex h-[60px] w-full items-center gap-2 px-3 sm:h-[72px] sm:gap-6 sm:px-8 lg:px-12">
-          <Link href="/" className="flex shrink-0 items-center gap-2.5">
+          {backTo && <BackButton fallback={backTo} />}
+          <Link
+            href="/"
+            className={`shrink-0 items-center gap-2.5 ${backPage ? "hidden sm:flex" : "flex"}`}
+          >
             <span
               aria-hidden
               className="peel peel-gentle size-8 -rotate-6 sm:size-9 transition-transform duration-300 hover:rotate-0"

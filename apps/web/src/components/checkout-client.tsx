@@ -4,7 +4,6 @@ import Link from "@/components/page-link";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
-  ArrowLeft,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -547,27 +546,9 @@ export default function CheckoutClient() {
 
   return (
     <div className="mx-auto min-h-screen w-full max-w-6xl px-4 pt-20 pb-32 sm:px-8">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link
-            href="/stickers"
-            // back to wherever the shopper came from (e.g. the swipe view); a
-            // direct visit to checkout goes to the stickers instead
-            onClick={(e) => {
-              let sameSite = false;
-              try {
-                sameSite = Boolean(document.referrer) && new URL(document.referrer).origin === location.origin;
-              } catch {}
-              if (sameSite && history.length > 1) {
-                e.preventDefault();
-                history.back();
-              }
-            }}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-fog transition-colors hover:text-brand"
-          >
-            <ArrowLeft className="size-3.5" /> Continue shopping
-          </Link>
-          <h1 className="mt-1 font-display text-2xl font-bold sm:text-3xl">
+          <h1 className="font-display text-2xl font-bold sm:text-3xl">
             Checkout
           </h1>
         </div>
