@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "@/components/page-link";
+import BackButton from "./back-button";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
@@ -546,6 +547,10 @@ export default function CheckoutClient() {
 
   return (
     <div className="mx-auto min-h-screen w-full max-w-6xl px-4 pt-20 pb-32 sm:px-8">
+      {/* desktop: Back on the page (phones have it in the header) */}
+      <div className="mb-3 hidden sm:block">
+        <BackButton fallback="/stickers" />
+      </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold sm:text-3xl">

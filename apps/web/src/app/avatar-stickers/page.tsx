@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import BackButton from "@/components/back-button";
 import AvatarStickerBuilder from "@/components/avatar-sticker-builder";
 import CustomRequestForm from "@/components/custom-request-form";
 import FaqItem from "@/components/faq-item";
@@ -37,6 +38,10 @@ export default async function AvatarStickersPage() {
   return (
     <div className="mx-auto min-h-screen w-full max-w-6xl px-4 pt-20 pb-44 sm:px-8 sm:pt-24 sm:pb-24">
       {faq.length > 0 && <JsonLd data={offer ? [offer, faqStructuredData(faq)] : faqStructuredData(faq)} />}
+      {/* desktop: Back on the page (phones have it in the header) */}
+      <div className="mb-3 hidden sm:block">
+        <BackButton fallback="/custom-stickers" />
+      </div>
       <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-2.5 py-1 text-[11px] font-bold tracking-wide text-brand uppercase">
         New · AI avatar sticker packs
       </span>

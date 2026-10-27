@@ -14,6 +14,7 @@ import {
   Plus,
   ShoppingBag,
   Shuffle,
+  Sparkles,
   Truck,
   Trash2,
   X,
@@ -187,6 +188,10 @@ export default function AvatarStickerBuilder() {
   const [error, setError] = useState<string | null>(null);
   const [reading, setReading] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Consent that the stickers are made from their photo with an AI model: asked
+  // in a pop-up on Book now / Add to cart, then booking carries on.
+  const [agreed, setAgreed] = useState(false);
+  const [askTerms, setAskTerms] = useState<{ thenCheckout: boolean } | null>(null);
   useEffect(
     () => () => void (preview && URL.revokeObjectURL(preview)),
     [preview],
@@ -276,7 +281,7 @@ export default function AvatarStickerBuilder() {
         ? "Add your photo"
         : null;
 
-  async function addToCart(thenCheckout: boolean, list: string[] = picked) {
+  async function addToCart(thenCheckout: boolean, list: string[] = picked, consent = agreed) {
     if (!book || busy) return;
     if (list.length < min) {
       setError(null);
@@ -286,6 +291,10 @@ export default function AvatarStickerBuilder() {
     if (!photo) {
       setError("Add your photo");
       inputRef.current?.click();
+      return;
+    }
+    if (!consent) {
+      setAskTerms({ thenCheckout });
       return;
     }
     setError(null);
@@ -376,7 +385,7 @@ export default function AvatarStickerBuilder() {
               }
             >
               <p className="-mt-1 mb-3 text-xs text-fog">
-                Tap a style to add it — each one is a sticker sheet of you. Pick {min} or more.
+                Tap a style to add it — each one is a sticker pack of you. Pick {min} or more.
               </p>
               {/* Phones: two big cards a row so the pictures read; more columns on wider screens */}
               <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 xl:grid-cols-4">
@@ -399,7 +408,7 @@ export default function AvatarStickerBuilder() {
                         type="button"
                         aria-pressed={on}
                         disabled={full}
-                        aria-label={on ? `${st.label}, sheet ${page} — tap to remove` : `Add ${st.label}`}
+                        aria-label={on ? `${st.label}, pack ${page} — tap to remove` : `Add ${st.label}`}
                         onClick={() => toggleStyle(st.label)}
                         className="block w-full disabled:cursor-not-allowed"
                       >
@@ -407,7 +416,7 @@ export default function AvatarStickerBuilder() {
                       </button>
                       {on && (
                         <span className="pie-gradient pointer-events-none absolute top-2 left-2 flex h-6 items-center gap-1 rounded-full pr-2 pl-1.5 text-[11px] font-bold text-white shadow ring-2 ring-white">
-                          <Check className="size-3.5" strokeWidth={3} /> Sheet {page}
+                          <Check className="size-3.5" strokeWidth={3} /> Pack {page}
                         </span>
                       )}
                       <div className="flex items-center gap-2 px-2.5 pt-2 pb-2.5">
@@ -424,7 +433,7 @@ export default function AvatarStickerBuilder() {
                               <Eye className="size-3.5 shrink-0" /> {st.images.length} sample{st.images.length === 1 ? "" : "s"}
                             </button>
                           ) : (
-                            <span className="mt-1 block text-[11px] text-fog">AI sticker sheet</span>
+                            <span className="mt-1 block text-[11px] text-fog">AI sticker pack</span>
                           )}
                         </div>
                         <button
@@ -775,6 +784,53 @@ export default function AvatarStickerBuilder() {
             className="peel-btn peel-btn--brand flex h-12 items-center justify-center gap-1.5 rounded-xl text-sm font-bold"
           >
             <Shuffle className="size-4" /> Pick for me
+          </button>
+        </div>
+      </LabelModal>
+
+      <LabelModal
+        open={!!askTerms}
+        onClose={() => setAskTerms(null)}
+        labelledBy="avatar-terms-title"
+        className="w-full max-w-sm p-5 sm:p-6"
+      >
+        <span className="grid size-11 place-items-center rounded-2xl bg-brand/10 text-brand">
+          <Sparkles className="size-5" />
+        </span>
+        <h2 id="avatar-terms-title" className="mt-3 font-display text-xl font-bold">
+          Made with AI from your photo
+        </h2>
+        <ul className="mt-2 space-y-1.5 text-sm leading-relaxed text-fog">
+          <li>• We make your stickers from your photo using an AI model, so the artwork is AI-generated.</li>
+          <li>• You have the right to use this photo (yours, or your child&apos;s as their parent).</li>
+          <li>• We show the stickers on your order page before printing.</li>
+        </ul>
+        <p className="mt-2 text-xs text-fog">
+          By continuing you accept our{" "}
+          <a href="/legal/terms" target="_blank" rel="noopener" className="font-semibold text-brand underline">
+            terms
+          </a>
+          .
+        </p>
+        <div className="mt-5 grid grid-cols-[auto_1fr] gap-2">
+          <button
+            type="button"
+            onClick={() => setAskTerms(null)}
+            className="peel-btn peel-btn--light flex h-12 items-center justify-center rounded-xl px-4 text-sm font-bold"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const next = askTerms;
+              setAgreed(true);
+              setAskTerms(null);
+              if (next) void addToCart(next.thenCheckout, picked, true);
+            }}
+            className="peel-btn peel-btn--brand flex h-12 items-center justify-center gap-1.5 rounded-xl text-sm font-bold"
+          >
+            <Check className="size-4" strokeWidth={3} /> I agree &amp; continue
           </button>
         </div>
       </LabelModal>

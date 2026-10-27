@@ -26,7 +26,7 @@ export default function Nav() {
   const shopper = useShopper();
   const pathname = usePathname();
   // Custom makers and checkout: a Back button (to wherever the shopper came from) in
-  // place of the logo on phones, before it on bigger screens.
+  // place of the logo on phones only; bigger screens keep the logo.
   const backTo = BACK_PAGES[pathname];
   const backPage = Boolean(backTo);
 
@@ -88,7 +88,11 @@ export default function Nav() {
         }`}
       >
         <div className="flex h-[60px] w-full items-center gap-2 px-3 sm:h-[72px] sm:gap-6 sm:px-8 lg:px-12">
-          {backTo && <BackButton fallback={backTo} />}
+          {backTo && (
+            <span className="sm:hidden">
+              <BackButton fallback={backTo} />
+            </span>
+          )}
           <Link
             href="/"
             className={`shrink-0 items-center gap-2.5 ${backPage ? "hidden sm:flex" : "flex"}`}
