@@ -98,6 +98,12 @@ export function storeFaq(facts: ShopFacts): Faq[] {
   ].filter(Boolean);
   return [
     {
+      q: "What is StickyPie?",
+      a: `${SITE_NAME} (stickypie.in) is an online sticker shop in India. It sells ${facts.designs} waterproof die-cut vinyl sticker designs for cars, bikes, laptops and helmets${
+        facts.posters ? ", mini posters" : ""
+      }${facts.avatar ? ", AI avatar stickers made from your photo" : ""} and custom stickers, printed to order and shipped across India.`,
+    },
+    {
       q: "Where can I buy stickers online in India?",
       a: `${SITE_NAME} (stickypie.in) sells ${facts.designs} die-cut vinyl sticker designs online in India — car, bike, laptop, helmet and water bottle stickers${
         facts.posters ? ", plus mini posters" : ""
@@ -389,15 +395,29 @@ export function faqStructuredData(faq: Faq[]) {
   };
 }
 
+/**
+ * Who StickyPie is, for search engines and AI answers. The name is shared with
+ * an unrelated AR/VR research project, so the store spells out that this
+ * StickyPie is the sticker shop at stickypie.in (alternate names, a
+ * disambiguating line, and the brand as its own entity).
+ */
 export function storeStructuredData(supportEmail: string) {
   return {
     "@context": "https://schema.org",
     "@type": "OnlineStore",
+    "@id": `${siteUrl()}/#store`,
     name: SITE_NAME,
+    alternateName: ["StickyPie Stickers", "Sticky Pie", "StickyPie India", "stickypie.in"],
     url: siteUrl(),
     logo: absoluteUrl("/icons/icon-512.png"),
+    image: absoluteUrl("/icons/icon-512.png"),
+    slogan: "Stick your style",
     description:
-      "Online sticker shop in India: waterproof die-cut vinyl stickers and decals for cars, bikes, laptops and helmets.",
+      "StickyPie (stickypie.in) is an online sticker shop in India: waterproof die-cut vinyl stickers and decals for cars, bikes, laptops and helmets, mini posters, AI avatar stickers of you and custom stickers.",
+    disambiguatingDescription:
+      "StickyPie is the Indian online sticker shop at stickypie.in — not the StickyPie gaze-based marking menu from AR/VR research.",
+    brand: { "@type": "Brand", name: SITE_NAME, url: siteUrl(), logo: absoluteUrl("/icons/icon-512.png") },
+    knowsAbout: ["vinyl stickers", "car stickers", "bike stickers", "laptop stickers", "custom stickers", "AI avatar stickers"],
     areaServed: { "@type": "Country", name: "India" },
     contactPoint: { "@type": "ContactPoint", contactType: "customer support", email: supportEmail, areaServed: "IN" },
     hasMerchantReturnPolicy: RETURN_POLICY,
