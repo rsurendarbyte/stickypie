@@ -67,7 +67,7 @@ export function StoreAbout({ faq }: { faq: Faq[] }) {
   return (
     <section className="mx-auto mt-16 w-full max-w-5xl px-4 pb-8 sm:px-8">
       <h1 className="font-display text-2xl font-bold sm:text-3xl">
-        Waterproof vinyl stickers, made for India
+        Vinyl stickers, made for India
       </h1>
       <p className="mt-3 max-w-3xl text-[15px] leading-relaxed text-fog">
         StickyPie is an online sticker shop for{" "}
@@ -105,8 +105,8 @@ export function StoreAbout({ faq }: { faq: Faq[] }) {
         >
           water bottle stickers
         </Link>
-        . Every design is printed to order on premium die-cut vinyl —
-        waterproof, scratch-resistant and UV-safe — in a range of sizes. Peel,
+        . Every design is printed to order on die-cut vinyl in a range of
+        sizes. Peel,
         stick and make anything yours, with delivery to pin codes across India.
         Want stickers of yourself? Send a selfie for{" "}
         <Link

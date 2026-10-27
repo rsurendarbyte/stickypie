@@ -7,7 +7,7 @@ import { siteUrl } from "./mode";
 export const SITE_NAME = "StickyPie";
 export const SITE_TAGLINE = "Stick Your Style";
 export const SITE_DESCRIPTION =
-  "Buy waterproof vinyl stickers online in India — car, bike, laptop and helmet stickers, plus AI avatar stickers of you from your photo. Ships across India.";
+  "Buy vinyl stickers online in India — car, bike, laptop and helmet stickers, plus AI avatar stickers of you from your photo. Ships across India.";
 
 /**
  * Only the production build may be indexed. dev.stickypie.in, workers.dev

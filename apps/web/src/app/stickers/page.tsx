@@ -13,7 +13,7 @@ import { pageMetadata } from "@/lib/site";
 export const metadata: Metadata = pageMetadata({
   title: "Buy Stickers Online in India – Car, Bike & Laptop Vinyl Stickers",
   description:
-    "Shop every StickyPie sticker — car and bike decals, laptop stickers, origin badges, warning labels and memes. Waterproof die-cut vinyl in several sizes, shipped across India.",
+    "Shop every StickyPie sticker — car and bike decals, laptop stickers, origin badges, warning labels and memes. Die-cut vinyl in several sizes, shipped across India.",
   path: "/stickers",
 });
 

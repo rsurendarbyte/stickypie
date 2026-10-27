@@ -6,38 +6,94 @@ import FaqItem from "@/components/faq-item";
 import JsonLd from "@/components/json-ld";
 import { avatarFaq, faqStructuredData } from "@/lib/seo";
 import { loadShopFacts } from "@/lib/shop-facts";
+import { formatINR } from "@stickypie/shared";
+import { siteUrl } from "@/lib/mode";
 import { SITE_NAME, absoluteUrl, pageMetadata } from "@/lib/site";
 
-export const metadata: Metadata = pageMetadata({
-  title: "AI Avatar Stickers – Waterproof Vinyl Stickers of You, From Your Photo",
-  description:
-    "Turn your selfie into AI avatar stickers in anime, chibi, 90s retro, 3D cartoon and more trending styles, printed on waterproof vinyl.",
-  path: "/avatar-stickers",
-});
+export const metadata: Metadata = {
+  ...pageMetadata({
+    title: "AI Avatar Stickers – Vinyl Stickers of You, From Your Photo",
+    description:
+      "Turn your selfie into AI avatar stickers in anime, chibi, 90s retro, 3D cartoon and more trending styles, printed on vinyl.",
+    path: "/avatar-stickers",
+    image: "/avatar-samples/90s-retro-girl.webp",
+  }),
+  keywords: [
+    "AI avatar stickers",
+    "AI stickers of me",
+    "stickers of myself from photo",
+    "custom cartoon stickers India",
+    "anime stickers of me",
+    "chibi stickers from photo",
+    "selfie stickers",
+    "personalised stickers India",
+    "StickyPie",
+  ],
+};
 
 export default async function AvatarStickersPage() {
   // Prices and styles answered in plain words, for shoppers, Google and AI assistants.
   const facts = await loadShopFacts();
   const faq = avatarFaq(facts);
-  const offer = facts.avatar && {
+  const avatar = facts.avatar;
+  const page = absoluteUrl("/avatar-stickers");
+  const offer = avatar && {
     "@context": "https://schema.org",
     "@type": "Product",
     name: "AI Avatar Stickers From Your Photo",
-    description: `Custom AI avatar sticker packs made from your selfie in ${facts.avatar.styles.length} styles, printed on waterproof die-cut vinyl.`,
+    alternateName: ["AI stickers of me", "Custom cartoon stickers from photo", "Selfie avatar stickers"],
+    description: `Custom AI avatar sticker packs made from your selfie in ${avatar.styles.length} styles (${avatar.styles.join(", ")}), printed on die-cut vinyl and shipped across India.`,
     brand: { "@type": "Brand", name: SITE_NAME },
-    image: absoluteUrl("/avatar-samples/90s-retro-girl.webp"),
-    url: absoluteUrl("/avatar-stickers"),
+    category: "Custom stickers",
+    image: avatar.pictures.length
+      ? avatar.pictures.slice(0, 10).map((p) => p.url)
+      : [absoluteUrl("/avatar-samples/90s-retro-girl.webp")],
+    url: page,
+    material: "Vinyl",
+    additionalProperty: [
+      { "@type": "PropertyValue", name: "Styles", value: avatar.styles.join(", ") },
+      { "@type": "PropertyValue", name: "Made with", value: "AI model, from your photo" },
+      { "@type": "PropertyValue", name: "Minimum packs", value: avatar.packs },
+    ],
     offers: {
-      "@type": "Offer",
-      price: facts.avatar.packs * facts.avatar.price,
+      "@type": "AggregateOffer",
       priceCurrency: "INR",
+      lowPrice: avatar.packs * avatar.price,
+      highPrice: Math.max(avatar.styles.length, avatar.packs) * avatar.price,
+      offerCount: Math.max(avatar.styles.length - avatar.packs + 1, 1),
       availability: "https://schema.org/InStock",
-      url: absoluteUrl("/avatar-stickers"),
+      url: page,
+      seller: { "@id": `${siteUrl()}/#store` },
     },
   };
+  const breadcrumb = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: absoluteUrl("/") },
+      { "@type": "ListItem", position: 2, name: "Custom stickers", item: absoluteUrl("/custom-stickers") },
+      { "@type": "ListItem", position: 3, name: "AI avatar stickers", item: page },
+    ],
+  };
+  const howTo = avatar && {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    name: "How to get AI avatar stickers of yourself",
+    description: `Order a pack of AI-made stickers of you in each style you pick, from ${SITE_NAME}.`,
+    totalTime: "P10D",
+    estimatedCost: { "@type": "MonetaryAmount", currency: "INR", value: avatar.packs * avatar.price },
+    step: [
+      { name: "Pick your styles", text: `Choose ${avatar.packs} or more styles, like ${avatar.styles.slice(0, 4).join(", ")}. Each style is one sticker pack.` },
+      { name: "Add your photo", text: "Add one clear, well-lit photo of your face looking at the camera." },
+      { name: "Pay", text: `Pay online (${formatINR(avatar.price)} a pack). Shipping is added at checkout.` },
+      { name: "See your stickers", text: "We make your stickers with an AI model and show them on your order page." },
+      { name: "Get them delivered", text: "They're printed on vinyl and delivered anywhere in India." },
+    ].map((st, i) => ({ "@type": "HowToStep", position: i + 1, url: page, ...st })),
+  };
+  const data = [offer, breadcrumb, howTo, faq.length ? faqStructuredData(faq) : null].filter(Boolean);
   return (
     <div className="mx-auto min-h-screen w-full max-w-6xl px-4 pt-20 pb-44 sm:px-8 sm:pt-24 sm:pb-24">
-      {faq.length > 0 && <JsonLd data={offer ? [offer, faqStructuredData(faq)] : faqStructuredData(faq)} />}
+      <JsonLd data={data} />
       {/* desktop: Back on the page (phones have it in the header) */}
       <div className="mb-3 hidden sm:block">
         <BackButton fallback="/custom-stickers" />
@@ -50,11 +106,33 @@ export default async function AvatarStickersPage() {
       </h1>
       <p className="mt-1.5 max-w-2xl text-sm text-fog sm:text-base">
         Pick your styles and send a selfie. We use AI to make a pack of avatar stickers of you in each style, then
-        print them on waterproof vinyl.
+        print them on vinyl.
       </p>
       <AvatarStickerBuilder />
-      {faq.length > 0 && (
+      {avatar && (
+        // Every style in words, for shoppers scrolling past and for search / AI answers.
         <section className="mt-12 max-w-3xl">
+          <h2 className="font-display text-xl font-bold">AI sticker styles of you</h2>
+          <p className="mt-2 text-sm leading-relaxed text-fog">
+            Send one selfie and get a cartoon version of you, made with AI, in any of {avatar.styles.length} trending
+            styles. Each style is a pack of stickers of you, printed on die-cut vinyl for laptops, phones,
+            bottles, cars and bikes, and shipped across India. {formatINR(avatar.price)} a pack, {avatar.packs} packs or
+            more.
+          </p>
+          <ul className="mt-3 flex flex-wrap gap-2">
+            {avatar.styles.map((st) => (
+              <li
+                key={st}
+                className="rounded-full border border-line bg-ink2/80 px-3 py-1.5 text-xs font-semibold text-snow"
+              >
+                {st} stickers of you
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {faq.length > 0 && (
+        <section className="mt-10 max-w-3xl">
           <h2 className="font-display text-xl font-bold">AI avatar stickers, answered</h2>
           <div className="mt-4 divide-y divide-line rounded-2xl border border-line bg-ink2/80">
             {faq.map(({ q, a }) => (

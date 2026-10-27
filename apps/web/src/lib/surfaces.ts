@@ -27,17 +27,17 @@ export const SURFACES: Surface[] = [
     slug: "car-stickers",
     name: "Car Stickers",
     noun: "car",
-    title: "Car Stickers Online in India – Waterproof Vinyl Car Decals",
+    title: "Car Stickers Online in India – Die-Cut Vinyl Car Decals",
     description:
-      "Buy car stickers online in India: waterproof die-cut vinyl decals for bumpers, windows and fuel flaps — JDM, racing, warning labels and more. Several sizes, shipped across India.",
+      "Buy car stickers online in India: die-cut vinyl decals for bumpers, windows and fuel flaps — JDM, racing, warning labels and more. Several sizes, shipped across India.",
     intro:
-      "Bumper, rear window, fuel flap or dashboard — our car stickers are die-cut vinyl decals made to handle sun, rain and car washes. Pick from JDM and racing designs, petrolhead slogans, warning labels and origin badges, each printed to order in the size you pick.",
+      "Bumper, rear window, fuel flap or dashboard — our car stickers are die-cut vinyl decals. Pick from JDM and racing designs, petrolhead slogans, warning labels and origin badges, each printed to order in the size you pick.",
     tags: ["car", "cars", "bumper", "jdm", "racing", "petrolhead", "fuel", "diesel", "petrol", "drift", "turbo", "tuning", "baby on board", "jeep", "4x4"],
     categories: ["cars", "jdm", "racing", "petrolhead", "signage", "warning", "origin", "off-road"],
     sections: [
       {
-        heading: "Made for the outside of your car",
-        body: "Every car sticker is printed on premium vinyl that's waterproof, UV-safe and scratch-resistant, so colours stay bright through Indian summers and monsoon washes. The die-cut edge follows the design — no square white borders on your paint or glass.",
+        heading: "Cut to the shape of the design",
+        body: "Every car sticker is printed on vinyl and die-cut so the edge follows the design — no square white borders on your paint or glass.",
       },
       {
         heading: "Where car stickers look best",
@@ -45,10 +45,6 @@ export const SURFACES: Surface[] = [
       },
     ],
     faq: [
-      {
-        q: "Will the car sticker survive a car wash?",
-        a: "Yes. The vinyl is waterproof and the print is UV-safe. Wait 24 hours after applying before the first wash, and avoid pointing a pressure washer straight at the edges.",
-      },
       {
         q: "Can I put a sticker on the car glass?",
         a: "Yes — vinyl stickers stick cleanly to glass and can be peeled off later. Don't place them where they block your view or on the windscreen area the wipers cover.",
@@ -63,17 +59,17 @@ export const SURFACES: Surface[] = [
     slug: "bike-stickers",
     name: "Bike Stickers",
     noun: "bike",
-    title: "Bike Stickers Online in India – Waterproof Vinyl Bike Decals",
+    title: "Bike Stickers Online in India – Die-Cut Vinyl Bike Decals",
     description:
-      "Shop bike stickers online in India: waterproof die-cut vinyl decals for tanks, side panels, visors and helmets — rider, off-road and adventure designs. Ships across India.",
+      "Shop bike stickers online in India: die-cut vinyl decals for tanks, side panels, visors and helmets — rider, off-road and adventure designs. Ships across India.",
     intro:
-      "Tank, side panel, mudguard or visor — our bike stickers are die-cut vinyl decals built for riders. They're waterproof, UV-safe and tough enough for rain, dust and highway miles, with rider, off-road and adventure designs in several sizes.",
+      "Tank, side panel, mudguard or visor — our bike stickers are die-cut vinyl decals built for riders, with rider, off-road and adventure designs in several sizes.",
     tags: ["bike", "bikes", "biker", "bikers", "motorcycle", "motocross", "ride", "rider", "helmet", "offroad", "trail", "adventure", "mountains"],
     categories: ["bikers", "off-road", "adventure", "racing"],
     sections: [
       {
-        heading: "Tough enough for every ride",
-        body: "Vinyl that shrugs off rain, mud and sun, with a print that won't fade after a season outdoors. The die-cut shape hugs the design so it looks painted on, not stuck on.",
+        heading: "Cut to the shape of the design",
+        body: "The die-cut shape hugs the design so it looks painted on, not stuck on.",
       },
       {
         heading: "Where bike stickers fit",
@@ -81,10 +77,6 @@ export const SURFACES: Surface[] = [
       },
     ],
     faq: [
-      {
-        q: "Do bike stickers come off in the rain?",
-        a: "No. They're waterproof vinyl with a strong adhesive. Apply on a clean, dry surface and let them set for 24 hours before riding in the rain.",
-      },
       {
         q: "Can I stick one on a curved fuel tank?",
         a: "Yes. Vinyl flexes over gentle curves — press from the centre out and warm it slightly with a hair dryer to help it settle on tighter curves.",
@@ -99,11 +91,11 @@ export const SURFACES: Surface[] = [
     slug: "laptop-stickers",
     name: "Laptop Stickers",
     noun: "laptop",
-    title: "Laptop Stickers Online in India – Waterproof Vinyl Laptop Decals",
+    title: "Laptop Stickers Online in India – Die-Cut Vinyl Laptop Decals",
     description:
-      "Buy laptop stickers online in India: waterproof die-cut vinyl stickers for MacBooks, laptops and tablets — memes, funny quotes, car culture and more. Peel off cleanly, ships across India.",
+      "Buy laptop stickers online in India: die-cut vinyl stickers for MacBooks, laptops and tablets — memes, funny quotes, car culture and more. Peel off cleanly, ships across India.",
     intro:
-      "Make your laptop yours. Our laptop stickers are die-cut vinyl — waterproof, scratch-resistant and easy to peel off without leaving residue — so you can build a lid full of memes, car culture and good vibes, and change it whenever you like.",
+      "Make your laptop yours. Our laptop stickers are die-cut vinyl and easy to peel off without leaving residue — so you can build a lid full of memes, car culture and good vibes, and change it whenever you like.",
     tags: ["laptop", "macbook", "funny", "meme", "memes", "gaming", "cute", "good vibes", "positive", "aesthetic", "anime", "shaka"],
     categories: ["fun", "anime", "gaming", "computer-geek", "aesthetic"],
     sections: [
@@ -113,7 +105,7 @@ export const SURFACES: Surface[] = [
       },
       {
         heading: "Peel off clean when you upgrade",
-        body: "Vinyl comes away cleanly from laptop lids, so selling or swapping your laptop later isn't a problem. They're also water-resistant, so a spilled drink won't ruin them.",
+        body: "Vinyl comes away cleanly from laptop lids, so selling or swapping your laptop later isn't a problem.",
       },
     ],
     faq: [
@@ -135,17 +127,17 @@ export const SURFACES: Surface[] = [
     slug: "helmet-stickers",
     name: "Helmet Stickers",
     noun: "helmet",
-    title: "Helmet Stickers Online in India – Waterproof Vinyl Helmet Decals",
+    title: "Helmet Stickers Online in India – Die-Cut Vinyl Helmet Decals",
     description:
-      "Shop helmet stickers online in India: small waterproof die-cut vinyl decals for bike and cycling helmets — rider, adventure and fun designs. Ships across India.",
+      "Shop helmet stickers online in India: small die-cut vinyl decals for bike and cycling helmets — rider, adventure and fun designs. Ships across India.",
     intro:
-      "Give your lid some personality. Our helmet stickers are compact die-cut vinyl decals that flex over curves and stay put through rain and sun — rider slogans, adventure badges and fun designs, best in 3″.",
+      "Give your lid some personality. Our helmet stickers are compact die-cut vinyl decals that flex over curves — rider slogans, adventure badges and fun designs, best in 3″.",
     tags: ["helmet", "bike", "biker", "bikers", "motocross", "ride", "rider", "offroad", "adventure"],
     categories: ["bikers", "off-road", "adventure"],
     sections: [
       {
-        heading: "Small, flexible and weatherproof",
-        body: "Helmets are curved, so the 3″ size works best: it settles smoothly on the shell without lifting at the edges. The vinyl is waterproof and UV-safe for daily rides.",
+        heading: "Small and flexible",
+        body: "Helmets are curved, so the 3″ size works best: it settles smoothly on the shell without lifting at the edges.",
       },
       {
         heading: "Stick it safely",
@@ -171,28 +163,20 @@ export const SURFACES: Surface[] = [
     slug: "bottle-stickers",
     name: "Bottle Stickers",
     noun: "water bottle",
-    title: "Water Bottle Stickers Online in India – Waterproof Vinyl Stickers",
+    title: "Water Bottle Stickers Online in India – Die-Cut Vinyl Stickers",
     description:
-      "Buy waterproof water bottle stickers online in India: die-cut vinyl stickers for steel bottles, flasks and tumblers — funny, cute and good-vibes designs. Ships across India.",
+      "Buy water bottle stickers online in India: die-cut vinyl stickers for steel bottles, flasks and tumblers — funny, cute and good-vibes designs. Ships across India.",
     intro:
-      "Your bottle goes everywhere — make it unmistakably yours. These waterproof vinyl stickers handle daily washing and cold condensation, with funny, cute and good-vibes designs in a bottle-friendly 3″ size.",
+      "Your bottle goes everywhere — make it unmistakably yours. These die-cut vinyl stickers come in funny, cute and good-vibes designs in a bottle-friendly 3″ size.",
     tags: ["bottle", "water bottle", "flask", "funny", "cute", "good vibes", "positive", "shaka", "meme", "memes"],
     categories: ["fun", "aesthetic", "motivational"],
     sections: [
-      {
-        heading: "Waterproof, wash after wash",
-        body: "The vinyl and print are waterproof, so hand-washing your steel bottle or tumbler won't fade or peel the sticker. Skip the dishwasher to keep it looking new for longer.",
-      },
       {
         heading: "The right size for bottles",
         body: "3″ stickers fit most 500 ml–1 L bottles and flasks. Stick them on a clean, dry, room-temperature bottle and let them set for a day before washing.",
       },
     ],
     faq: [
-      {
-        q: "Are the stickers safe to wash?",
-        a: "Yes — they're waterproof and handle regular hand-washing. Dishwashers use very hot water and strong detergent, so hand-wash for the longest life.",
-      },
       {
         q: "Will they stick to a steel bottle?",
         a: "Yes. Clean the bottle with a little rubbing alcohol first so the adhesive grips the steel properly.",

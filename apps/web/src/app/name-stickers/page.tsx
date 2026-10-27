@@ -7,7 +7,7 @@ import { pageMetadata } from "@/lib/site";
 export const metadata: Metadata = pageMetadata({
   title: "Name Stickers – Custom Name & Text Stickers Online",
   description:
-    "Make your own name sticker: type your name or a short line, pick a fun font and colour, and we print it as a waterproof die-cut vinyl sticker. Any quantity, shipped across India.",
+    "Make your own name sticker: type your name or a short line, pick a fun font and colour, and we print it as a die-cut vinyl sticker. Any quantity, shipped across India.",
   path: "/name-stickers",
 });
 
@@ -20,8 +20,8 @@ export default function NameStickersPage() {
       </div>
       <h1 className="font-display text-3xl font-bold sm:text-4xl">Name &amp; text stickers</h1>
       <p className="mt-1.5 max-w-2xl text-[15px] text-fog">
-        Your name or a short line in a fun sticker font — for bottles, bags, laptops and helmets. Waterproof
-        die-cut vinyl.
+        Your name or a short line in a fun sticker font — for bottles, bags, laptops and helmets. Die-cut
+        vinyl.
       </p>
       <TextStickerBuilder />
       <CustomRequestForm />

@@ -1,6 +1,6 @@
 // Search copy + Google structured data shared by the storefront pages.
 // Words people actually search for in India ("car stickers", "laptop
-// stickers", "waterproof vinyl stickers", "peel and stick") are woven into
+// stickers", "vinyl stickers", "peel and stick") are woven into
 // real, readable text — never hidden or stuffed.
 import type { Category, Product, PublicReview } from "@stickypie/shared";
 import { categoryPath, formatINR } from "@stickypie/shared";
@@ -22,14 +22,14 @@ function sizeList(product: Product): string {
 }
 
 export function productSeoTitle(product: Product): string {
-  return `${seoName(product)} – Waterproof Vinyl Decal`;
+  return `${seoName(product)} – Die-Cut Vinyl Decal`;
 }
 
 export function productSeoDescription(product: Product): string {
   const sizes = sizeList(product);
   const pitch = `Buy the ${seoName(product)} from ${SITE_NAME}, online in India from ${formatINR(product.price)}${
     sizes ? ` in ${sizes} sizes` : ""
-  }. Waterproof, UV-safe die-cut vinyl for car, bike, laptop & helmet. Peel and stick.`;
+  }. Die-cut vinyl for car, bike, laptop & helmet. Peel and stick.`;
   const lead = product.description.trim();
   const text = lead ? `${lead} ${pitch}` : pitch;
   return text.length > 160 ? `${text.slice(0, 157).trimEnd()}…` : text;
@@ -59,7 +59,7 @@ export function productDetails(product: Product, categoryNames: string[]) {
 /** Intro text for a category page. */
 export function categoryIntro(category: Category, count: number): string {
   const name = category.name.toLowerCase();
-  return `Browse ${count} ${name} sticker${count === 1 ? "" : "s"} from ${SITE_NAME} — waterproof die-cut vinyl decals for your car, bike, laptop, helmet and more. Every ${name} sticker is printed to order in the size you pick and shipped across India.`;
+  return `Browse ${count} ${name} sticker${count === 1 ? "" : "s"} from ${SITE_NAME} — die-cut vinyl decals for your car, bike, laptop, helmet and more. Every ${name} sticker is printed to order in the size you pick and shipped across India.`;
 }
 
 export type Faq = { q: string; a: string };
@@ -73,8 +73,8 @@ export type ShopFacts = {
   custom: { inches: number; price: number }[];
   qr: { inches: number; price: number }[];
   text: { inches: number; price: number }[];
-  /** AI avatar sticker packs: minimum packs, price per pack and the style names, or null when off. */
-  avatar: { packs: number; price: number; styles: string[] } | null;
+  /** AI avatar sticker packs: minimum packs, price per pack, the style names and one picture per style. */
+  avatar: { packs: number; price: number; styles: string[]; pictures: { style: string; url: string }[] } | null;
 };
 
 const fromPrice = (sizes: { price: number }[]) => (sizes.length ? Math.min(...sizes.map((s) => s.price)) : null);
@@ -99,7 +99,7 @@ export function storeFaq(facts: ShopFacts): Faq[] {
   return [
     {
       q: "What is StickyPie?",
-      a: `${SITE_NAME} (stickypie.in) is an online sticker shop in India. It sells ${facts.designs} waterproof die-cut vinyl sticker designs for cars, bikes, laptops and helmets${
+      a: `${SITE_NAME} (stickypie.in) is an online sticker shop in India. It sells ${facts.designs} die-cut vinyl sticker designs for cars, bikes, laptops and helmets${
         facts.posters ? ", mini posters" : ""
       }${facts.avatar ? ", AI avatar stickers made from your photo" : ""} and custom stickers, printed to order and shipped across India.`,
     },
@@ -176,7 +176,7 @@ export function avatarFaq(facts: ShopFacts): Faq[] {
   return [
     {
       q: "Can I get AI stickers of myself made from a photo?",
-      a: `Yes. ${SITE_NAME} turns your selfie into AI avatar stickers — a cartoon version of you in trending styles like ${named} — and prints them as waterproof die-cut vinyl stickers, shipped across India. Pick at least ${packs} styles, one sticker pack each, for ${formatINR(price)} a pack (${formatINR(packs * price)} for ${packs}). Start at stickypie.in/avatar-stickers.`,
+      a: `Yes. ${SITE_NAME} turns your selfie into AI avatar stickers — a cartoon version of you in trending styles like ${named} — and prints them as die-cut vinyl stickers, shipped across India. Pick at least ${packs} styles, one sticker pack each, for ${formatINR(price)} a pack (${formatINR(packs * price)} for ${packs}). Start at stickypie.in/avatar-stickers.`,
     },
     {
       q: "How do AI avatar stickers work?",
@@ -195,8 +195,24 @@ export function avatarFaq(facts: ShopFacts): Faq[] {
       a: "One clear, well-lit photo of your face looking at the camera, without sunglasses or heavy filters. You upload it from your order page after paying, and it's only used to make your stickers.",
     },
     {
+      q: "Are the avatar stickers really made with AI?",
+      a: `Yes. ${SITE_NAME} uses an AI model to turn your photo into a cartoon avatar of you in each style you pick, so the artwork is AI-generated. You see the finished stickers on your order page before they're printed.`,
+    },
+    {
+      q: "Can I get anime or chibi stickers of myself?",
+      a: `Yes — anime and chibi are two of the ${styles.length} AI styles, along with ${styles.filter((s) => !/anime|chibi/i.test(s)).slice(0, 5).join(", ")} and more. Pick any ${packs} or more and you get a sticker pack of you in each.`,
+    },
+    {
+      q: "How long do AI avatar stickers take to arrive?",
+      a: "Once your stickers are made and shown on your order page, they're printed on vinyl, dispatched in 2–4 days and delivered in 3–5 days anywhere in India.",
+    },
+    {
+      q: "Can I order avatar stickers as a gift?",
+      a: "Yes. Use the photo of the person you're gifting (with their OK, or your child's photo as their parent) and ship to their address in India. Avatar stickers of friends, couples and kids make a fun birthday or anniversary gift.",
+    },
+    {
       q: "Where can I stick my avatar stickers?",
-      a: "Anywhere smooth: laptops, phones, water bottles, cars, bikes, helmets, diaries and fridges. They're printed on waterproof vinyl, so they're fine indoors or out. They also make a fun gift for friends, couples and kids.",
+      a: "Anywhere smooth: laptops, phones, water bottles, cars, bikes, helmets, diaries and fridges. They also make a fun gift for friends, couples and kids.",
     },
   ];
 }
@@ -236,10 +252,6 @@ export function customFaq(facts: ShopFacts): Faq[] {
 }
 
 const BASE_FAQ: Faq[] = [
-  {
-    q: "Are StickyPie stickers waterproof?",
-    a: "Yes. Every sticker is printed on premium vinyl that is waterproof, scratch-resistant and UV-safe, so it works on cars, bikes, helmets, bottles and laptops, indoors or out.",
-  },
   {
     q: "What sizes do the stickers come in?",
     a: "Most designs come in several sizes (measured on the longest side). You can preview the real size on your screen with \"See actual size\" on any sticker.",
@@ -413,7 +425,7 @@ export function storeStructuredData(supportEmail: string) {
     image: absoluteUrl("/icons/icon-512.png"),
     slogan: "Stick your style",
     description:
-      "StickyPie (stickypie.in) is an online sticker shop in India: waterproof die-cut vinyl stickers and decals for cars, bikes, laptops and helmets, mini posters, AI avatar stickers of you and custom stickers.",
+      "StickyPie (stickypie.in) is an online sticker shop in India: die-cut vinyl stickers and decals for cars, bikes, laptops and helmets, mini posters, AI avatar stickers of you and custom stickers.",
     disambiguatingDescription:
       "StickyPie is the Indian online sticker shop at stickypie.in — not the StickyPie gaze-based marking menu from AR/VR research.",
     brand: { "@type": "Brand", name: SITE_NAME, url: siteUrl(), logo: absoluteUrl("/icons/icon-512.png") },

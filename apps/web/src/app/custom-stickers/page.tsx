@@ -11,7 +11,7 @@ import { pageMetadata } from "@/lib/site";
 export const metadata: Metadata = pageMetadata({
   title: "Custom Stickers – Your Design, Name or QR Code, Printed in India",
   description:
-    "Make your own stickers: print your logo, photo or artwork, make a name sticker in fun fonts, or create a UPI / WhatsApp / website QR code sticker. Waterproof die-cut vinyl, any quantity, shipped across India.",
+    "Make your own stickers: print your logo, photo or artwork, make a name sticker in fun fonts, or create a UPI / WhatsApp / website QR code sticker. Die-cut vinyl, any quantity, shipped across India.",
   path: "/custom-stickers",
 });
 
@@ -55,7 +55,7 @@ export default async function CustomStickersPage() {
       {faq.length > 0 && <JsonLd data={faqStructuredData(faq)} />}
       <h1 className="font-display text-3xl font-bold sm:text-4xl">Custom stickers</h1>
       <p className="mt-1.5 max-w-2xl text-[15px] text-fog">
-        What would you like to make? Waterproof die-cut vinyl, printed to order and shipped across India.
+        What would you like to make? Die-cut vinyl, printed to order and shipped across India.
       </p>
 
       <div className="mt-5 grid gap-2.5 lg:grid-cols-3 lg:gap-3">

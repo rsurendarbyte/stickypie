@@ -7,7 +7,7 @@ import { pageMetadata } from "@/lib/site";
 export const metadata: Metadata = pageMetadata({
   title: "QR Code Stickers – UPI, WhatsApp & Website QR Stickers Online",
   description:
-    "Make your own QR code sticker: UPI payment, WhatsApp, Instagram or website QR with a label like “Scan to pay”. Waterproof die-cut vinyl, any quantity, shipped across India.",
+    "Make your own QR code sticker: UPI payment, WhatsApp, Instagram or website QR with a label like “Scan to pay”. Die-cut vinyl, any quantity, shipped across India.",
   path: "/qr-code-stickers",
 });
 
@@ -20,7 +20,7 @@ export default function QrCodeStickersPage() {
       </div>
       <h1 className="font-display text-3xl font-bold sm:text-4xl">QR code stickers</h1>
       <p className="mt-1.5 max-w-2xl text-[15px] text-fog">
-        UPI, WhatsApp, Instagram or website QR with a label like “Scan to pay” — waterproof die-cut vinyl.
+        UPI, WhatsApp, Instagram or website QR with a label like “Scan to pay” — die-cut vinyl.
       </p>
       <QrStickerBuilder />
       <CustomRequestForm />
