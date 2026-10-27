@@ -1143,6 +1143,11 @@ html[data-lite] .card-shine {
   content-visibility: auto;
   contain-intrinsic-size: auto 320px;
 }
+/* Cards shorter than that stand-in (Make your own) are always drawn, so the
+   row is as tall as they really are. */
+.rail-scroller > .rail-card-drawn {
+  content-visibility: visible;
+}
 
 /* ── Car cursor (components/car-cursor.tsx) — mouse users only ──────────── */
 html.car-cursor,
