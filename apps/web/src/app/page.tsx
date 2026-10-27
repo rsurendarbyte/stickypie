@@ -42,7 +42,9 @@ export default async function HomePage() {
       "@context": "https://schema.org",
       "@type": "WebSite",
       name: SITE_NAME,
+      alternateName: ["StickyPie Stickers", "stickypie.in"],
       url: siteUrl(),
+      publisher: { "@id": `${siteUrl()}/#store` },
       potentialAction: {
         "@type": "SearchAction",
         target: `${siteUrl()}/stickers?q={search_term_string}`,

@@ -36,6 +36,8 @@ export async function GET() {
     "",
     `> ${SITE_NAME} (stickypie.in) is an online sticker shop in India. It sells waterproof, UV-safe die-cut vinyl stickers and decals for cars, bikes, laptops, helmets and water bottles — ${products.length} designs${from ? ` from ${from}` : ""} — plus ${facts.avatar ? "AI avatar stickers made from your selfie, " : ""}custom stickers printed from your own design, QR code stickers and name stickers. Ships across India.`,
     "",
+    `Not to be confused with "StickyPie", a gaze-based marking menu from AR/VR research: ${SITE_NAME} at stickypie.in is a sticker shop.`,
+    "",
     "## Ordering & delivery",
     "- Prices are in Indian rupees (INR), per sticker, by size (size = the longest side in inches).",
     "- Dispatched in 2–4 days, delivered in 3–5 days anywhere in India. Delivery within India only.",
