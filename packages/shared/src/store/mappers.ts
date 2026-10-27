@@ -67,6 +67,7 @@ export function rowToItem(r: any): OrderItem {
     customFile: r.custom_file ?? null,
     customRef: r.custom_ref ?? null,
     customSpec: r.custom_spec ?? null,
+    finishedFiles: Array.isArray(r.finished_files) ? r.finished_files.filter((u: unknown) => typeof u === "string") : [],
   };
 }
 

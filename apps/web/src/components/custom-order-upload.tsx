@@ -10,6 +10,7 @@ import {
   formatInches,
 } from "@stickypie/shared";
 import { idbDelete, idbGet } from "@/lib/idb";
+import { shrinkImage } from "@/lib/shrink-image";
 import { useShopper } from "@/lib/shopper-auth";
 
 type Item = {
@@ -20,6 +21,8 @@ type Item = {
   imageUrl: string;
   sizeInches: number | null;
   quantity: number;
+  /** Avatar sticker book: the upload is the shopper's photo, not print artwork. */
+  photo?: boolean;
 };
 
 type ItemState =
@@ -127,6 +130,8 @@ export default function CustomOrderUpload({
   const busy = values.some((s) => s.kind === "uploading" || s.kind === "queued" || s.kind === "checking");
   const needsAction = values.some((s) => s.kind === "failed" || s.kind === "missing");
   const allDone = values.every((s) => s.kind === "done");
+  // Avatar sticker books send a photo; everything else sends a design.
+  const noun = items.every((i) => i.photo) ? "photo" : "design";
 
   // Leaving mid-upload would lose the design — warn first.
   useEffect(() => {
@@ -141,6 +146,14 @@ export default function CustomOrderUpload({
 
   function pick(item: Item, file: File | undefined) {
     if (!file) return;
+    if (item.photo) {
+      // Phone photos are big: send a 2000px copy, like the avatar maker does.
+      shrinkImage(file, 2000, 2_500_000)
+        .then((small) => send(item, small))
+        .then(() => router.refresh())
+        .catch((err) => set(item.id, { kind: "failed", message: err instanceof Error ? err.message : "Couldn't open that photo." }));
+      return;
+    }
     if (!(CUSTOM_STICKER_TYPES as readonly string[]).includes(file.type)) {
       set(item.id, { kind: "failed", message: "Please choose a PNG, JPG or WebP image." });
       return;
@@ -184,14 +197,14 @@ export default function CustomOrderUpload({
           </span>
         )}
         <h1 className="mt-4 font-display text-3xl font-bold sm:text-4xl">
-          {allDone ? "Order confirmed! 🎉" : needsAction && !busy ? "One more step" : "Sending your design…"}
+          {allDone ? "Order confirmed! 🎉" : needsAction && !busy ? "One more step" : `Sending your ${noun}…`}
         </h1>
         <p className="mt-2 text-sm text-fog">
           {allDone
-            ? `Thanks ${firstName} — we've got your design and will check it before printing. You can replace it until we start working on your order.`
+            ? `Thanks ${firstName} — ${noun === "photo" ? "we've got your photo. We'll draw your stickers and show them on this page, then print and ship." : "we've got your design and will check it before printing. You can replace it until we start working on your order."}`
             : needsAction && !busy
-              ? `Payment received, ${firstName}. Upload your design so we can print your stickers.`
-              : `Payment received, ${firstName}. We're uploading your design now.`}
+              ? `Payment received, ${firstName}. ${noun === "photo" ? "Upload your photo so we can draw your stickers." : "Upload your design so we can print your stickers."}`
+              : `Payment received, ${firstName}. We're uploading your ${noun} now.`}
         </p>
       </div>
 
@@ -203,7 +216,7 @@ export default function CustomOrderUpload({
       )}
       {!owner && !allDone && (
         <p className="mt-5 rounded-2xl border border-line bg-ink2 p-4 text-center text-sm text-fog">
-          Sign in with the account you ordered from to send your design.
+          Sign in with the account you ordered from to send your {noun}.
         </p>
       )}
 
@@ -226,11 +239,11 @@ export default function CustomOrderUpload({
                     {item.name}{item.sizeInches ? ` · ${formatInches(item.sizeInches)}″` : ""} × {item.quantity}
                   </span>
                   <span className="block text-xs text-fog">
-                    {state.kind === "done" && "Design received ✓"}
-                    {state.kind === "checking" && "Getting your design ready…"}
+                    {state.kind === "done" && (item.photo ? "Photo received ✓" : "Design received ✓")}
+                    {state.kind === "checking" && (item.photo ? "Getting your photo ready…" : "Getting your design ready…")}
                     {state.kind === "queued" && "Waiting to upload…"}
                     {state.kind === "uploading" && `Uploading… ${state.progress}%`}
-                    {state.kind === "missing" && "We couldn't find your design on this device."}
+                    {state.kind === "missing" && `We couldn't find your ${item.photo ? "photo" : "design"} on this device.`}
                     {state.kind === "failed" && <span className="text-brand">{state.message}</span>}
                   </span>
                 </span>
@@ -243,7 +256,7 @@ export default function CustomOrderUpload({
                         inputs.current[item.id] = el;
                       }}
                       type="file"
-                      accept={CUSTOM_STICKER_TYPES.join(",")}
+                      accept={item.photo ? "image/*" : CUSTOM_STICKER_TYPES.join(",")}
                       className="sr-only"
                       onChange={(e) => {
                         pick(item, e.target.files?.[0]);
@@ -265,7 +278,7 @@ export default function CustomOrderUpload({
                         </>
                       ) : (
                         <>
-                          <ImageUp className="size-4" /> {state.kind === "failed" ? "Try again" : "Upload design"}
+                          <ImageUp className="size-4" /> {state.kind === "failed" ? "Try again" : item.photo ? "Upload photo" : "Upload design"}
                         </>
                       )}
                     </button>
@@ -285,7 +298,9 @@ export default function CustomOrderUpload({
         })}
       </ul>
       {needsAction && !busy && owner && (
-        <p className="mt-3 text-center text-xs text-fog">PNG, JPG or WebP · up to 5 MB · the highest quality you have</p>
+        <p className="mt-3 text-center text-xs text-fog">
+          {noun === "photo" ? "A clear photo of your face, in good light" : "PNG, JPG or WebP · up to 5 MB · the highest quality you have"}
+        </p>
       )}
     </div>
   );

@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { storeSettingsSchema } from "@stickypie/shared";
 import { requireAdminApi } from "@/lib/data";
 
-/** Saves the minimum order + shipping zones. */
+/**
+ * Saves the shop settings. The avatar sticker book has its own page
+ * (PUT /api/settings/avatar-book), so its values are kept as they are here.
+ */
 export async function PUT(req: Request) {
   const auth = await requireAdminApi();
   if (!auth.ok) return auth.res;
@@ -21,7 +24,12 @@ export async function PUT(req: Request) {
     );
   }
   try {
-    const settings = await auth.driver.updateSettings(parsed.data);
+    const current = await auth.driver.getSettings();
+    const settings = await auth.driver.updateSettings({
+      ...parsed.data,
+      avatarBook: current.avatarBook,
+      avatarStyles: current.avatarStyles,
+    });
     return NextResponse.json({ settings });
   } catch (err) {
     return NextResponse.json(

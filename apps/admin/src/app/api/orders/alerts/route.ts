@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { orderCode } from "@stickypie/shared";
+import { needsArtwork, orderCode } from "@stickypie/shared";
 import { requireAdminApi } from "@/lib/data";
 
 // Paid orders still waiting to be packed — what the admin's new-order alerts
@@ -23,7 +23,7 @@ export async function GET() {
       lines: o.items.length,
       // Custom / QR / name stickers whose design hasn't been uploaded yet.
       // (QR / name stickers are drawn from their saved details — nothing to upload.)
-      designsMissing: o.items.filter((i) => i.isCustom && !i.customFile && !i.customSpec).length,
+      designsMissing: o.items.filter((i) => needsArtwork(i) && !i.customFile).length,
       customLines: o.items.filter((i) => i.isCustom).length,
     })),
   });

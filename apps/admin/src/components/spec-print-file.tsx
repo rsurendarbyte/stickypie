@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Download, Loader2 } from "lucide-react";
-import { TEXT_STICKER_FONTS, type CustomSpec } from "@stickypie/shared";
+import { TEXT_STICKER_FONTS, type QrStickerSpec, type TextStickerSpec } from "@stickypie/shared";
 import { drawSticker } from "@stickypie/shared/qr-art";
 import { drawTextSticker, loadStickerFont } from "@stickypie/shared/text-art";
 import { STICKER_FONT_FAMILY } from "@/lib/sticker-fonts";
@@ -10,7 +10,10 @@ import { STICKER_FONT_FAMILY } from "@/lib/sticker-fonts";
 /** Print files are drawn this big (longest side, px) — sharp up to large sizes. */
 const PRINT_PX = 3000;
 
-async function draw(spec: CustomSpec, size: number): Promise<HTMLCanvasElement> {
+/** Specs we draw ourselves (avatar books are AI-made and uploaded instead). */
+export type DrawnSpec = QrStickerSpec | TextStickerSpec;
+
+async function draw(spec: DrawnSpec, size: number): Promise<HTMLCanvasElement> {
   if (spec.kind === "qr") return drawSticker(spec.value, spec.label, size);
   const font = TEXT_STICKER_FONTS.find((f) => f.id === spec.font) ?? TEXT_STICKER_FONTS[0];
   const family = STICKER_FONT_FAMILY[font.id];
@@ -25,7 +28,7 @@ async function draw(spec: CustomSpec, size: number): Promise<HTMLCanvasElement> 
  * A QR or name sticker on an order: nothing was uploaded — the order keeps
  * what to draw, and this draws the preview and the full-size print PNG.
  */
-export function SpecThumb({ spec }: { spec: CustomSpec }) {
+export function SpecThumb({ spec }: { spec: DrawnSpec }) {
   const [src, setSrc] = useState<string | null>(null);
   useEffect(() => {
     let live = true;
@@ -37,7 +40,7 @@ export function SpecThumb({ spec }: { spec: CustomSpec }) {
   return src ? <img src={src} alt="" className="max-h-full max-w-full object-contain" /> : null;
 }
 
-export function SpecDetails({ spec }: { spec: CustomSpec }) {
+export function SpecDetails({ spec }: { spec: DrawnSpec }) {
   if (spec.kind === "qr") {
     return (
       <span className="block text-xs text-fog">
@@ -56,7 +59,7 @@ export function SpecDetails({ spec }: { spec: CustomSpec }) {
   );
 }
 
-export function SpecDownload({ spec, fileName }: { spec: CustomSpec; fileName: string }) {
+export function SpecDownload({ spec, fileName }: { spec: DrawnSpec; fileName: string }) {
   const [busy, setBusy] = useState(false);
   async function download() {
     setBusy(true);

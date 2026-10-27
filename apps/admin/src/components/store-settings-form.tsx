@@ -64,6 +64,9 @@ export default function StoreSettingsForm({ initial }: { initial: StoreSettings 
       customPrices: rowsToPrices(customPrices),
       qrPrices: rowsToPrices(qrPrices),
       textPrices: rowsToPrices(textPrices),
+      // Saved on the Avatar book page; the server keeps the current values.
+      avatarBook: initial.avatarBook,
+      avatarStyles: initial.avatarStyles,
       minOrder: num(minOrder),
       originPincode: pincode.trim() || null,
       originState: state || null,

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { INDIAN_STATES, matchIndianState } from "./india";
 import { MAX_SIZES_PER_STICKER, MAX_STICKER_INCHES, MIN_STICKER_INCHES } from "./sizes";
+import { AVATAR_MAX_COVERS, AVATAR_MAX_PAGES, AVATAR_MAX_POSE_SETS, AVATAR_POSES_MAX, AVATAR_MAX_STYLE_IMAGES, AVATAR_MAX_STYLES, AVATAR_NOTE_MAX } from "./custom";
 
 export const phoneSchema = z
   .string()
@@ -28,6 +29,13 @@ export const customSpecSchema = z.discriminatedUnion("kind", [
     color: hexColor,
     color2: hexColor.nullable(),
     style: z.enum(["cut", "label"]),
+  }),
+  // One style per page — checkout also checks them against the book on sale.
+  z.object({
+    kind: z.literal("avatar"),
+    pages: z.number().int().min(1).max(AVATAR_MAX_PAGES),
+    styles: z.array(z.string().trim().min(1).max(30)).max(AVATAR_MAX_PAGES),
+    note: z.string().trim().max(AVATAR_NOTE_MAX),
   }),
 ]);
 
@@ -63,9 +71,9 @@ export const checkoutSchema = z.object({
         size: z.number().int().positive().nullable().optional(),
         /** Custom stickers: id linking the line to artwork kept in the shopper's browser. */
         customRef: z.string().uuid().optional(),
-        /** Custom stickers: "qr" / "text" = made on the site (own prices). */
-        customKind: z.enum(["design", "qr", "text"]).optional(),
-        /** QR / name stickers: what to draw — saved instead of an image. */
+        /** Custom stickers: "qr" / "text" = made on the site, "avatar" = a sticker book drawn from a photo (own price). */
+        customKind: z.enum(["design", "qr", "text", "avatar"]).optional(),
+        /** QR / name stickers: what to draw — saved instead of an image. Avatar books: pages + styles. */
         customSpec: customSpecSchema.optional(),
       })
     )
@@ -219,4 +227,28 @@ export const storeSettingsSchema = z.object({
       `Name sticker sizes must be ${MIN_STICKER_INCHES}–${MAX_STICKER_INCHES} inches`
     )
     .default({}),
+  avatarBook: z
+    .object({
+      pages: z.number().int().min(1, "At least 1 pack").max(AVATAR_MAX_PAGES, `Minimum up to ${AVATAR_MAX_PAGES} packs`),
+      price: rupees("the price per pack"),
+    })
+    .default({ pages: 4, price: 0 }),
+  avatarStyles: z
+    .array(
+      z.object({
+        label: z.string().trim().min(1, "Name every style").max(30, "Style names up to 30 letters"),
+        covers: z
+          .array(z.string().trim().min(1).max(500))
+          .max(AVATAR_MAX_COVERS, `Up to ${AVATAR_MAX_COVERS} card pictures per style`)
+          .default([]),
+        images: z.array(z.string().trim().min(1).max(500)).max(AVATAR_MAX_STYLE_IMAGES, `Up to ${AVATAR_MAX_STYLE_IMAGES} samples per style`),
+        poseSets: z
+          .array(z.string().trim().min(1, "Each set needs its poses").max(AVATAR_POSES_MAX, `Poses up to ${AVATAR_POSES_MAX} letters a set`))
+          .max(AVATAR_MAX_POSE_SETS, `Up to ${AVATAR_MAX_POSE_SETS} sets per style`)
+          .optional(),
+      })
+    )
+    .max(AVATAR_MAX_STYLES, `Up to ${AVATAR_MAX_STYLES} styles`)
+    .refine((list) => new Set(list.map((s) => s.label.toLowerCase())).size === list.length, "Each style name only once")
+    .default([]),
 });

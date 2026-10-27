@@ -405,6 +405,16 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
       if (error) throw friendly(error);
     },
 
+    async setFinishedFiles(orderId: string, itemId: string, urls: string[]) {
+      // Admins can't update order lines directly (RLS); this RPC checks is_admin().
+      const { error } = await client.rpc("admin_set_finished_files", {
+        p_order_id: orderId,
+        p_item_id: itemId,
+        p_files: urls,
+      });
+      if (error) throw friendly(error);
+    },
+
     async getFeatures() {
       const { data, error } = await client.from("store_settings").select("features").eq("id", 1).maybeSingle();
       if (error) return rowToFeatures(null);

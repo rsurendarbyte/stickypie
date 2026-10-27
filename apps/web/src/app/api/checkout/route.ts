@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 import {
+  AVATAR_STICKER_NAME,
   CUSTOM_STICKER_NAME,
   QR_STICKER_NAME,
   TEXT_STICKER_NAME,
   formatInches,
   belowMinimum,
   checkoutSchema,
+  avatarBook,
+  avatarBookLabel,
+  avatarMaxSheets,
+  avatarSheetsPrice,
   customSizeLabel,
   customSizes,
   isCustomProductId,
@@ -78,20 +83,44 @@ export async function POST(req: Request) {
   const customPrice = new Map(customSizes(settings.customPrices).map((s) => [s.inches, s.price]));
   const qrPrice = new Map(customSizes(settings.qrPrices).map((s) => [s.inches, s.price]));
   const textPrice = new Map(customSizes(settings.textPrices).map((s) => [s.inches, s.price]));
-  const priceFor = (item: (typeof customItems)[number]) =>
-    (item.customKind === "qr" ? qrPrice : item.customKind === "text" ? textPrice : customPrice).get(item.size ?? -1);
+  // Avatar sticker sheets: one sheet per style (from the admin's list), at least
+  // the minimum, priced per sheet.
+  const book = avatarBook(settings);
+  const styleNames = new Set(settings.avatarStyles.map((s) => s.label));
+  const priceFor = (item: (typeof customItems)[number]) => {
+    if (item.customKind === "avatar") {
+      const spec = item.customSpec?.kind === "avatar" ? item.customSpec : null;
+      const sheets = spec?.styles.length ?? 0;
+      const fits =
+        book &&
+        spec?.pages === sheets &&
+        sheets >= book.pages &&
+        sheets <= avatarMaxSheets(styleNames.size) &&
+        new Set(spec.styles).size === sheets &&
+        spec.styles.every((s) => styleNames.has(s));
+      return fits ? avatarSheetsPrice(book, sheets) : undefined;
+    }
+    return (item.customKind === "qr" ? qrPrice : item.customKind === "text" ? textPrice : customPrice).get(item.size ?? -1);
+  };
   for (const item of customItems) {
-    // QR / name stickers carry what to draw instead of an uploaded image.
-    const drawn = item.customKind === "qr" || item.customKind === "text";
+    // QR / name stickers carry what to draw instead of an uploaded image;
+    // avatar books carry the page styles (the photo follows after paying).
+    const drawn = item.customKind === "qr" || item.customKind === "text" || item.customKind === "avatar";
     if (drawn && item.customSpec?.kind !== item.customKind) {
       return NextResponse.json(
-        { error: "Please make your QR or name sticker again — its details are missing.", code: "spec_missing" },
+        { error: "Please make your custom sticker again — its details are missing.", code: "spec_missing" },
         { status: 409 }
       );
     }
-    if (item.size == null || priceFor(item) === undefined) {
+    if ((item.size == null && item.customKind !== "avatar") || priceFor(item) === undefined) {
       return NextResponse.json(
-        { error: "A custom sticker size in your cart is no longer offered. Please choose a size again.", code: "size_unavailable" },
+        {
+          error:
+            item.customKind === "avatar"
+              ? "The avatar sticker packs have changed. Please pick your styles again."
+              : "A custom sticker size in your cart is no longer offered. Please choose a size again.",
+          code: "size_unavailable",
+        },
         { status: 409 }
       );
     }
@@ -165,25 +194,36 @@ export async function POST(req: Request) {
     orderItems.push({
       productId: null,
       name:
-        item.customKind === "qr" ? QR_STICKER_NAME : item.customKind === "text" ? TEXT_STICKER_NAME : CUSTOM_STICKER_NAME,
+        item.customKind === "qr"
+          ? QR_STICKER_NAME
+          : item.customKind === "text"
+            ? TEXT_STICKER_NAME
+            : item.customKind === "avatar"
+              ? AVATAR_STICKER_NAME
+              : CUSTOM_STICKER_NAME,
       unitPrice: priceFor(item)!,
       quantity: item.quantity,
       imageUrl: "",
-      sizeInches: item.size!,
+      sizeInches: item.customKind === "avatar" ? null : item.size!,
       sizeLabel:
         item.customKind === "qr"
           ? `${formatInches(item.size!)}″ QR code sticker — longest side ${formatInches(item.size!)} in`
           : item.customKind === "text"
             ? `${formatInches(item.size!)}″ name sticker — longest side ${formatInches(item.size!)} in`
-            : customSizeLabel(item.size!),
+            : item.customKind === "avatar" && item.customSpec?.kind === "avatar"
+              ? avatarBookLabel(item.customSpec.pages)
+              : customSizeLabel(item.size!),
       isCustom: true,
       customRef: item.customRef ?? null,
-      customSpec: item.customKind === "qr" || item.customKind === "text" ? (item.customSpec ?? null) : null,
+      customSpec:
+        item.customKind === "qr" || item.customKind === "text" || item.customKind === "avatar"
+          ? (item.customSpec ?? null)
+          : null,
     });
   }
 
   const subtotal = orderItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  const shortBy = belowMinimum(settings, subtotal);
+  const shortBy = belowMinimum(settings, subtotal, orderItems);
   if (shortBy > 0) {
     return NextResponse.json(
       {

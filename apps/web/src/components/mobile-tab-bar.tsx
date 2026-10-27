@@ -19,6 +19,7 @@ function ownBottomBar(pathname: string) {
     pathname.startsWith("/custom-stickers/design") ||
     pathname.startsWith("/qr-code-stickers") ||
     pathname.startsWith("/name-stickers") ||
+    pathname.startsWith("/avatar-stickers") ||
     cartUiHidden(pathname)
   );
 }
