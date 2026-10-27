@@ -108,6 +108,14 @@ export function StoreAbout({ faq }: { faq: Faq[] }) {
         . Every design is printed to order on premium die-cut vinyl —
         waterproof, scratch-resistant and UV-safe — in a range of sizes. Peel,
         stick and make anything yours, with delivery to pin codes across India.
+        Want stickers of yourself? Send a selfie for{" "}
+        <Link
+          href="/avatar-stickers"
+          className="text-snow underline-offset-2 hover:underline"
+        >
+          AI avatar stickers
+        </Link>{" "}
+        in anime, chibi, 90s retro and more trending styles.
       </p>
 
       <h2 className="mt-10 font-display text-xl font-bold">

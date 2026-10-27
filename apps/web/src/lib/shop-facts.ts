@@ -1,6 +1,6 @@
 // Server-only: the live numbers that FAQ answers and /llms.txt quote (design
 // count, starting prices, make-your-own prices), read at build time.
-import { customSizes } from "@stickypie/shared";
+import { avatarBook, customSizes } from "@stickypie/shared";
 import { getDriver } from "./data";
 import { isMiniPoster } from "./poster";
 import type { ShopFacts } from "./seo";
@@ -27,5 +27,9 @@ export async function loadShopFacts(): Promise<ShopFacts> {
     custom: made(settings.customPrices),
     qr: made(settings.qrPrices),
     text: made(settings.textPrices),
+    avatar: (() => {
+      const book = features.avatarStickers ? avatarBook(settings) : null;
+      return book ? { packs: book.pages, price: book.price, styles: settings.avatarStyles.map((s) => s.label) } : null;
+    })(),
   };
 }

@@ -253,6 +253,17 @@ export default function AvatarStickerBuilder() {
     );
   }
 
+  // Arriving from a style card on the home page (?style=Anime): start with that style picked.
+  const fromCard = useRef(false);
+  useEffect(() => {
+    if (fromCard.current) return;
+    const wanted = new URLSearchParams(window.location.search).get("style");
+    const hit = wanted && styles.find((st) => st.label.toLowerCase() === wanted.toLowerCase());
+    if (!hit) return;
+    fromCard.current = true;
+    setPicked((list) => (list.includes(hit.label) ? list : [hit.label, ...list]));
+  }, [styles]);
+
   const stylesDone = picked.length >= min && min > 0;
   const sheets = Math.max(picked.length, min);
   const total = book ? avatarSheetsPrice(book, picked.length) : 0;
