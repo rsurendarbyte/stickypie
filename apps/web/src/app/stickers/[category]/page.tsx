@@ -39,7 +39,7 @@ export async function generateMetadata({
   const title = categoryTitle(category.name);
   return pageMetadata({
     title: `${title} — Buy Online in India`,
-    description: `Shop ${title.toLowerCase()} at StickyPie: waterproof die-cut vinyl in several sizes for cars, bikes, laptops and more. Ships across India.`,
+    description: `Shop ${title.toLowerCase()} at StickyPie: die-cut vinyl in several sizes for cars, bikes, laptops and more. Ships across India.`,
     path: categoryPath(category.slug),
   });
 }

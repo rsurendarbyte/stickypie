@@ -768,7 +768,7 @@ function AvatarSlideCopy({ book }: { book: AvatarBook }) {
       </h2>
       <p className="mt-4 hidden max-w-lg text-base leading-relaxed text-fog sm:line-clamp-2 sm:text-lg lg:line-clamp-3">
         Send a selfie and pick trending styles — 90s retro, anime, action figure, 3D cartoon. We make AI
-        sticker packs of you, one in each style you pick ({book.pages} or more), on waterproof vinyl.
+        sticker packs of you, one in each style you pick ({book.pages} or more), on vinyl.
       </p>
       <div className="mt-2 flex items-baseline gap-2 sm:mt-6">
         <span className="text-sm text-fog">{book.pages} packs from</span>
@@ -791,7 +791,7 @@ const SPECIAL_SLIDES = {
     icon: ImageUp,
     badge: "Custom print",
     title: "Your design, as a sticker",
-    text: "Logo, photo or artwork on waterproof die-cut vinyl. Pick a size and quantity, book, and send your design — now or after paying.",
+    text: "Logo, photo or artwork on die-cut vinyl. Pick a size and quantity, book, and send your design — now or after paying.",
     href: "/custom-stickers/design",
     cta: "Make your sticker",
   },
@@ -799,7 +799,7 @@ const SPECIAL_SLIDES = {
     icon: QrCode,
     badge: "QR stickers",
     title: "Scan-to-pay QR stickers",
-    text: "Your UPI, WhatsApp, Instagram or website as a QR sticker with a label like “Scan to pay”. Made in a minute, printed on waterproof vinyl.",
+    text: "Your UPI, WhatsApp, Instagram or website as a QR sticker with a label like “Scan to pay”. Made in a minute, printed on vinyl.",
     href: "/qr-code-stickers",
     cta: "Make your QR sticker",
   },

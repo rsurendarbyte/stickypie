@@ -40,7 +40,7 @@ export async function GET() {
       const fields: [string, string][] = [
         ["g:id", size.inches ? `${product.slug}-${size.inches}in` : product.slug],
         ["g:item_group_id", product.slug],
-        ["g:title", `${seoName(product)}${size.inches ? ` – ${size.inches} inch` : ""} | Waterproof Vinyl`],
+        ["g:title", `${seoName(product)}${size.inches ? ` – ${size.inches} inch` : ""} | Die-Cut Vinyl`],
         ["g:description", productSeoDescription(product)],
         ["g:link", absoluteUrl(`/sticker/${product.slug}`)],
         ["g:image_link", absoluteUrl(product.imageUrl)],
@@ -64,7 +64,7 @@ export async function GET() {
   <channel>
     <title>${xml(SITE_NAME)} stickers</title>
     <link>${xml(absoluteUrl("/"))}</link>
-    <description>${xml(`Waterproof die-cut vinyl stickers from ${SITE_NAME}, shipped across India`)}</description>
+    <description>${xml(`Die-cut vinyl stickers from ${SITE_NAME}, shipped across India`)}</description>
 ${items.join("\n")}
   </channel>
 </rss>

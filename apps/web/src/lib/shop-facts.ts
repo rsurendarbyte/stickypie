@@ -3,6 +3,7 @@
 import { avatarBook, customSizes } from "@stickypie/shared";
 import { getDriver } from "./data";
 import { isMiniPoster } from "./poster";
+import { absoluteUrl } from "./site";
 import type { ShopFacts } from "./seo";
 
 export async function loadShopFacts(): Promise<ShopFacts> {
@@ -29,7 +30,13 @@ export async function loadShopFacts(): Promise<ShopFacts> {
     text: made(settings.textPrices),
     avatar: (() => {
       const book = features.avatarStickers ? avatarBook(settings) : null;
-      return book ? { packs: book.pages, price: book.price, styles: settings.avatarStyles.map((s) => s.label) } : null;
+      if (!book) return null;
+      // one card picture per style (its first), for search results and AI answers
+      const pictures = settings.avatarStyles.flatMap((s) => {
+        const url = s.covers[0] ?? s.images[0];
+        return url ? [{ style: s.label, url: url.startsWith("/") ? absoluteUrl(url) : url }] : [];
+      });
+      return { packs: book.pages, price: book.price, styles: settings.avatarStyles.map((s) => s.label), pictures };
     })(),
   };
 }

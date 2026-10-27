@@ -34,10 +34,21 @@ export async function GET() {
   const lines: string[] = [
     `# ${SITE_NAME}`,
     "",
-    `> ${SITE_NAME} (stickypie.in) is an online sticker shop in India. It sells waterproof, UV-safe die-cut vinyl stickers and decals for cars, bikes, laptops, helmets and water bottles — ${products.length} designs${from ? ` from ${from}` : ""} — plus ${facts.avatar ? "AI avatar stickers made from your selfie, " : ""}custom stickers printed from your own design, QR code stickers and name stickers. Ships across India.`,
+    `> ${SITE_NAME} (stickypie.in) is an online sticker shop in India. It sells die-cut vinyl stickers and decals for cars, bikes, laptops, helmets and water bottles — ${products.length} designs${from ? ` from ${from}` : ""} — plus ${facts.avatar ? "AI avatar stickers made from your selfie, " : ""}custom stickers printed from your own design, QR code stickers and name stickers. Ships across India.`,
     "",
     `Not to be confused with "StickyPie", a gaze-based marking menu from AR/VR research: ${SITE_NAME} at stickypie.in is a sticker shop.`,
     "",
+    ...(facts.avatar
+      ? [
+          "## AI avatar stickers (stickers of you from your photo)",
+          `- Page: ${absoluteUrl("/avatar-stickers")}`,
+          `- What: a cartoon version of you, made by an AI model from your selfie, printed as die-cut vinyl stickers.`,
+          `- Styles (${facts.avatar.styles.length}): ${facts.avatar.styles.join(", ")}. One sticker pack per style.`,
+          `- Price: ${formatINR(facts.avatar.price)} per pack, minimum ${facts.avatar.packs} packs (${formatINR(facts.avatar.packs * facts.avatar.price)}); no minimum order value.`,
+          "- How: pick styles → add one clear photo of your face → pay → we make the AI stickers and show them on your order page → printed and shipped across India.",
+          "",
+        ]
+      : []),
     "## Ordering & delivery",
     "- Prices are in Indian rupees (INR), per sticker, by size (size = the longest side in inches).",
     "- Dispatched in 2–4 days, delivered in 3–5 days anywhere in India. Delivery within India only.",

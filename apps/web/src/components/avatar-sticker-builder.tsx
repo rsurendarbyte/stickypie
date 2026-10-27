@@ -630,7 +630,7 @@ export default function AvatarStickerBuilder() {
             <p className="mt-3 text-[11px] leading-relaxed text-fog">
               Shipping and GST added at checkout. We make a pack of AI stickers
               of you in each style, show them on your order page, then print on
-              waterproof vinyl and ship.
+              vinyl and ship.
             </p>
           </aside>
         )}
