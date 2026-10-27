@@ -32,8 +32,6 @@ export default function HomeClient({
   // shows is shuffled once per visit in the browser, so the page feels fresh.
   const seed = useSkinSeed();
   const homeRails = resolveHomeRails(rails, products, categories, seed);
-  const newDrops = homeRails.findIndex((r) => r.key === "new-drops");
-  const customAfter = newDrops >= 0 ? newDrops : Math.min(1, homeRails.length - 1);
 
   // Placeholders until the live (on-sale only) list arrives — never stale cards.
   if (!loaded) {
@@ -106,6 +104,8 @@ export default function HomeClient({
     <>
       <Hero products={featured.length > 0 ? featured : [hero]} categories={categories} />
       <div className="relative z-10 mt-2 space-y-10 pb-24">
+        {/* "Make your own" (led by the AI avatar styles) is the first row */}
+        <CustomRail />
         {homeRails.map((rail, i) => (
           // The first two rails render straight away; the rest only when the
           // shopper scrolls near them.
@@ -115,8 +115,6 @@ export default function HomeClient({
                 <ProductCard key={product.id} product={product} />
               ))}
             </LazyRail>
-            {/* "Make your own" sits right after New Drops (or after the 2nd rail) */}
-            {i === customAfter && <CustomRail />}
           </Fragment>
         ))}
       </div>

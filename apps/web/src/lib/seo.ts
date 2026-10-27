@@ -73,6 +73,8 @@ export type ShopFacts = {
   custom: { inches: number; price: number }[];
   qr: { inches: number; price: number }[];
   text: { inches: number; price: number }[];
+  /** AI avatar sticker packs: minimum packs, price per pack and the style names, or null when off. */
+  avatar: { packs: number; price: number; styles: string[] } | null;
 };
 
 const fromPrice = (sizes: { price: number }[]) => (sizes.length ? Math.min(...sizes.map((s) => s.price)) : null);
@@ -92,6 +94,7 @@ export function storeFaq(facts: ShopFacts): Faq[] {
     customFrom !== null && `custom stickers from ${formatINR(customFrom)}`,
     qrFrom !== null && `QR code stickers from ${formatINR(qrFrom)}`,
     textFrom !== null && `name stickers from ${formatINR(textFrom)}`,
+    facts.avatar && `AI avatar stickers of you from your photo (${formatINR(facts.avatar.price)} a pack)`,
   ].filter(Boolean);
   return [
     {
@@ -122,6 +125,7 @@ export function storeFaq(facts: ShopFacts): Faq[] {
           },
         ]
       : []),
+    ...(facts.avatar ? [avatarFaq(facts)[0]] : []),
     ...(qrFrom !== null
       ? [
           {
@@ -150,6 +154,43 @@ export function storeFaq(facts: ShopFacts): Faq[] {
     {
       q: "Can I cancel or return an order?",
       a: "Stickers are printed to order, so an order can't be cancelled once the payment is confirmed. If an item arrives damaged or wrong, it's replaced free of charge, shipping included.",
+    },
+  ];
+}
+
+/**
+ * AI avatar sticker questions, for /avatar-stickers (all of them), the home
+ * page (the first one) and /llms.txt. Empty while the packs are off.
+ */
+export function avatarFaq(facts: ShopFacts): Faq[] {
+  const avatar = facts.avatar;
+  if (!avatar) return [];
+  const { packs, price, styles } = avatar;
+  const named = styles.slice(0, 8).join(", ");
+  return [
+    {
+      q: "Can I get AI stickers of myself made from a photo?",
+      a: `Yes. ${SITE_NAME} turns your selfie into AI avatar stickers — a cartoon version of you in trending styles like ${named} — and prints them as waterproof die-cut vinyl stickers, shipped across India. Pick at least ${packs} styles, one sticker pack each, for ${formatINR(price)} a pack (${formatINR(packs * price)} for ${packs}). Start at stickypie.in/avatar-stickers.`,
+    },
+    {
+      q: "How do AI avatar stickers work?",
+      a: `Pick your styles (${packs} or more), pay, then upload one clear photo of your face from your order page. We make an AI sticker pack of you in each style, show the finished stickers on your order page to download and share, then print them on vinyl and ship them.`,
+    },
+    {
+      q: "Which avatar sticker styles can I choose?",
+      a: `${styles.length} styles: ${styles.join(", ")}. Every style shows sample stickers before you order, and you get one pack per style you pick.`,
+    },
+    {
+      q: "How much do avatar stickers cost?",
+      a: `${formatINR(price)} per sticker pack, one pack per style, with a minimum of ${packs} packs (${formatINR(packs * price)}). Avatar sticker orders have no minimum order value; shipping is worked out at checkout from your pin code.`,
+    },
+    {
+      q: "What photo should I send for avatar stickers?",
+      a: "One clear, well-lit photo of your face looking at the camera, without sunglasses or heavy filters. You upload it from your order page after paying, and it's only used to make your stickers.",
+    },
+    {
+      q: "Where can I stick my avatar stickers?",
+      a: "Anywhere smooth: laptops, phones, water bottles, cars, bikes, helmets, diaries and fridges. They're printed on waterproof vinyl, so they're fine indoors or out. They also make a fun gift for friends, couples and kids.",
     },
   ];
 }
