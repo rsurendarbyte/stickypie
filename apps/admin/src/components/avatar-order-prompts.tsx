@@ -12,17 +12,22 @@ import { avatarSheetPrompt } from "@/lib/avatar-prompts";
 export default function AvatarOrderPrompts({
   sheets,
   note,
+  couple = false,
 }: {
   sheets: { label: string; poseSets: string[] }[];
   note: string;
+  /** A couple photo: prompts for both people together. */
+  couple?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  // Shoppers upload any photo; the admin says whether it shows one person or a couple.
+  const [two, setTwo] = useState(couple);
   // Which button just copied: "<sheet index>-<set>".
   const [copied, setCopied] = useState<string | null>(null);
 
   const copy = (n: number, style: string, poseSets: string[], set: number) =>
     navigator.clipboard
-      .writeText(avatarSheetPrompt(style, "photo", poseSets, set - 1, note))
+      .writeText(avatarSheetPrompt(style, "photo", poseSets, set - 1, note, two))
       .then(() => {
         const key = `${n}-${set}`;
         setCopied(key);
@@ -41,6 +46,24 @@ export default function AvatarOrderPrompts({
       </button>
       {open && (
         <div className="mt-2 space-y-1.5 rounded-lg border border-line bg-ink2 p-2">
+          <div
+            role="radiogroup"
+            aria-label="Who is in the client's photo?"
+            className="flex gap-1 rounded-md bg-ink p-0.5 text-[11px] font-semibold"
+          >
+            {([false, true] as const).map((v) => (
+              <button
+                key={String(v)}
+                type="button"
+                role="radio"
+                aria-checked={two === v}
+                onClick={() => setTwo(v)}
+                className={`h-7 flex-1 rounded ${two === v ? "bg-snow text-ink" : "text-fog hover:text-snow"}`}
+              >
+                {v ? "Couple photo" : "One person"}
+              </button>
+            ))}
+          </div>
           <p className="text-[11px] text-fog">
             For each sheet: open the AI tool, attach the client&apos;s photo
             (Open full size above), paste the prompt. Each set has different

@@ -93,7 +93,15 @@ export default async function OrderDetailPage({
                   )}
                   {avatar && (
                     <div className="mt-1 space-y-0.5 text-xs">
-                      <p className="text-fog">{avatar.pages} packs, one style each:</p>
+                      <p className="text-fog">
+                        {avatar.pages} packs, one style each
+                        {avatar.couple && (
+                          <span className="ml-1.5 rounded-md bg-brand/15 px-1.5 py-0.5 font-semibold text-brand">
+                            Couple photo
+                          </span>
+                        )}
+                        :
+                      </p>
                       <ol className="flex flex-wrap gap-1.5">
                         {avatar.styles.map((style, n) => (
                           <li key={style} className="rounded-full border border-line px-2 py-0.5">
@@ -112,6 +120,7 @@ export default async function OrderDetailPage({
                           poseSets: avatarPoseSets(avatarStyles.find((st) => st.label === label) ?? { label }),
                         }))}
                         note={avatar.note}
+                        couple={!!avatar.couple}
                       />
                     </div>
                   )}
