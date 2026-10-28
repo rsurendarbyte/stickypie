@@ -33,7 +33,9 @@ if (!fs.existsSync(sourceDir) || !fs.existsSync(assetsDir)) {
 }
 
 // Dynamic routes must keep hitting the Worker — never ship them as assets.
-const SKIP = new Set(["_not-found.html", "_global-error.html"]);
+// So must pages that show admin settings in their text (price, styles, FAQ):
+// the Worker rebuilds them a minute after a change instead of at the next deploy.
+const SKIP = new Set(["_not-found.html", "_global-error.html", "avatar-stickers.html"]);
 const SKIP_PREFIXES = ["order/", "pay/", "api/"];
 
 function copy(from, rel) {
