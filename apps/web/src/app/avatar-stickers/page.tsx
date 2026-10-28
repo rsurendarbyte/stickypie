@@ -10,6 +10,11 @@ import { formatINR } from "@stickypie/shared";
 import { siteUrl } from "@/lib/mode";
 import { SITE_NAME, absoluteUrl, pageMetadata } from "@/lib/site";
 
+// Price, styles and FAQ come from admin settings: rebuilt at most once a minute
+// so admin edits show without a deploy (scripts/copy-static-pages.mjs leaves
+// this page to the Worker for that).
+export const revalidate = 60;
+
 export const metadata: Metadata = {
   ...pageMetadata({
     title: "AI Avatar Stickers – Vinyl Stickers of You, From Your Photo",
