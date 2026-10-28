@@ -11,6 +11,7 @@ import MobileTabBar from "@/components/mobile-tab-bar";
 import CartDrawer from "@/components/cart-drawer";
 import CartShell from "@/components/cart-shell";
 import NavTracker from "@/components/nav-tracker";
+import { META_PIXEL_SCRIPT } from "@/lib/meta-pixel";
 import PerfProbe from "@/components/perf-probe";
 import { LITE_SCRIPT } from "@/lib/lite-script";
 import { VIEW_SCRIPT } from "@/lib/view-script";
@@ -79,6 +80,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: LITE_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: VIEW_SCRIPT }} />
+        {/* Meta pixel for ads (prod only: the ID is set in .env.prod) */}
+        {META_PIXEL_SCRIPT && <script dangerouslySetInnerHTML={{ __html: META_PIXEL_SCRIPT }} />}
       </head>
       <body className="bg-ink font-sans text-snow antialiased">
         <ConfirmProvider>

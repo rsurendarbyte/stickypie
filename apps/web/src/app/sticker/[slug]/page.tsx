@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import JsonLd from "@/components/json-ld";
+import { MetaViewContent } from "@/components/meta-track";
 import ProductDetailClient from "@/components/product-detail-client";
 import StickerReel from "@/components/sticker-reel";
 import { ProductAbout } from "@/components/seo-blocks";
@@ -95,6 +96,12 @@ export default async function ProductPage({
     <div className="relative isolate overflow-x-clip">
     <div className="no-select mx-auto min-h-screen w-full max-w-6xl px-4 pt-20 pb-36 sm:px-8 lg:pb-20">
       <JsonLd data={structuredData} />
+      <MetaViewContent
+        id={product.id}
+        name={product.name}
+        price={product.sizes.length ? Math.min(...product.sizes.map((s) => s.price)) : product.price}
+        category={category?.name}
+      />
       <ProductDetailClient
         initial={product}
         category={category ? { name: category.name, slug: category.slug } : null}

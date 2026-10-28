@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "@/components/page-link";
+import { trackMeta } from "@/lib/meta-pixel";
 import BackButton from "./back-button";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -87,6 +88,19 @@ export default function CheckoutClient() {
   const summaryColumn = useStickyColumn(payBar);
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  // Meta ads: one InitiateCheckout per visit to checkout, once the cart is known
+  const checkoutSent = useRef(false);
+  useEffect(() => {
+    if (checkoutSent.current || items.length === 0) return;
+    checkoutSent.current = true;
+    trackMeta("InitiateCheckout", {
+      content_ids: items.map((i) => i.productId),
+      content_type: "product",
+      num_items: count,
+      value: subtotal,
+      currency: "INR",
+    });
+  }, [items, count, subtotal]);
   const [form, setForm] = useState<FormState>(EMPTY);
   const [errors, setErrors] = useState<
     Partial<Record<keyof FormState, string>>
