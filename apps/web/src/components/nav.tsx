@@ -13,6 +13,8 @@ import { useFeatures } from "@/lib/live-catalog";
 
 // Pages with a Back button in the header, and where it goes on a direct visit.
 const BACK_PAGES: Record<string, string> = {
+  "/custom-stickers": "/",
+  "/custom-stickers/design": "/custom-stickers",
   "/avatar-stickers": "/custom-stickers",
   "/name-stickers": "/custom-stickers",
   "/qr-code-stickers": "/custom-stickers",
