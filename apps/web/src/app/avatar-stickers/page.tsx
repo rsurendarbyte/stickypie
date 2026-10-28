@@ -4,6 +4,7 @@ import AvatarStickerBuilder from "@/components/avatar-sticker-builder";
 import CustomRequestForm from "@/components/custom-request-form";
 import FaqItem from "@/components/faq-item";
 import JsonLd from "@/components/json-ld";
+import { MetaViewContent } from "@/components/meta-track";
 import { avatarFaq, faqStructuredData } from "@/lib/seo";
 import { loadShopFacts } from "@/lib/shop-facts";
 import { formatINR } from "@stickypie/shared";
@@ -99,6 +100,14 @@ export default async function AvatarStickersPage() {
   return (
     <div className="mx-auto min-h-screen w-full max-w-6xl px-4 pt-20 pb-44 sm:px-8 sm:pt-24 sm:pb-24">
       <JsonLd data={data} />
+      {avatar && (
+        <MetaViewContent
+          id="avatar-stickers"
+          name="AI avatar stickers"
+          price={avatar.packs * avatar.price}
+          category="AI avatar stickers"
+        />
+      )}
       {/* desktop: Back on the page (phones have it in the header) */}
       <div className="mb-3 hidden sm:block">
         <BackButton fallback="/custom-stickers" />

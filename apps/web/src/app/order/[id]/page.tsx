@@ -13,6 +13,7 @@ import {
 } from "@stickypie/shared";
 import AvatarStickersShare from "@/components/avatar-stickers-share";
 import ClearCartOnPaid from "@/components/clear-cart-on-paid";
+import { MetaPurchase } from "@/components/meta-track";
 import CustomOrderUpload from "@/components/custom-order-upload";
 import OrderReviews from "@/components/order-reviews";
 import OrderTracking from "@/components/order-tracking";
@@ -96,6 +97,12 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         </Link>
       </div>
       <ClearCartOnPaid orderId={order.id} paid={paid} />
+      <MetaPurchase
+        orderId={order.id}
+        paid={paid}
+        total={order.total}
+        items={order.items.map((i) => ({ id: i.productId ?? i.name, qty: i.quantity, price: i.unitPrice }))}
+      />
 
       {customUploadStep && (
         <CustomOrderUpload

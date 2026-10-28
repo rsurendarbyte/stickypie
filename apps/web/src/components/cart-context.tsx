@@ -1,5 +1,6 @@
 "use client";
 
+import { trackMeta } from "@/lib/meta-pixel";
 import {
   createContext,
   useCallback,
@@ -135,6 +136,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const add = useCallback(
     (product: CartProduct, qty = 1) => {
       put(product, qty);
+      trackMeta("AddToCart", {
+        content_ids: [product.productId],
+        content_name: product.name,
+        content_type: "product",
+        value: product.price * qty,
+        currency: "INR",
+      });
       // Don't open the drawer — the persistent cart rail/strip picks it up so
       // browsing continues uninterrupted.
       return true;
