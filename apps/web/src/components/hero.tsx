@@ -762,11 +762,18 @@ function AvatarSlideCopy({ book }: { book: AvatarBook }) {
   const { loaded: pricesReady } = useStoreSettings();
   return (
     <>
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 text-[11px] font-bold tracking-widest text-brand uppercase backdrop-blur-sm">
-        <Smile className="size-3.5" /> New · Avatar stickers
-      </span>
+      {/* AI up front: a solid AI tag beside the badge */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="pie-gradient inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-extrabold tracking-widest text-white uppercase shadow-md shadow-brand/30">
+          <Sparkles className="size-3.5" /> AI
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 text-[11px] font-bold tracking-widest text-brand uppercase backdrop-blur-sm">
+          <Smile className="size-3.5" /> New · AI avatar stickers
+        </span>
+      </div>
       <h2 className="mt-2.5 line-clamp-2 font-display text-[30px] leading-[1.05] font-bold tracking-tight sm:mt-4 sm:text-6xl lg:mt-5 lg:text-[64px]">
-        Stickers of you, from your photo
+        <span className="bg-gradient-to-r from-[#ff2e63] to-[#ff7a3c] bg-clip-text text-transparent">AI</span>{" "}
+        stickers of you
       </h2>
       <p className="mt-4 hidden max-w-lg text-base leading-relaxed text-fog sm:line-clamp-2 sm:text-lg lg:line-clamp-3">
         Send a selfie and pick trending styles — 90s retro, anime, action figure, 3D cartoon. We make AI

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { ArrowRight, ImageUp, QrCode, Smile, Sparkles, Type } from "lucide-react";
+import BackButton from "@/components/back-button";
 import CustomRequestForm from "@/components/custom-request-form";
 import FaqItem from "@/components/faq-item";
 import JsonLd from "@/components/json-ld";
@@ -53,6 +54,10 @@ export default async function CustomStickersPage() {
   return (
     <div className="mx-auto min-h-screen w-full max-w-5xl px-4 pt-24 pb-24 sm:px-8">
       {faq.length > 0 && <JsonLd data={faqStructuredData(faq)} />}
+      {/* desktop: Back on the page (phones have it in the header) */}
+      <div className="mb-3 hidden sm:block">
+        <BackButton fallback="/" />
+      </div>
       <h1 className="font-display text-3xl font-bold sm:text-4xl">Custom stickers</h1>
       <p className="mt-1.5 max-w-2xl text-[15px] text-fog">
         What would you like to make? Die-cut vinyl, printed to order and shipped across India.
