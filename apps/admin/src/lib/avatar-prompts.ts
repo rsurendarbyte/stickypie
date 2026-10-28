@@ -41,6 +41,11 @@ const PHOTO = "the person in the attached photo";
 const LIKENESS =
   "Keep their FACE clearly recognisable in every sticker: the same face shape, skin tone, eye shape and colour, eyebrows, nose, lips and smile, and any glasses, beard, moustache, bindi, moles or dimples they have. Keep their natural hair colour and hair length roughly the same, but do NOT copy the hairstyle or the clothes from the photo: restyle both to suit this sticker style, as described below. If the photo has more than one person, use only the main person in the middle.";
 
+/** A couple photo: both people, together in every sticker. */
+const COUPLE = "the couple in the attached photo — BOTH people together in every single sticker";
+const COUPLE_LIKENESS =
+  "Keep BOTH faces clearly recognisable in every sticker: for each person the same face shape, skin tone, eye shape and colour, eyebrows, nose, lips and smile, and any glasses, beard, moustache, bindi, moles or dimples they have. Keep who is who consistent (same person on the same side where it fits), and keep their natural hair colour and hair length roughly the same, but do NOT copy the hairstyles or the clothes from the photo: restyle both to suit this sticker style, as described below. Use only these two people, even if others are in the photo.";
+
 /** For a style with no restyle of its own. */
 const RESTYLE_DEFAULT = (label: string) =>
   `a hairstyle and outfit that look typical of the ${label} style, fun and age-appropriate`;
@@ -409,13 +414,17 @@ function build(
   set: number,
   note = "",
   avoid: string[] = [],
+  couple = false,
 ): string {
   const look = lookFor(label);
-  const subject = who === "girl" ? GIRL : who === "boy" ? BOY : PHOTO;
+  const two = who === "photo" && couple;
+  const subject = who === "girl" ? GIRL : who === "boy" ? BOY : two ? COUPLE : PHOTO;
   const parts = [
     ...(who === "photo"
       ? [
-          "Turn the person in the attached photo into a sticker sheet of themselves.",
+          two
+            ? "Turn the couple in the attached photo into a sticker sheet of the two of them together."
+            : "Turn the person in the attached photo into a sticker sheet of themselves.",
         ]
       : []),
     "A4 portrait sticker sheet on a pure white background.",
@@ -423,24 +432,30 @@ function build(
     `Below it, a 3×3 grid of 9 separate die-cut stickers of ${subject}, all the same size, each with a thick even white sticker border and no drop shadow. The outer die-cut edge of every sticker is plain white only: no black, grey or coloured outline or cut line around the outside of the white border.`,
     ...(who === "photo"
       ? [
-          LIKENESS,
-          `Restyle them in this style, for example with ${look.restyle ?? RESTYLE_DEFAULT(label)}. OUTFITS MUST BE DIFFERENT: give each of the nine stickers its own outfit — a different garment, colour and pattern every time (for example a jacket in one, a dress or kurta in another, a hoodie, a shirt, a sweater…), chosen at random within this style. No two stickers may wear the same clothes or the same colours, and no outfit may repeat across the sheet. Vary the hairstyle too (different looks in this style, to suit each pose). Any clothes mentioned in the style description are only ideas, not a uniform. The face stays the same person in every sticker.`,
+          two ? COUPLE_LIKENESS : LIKENESS,
+          `Restyle ${two ? "both of them" : "them"} in this style, for example with ${look.restyle ?? RESTYLE_DEFAULT(label)}.${two ? " Their two outfits in each sticker should go well together (matching or coordinating)." : ""} OUTFITS MUST BE DIFFERENT: give each of the nine stickers its own outfit — a different garment, colour and pattern every time (for example a jacket in one, a dress or kurta in another, a hoodie, a shirt, a sweater…), chosen at random within this style. No two stickers may wear the same clothes or the same colours, and no outfit may repeat across the sheet. Vary the hairstyle too (different looks in this style, to suit each pose). Any clothes mentioned in the style description are only ideas, not a uniform. The face stays the same person in every sticker.`,
         ]
       : []),
     // The sheet is cut on a plotter: every sticker needs clear space around its cut line.
     SPACING,
     `Style: ${look.style}.`,
-    `Each sticker shows a different pose and expression: ${poses}.`,
+    two
+      ? `Each sticker shows the two of them together in a different pose and expression: ${poses} — done as a couple (both doing it together, or one doing it while the other hugs, leans in or smiles at them).`
+      : `Each sticker shows a different pose and expression: ${poses}.`,
     `Inside each sticker's border, around the character: ${look.extras}.`,
     "Bright, clean, high detail, print-ready.",
     who === "photo"
-      ? `Make it look like the person, not like ${look.original ?? "any existing character"} or a celebrity. Keep it friendly and family-safe. No other text.`
+      ? `Make it look like the ${two ? "two people" : "person"}, not like ${look.original ?? "any existing character"} or a celebrity. Keep it friendly and family-safe. No other text.`
       : `Original character, not based on ${look.original ?? "any existing character"} or any real person. No other text.`,
   ];
   // Said again last: image tools tend to pack stickers tight unless reminded.
   parts.push(SPACING_REMINDER);
   if (who === "photo")
-    parts.push("Also check the clothes: all nine stickers wear different outfits, none the same.");
+    parts.push(
+      two
+        ? "Also check: both people appear in all nine stickers, and every sticker has different outfits, none the same."
+        : "Also check the clothes: all nine stickers wear different outfits, none the same.",
+    );
   // The AI tool can't see the other sets, so name their poses outright.
   if (avoid.length)
     parts.push(
@@ -489,6 +504,7 @@ export function avatarSheetPrompt(
   sets: string[],
   index: number,
   note = "",
+  couple = false,
 ): string {
   const poses = sets[index] ?? "";
   const mine = new Set(posesOf(poses).map((p) => p.toLowerCase()));
@@ -500,7 +516,7 @@ export function avatarSheetPrompt(
         .filter((p) => !mine.has(p.toLowerCase())),
     ),
   ];
-  return build(label, who, poses, index + 1, note, avoid);
+  return build(label, who, poses, index + 1, note, avoid, couple);
 }
 
 /** The style card picture (one sticker). */

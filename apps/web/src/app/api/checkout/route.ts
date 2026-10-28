@@ -211,7 +211,7 @@ export async function POST(req: Request) {
           : item.customKind === "text"
             ? `${formatInches(item.size!)}″ name sticker — longest side ${formatInches(item.size!)} in`
             : item.customKind === "avatar" && item.customSpec?.kind === "avatar"
-              ? avatarBookLabel(item.customSpec.pages)
+              ? avatarBookLabel(item.customSpec.pages, !!item.customSpec.couple)
               : customSizeLabel(item.size!),
       isCustom: true,
       customRef: item.customRef ?? null,

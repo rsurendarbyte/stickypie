@@ -175,6 +175,10 @@ function StylePrompts({
         title={`With client photo · set ${at + 1} (for orders — attach their photo)`}
         text={avatarSheetPrompt(label, "photo", sets, at)}
       />
+      <PromptBlock
+        title={`With couple photo · set ${at + 1} (for couple orders — attach their photo)`}
+        text={avatarSheetPrompt(label, "photo", sets, at, "", true)}
+      />
       <p className="text-[11px] text-fog">
         Samples: make the girl one first, then attach it when making the boy one
         so both match. Upload card pictures with the card picture buttons,

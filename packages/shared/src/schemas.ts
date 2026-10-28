@@ -36,6 +36,7 @@ export const customSpecSchema = z.discriminatedUnion("kind", [
     pages: z.number().int().min(1).max(AVATAR_MAX_PAGES),
     styles: z.array(z.string().trim().min(1).max(30)).max(AVATAR_MAX_PAGES),
     note: z.string().trim().max(AVATAR_NOTE_MAX),
+    couple: z.boolean().optional(),
   }),
 ]);
 

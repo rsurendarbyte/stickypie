@@ -496,11 +496,11 @@ export default function AvatarStickerBuilder() {
               </button>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-snow">
-                  {preview ? "Looking good!" : "A clear selfie works best"}
+                  {preview ? "Looking good!" : "A clear photo works best"}
                 </p>
                 <ul className="mt-1 space-y-0.5 text-xs text-fog">
-                  <li>Face clearly visible, good light</li>
-                  <li>Just you — no group photos</li>
+                  <li>Faces clearly visible, good light</li>
+                  <li>Just you, or you and your partner</li>
                 </ul>
                 <div className="mt-2.5 flex flex-wrap items-center gap-2">
                   <button
@@ -546,9 +546,8 @@ export default function AvatarStickerBuilder() {
               onChange={(e) => setNote(e.target.value)}
             />
             <p className="mt-3 text-[11px] leading-relaxed text-fog">
-              By ordering you confirm this is your own photo (or your
-              child&apos;s, and you&apos;re their parent) — no celebrities or
-              other people&apos;s photos.
+              By ordering you confirm you&apos;re in the photo (or it&apos;s your child, and you&apos;re their parent) and anyone
+              else in it is happy with it — no celebrities or other people&apos;s photos.
             </p>
           </StepCard>
         </div>

@@ -64,6 +64,8 @@ export type AvatarStickerSpec = {
   styles: string[];
   /** Anything else for the artist, e.g. "with my bike". */
   note: string;
+  /** A couple photo: both people in every sticker. Absent = just one person. */
+  couple?: boolean;
 };
 export type CustomSpec = QrStickerSpec | TextStickerSpec | AvatarStickerSpec;
 
@@ -220,9 +222,9 @@ export function avatarSheetsPrice(book: AvatarBook, sheets: number): number {
   return book.pages * book.price + Math.max(sheets - book.pages, 0) * avatarExtraPrice(book);
 }
 
-/** "4 avatar sticker packs", frozen on the order line. */
-export function avatarBookLabel(pages: number): string {
-  return `${pages} avatar sticker pack${pages === 1 ? "" : "s"}`;
+/** "4 avatar sticker packs" (or "4 couple avatar sticker packs"), frozen on the order line. */
+export function avatarBookLabel(pages: number, couple = false): string {
+  return `${pages} ${couple ? "couple " : ""}avatar sticker pack${pages === 1 ? "" : "s"}`;
 }
 
 /**
