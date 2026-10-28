@@ -603,6 +603,18 @@ export default function AvatarStickerBuilder() {
                 {formatINR(total)}
               </span>
             </div>
+            {book.extra > 0 && book.extra !== book.price && (
+              // first packs at one price, each one after at the extra price
+              <p className="mt-1 text-right text-xs text-fog">
+                {book.pages} × {formatINR(book.price)}
+                {picked.length > book.pages && (
+                  <>
+                    {" "}+ {picked.length - book.pages} × {formatINR(book.extra)}
+                  </>
+                )}
+                {picked.length <= book.pages && <> · then {formatINR(book.extra)} each extra pack</>}
+              </p>
+            )}
             {error && (
               <p className="mt-2 text-sm font-semibold text-brand">{error}</p>
             )}

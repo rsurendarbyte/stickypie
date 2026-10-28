@@ -44,7 +44,9 @@ export async function GET() {
           `- Page: ${absoluteUrl("/avatar-stickers")}`,
           `- What: a cartoon version of you, made by an AI model from your selfie, printed as die-cut vinyl stickers.`,
           `- Styles (${facts.avatar.styles.length}): ${facts.avatar.styles.join(", ")}. One sticker pack per style.`,
-          `- Price: ${formatINR(facts.avatar.price)} per pack, minimum ${facts.avatar.packs} packs (${formatINR(facts.avatar.packs * facts.avatar.price)}); no minimum order value.`,
+          `- Price: ${formatINR(facts.avatar.price)} per pack, minimum ${facts.avatar.packs} packs (${formatINR(facts.avatar.packs * facts.avatar.price)})${
+            facts.avatar.extra !== facts.avatar.price ? `, then ${formatINR(facts.avatar.extra)} for each extra pack` : ""
+          }; no minimum order value.`,
           "- How: pick styles → add one clear photo of your face → pay → we make the AI stickers and show them on your order page → printed and shipped across India.",
           "",
         ]

@@ -190,7 +190,12 @@ export const DEFAULT_AVATAR_STYLES: AvatarStyle[] = [
  * Avatar sticker sheets on sale (admin → Avatar sheets): one sheet per picked
  * style, at least `pages` sheets, `price` rupees per sheet. Price 0 = not offered.
  */
-export type AvatarBook = { pages: number; price: number };
+export type AvatarBook = {
+  pages: number;
+  price: number;
+  /** Rupees per pack after the minimum; 0 = the same as `price`. */
+  extra: number;
+};
 
 /** The offer if it's on (minimum and price set, enough styles to pick the minimum), else null. */
 export function avatarBook(settings: { avatarBook: AvatarBook; avatarStyles: AvatarStyle[] }): AvatarBook | null {
@@ -205,9 +210,14 @@ export function avatarMaxSheets(styles: number): number {
   return Math.min(styles, AVATAR_MAX_PAGES);
 }
 
-/** Price of `sheets` sheets — never less than the minimum's. */
+/** Rupees for each pack after the minimum. */
+export function avatarExtraPrice(book: AvatarBook): number {
+  return book.extra > 0 ? book.extra : book.price;
+}
+
+/** Price of `sheets` sheets: the minimum at `price` each, every one after at the extra price. */
 export function avatarSheetsPrice(book: AvatarBook, sheets: number): number {
-  return Math.max(sheets, book.pages) * book.price;
+  return book.pages * book.price + Math.max(sheets - book.pages, 0) * avatarExtraPrice(book);
 }
 
 /** "4 avatar sticker packs", frozen on the order line. */
