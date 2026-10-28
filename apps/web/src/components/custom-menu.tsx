@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ImageUp, LayoutGrid, QrCode, Smile, Type } from "lucide-react";
 import { avatarBook, avatarSheetsPrice, customSizes, formatINR } from "@stickypie/shared";
+import PriceWait from "./price-wait";
 import { useFeatures, useStoreSettings } from "@/lib/live-catalog";
 
 /** The ways to make your own sticker, each with its lowest price (hidden when unpriced). */
@@ -35,6 +36,7 @@ export const CUSTOM_PATHS = ["/avatar-stickers", "/custom-stickers", "/qr-code-s
  * hover for a mouse, on tap for a phone; closes on a pick, outside tap or Esc.
  */
 export default function CustomMenu() {
+  const { loaded: pricesReady } = useStoreSettings();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -125,7 +127,9 @@ export default function CustomMenu() {
                 </span>
                 <span className="shrink-0 text-right text-[11px] leading-tight text-fog">
                   from
-                  <span className="block font-display text-sm font-bold text-snow">{formatINR(price!)}</span>
+                  <span className="block font-display text-sm font-bold text-snow">
+                    {pricesReady ? formatINR(price!) : <PriceWait />}
+                  </span>
                 </span>
               </Link>
             );

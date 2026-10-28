@@ -16,6 +16,7 @@ import { cardSkinFor } from "@/lib/palette";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { useCart } from "./cart-context";
 import CustomBookBar from "./custom-book-bar";
+import PriceWait from "./price-wait";
 
 const COLORS = [
   { name: "Pink", hex: "#e8336d" },
@@ -38,6 +39,8 @@ const MAX_LINE2 = 30;
 
 export default function TextStickerBuilder() {
   const settings = useStoreSettings();
+  // prices come from the admin's settings: placeholders until they've loaded
+  const pricesReady = settings.loaded;
   const features = useFeatures();
   const sizes = customSizes(settings.textPrices);
   const { add, openCart } = useCart();
@@ -270,7 +273,7 @@ export default function TextStickerBuilder() {
                   }`}
                 >
                   <span className="font-display font-bold">{formatInches(s.inches)}″</span>{" "}
-                  <span className={`font-bold ${active ? "text-brand" : "text-fog"}`}>{formatINR(s.price)}</span>
+                  <span className={`font-bold ${active ? "text-brand" : "text-fog"}`}>{pricesReady ? formatINR(s.price) : <PriceWait />}</span>
                 </button>
               );
             })}
@@ -310,11 +313,11 @@ export default function TextStickerBuilder() {
               <span className="block text-[11px] text-fog">
                 {qty} × {formatInches(chosen.inches)}″
               </span>
-              <span className="font-display text-xl font-bold">{formatINR(chosen.price * qty)}</span>
+              <span className="font-display text-xl font-bold">{pricesReady ? formatINR(chosen.price * qty) : <PriceWait />}</span>
             </span>
             <button
               type="button"
-              disabled={busy}
+              disabled={busy || !pricesReady}
               onClick={() => addToCart(false)}
               aria-label="Add to cart"
               className="peel-btn peel-btn--light flex h-10 items-center justify-center gap-1.5 rounded-xl px-3.5 text-sm font-bold disabled:opacity-50"
@@ -323,7 +326,7 @@ export default function TextStickerBuilder() {
             </button>
             <button
               type="button"
-              disabled={busy}
+              disabled={busy || !pricesReady}
               onClick={() => addToCart(true)}
               className="peel-btn peel-btn--brand flex h-10 items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-bold disabled:opacity-50"
             >
@@ -334,7 +337,7 @@ export default function TextStickerBuilder() {
       </div>
       {chosen && (
         <CustomBookBar
-          total={chosen.price * qty}
+          total={pricesReady ? chosen.price * qty : null}
           summary={`${qty} × ${formatInches(chosen.inches)}″ name sticker`}
           hint={ready ? null : "Type your name to start"}
           busy={busy}

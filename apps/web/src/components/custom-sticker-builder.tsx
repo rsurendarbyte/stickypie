@@ -19,6 +19,7 @@ import { shrinkImage } from "@/lib/shrink-image";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { useCart } from "./cart-context";
 import CustomBookBar from "./custom-book-bar";
+import PriceWait from "./price-wait";
 import CustomRequestForm from "./custom-request-form";
 
 /** Shown in the cart until the shopper sends their artwork (after paying). */
@@ -62,6 +63,8 @@ function Step({ n, label }: { n: number; label: string }) {
 /** Book custom stickers: optional design (kept in the browser until paid), size, quantity, total. */
 export default function CustomStickerBuilder() {
   const settings = useStoreSettings();
+  // prices come from the admin's settings: placeholders until they've loaded
+  const pricesReady = settings.loaded;
   const features = useFeatures();
   const sizes = customSizes(settings.customPrices);
   const { add, openCart } = useCart();
@@ -257,7 +260,7 @@ export default function CustomStickerBuilder() {
                   }`}
                 >
                   <span className="block font-display text-xl font-bold">{formatInches(s.inches)}″</span>
-                  <span className={`block text-sm font-bold ${active ? "text-brand" : "text-snow"}`}>{formatINR(s.price)}</span>
+                  <span className={`block text-sm font-bold ${active ? "text-brand" : "text-snow"}`}>{pricesReady ? formatINR(s.price) : <PriceWait />}</span>
                   <span className="block text-[11px] text-fog">each</span>
                 </button>
               );
@@ -308,12 +311,12 @@ export default function CustomStickerBuilder() {
                 <span className="text-sm text-fog">
                   {qty} × {formatInches(chosen.inches)}″ custom sticker
                 </span>
-                <span className="font-display text-2xl font-bold">{formatINR(chosen.price * qty)}</span>
+                <span className="font-display text-2xl font-bold">{pricesReady ? formatINR(chosen.price * qty) : <PriceWait />}</span>
               </div>
               <div className="mt-3 hidden gap-2 sm:grid sm:grid-cols-2">
                 <button
                   type="button"
-                  disabled={busy}
+                  disabled={busy || !pricesReady}
                   onClick={() => addToCart(false)}
                   className="peel-btn peel-btn--light flex h-12 items-center justify-center gap-2 rounded-xl text-sm font-bold"
                 >
@@ -321,7 +324,7 @@ export default function CustomStickerBuilder() {
                 </button>
                 <button
                   type="button"
-                  disabled={busy}
+                  disabled={busy || !pricesReady}
                   onClick={() => addToCart(true)}
                   className="peel-btn peel-btn--brand flex h-12 items-center justify-center gap-2 rounded-xl text-sm font-bold"
                 >
@@ -357,7 +360,7 @@ export default function CustomStickerBuilder() {
 
       {chosen && (
         <CustomBookBar
-          total={chosen.price * qty}
+          total={pricesReady ? chosen.price * qty : null}
           summary={`${qty} × ${formatInches(chosen.inches)}″ custom sticker`}
           hint={file ? null : "Add your design to start"}
           busy={busy}

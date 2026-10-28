@@ -4,6 +4,7 @@ import PageLink from "./page-link";
 import { useEffect, useState } from "react";
 import { CheckCircle2, ShoppingBag, Trash2, Truck, X } from "lucide-react";
 import { belowMinimum, formatINR } from "@stickypie/shared";
+import PriceWait from "./price-wait";
 import { useStoreSettings } from "@/lib/live-catalog";
 import { lineKey, useCart, itemHref } from "./cart-context";
 import QtyStepper from "./qty-stepper";
@@ -193,7 +194,10 @@ export default function CartDrawer() {
               </ul>
 
               <div className="border-t border-line px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))]">
-                {shortBy === 0 ? (
+                {!settings.loaded ? (
+                  // the real minimum order is still loading
+                  <PriceWait className="h-4 w-full" />
+                ) : shortBy === 0 ? (
                   <p className="flex items-center gap-2 text-xs font-medium text-mint">
                     <CheckCircle2 className="size-4" />{" "}
                     {subtotal >= settings.minOrder
@@ -240,7 +244,9 @@ export default function CartDrawer() {
                   </div>
                 </div>
 
-                {shortBy > 0 ? (
+                {!settings.loaded ? (
+                  <span className="mt-4 block h-11 w-full animate-pulse rounded-xl bg-panel" />
+                ) : shortBy > 0 ? (
                   <PageLink
                     href="/stickers"
                     onClick={closeCart}

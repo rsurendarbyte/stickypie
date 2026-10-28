@@ -3,11 +3,10 @@
 // Live catalog over the Supabase REST API, straight from the browser — with
 // as few requests as possible:
 //
-//   1. ONE small row (store_settings: shipping settings, home layout, features
-//      and `catalog_version`), asked for at most once every META_TTL_MS: shop
-//      links are plain page loads, so the row is kept in localStorage and the
-//      next pages reuse it without any request. Whatever is saved is shown at
-//      once and re-checked in the background (see loadCatalog).
+//   1. ONE small row (store_settings: prices, shipping settings, home layout,
+//      features and `catalog_version`), re-checked on every page load so admin
+//      edits (e.g. a new price) show on the shopper's next page. The last copy
+//      is kept in localStorage and shown at once while it's re-checked.
 //   2. The full catalog (categories + on-sale products) is kept in IndexedDB
 //      and only re-downloaded when `catalog_version` changed — the database
 //      bumps it whenever the admin edits a product/category/setting or stock
@@ -15,9 +14,9 @@
 //      load, and nobody re-downloads an unchanged catalog.
 //   3. Within one page, every hook shares the in-memory copy; product pages and
 //      "More like this" read from it instead of asking the API again.
-//   So a shopper browsing for a few minutes makes one small request in total;
-//   admin changes reach them within META_TTL_MS (checkout re-checks prices and
-//   stock on the server anyway).
+//   So a page load costs one small request; admin changes reach shoppers on
+//   their next page load (checkout re-checks prices and stock on the server
+//   anyway).
 //
 // RLS only exposes is_active products, so items taken off sale never reach the
 // browser. Demo mode (no Supabase env) keeps the server-rendered data.
@@ -45,7 +44,6 @@ export const liveCatalogEnabled = Boolean(SUPABASE_URL && ANON_KEY);
 const CACHE_KEY = "catalog:v2";
 const MEMORY_TTL_MS = 60_000;
 const META_KEY = "store-settings:v1";
-const META_TTL_MS = 5 * 60_000;
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -66,6 +64,8 @@ type Bundle = Catalog & {
   rails: HomeRail[];
   features: FeatureFlags;
   reviews: PublicReview[];
+  /** Settings checked with the database on this page load (not just the saved copy). */
+  fresh: boolean;
 };
 type CachedCatalog = Catalog & { version: string; reviews: PublicReview[] };
 
@@ -82,7 +82,7 @@ function freshMemory(): Bundle | null {
   return memory && Date.now() - memory.at < MEMORY_TTL_MS ? memory.bundle : null;
 }
 
-/** The store_settings row saved by an earlier page load (any age) and when it was saved. */
+/** The store_settings row saved by an earlier page load (any age). */
 function savedMeta(): { meta: any; at: number } | null {
   try {
     const saved = JSON.parse(localStorage.getItem(META_KEY) ?? "null");
@@ -122,9 +122,10 @@ async function fetchCatalog(): Promise<CachedCatalog> {
 }
 
 /** Hands a catalog + settings to every hook on the page. */
-function publish(meta: any, catalog: CachedCatalog): Bundle {
+function publish(meta: any, catalog: CachedCatalog, fresh = true): Bundle {
   const bundle: Bundle = {
     ...catalog,
+    fresh,
     settings: rowToSettings(meta),
     rails: rowToHomeRails(meta?.home_rails),
     features: rowToFeatures(meta?.features),
@@ -136,9 +137,9 @@ function publish(meta: any, catalog: CachedCatalog): Bundle {
 
 /**
  * Never makes the shopper wait for the network when anything is saved:
- *   - fresh saved settings + the matching saved catalog → no request at all;
- *   - anything saved, even out of date → shown at once, then checked in the
- *     background and swapped in place if it changed;
+ *   - saved settings + catalog → shown at once, then the settings row is
+ *     re-checked and swapped in place if the admin changed anything (the
+ *     catalog is only re-downloaded when its version moved);
  *   - nothing saved (first visit) → settings and catalog asked for together,
  *     not one after the other.
  */
@@ -148,12 +149,9 @@ function loadCatalog(): Promise<Bundle> {
   inflight ??= (async () => {
     const saved = savedMeta();
     const cached = await idbGet<CachedCatalog>(CACHE_KEY);
-    const savedVersion = saved?.meta?.catalog_version ?? null;
 
-    if (saved && cached && cached.version === savedVersion && Date.now() - saved.at < META_TTL_MS) {
-      return publish(saved.meta, cached);
-    }
-    if (saved && cached && !memory) publish(saved.meta, cached);
+    // show the last copy at once; the fresh settings below replace it
+    if (saved && cached && !memory) publish(saved.meta, cached, false);
 
     if (!cached) {
       const [meta, catalog] = await Promise.all([fetchMeta(), fetchCatalog()]);
@@ -254,7 +252,9 @@ export function useLiveProduct(
 export function useStoreSettings(): StoreSettings & { loaded: boolean } {
   const { bundle, failed } = useBundle();
   if (!liveCatalogEnabled) return { ...DEFAULT_STORE_SETTINGS, loaded: true };
-  return { ...(bundle?.settings ?? DEFAULT_STORE_SETTINGS), loaded: Boolean(bundle) || failed };
+  // Prices come from here: `loaded` waits for the re-checked row, so a saved
+  // (possibly outdated) price or the built-in default never shows.
+  return { ...(bundle?.settings ?? DEFAULT_STORE_SETTINGS), loaded: Boolean(bundle?.fresh) || failed };
 }
 
 /** Before the admin's switches arrive, nothing optional shows (no flash of a switched-off feature). */

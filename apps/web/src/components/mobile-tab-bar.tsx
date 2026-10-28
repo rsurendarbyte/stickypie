@@ -9,6 +9,7 @@ import { useFeatures, useStoreSettings } from "@/lib/live-catalog";
 import { useShopper } from "@/lib/shopper-auth";
 import { SURFACES } from "@/lib/surfaces";
 import { CUSTOM_PATHS, useCustomOptions } from "./custom-menu";
+import PriceWait from "./price-wait";
 import { cartUiHidden } from "./cart-strip";
 import LabelModal from "./label-modal";
 
@@ -136,7 +137,9 @@ export default function MobileTabBar() {
               </span>
               <span className="shrink-0 text-right text-[11px] leading-tight text-fog">
                 from
-                <span className="block font-display text-sm font-bold text-snow">{formatINR(from!)}</span>
+                <span className="block font-display text-sm font-bold text-snow">
+                  {settingsLoaded ? formatINR(from!) : <PriceWait />}
+                </span>
               </span>
             </Link>
           ))}

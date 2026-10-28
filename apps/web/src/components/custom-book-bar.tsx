@@ -2,6 +2,7 @@
 
 import { ArrowRight, Loader2, ShoppingBag } from "lucide-react";
 import { formatINR } from "@stickypie/shared";
+import PriceWait from "./price-wait";
 
 /**
  * Phones: total + Add / Book now pinned to the bottom of the custom sticker
@@ -17,7 +18,8 @@ export default function CustomBookBar({
   onAdd,
   onBook,
 }: {
-  total: number;
+  /** null while prices load: a placeholder shows and the buttons wait. */
+  total: number | null;
   /** e.g. "2 × 3″ name sticker" */
   summary: string;
   /** What's still missing (e.g. "Type your name first"); shown instead of the summary. */
@@ -33,11 +35,13 @@ export default function CustomBookBar({
           <span className={`block truncate text-[11px] ${hint ? "font-semibold text-brand" : "text-fog"}`}>
             {hint || summary}
           </span>
-          <span className="block font-display text-xl leading-tight font-bold">{formatINR(total)}</span>
+          <span className="block font-display text-xl leading-tight font-bold">
+            {total === null ? <PriceWait className="w-20" /> : formatINR(total)}
+          </span>
         </span>
         <button
           type="button"
-          disabled={busy}
+          disabled={busy || total === null}
           onClick={onAdd}
           aria-label="Add to cart"
           className="peel-btn peel-btn--light grid size-11 shrink-0 place-items-center rounded-xl"
@@ -46,7 +50,7 @@ export default function CustomBookBar({
         </button>
         <button
           type="button"
-          disabled={busy}
+          disabled={busy || total === null}
           onClick={onBook}
           className="peel-btn peel-btn--brand flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl px-5 text-sm font-bold"
         >
