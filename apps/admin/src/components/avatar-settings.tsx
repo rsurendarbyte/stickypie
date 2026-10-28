@@ -197,6 +197,8 @@ export default function AvatarSettings({
   onPages,
   price,
   onPrice,
+  extra,
+  onExtra,
   styles,
   onStyles,
 }: {
@@ -204,6 +206,8 @@ export default function AvatarSettings({
   onPages: (next: string) => void;
   price: string;
   onPrice: (next: string) => void;
+  extra: string;
+  onExtra: (next: string) => void;
   styles: AvatarStyle[];
   onStyles: (next: AvatarStyle[]) => void;
 }) {
@@ -264,7 +268,7 @@ export default function AvatarSettings({
 
   return (
     <>
-      <div className="grid max-w-sm grid-cols-2 gap-2">
+      <div className="grid max-w-xl grid-cols-3 gap-2">
         <TextField
           label="Minimum packs (styles)"
           value={pages}
@@ -277,9 +281,19 @@ export default function AvatarSettings({
           value={price}
           onChange={(e) => onPrice(digits(e.target.value))}
           inputMode="numeric"
+          hint="For the minimum packs"
+        />
+        <TextField
+          label="Price per extra pack (₹)"
+          value={extra}
+          onChange={(e) => onExtra(digits(e.target.value))}
+          inputMode="numeric"
+          hint="Each pack after the minimum"
         />
       </div>
-      <p className="mt-1 text-xs text-fog">Price 0 stops offering it.</p>
+      <p className="mt-1 text-xs text-fog">
+        Price 0 stops offering it. Extra pack price empty or 0 = same as the price per pack.
+      </p>
 
       <h3 className="mt-6 text-sm font-semibold">Styles shoppers pick from</h3>
       <p className="mt-0.5 text-xs text-fog">

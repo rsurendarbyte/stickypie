@@ -74,7 +74,7 @@ export type ShopFacts = {
   qr: { inches: number; price: number }[];
   text: { inches: number; price: number }[];
   /** AI avatar sticker packs: minimum packs, price per pack, the style names and one picture per style. */
-  avatar: { packs: number; price: number; styles: string[]; pictures: { style: string; url: string }[] } | null;
+  avatar: { packs: number; price: number; extra: number; styles: string[]; pictures: { style: string; url: string }[] } | null;
 };
 
 const fromPrice = (sizes: { price: number }[]) => (sizes.length ? Math.min(...sizes.map((s) => s.price)) : null);
@@ -171,7 +171,8 @@ export function storeFaq(facts: ShopFacts): Faq[] {
 export function avatarFaq(facts: ShopFacts): Faq[] {
   const avatar = facts.avatar;
   if (!avatar) return [];
-  const { packs, price, styles } = avatar;
+  const { packs, price, extra, styles } = avatar;
+  const thenExtra = extra !== price ? `, then ${formatINR(extra)} for each extra pack` : "";
   const named = styles.slice(0, 8).join(", ");
   return [
     {
@@ -188,7 +189,7 @@ export function avatarFaq(facts: ShopFacts): Faq[] {
     },
     {
       q: "How much do avatar stickers cost?",
-      a: `${formatINR(price)} per sticker pack, one pack per style, with a minimum of ${packs} packs (${formatINR(packs * price)}). Avatar sticker orders have no minimum order value; shipping is worked out at checkout from your pin code.`,
+      a: `${formatINR(price)} per sticker pack, one pack per style, with a minimum of ${packs} packs (${formatINR(packs * price)})${thenExtra}. Avatar sticker orders have no minimum order value; shipping is worked out at checkout from your pin code.`,
     },
     {
       q: "What photo should I send for avatar stickers?",

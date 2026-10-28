@@ -231,8 +231,9 @@ export const storeSettingsSchema = z.object({
     .object({
       pages: z.number().int().min(1, "At least 1 pack").max(AVATAR_MAX_PAGES, `Minimum up to ${AVATAR_MAX_PAGES} packs`),
       price: rupees("the price per pack"),
+      extra: rupees("the price per extra pack").default(0),
     })
-    .default({ pages: 4, price: 0 }),
+    .default({ pages: 4, price: 0, extra: 0 }),
   avatarStyles: z
     .array(
       z.object({

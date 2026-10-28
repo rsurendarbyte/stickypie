@@ -59,7 +59,7 @@ export default async function AvatarStickersPage() {
       "@type": "AggregateOffer",
       priceCurrency: "INR",
       lowPrice: avatar.packs * avatar.price,
-      highPrice: Math.max(avatar.styles.length, avatar.packs) * avatar.price,
+      highPrice: avatar.packs * avatar.price + Math.max(avatar.styles.length - avatar.packs, 0) * avatar.extra,
       offerCount: Math.max(avatar.styles.length - avatar.packs + 1, 1),
       availability: "https://schema.org/InStock",
       url: page,
@@ -117,7 +117,7 @@ export default async function AvatarStickersPage() {
             Send one selfie and get a cartoon version of you, made with AI, in any of {avatar.styles.length} trending
             styles. Each style is a pack of stickers of you, printed on die-cut vinyl for laptops, phones,
             bottles, cars and bikes, and shipped across India. {formatINR(avatar.price)} a pack, {avatar.packs} packs or
-            more.
+            more{avatar.extra !== avatar.price && <>, then {formatINR(avatar.extra)} for each extra pack</>}.
           </p>
           <ul className="mt-3 flex flex-wrap gap-2">
             {avatar.styles.map((st) => (

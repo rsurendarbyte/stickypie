@@ -56,7 +56,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   customPrices: { "3": 49, "6": 99, "7": 149 },
   qrPrices: { "3": 49, "6": 99, "7": 149 },
   textPrices: { "3": 39, "6": 79, "7": 119 },
-  avatarBook: { pages: 4, price: 300 },
+  avatarBook: { pages: 4, price: 300, extra: 0 },
   avatarStyles: DEFAULT_AVATAR_STYLES,
 };
 
@@ -175,7 +175,11 @@ export function rowToSettings(r: any): StoreSettings {
         : DEFAULT_STORE_SETTINGS.textPrices,
     avatarBook:
       r.avatar_book && typeof r.avatar_book === "object"
-        ? { pages: Number(r.avatar_book.pages) || 0, price: Number(r.avatar_book.price) || 0 }
+        ? {
+            pages: Number(r.avatar_book.pages) || 0,
+            price: Number(r.avatar_book.price) || 0,
+            extra: Number(r.avatar_book.extra) || 0,
+          }
         : DEFAULT_STORE_SETTINGS.avatarBook,
     avatarStyles: Array.isArray(r.avatar_styles)
       ? r.avatar_styles

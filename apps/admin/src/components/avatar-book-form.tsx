@@ -13,6 +13,7 @@ export default function AvatarBookForm({ initial }: { initial: StoreSettings }) 
   const { toast } = useToast();
   const [pages, setPages] = useState(String(initial.avatarBook.pages));
   const [price, setPrice] = useState(String(initial.avatarBook.price));
+  const [extra, setExtra] = useState(initial.avatarBook.extra ? String(initial.avatarBook.extra) : "");
   const [styles, setStyles] = useState(initial.avatarStyles);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +27,10 @@ export default function AvatarBookForm({ initial }: { initial: StoreSettings }) 
       const res = await fetch("/api/settings/avatar-book", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ avatarBook: { pages: num(pages), price: num(price) }, avatarStyles: styles }),
+        body: JSON.stringify({
+          avatarBook: { pages: num(pages), price: num(price), extra: extra.trim() === "" ? 0 : num(extra) },
+          avatarStyles: styles,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Save failed");
@@ -48,6 +52,8 @@ export default function AvatarBookForm({ initial }: { initial: StoreSettings }) 
         onPages={setPages}
         price={price}
         onPrice={setPrice}
+        extra={extra}
+        onExtra={setExtra}
         styles={styles}
         onStyles={setStyles}
       />
@@ -63,7 +69,11 @@ export default function AvatarBookForm({ initial }: { initial: StoreSettings }) 
         <span className="text-xs text-fog">
           Currently:{" "}
           {initial.avatarBook.price > 0
-            ? `${initial.avatarBook.pages}+ packs · ${formatINR(initial.avatarBook.price)} a pack`
+            ? `${initial.avatarBook.pages}+ packs · ${formatINR(initial.avatarBook.price)} a pack${
+                initial.avatarBook.extra > 0 && initial.avatarBook.extra !== initial.avatarBook.price
+                  ? `, then ${formatINR(initial.avatarBook.extra)} each extra`
+                  : ""
+              }`
             : "not offered"}{" "}
           · {initial.avatarStyles.length} style{initial.avatarStyles.length === 1 ? "" : "s"}
         </span>
