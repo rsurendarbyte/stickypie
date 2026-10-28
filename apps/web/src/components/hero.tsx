@@ -11,6 +11,7 @@ import {
   Car,
   ImageUp,
   Link2,
+  Loader2,
   MessageCircle,
   QrCode,
   Ruler,
@@ -758,8 +759,41 @@ function AvatarBookWall({ styles }: { styles: AvatarStyle[] }) {
 }
 
 /** Avatar slide: a sticker book of you from a photo, its price and the call to action. */
+/**
+ * Start loading the avatar page the moment the shopper shows intent (finger
+ * down, mouse over, focus) rather than on click: the page is built by the
+ * Worker (fresh admin prices), so this hides its response time. Chrome
+ * prerenders it outright (speculation rules), others prefetch it. Once per
+ * page view, so it costs at most one extra request and only on intent.
+ */
+let avatarWarm = false;
+function warmAvatarPage() {
+  if (avatarWarm || typeof document === "undefined") return;
+  avatarWarm = true;
+  if (HTMLScriptElement.supports?.("speculationrules")) {
+    const rules = document.createElement("script");
+    rules.type = "speculationrules";
+    rules.textContent = JSON.stringify({ prerender: [{ urls: ["/avatar-stickers"], eagerness: "immediate" }] });
+    document.head.append(rules);
+  } else {
+    const link = document.createElement("link");
+    link.rel = "prefetch";
+    link.href = "/avatar-stickers";
+    link.as = "document";
+    document.head.append(link);
+  }
+}
+
 function AvatarSlideCopy({ book }: { book: AvatarBook }) {
   const { loaded: pricesReady } = useStoreSettings();
+  // Tapped: show progress at once while the next page loads.
+  const [going, setGoing] = useState(false);
+  // Back button from the avatar page restores this page from cache: drop the spinner.
+  useEffect(() => {
+    const reset = () => setGoing(false);
+    window.addEventListener("pageshow", reset);
+    return () => window.removeEventListener("pageshow", reset);
+  }, []);
   return (
     <>
       {/* AI up front: a solid AI tag beside the badge */}
@@ -788,9 +822,18 @@ function AvatarSlideCopy({ book }: { book: AvatarBook }) {
       <div className="mt-3 flex flex-wrap items-center gap-2.5 sm:mt-6 sm:gap-3">
         <PageLink
           href="/avatar-stickers"
+          onPointerEnter={warmAvatarPage}
+          onPointerDown={warmAvatarPage}
+          onTouchStart={warmAvatarPage}
+          onFocus={warmAvatarPage}
+          onClick={(e) => {
+            if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) setGoing(true);
+          }}
+          aria-busy={going || undefined}
           className="peel-btn inline-flex h-12 items-center gap-2 rounded-xl px-6 text-base font-bold"
         >
-          Make my stickers <ArrowRight className="size-4" />
+          Make my stickers{" "}
+          {going ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
         </PageLink>
       </div>
     </>
