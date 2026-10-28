@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import BackButton from "@/components/back-button";
 import AvatarStickerBuilder from "@/components/avatar-sticker-builder";
 import CustomRequestForm from "@/components/custom-request-form";
-import FaqItem from "@/components/faq-item";
+import AvatarLiveInfo from "@/components/avatar-live-info";
 import JsonLd from "@/components/json-ld";
 import { MetaViewContent } from "@/components/meta-track";
 import { avatarFaq, faqStructuredData } from "@/lib/seo";
@@ -11,10 +11,10 @@ import { formatINR } from "@stickypie/shared";
 import { siteUrl } from "@/lib/mode";
 import { SITE_NAME, absoluteUrl, pageMetadata } from "@/lib/site";
 
-// Price, styles and FAQ come from admin settings: rebuilt at most once a minute
-// so admin edits show without a deploy (scripts/copy-static-pages.mjs leaves
-// this page to the Worker for that).
-export const revalidate = 60;
+// A static file like the other shop pages (opens instantly). Price, styles and
+// FAQ are baked in at deploy for search engines, then AvatarStickerBuilder and
+// AvatarLiveInfo switch to the live admin settings in the browser, so admin
+// edits show without a deploy.
 
 export const metadata: Metadata = {
   ...pageMetadata({
@@ -123,38 +123,7 @@ export default async function AvatarStickersPage() {
         print them on vinyl.
       </p>
       <AvatarStickerBuilder />
-      {avatar && (
-        // Every style in words, for shoppers scrolling past and for search / AI answers.
-        <section className="mt-12 max-w-3xl">
-          <h2 className="font-display text-xl font-bold">AI sticker styles of you</h2>
-          <p className="mt-2 text-sm leading-relaxed text-fog">
-            Send one selfie and get a cartoon version of you, made with AI, in any of {avatar.styles.length} trending
-            styles. Each style is a pack of stickers of you, printed on die-cut vinyl for laptops, phones,
-            bottles, cars and bikes, and shipped across India. {formatINR(avatar.price)} a pack, {avatar.packs} packs or
-            more{avatar.extra !== avatar.price && <>, then {formatINR(avatar.extra)} for each extra pack</>}.
-          </p>
-          <ul className="mt-3 flex flex-wrap gap-2">
-            {avatar.styles.map((st) => (
-              <li
-                key={st}
-                className="rounded-full border border-line bg-ink2/80 px-3 py-1.5 text-xs font-semibold text-snow"
-              >
-                {st} stickers of you
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-      {faq.length > 0 && (
-        <section className="mt-10 max-w-3xl">
-          <h2 className="font-display text-xl font-bold">AI avatar stickers, answered</h2>
-          <div className="mt-4 divide-y divide-line rounded-2xl border border-line bg-ink2/80">
-            {faq.map(({ q, a }) => (
-              <FaqItem key={q} q={q} a={a} />
-            ))}
-          </div>
-        </section>
-      )}
+      <AvatarLiveInfo initial={avatar} />
       <CustomRequestForm />
     </div>
   );
