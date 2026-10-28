@@ -376,7 +376,10 @@ function ReelItem({
           </button>
           {inCart ? (
             <>
-              {shortBy > 0 ? (
+              {!settings.loaded ? (
+                // the real minimum order is still loading
+                <span className="h-12 min-w-0 flex-1 animate-pulse rounded-2xl bg-panel ring-1 ring-line" />
+              ) : shortBy > 0 ? (
                 // below the minimum: Checkout can't be used yet; it fills up towards the minimum
                 <button
                   type="button"

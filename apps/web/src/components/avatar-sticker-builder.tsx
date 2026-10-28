@@ -38,6 +38,7 @@ import ZoomPane from "./zoom-pane";
 import AvatarArt from "./avatar-art";
 import { useCart } from "./cart-context";
 import CustomBookBar from "./custom-book-bar";
+import PriceWait from "./price-wait";
 import CustomRequestForm from "./custom-request-form";
 import LabelModal from "./label-modal";
 import { TextField } from "./field";
@@ -166,6 +167,8 @@ function StyleCover({
  */
 export default function AvatarStickerBuilder() {
   const settings = useStoreSettings();
+  // prices come from the admin's settings: placeholders until they've loaded
+  const pricesReady = settings.loaded;
   const features = useFeatures();
   const book = avatarBook(settings);
   const { add, openCart } = useCart();
@@ -600,19 +603,19 @@ export default function AvatarStickerBuilder() {
             <div className="mt-4 flex items-baseline justify-between gap-3 border-t border-line pt-4">
               <span className="text-sm text-fog">Price</span>
               <span className="font-display text-3xl font-bold">
-                {formatINR(total)}
+                {pricesReady ? formatINR(total) : <PriceWait />}
               </span>
             </div>
             {book.extra > 0 && book.extra !== book.price && (
               // first packs at one price, each one after at the extra price
               <p className="mt-1 text-right text-xs text-fog">
-                {book.pages} × {formatINR(book.price)}
+                {book.pages} × {pricesReady ? formatINR(book.price) : <PriceWait />}
                 {picked.length > book.pages && (
                   <>
-                    {" "}+ {picked.length - book.pages} × {formatINR(book.extra)}
+                    {" "}+ {picked.length - book.pages} × {pricesReady ? formatINR(book.extra) : <PriceWait />}
                   </>
                 )}
-                {picked.length <= book.pages && <> · then {formatINR(book.extra)} each extra pack</>}
+                {picked.length <= book.pages && <> · then {pricesReady ? formatINR(book.extra) : <PriceWait />} each extra pack</>}
               </p>
             )}
             {error && (
@@ -624,7 +627,7 @@ export default function AvatarStickerBuilder() {
             <div className="mt-3 hidden gap-2 sm:grid sm:grid-cols-2">
               <button
                 type="button"
-                disabled={busy}
+                disabled={busy || !pricesReady}
                 onClick={() => addToCart(false)}
                 className="peel-btn peel-btn--light flex h-12 items-center justify-center gap-2 rounded-xl text-sm font-bold"
               >
@@ -632,7 +635,7 @@ export default function AvatarStickerBuilder() {
               </button>
               <button
                 type="button"
-                disabled={busy}
+                disabled={busy || !pricesReady}
                 onClick={() => addToCart(true)}
                 className="peel-btn peel-btn--brand flex h-12 items-center justify-center gap-2 rounded-xl text-sm font-bold"
               >
@@ -849,7 +852,7 @@ export default function AvatarStickerBuilder() {
 
       {book && (
         <CustomBookBar
-          total={total}
+          total={pricesReady ? total : null}
           summary={avatarBookLabel(sheets)}
           hint={missing}
           busy={busy}

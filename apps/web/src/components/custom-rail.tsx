@@ -2,6 +2,7 @@
 
 import { ArrowRight, ImageUp, QrCode, Smile, Sparkles, Type } from "lucide-react";
 import { avatarBook, avatarSheetsPrice, customSizes, formatINR } from "@stickypie/shared";
+import PriceWait from "./price-wait";
 import { useFeatures, useStoreSettings } from "@/lib/live-catalog";
 import { cardSkinFor } from "@/lib/palette";
 import { useSkinSeed } from "@/lib/skin-seed";
@@ -94,7 +95,7 @@ export default function CustomRail() {
             <p className="truncate text-xs text-fog">AI stickers of you</p>
             <div className="mt-2.5 flex items-center justify-between gap-2">
               <span className="text-xs text-fog">
-                <span className="font-display text-base font-bold text-snow">{formatINR(book!.price)}</span> a pack
+                <span className="font-display text-base font-bold text-snow">{settings.loaded ? formatINR(book!.price) : <PriceWait />}</span> a pack
               </span>
               <span className="peel-btn grid size-9 place-items-center rounded-xl">
                 <ArrowRight className="size-4" />
@@ -128,7 +129,7 @@ export default function CustomRail() {
               <p className="truncate text-xs text-fog">{text}</p>
               <div className="mt-2.5 flex items-center justify-between gap-2">
                 <span className="text-xs text-fog">
-                  from <span className="font-display text-base font-bold text-snow">{formatINR(price!)}</span>
+                  from <span className="font-display text-base font-bold text-snow">{settings.loaded ? formatINR(price!) : <PriceWait />}</span>
                 </span>
                 <span className="peel-btn grid size-9 place-items-center rounded-xl">
                   <ArrowRight className="size-4" />

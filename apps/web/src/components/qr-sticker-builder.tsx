@@ -9,6 +9,7 @@ import { cardSkinFor } from "@/lib/palette";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { useCart } from "./cart-context";
 import CustomBookBar from "./custom-book-bar";
+import PriceWait from "./price-wait";
 
 type Kind = "link" | "upi" | "whatsapp" | "instagram" | "text";
 
@@ -53,6 +54,8 @@ function qrContent(kind: Kind, a: string, b: string): { value: string } | { erro
 
 export default function QrStickerBuilder() {
   const settings = useStoreSettings();
+  // prices come from the admin's settings: placeholders until they've loaded
+  const pricesReady = settings.loaded;
   const features = useFeatures();
   const sizes = customSizes(settings.qrPrices);
   const { add, openCart } = useCart();
@@ -258,7 +261,7 @@ export default function QrStickerBuilder() {
                 }`}
               >
                 <span className="block font-display text-base font-bold">{formatInches(s.inches)}″</span>
-                <span className={`block text-sm font-bold ${active ? "text-brand" : "text-snow"}`}>{formatINR(s.price)}</span>
+                <span className={`block text-sm font-bold ${active ? "text-brand" : "text-snow"}`}>{pricesReady ? formatINR(s.price) : <PriceWait />}</span>
               </button>
             );
           })}
@@ -293,12 +296,12 @@ export default function QrStickerBuilder() {
               <span className="text-sm text-fog">
                 {qty} × {formatInches(chosen.inches)}″ QR code sticker
               </span>
-              <span className="font-display text-2xl font-bold">{formatINR(chosen.price * qty)}</span>
+              <span className="font-display text-2xl font-bold">{pricesReady ? formatINR(chosen.price * qty) : <PriceWait />}</span>
             </div>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <button
                 type="button"
-                disabled={busy}
+                disabled={busy || !pricesReady}
                 onClick={() => addToCart(false)}
                 className="peel-btn peel-btn--light flex h-11 items-center justify-center gap-2 rounded-xl text-sm font-bold disabled:opacity-50"
               >
@@ -306,7 +309,7 @@ export default function QrStickerBuilder() {
               </button>
               <button
                 type="button"
-                disabled={busy}
+                disabled={busy || !pricesReady}
                 onClick={() => addToCart(true)}
                 className="peel-btn peel-btn--brand flex h-11 items-center justify-center gap-2 rounded-xl text-sm font-bold disabled:opacity-50"
               >
@@ -319,7 +322,7 @@ export default function QrStickerBuilder() {
       </div>
       {chosen && (
         <CustomBookBar
-          total={chosen.price * qty}
+          total={pricesReady ? chosen.price * qty : null}
           summary={`${qty} × ${formatInches(chosen.inches)}″ QR code sticker`}
           hint={ready ? null : ("error" in content && content.error) || "Fill in what the QR should open"}
           busy={busy}

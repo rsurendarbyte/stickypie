@@ -30,7 +30,8 @@ export default function CartStrip() {
   const settings = useStoreSettings();
 
   // Hidden while the cart itself is open (it says the same thing).
-  if (count === 0 || isOpen || cartUiHidden(pathname)) return null;
+  // ...and until the real minimum order has loaded (never the built-in default)
+  if (count === 0 || isOpen || cartUiHidden(pathname) || !settings.loaded) return null;
 
   const shortBy = belowMinimum(settings, subtotal, items);
   const progress =

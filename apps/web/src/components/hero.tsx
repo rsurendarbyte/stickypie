@@ -35,6 +35,7 @@ import { cardSkinFor, tileFor } from "@/lib/palette";
 import { useSkinSeed } from "@/lib/skin-seed";
 import AddToCartButton from "./add-to-cart-button";
 import AvatarArt from "./avatar-art";
+import PriceWait from "./price-wait";
 import { useSizeChoice } from "./size-picker";
 import TrueSizePreview from "./true-size-preview";
 import {
@@ -758,6 +759,7 @@ function AvatarBookWall({ styles }: { styles: AvatarStyle[] }) {
 
 /** Avatar slide: a sticker book of you from a photo, its price and the call to action. */
 function AvatarSlideCopy({ book }: { book: AvatarBook }) {
+  const { loaded: pricesReady } = useStoreSettings();
   return (
     <>
       <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 text-[11px] font-bold tracking-widest text-brand uppercase backdrop-blur-sm">
@@ -772,7 +774,9 @@ function AvatarSlideCopy({ book }: { book: AvatarBook }) {
       </p>
       <div className="mt-2 flex items-baseline gap-2 sm:mt-6">
         <span className="text-sm text-fog">{book.pages} packs from</span>
-        <span className="font-display text-3xl font-bold text-gold sm:text-4xl">{formatINR(avatarSheetsPrice(book, 0))}</span>
+        <span className="font-display text-3xl font-bold text-gold sm:text-4xl">
+          {pricesReady ? formatINR(avatarSheetsPrice(book, 0)) : <PriceWait className="w-24" />}
+        </span>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2.5 sm:mt-6 sm:gap-3">
         <PageLink
@@ -813,6 +817,7 @@ function CustomSlideCopy({
   kind: keyof typeof SPECIAL_SLIDES;
   sizes: { inches: number; price: number }[];
 }) {
+  const { loaded: pricesReady } = useStoreSettings();
   const c = SPECIAL_SLIDES[kind];
   const Icon = c.icon;
   const from = Math.min(...sizes.map((s) => s.price));
@@ -830,7 +835,7 @@ function CustomSlideCopy({
       <div className="mt-1.5 flex items-baseline gap-2 sm:mt-6">
         <span className="text-sm text-fog">from</span>
         <span className="font-display text-[28px] leading-none font-bold text-gold sm:text-4xl">
-          {formatINR(from)}
+          {pricesReady ? formatINR(from) : <PriceWait className="w-20" />}
         </span>
         {/* phones: the picture's floating labels, as one quiet line */}
         <span className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-fog sm:hidden">
@@ -856,7 +861,7 @@ function CustomSlideCopy({
               {formatInches(s.inches)}″
             </span>
             <span className="text-xs font-semibold text-fog">
-              {formatINR(s.price)}
+              {pricesReady ? formatINR(s.price) : <PriceWait className="w-8" />}
             </span>
           </span>
         ))}
