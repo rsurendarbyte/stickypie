@@ -15,7 +15,7 @@ import { useFeatures } from "@/lib/live-catalog";
 const BACK_PAGES: Record<string, string> = {
   "/custom-stickers": "/",
   "/custom-stickers/design": "/custom-stickers",
-  "/avatar-stickers": "/custom-stickers",
+  "/avatar-stickers": "/",
   "/name-stickers": "/custom-stickers",
   "/qr-code-stickers": "/custom-stickers",
   "/checkout": "/stickers",

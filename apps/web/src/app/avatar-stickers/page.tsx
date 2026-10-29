@@ -110,7 +110,7 @@ export default async function AvatarStickersPage() {
       )}
       {/* desktop: Back on the page (phones have it in the header) */}
       <div className="mb-3 hidden sm:block">
-        <BackButton fallback="/custom-stickers" />
+        <BackButton fallback="/" />
       </div>
       <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-2.5 py-1 text-[11px] font-bold tracking-wide text-brand uppercase">
         New · AI avatar sticker packs
