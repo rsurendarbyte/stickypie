@@ -72,9 +72,9 @@ function StylePrompts({
   const [tab, setTab] = useState(0);
   const at = Math.min(tab, sets.length - 1);
   const poses = sets[at];
-  // Card picture pose: "" = the style's own card pose, else one from its sets.
+  // Card picture pose: typed freely (the style's poses are suggested); empty = the style's own card pose.
   const allPoses = avatarAllPoses(sets);
-  const [cardPose, setCardPose] = useState("");
+  const [pose, setPose] = useState("");
 
   const edit = (next: string[]) => onPoseSets(next);
   return (
@@ -83,24 +83,49 @@ function StylePrompts({
         <label htmlFor={`card-pose-${label}`} className="text-xs font-semibold">
           Card picture pose
         </label>
-        <select
+        <input
           id={`card-pose-${label}`}
-          value={cardPose}
-          onChange={(e) => setCardPose(e.target.value)}
-          className="h-8 min-w-0 flex-1 rounded-lg border border-line bg-ink2 px-2 text-xs outline-none focus:border-snow/40"
+          list={`card-poses-${label}`}
+          value={pose}
+          onChange={(e) => setPose(e.target.value)}
+          maxLength={160}
+          placeholder="Type any pose, or leave empty for the style default"
+          className="h-8 min-w-0 flex-1 rounded-lg border border-line bg-ink2 px-2.5 text-xs outline-none focus:border-snow/40"
+        />
+        <datalist id={`card-poses-${label}`}>
+          {allPoses.map((p) => (
+            <option key={p} value={p} />
+          ))}
+        </datalist>
+        {/* or pick one of the style's poses (fills the box above) */}
+        <select
+          value=""
+          onChange={(e) => e.target.value && setPose(e.target.value)}
+          aria-label="Pick one of the style's poses"
+          className="h-8 w-36 rounded-lg border border-line bg-ink2 px-2 text-xs outline-none focus:border-snow/40"
         >
-          <option value="">Style default</option>
+          <option value="">Pick a pose…</option>
           {allPoses.map((p) => (
             <option key={p} value={p}>
               {p}
             </option>
           ))}
         </select>
+        {pose && (
+          <button
+            type="button"
+            onClick={() => setPose("")}
+            aria-label="Clear pose"
+            className="grid size-8 place-items-center rounded-lg text-fog hover:text-snow"
+          >
+            <X className="size-3.5" />
+          </button>
+        )}
         <button
           type="button"
           onClick={() => {
-            const others = allPoses.filter((p) => p !== cardPose);
-            if (others.length) setCardPose(others[Math.floor(Math.random() * others.length)]);
+            const others = allPoses.filter((p) => p !== pose);
+            if (others.length) setPose(others[Math.floor(Math.random() * others.length)]);
           }}
           className="inline-flex h-8 items-center gap-1 rounded-lg border border-line px-2.5 text-xs font-semibold text-snow"
         >
@@ -109,11 +134,11 @@ function StylePrompts({
       </div>
       <PromptBlock
         title="Girl card picture"
-        text={avatarCardPrompt(label, "girl", cardPose)}
+        text={avatarCardPrompt(label, "girl", pose)}
       />
       <PromptBlock
         title="Boy card picture"
-        text={avatarCardPrompt(label, "boy", cardPose)}
+        text={avatarCardPrompt(label, "boy", pose)}
       />
 
       <div
