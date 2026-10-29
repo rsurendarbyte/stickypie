@@ -1,18 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import {
-  ArrowDown,
-  ArrowUp,
-  Check,
-  Copy,
-  Loader2,
-  Plus,
-  Sparkles,
-  Trash2,
-  Upload,
-  X,
-} from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Copy, Loader2, Plus, Shuffle, Sparkles, Trash2, Upload, X } from "lucide-react";
 import {
   AVATAR_MAX_COVERS,
   AVATAR_MAX_PAGES,
@@ -23,6 +12,7 @@ import {
   type AvatarStyle,
 } from "@stickypie/shared";
 import {
+  avatarAllPoses,
   avatarCardPrompt,
   avatarPoseSets,
   avatarSheetPrompt,
@@ -82,17 +72,48 @@ function StylePrompts({
   const [tab, setTab] = useState(0);
   const at = Math.min(tab, sets.length - 1);
   const poses = sets[at];
+  // Card picture pose: "" = the style's own card pose, else one from its sets.
+  const allPoses = avatarAllPoses(sets);
+  const [cardPose, setCardPose] = useState("");
 
   const edit = (next: string[]) => onPoseSets(next);
   return (
     <div className="mt-2 space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <label htmlFor={`card-pose-${label}`} className="text-xs font-semibold">
+          Card picture pose
+        </label>
+        <select
+          id={`card-pose-${label}`}
+          value={cardPose}
+          onChange={(e) => setCardPose(e.target.value)}
+          className="h-8 min-w-0 flex-1 rounded-lg border border-line bg-ink2 px-2 text-xs outline-none focus:border-snow/40"
+        >
+          <option value="">Style default</option>
+          {allPoses.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={() => {
+            const others = allPoses.filter((p) => p !== cardPose);
+            if (others.length) setCardPose(others[Math.floor(Math.random() * others.length)]);
+          }}
+          className="inline-flex h-8 items-center gap-1 rounded-lg border border-line px-2.5 text-xs font-semibold text-snow"
+        >
+          <Shuffle className="size-3.5" /> Random
+        </button>
+      </div>
       <PromptBlock
         title="Girl card picture"
-        text={avatarCardPrompt(label, "girl")}
+        text={avatarCardPrompt(label, "girl", cardPose)}
       />
       <PromptBlock
         title="Boy card picture"
-        text={avatarCardPrompt(label, "boy")}
+        text={avatarCardPrompt(label, "boy", cardPose)}
       />
 
       <div
