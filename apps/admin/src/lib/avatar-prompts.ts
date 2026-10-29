@@ -473,18 +473,20 @@ function build(
 }
 
 /** One sticker for the style card (square, shown small, so big and simple). */
-function buildCard(label: string, who: "girl" | "boy"): string {
+function buildCard(label: string, who: "girl" | "boy", pose = ""): string {
   const look = lookFor(label);
+  // A chosen pose replaces the style's own card pose (and its extras).
+  const own = pose.trim() ? `waist-up, ${pose.trim()}, with a big happy expression, looking at the viewer` : look.card;
   const parts = [
     "A single die-cut sticker, square 1:1 image, on a transparent background (or pure white if transparency isn't possible).",
     `The sticker shows ${who === "girl" ? GIRL : BOY}.`,
-    `Pose: ${look.card ?? "waist-up, a peace sign with a wink and a big happy smile, looking at the viewer"}.`,
+    `Pose: ${own ?? "waist-up, a peace sign with a wink and a big happy smile, looking at the viewer"}.`,
     `Style: ${look.style}.`,
     // A card pose brings its own extras; the sheet's list is too busy for one sticker.
-    `A few small decorations inside the sticker: ${look.card ? "small stars and hearts" : look.extras}.`,
+    `A few small decorations inside the sticker: ${own ? "small stars and hearts" : look.extras}.`,
     "Thick even white sticker border around the whole design, with a soft shadow. The outer edge of the white border is plain white: no black, grey or coloured outline or cut line around it. Centred, filling about 90% of the image, with a small even margin on all sides and nothing cut off.",
     "Big, clear face that still reads well when shown small on a phone. Bright, clean, high detail.",
-    `Original character, not based on ${look.original ?? "any existing character"} or any real person. No text${look.card?.includes('"') ? " other than the words above" : ""}.`,
+    `Original character, not based on ${look.original ?? "any existing character"} or any real person. No text${own?.includes('"') ? " other than the words above" : ""}.`,
   ];
   if (who === "boy")
     parts.push(
@@ -520,6 +522,13 @@ export function avatarSheetPrompt(
 }
 
 /** The style card picture (one sticker). */
-export function avatarCardPrompt(label: string, who: "girl" | "boy"): string {
-  return buildCard(label, who);
+/** The style card picture (one sticker); `pose` picks a different pose than the style's own. */
+export function avatarCardPrompt(label: string, who: "girl" | "boy", pose = ""): string {
+  return buildCard(label, who, pose);
+}
+
+/** Every pose across a style's sets, once each — the choices for a card picture's pose. */
+export function avatarAllPoses(sets: string[]): string[] {
+  const seen = new Set<string>();
+  return sets.flatMap(posesOf).filter((p) => !seen.has(p.toLowerCase()) && !!seen.add(p.toLowerCase()));
 }

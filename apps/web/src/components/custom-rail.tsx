@@ -86,13 +86,16 @@ export default function CustomRail() {
               loading="lazy"
               className="absolute inset-[8%] size-[84%] object-contain drop-shadow-[0_10px_14px_rgba(16,24,40,0.22)] transition-transform duration-300 group-hover:scale-105 group-hover:-rotate-2"
             />
-            <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-md bg-white/90 px-2 py-0.5 text-[10px] font-bold tracking-wider text-brand uppercase shadow-sm">
-              <Sparkles className="size-3" /> AI avatar
-            </span>
           </div>
           <div className="p-3">
-            <p className="truncate text-sm font-semibold">{label}</p>
-            <p className="truncate text-xs text-fog">AI stickers of you</p>
+            {/* the AI tag sits here, not on the picture, so it never covers the sticker */}
+            <div className="flex items-center justify-between gap-1.5">
+              <p className="min-w-0 truncate text-sm font-semibold">{label}</p>
+              <span className="inline-flex shrink-0 items-center gap-0.5 rounded-md bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-brand uppercase">
+                <Sparkles className="size-3" /> AI
+              </span>
+            </div>
+            <p className="truncate text-xs text-fog">AI avatar stickers of you</p>
             <div className="mt-2.5 flex items-center justify-between gap-2">
               <span className="text-xs text-fog">
                 <span className="font-display text-base font-bold text-snow">{settings.loaded ? formatINR(book!.price) : <PriceWait />}</span> a pack
