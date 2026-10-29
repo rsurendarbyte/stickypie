@@ -1305,6 +1305,49 @@ html[data-lite]:not([data-lite="net"]) .wall-peel {
   animation: none;
 }
 
+/* "Stickers of YOU" lead card designs (custom-rail.tsx). Slider: the grey
+   "photo" copy is cut back and forth over the colour sticker. */
+@property --lead-cut {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 50%;
+}
+.lead-slider {
+  animation: lead-cut 3.2s ease-in-out infinite alternate;
+}
+@keyframes lead-cut {
+  from {
+    --lead-cut: 22%;
+  }
+  to {
+    --lead-cut: 78%;
+  }
+}
+.lead-slider-before {
+  filter: grayscale(1) contrast(0.85) brightness(1.08);
+  clip-path: inset(0 calc(100% - var(--lead-cut)) 0 0);
+}
+.lead-slider-line {
+  left: var(--lead-cut);
+}
+/* Scan: a glowing line sweeps down over the face. */
+.lead-scan {
+  top: 6%;
+  background: linear-gradient(to bottom, transparent, color-mix(in srgb, var(--color-brand) 55%, transparent) 50%, transparent);
+  animation: lead-scan 2.2s ease-in-out infinite alternate;
+}
+@keyframes lead-scan {
+  to {
+    top: calc(94% - 1.5rem);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lead-slider,
+  .lead-scan {
+    animation: none;
+  }
+}
+
 /* Avatar style card: its two card pictures (a girl and a boy) take turns,
    cross-fading every 3s; the second runs half a cycle behind (inline delay). */
 .avatar-cover-swap {

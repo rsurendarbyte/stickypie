@@ -23,10 +23,14 @@ import {
   Truck,
   Wallet,
 } from "lucide-react";
-import type { AvatarBook, AvatarStyle, Category, Product } from "@stickypie/shared";
+import type {
+  AvatarBook,
+  AvatarStyle,
+  Category,
+  Product,
+} from "@stickypie/shared";
 import {
   avatarBook,
-  avatarSheetsPrice,
   customSizes,
   discountPercent,
   formatINR,
@@ -36,6 +40,7 @@ import { cardSkinFor, tileFor } from "@/lib/palette";
 import { useSkinSeed } from "@/lib/skin-seed";
 import AddToCartButton from "./add-to-cart-button";
 import AvatarArt from "./avatar-art";
+import { STYLE_DESIGNS, StickerArt, type ArtDesign } from "./custom-rail";
 import PriceWait from "./price-wait";
 import { useSizeChoice } from "./size-picker";
 import TrueSizePreview from "./true-size-preview";
@@ -110,9 +115,9 @@ export default function Hero({
       ? "qr-code-stickers"
       : slide.kind === "avatar"
         ? "avatar-stickers"
-      : slide.kind === "brand"
-        ? "stickypie"
-        : "custom-stickers";
+        : slide.kind === "brand"
+          ? "stickypie"
+          : "custom-stickers";
 
   const tile = tileFor(skinSlug);
   // Each slide sits on a sticker sheet or cutting mat — a new mix every load.
@@ -151,7 +156,10 @@ export default function Hero({
           {slide.kind === "brand" ? (
             <BrandSlideArt
               key="wall"
-              stickers={wallItems(catalog.length ? catalog : products, features.wallPostersOnly)}
+              stickers={wallItems(
+                catalog.length ? catalog : products,
+                features.wallPostersOnly,
+              )}
             />
           ) : (
             <AvatarBookWall key="book-wall" styles={settings.avatarStyles} />
@@ -159,7 +167,7 @@ export default function Hero({
           {/* white wash behind the words: from below on phones, from the left on desktop */}
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,rgba(255,255,255,0.97)_0%,rgba(255,255,255,0.9)_42%,rgba(255,255,255,0.15)_75%,transparent_100%)] lg:bg-[linear-gradient(to_right,rgba(255,255,255,0.96)_0%,rgba(255,255,255,0.88)_34%,rgba(255,255,255,0.2)_58%,transparent_75%)]"
+            className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,rgba(255,255,255,0.97)_0%,rgba(255,255,255,0.9)_42%,rgba(255,255,255,0.15)_75%,transparent_100%)] lg:bg-[linear-gradient(to_right,rgba(255,255,255,0.96)_0%,rgba(255,255,255,0.9)_30%,rgba(255,255,255,0.35)_42%,transparent_52%)]"
           />
         </>
       )}
@@ -254,8 +262,8 @@ export default function Hero({
         <div
           className={`relative z-0 order-1 mx-auto w-full max-w-[360px] sm:max-w-xl lg:order-2 ${slide.kind === "brand" || slide.kind === "avatar" ? "pointer-events-none [&_button]:pointer-events-auto" : ""} lg:mx-0 lg:max-w-none`}
         >
-          {/* product-tinted wash behind the art */}
-          {slide.kind !== "brand" && (
+          {/* product-tinted wash behind the art (not on the wall slides: it fogs the wall) */}
+          {slide.kind !== "brand" && slide.kind !== "avatar" && (
             <>
               <div
                 className="pointer-events-none absolute inset-0 m-auto aspect-square w-[105%] rounded-full blur-[85px] transition-colors duration-700"
@@ -287,7 +295,8 @@ export default function Hero({
                   className="sticker-cut animate-float max-h-full max-w-full rotate-2 cursor-pointer object-contain transition-transform duration-200 hover:scale-[1.03] lg:max-h-[min(46vh,520px)]"
                 />
               </PageLink>
-            ) : slide.kind === "brand" || slide.kind === "avatar" ? null : slide.kind === "qr" ? (
+            ) : slide.kind === "brand" ||
+              slide.kind === "avatar" ? null : slide.kind === "qr" ? (
               <QrSlideArt />
             ) : (
               <CustomSlideArt sizes={custom} />
@@ -308,9 +317,9 @@ export default function Hero({
                         ? "Show QR code stickers"
                         : s.kind === "avatar"
                           ? "Show avatar stickers"
-                        : s.kind === "brand"
-                          ? "Show StickyPie"
-                          : "Show custom stickers"
+                          : s.kind === "brand"
+                            ? "Show StickyPie"
+                            : "Show custom stickers"
                   }
                   onClick={() => setIndex(i)}
                   className={`h-2.5 rounded-full transition-all duration-300 ${
@@ -403,7 +412,9 @@ function wallItems(all: Product[], postersOnly: boolean) {
  *  measured in the browser, so only what can show is drawn (a phone draws ~60
  *  tiles, a wide screen ~120, instead of 210 everywhere). */
 function useWallSize(box: React.RefObject<HTMLDivElement | null>) {
-  const [size, setSize] = useState<{ cols: number; perCol: number } | null>(null);
+  const [size, setSize] = useState<{ cols: number; perCol: number } | null>(
+    null,
+  );
   useEffect(() => {
     const el = box.current;
     if (!el) return;
@@ -412,14 +423,17 @@ function useWallSize(box: React.RefObject<HTMLDivElement | null>) {
       const { width: w, height: h } = el.getBoundingClientRect();
       if (!w || !h) return;
       const vw = window.innerWidth;
-      const step = Math.min(Math.max(92, vw * 0.13), 170) + (vw >= 640 ? 16 : 12);
+      const step =
+        Math.min(Math.max(92, vw * 0.13), 170) + (vw >= 640 ? 16 : 12);
       const sin = Math.sin((14 * Math.PI) / 180);
       const cos = Math.cos((14 * Math.PI) / 180);
       // the tilted wall's width across the box, and the box's length along a
       // column (one copy of a column must be at least that long — see below)
       const cols = Math.ceil((w * cos + h * sin) / step) + 1;
       const perCol = Math.ceil((w * sin + h * cos) / step);
-      setSize((s) => (s && s.cols === cols && s.perCol === perCol ? s : { cols, perCol }));
+      setSize((s) =>
+        s && s.cols === cols && s.perCol === perCol ? s : { cols, perCol },
+      );
     };
     measure();
     const onResize = () => {
@@ -464,7 +478,9 @@ function BrandSlideArt({ stickers }: { stickers: Product[] }) {
             <div
               className={`flex flex-col gap-3 sm:gap-4 ${c % 2 ? "sticker-wall-down" : "sticker-wall-up"}`}
               // same speed as before, whatever the column's length
-              style={{ animationDuration: `${((44 + (c % 4) * 7) * col.length) / 7}s` }}
+              style={{
+                animationDuration: `${((44 + (c % 4) * 7) * col.length) / 7}s`,
+              }}
             >
               {[...col, ...col].map((p, k) => {
                 // Every tile peels its corner now and then: its own cycle length and
@@ -494,16 +510,17 @@ function BrandSlideArt({ stickers }: { stickers: Product[] }) {
                     {poster ? (
                       // same peel as the stickers, with the fold measured from the
                       // poster's width so it lifts a neat corner on a rectangle
-                      <span
-                        className="wall-peel wall-peel-poster relative size-full"
-                      >
+                      <span className="wall-peel wall-peel-poster relative size-full">
                         <img
                           src={p.thumbUrl ?? p.imageUrl}
                           alt=""
                           loading="lazy"
                           className="wall-peel-front wall-poster absolute inset-0 size-full object-cover"
                         />
-                        <span aria-hidden className="wall-peel-shadow absolute inset-0">
+                        <span
+                          aria-hidden
+                          className="wall-peel-shadow absolute inset-0"
+                        >
                           <img
                             src={p.thumbUrl ?? p.imageUrl}
                             alt=""
@@ -522,7 +539,10 @@ function BrandSlideArt({ stickers }: { stickers: Product[] }) {
                           loading="lazy"
                           className="wall-peel-front absolute inset-0 size-full object-contain"
                         />
-                        <span aria-hidden className="wall-peel-shadow absolute inset-0">
+                        <span
+                          aria-hidden
+                          className="wall-peel-shadow absolute inset-0"
+                        >
                           <img
                             src={p.thumbUrl ?? p.imageUrl}
                             alt=""
@@ -674,7 +694,6 @@ function CustomSlideArt({ sizes }: { sizes: { inches: number }[] }) {
   );
 }
 
-
 function shuffled<T>(list: readonly T[]): T[] {
   const out = [...list];
   for (let i = out.length - 1; i > 0; i--) {
@@ -691,6 +710,9 @@ function shuffled<T>(list: readonly T[]): T[] {
  * Avatar sheets) with the style's name, or a drawn stand-in avatar for a style
  * with no card picture yet.
  */
+/** Wall tiles show their sticker the same ways as the "Make your own" cards (A, C, D, E). */
+const WALL_DESIGNS: ArtDesign[] = ["frame", ...STYLE_DESIGNS];
+
 function AvatarBookWall({ styles }: { styles: AvatarStyle[] }) {
   const box = useRef<HTMLDivElement>(null);
   const size = useWallSize(box);
@@ -698,8 +720,12 @@ function AvatarBookWall({ styles }: { styles: AvatarStyle[] }) {
   const [pool, setPool] = useState<{ label: string; url: string | null }[]>([]);
   useEffect(() => {
     // Every card picture, plus a drawn stand-in for each style that has none.
-    const real = styles.flatMap((s) => s.covers.map((url) => ({ label: s.label, url })));
-    const drawn = styles.filter((s) => !s.covers.length).map((s) => ({ label: s.label, url: null }));
+    const real = styles.flatMap((s) =>
+      s.covers.map((url) => ({ label: s.label, url })),
+    );
+    const drawn = styles
+      .filter((s) => !s.covers.length)
+      .map((s) => ({ label: s.label, url: null }));
     setPool(shuffled([...real, ...drawn]));
   }, [styles]);
   const columns =
@@ -708,7 +734,7 @@ function AvatarBookWall({ styles }: { styles: AvatarStyle[] }) {
           Array.from({ length: Math.ceil(size.perCol * 0.8) + 1 }, (_, k) => ({
             page: pool[(c * 5 + k * 3) % pool.length],
             n: c * 31 + k * 17,
-          }))
+          })),
         )
       : [];
   return (
@@ -721,7 +747,9 @@ function AvatarBookWall({ styles }: { styles: AvatarStyle[] }) {
           <div key={c} className="w-[clamp(92px,13vw,170px)] shrink-0">
             <div
               className={`flex flex-col gap-3 sm:gap-4 ${c % 2 ? "sticker-wall-down" : "sticker-wall-up"}`}
-              style={{ animationDuration: `${((44 + (c % 4) * 7) * col.length) / 5}s` }}
+              style={{
+                animationDuration: `${((44 + (c % 4) * 7) * col.length) / 5}s`,
+              }}
             >
               {[...col, ...col].map(({ page, n }, k) => (
                 <Link
@@ -733,18 +761,29 @@ function AvatarBookWall({ styles }: { styles: AvatarStyle[] }) {
                     k % 3 === 1 ? "rotate-2" : k % 3 === 2 ? "-rotate-1" : ""
                   }`}
                 >
-                  <span className="block aspect-square bg-gradient-to-br from-brand-soft to-[#eef6ff] p-[7%]">
-                    {page.url ? (
-                      <img src={page.url} alt="" loading="lazy" className="size-full object-contain drop-shadow-md" />
-                    ) : (
+                  {page.url ? (
+                    // the same picture designs as the "Make your own" cards: A, C, D, E mixed
+                    <StickerArt
+                      design={WALL_DESIGNS[n % WALL_DESIGNS.length]}
+                      pictures={
+                        <img
+                          src={page.url}
+                          alt=""
+                          loading="lazy"
+                          className="col-start-1 row-start-1 h-full min-h-0 w-full object-contain drop-shadow-[0_6px_10px_rgba(16,24,40,0.25)]"
+                        />
+                      }
+                    />
+                  ) : (
+                    <span className="block aspect-square bg-gradient-to-br from-brand-soft to-[#eef6ff] p-[7%]">
                       // a drawn stand-in until the admin uploads a card picture
                       <AvatarArt
                         style={page.label}
                         mood={n % 4}
                         className="size-full rounded-[22%] border-[3px] border-white shadow-sm"
                       />
-                    )}
-                  </span>
+                    </span>
+                  )}
                   <span className="block truncate px-2 py-1.5 text-[clamp(9px,0.9vw,12px)] font-bold text-snow">
                     {page.label}
                   </span>
@@ -773,7 +812,9 @@ function warmAvatarPage() {
   if (HTMLScriptElement.supports?.("speculationrules")) {
     const rules = document.createElement("script");
     rules.type = "speculationrules";
-    rules.textContent = JSON.stringify({ prerender: [{ urls: ["/avatar-stickers"], eagerness: "immediate" }] });
+    rules.textContent = JSON.stringify({
+      prerender: [{ urls: ["/avatar-stickers"], eagerness: "immediate" }],
+    });
     document.head.append(rules);
   } else {
     const link = document.createElement("link");
@@ -806,18 +847,21 @@ function AvatarSlideCopy({ book }: { book: AvatarBook }) {
         </span>
       </div>
       <h2 className="mt-2.5 line-clamp-2 font-display text-[30px] leading-[1.05] font-bold tracking-tight sm:mt-4 sm:text-6xl lg:mt-5 lg:text-[64px]">
-        <span className="bg-gradient-to-r from-brand to-brand2 bg-clip-text text-transparent">AI</span>{" "}
+        <span className="bg-gradient-to-r from-brand to-brand2 bg-clip-text text-transparent">
+          AI
+        </span>{" "}
         stickers of you
       </h2>
       <p className="mt-4 hidden max-w-lg text-base leading-relaxed text-fog sm:line-clamp-2 sm:text-lg lg:line-clamp-3">
-        Send a selfie and pick trending styles — 90s retro, anime, action figure, 3D cartoon. We make AI
-        sticker packs of you, one in each style you pick ({book.pages} or more), on vinyl.
+        Send a selfie and pick trending styles — 90s retro, anime, action
+        figure, 3D cartoon. We make AI sticker packs of you, one in each style
+        you pick ({book.pages} or more), on vinyl.
       </p>
       <div className="mt-2 flex items-baseline gap-2 sm:mt-6">
-        <span className="text-sm text-fog">{book.pages} packs from</span>
         <span className="font-display text-3xl font-bold text-gold sm:text-4xl">
-          {pricesReady ? formatINR(avatarSheetsPrice(book, 0)) : <PriceWait className="w-24" />}
+          {pricesReady ? formatINR(book.price) : <PriceWait className="w-24" />}
         </span>
+        <span className="text-sm text-fog">per pack</span>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-2.5 sm:mt-6 sm:gap-3">
         <PageLink
@@ -827,13 +871,18 @@ function AvatarSlideCopy({ book }: { book: AvatarBook }) {
           onTouchStart={warmAvatarPage}
           onFocus={warmAvatarPage}
           onClick={(e) => {
-            if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) setGoing(true);
+            if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0)
+              setGoing(true);
           }}
           aria-busy={going || undefined}
           className="peel-btn inline-flex h-12 items-center gap-2 rounded-xl px-6 text-base font-bold"
         >
           Make my stickers{" "}
-          {going ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
+          {going ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <ArrowRight className="size-4" />
+          )}
         </PageLink>
       </div>
     </>
