@@ -10,8 +10,11 @@
   --color-line: #e4e7ee; /* borders */
   --color-fog: #64708a; /* muted text */
   --color-snow: #15161e; /* primary text */
-  --color-brand: #ff2e63;
-  --color-brand2: #ff7a3c;
+  /* Brand colours come from SHOP_THEME (packages/shared/src/theme.ts), set on
+     :root by the root layout — change them there, not here. */
+  --color-brand: var(--theme-brand);
+  --color-brand2: var(--theme-brand2);
+  --color-brand-soft: var(--theme-brand-soft);
   --color-mint: #0b9e6b; /* success / discounts on white */
   --color-gold: #d97706; /* price accent on white */
 
@@ -651,7 +654,7 @@ select option {
   inset: 0 0 auto 0;
   height: 6px;
   pointer-events: none;
-  background: repeating-linear-gradient(-45deg, #e8336d 0 8px, #ffffff 8px 13px, #2563eb 13px 21px, #ffffff 21px 26px);
+  background: repeating-linear-gradient(-45deg, var(--color-brand) 0 8px, #ffffff 8px 13px, #2563eb 13px 21px, #ffffff 21px 26px);
 }
 
 /* delivered: a round postmark stamp */
@@ -686,7 +689,7 @@ select option {
   inset: 0 auto 0 0;
   width: 6px;
   pointer-events: none;
-  background: repeating-linear-gradient(45deg, #e8336d 0 6px, #ffffff 6px 11px);
+  background: repeating-linear-gradient(45deg, var(--color-brand) 0 6px, #ffffff 6px 11px);
 }
 
 @media (prefers-reduced-motion: reduce) {

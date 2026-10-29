@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Fredoka, Inter } from "next/font/google";
 import "./globals.css";
+import { shopThemeCss } from "@stickypie/shared";
+import ThemeTryout from "@/components/theme-tryout";
 import { CartProvider } from "@/components/cart-context";
 import { ConfirmProvider } from "@/components/confirm-dialog";
 import MildBackground from "@/components/mild-background";
@@ -78,12 +80,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     // data-lite (LITE_SCRIPT) and data-view (VIEW_SCRIPT) are set before React hydrates.
     <html lang="en" className={`${fredoka.variable} ${inter.variable}`} suppressHydrationWarning>
       <head>
+        {/* Theme colours (SHOP_THEME in packages/shared/src/theme.ts) */}
+        <style dangerouslySetInnerHTML={{ __html: shopThemeCss() }} />
         <script dangerouslySetInnerHTML={{ __html: LITE_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: VIEW_SCRIPT }} />
         {/* Meta pixel for ads (prod only: the ID is set in .env.prod) */}
         {META_PIXEL_SCRIPT && <script dangerouslySetInnerHTML={{ __html: META_PIXEL_SCRIPT }} />}
       </head>
       <body className="bg-ink font-sans text-snow antialiased">
+        {/* Local only: live theme colour picker (never in a production build) */}
+        {process.env.NODE_ENV !== "production" && <ThemeTryout />}
         <ConfirmProvider>
         <CartProvider>
           <NavTracker />

@@ -8,8 +8,8 @@ import { Check, ChevronDown, Eye, EyeOff } from "lucide-react";
 function shell(error?: string): string {
   return `relative block rounded-xl border bg-ink2/70 transition-all duration-200 ${
     error
-      ? "border-brand/70 shadow-[0_0_0_3px_rgba(255,46,99,0.14)]"
-      : "border-line hover:border-fog/40 focus-within:border-brand/70 focus-within:shadow-[0_0_0_3px_rgba(255,46,99,0.14)]"
+      ? "border-brand/70 shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-brand)_14%,transparent)]"
+      : "border-line hover:border-fog/40 focus-within:border-brand/70 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-brand)_14%,transparent)]"
   }`;
 }
 
@@ -349,7 +349,7 @@ export function CheckField({
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
       />
-      <span className="grid size-5 shrink-0 place-items-center rounded-md border-2 border-line bg-ink text-white shadow-[inset_0_1px_2px_rgba(16,24,40,0.06)] transition-all duration-200 hover:border-brand/50 peer-checked:scale-105 peer-checked:border-transparent peer-checked:bg-[linear-gradient(135deg,#ff2e63,#ff7a3c)] peer-checked:shadow-[0_3px_12px_rgba(255,46,99,0.4)] peer-active:scale-90 peer-focus-visible:ring-2 peer-focus-visible:ring-brand/40 peer-focus-visible:ring-offset-2 [&>svg]:scale-0 [&>svg]:-rotate-12 [&>svg]:transition-transform [&>svg]:duration-200 [&>svg]:ease-[cubic-bezier(0.2,0.9,0.3,1.4)] peer-checked:[&>svg]:scale-100 peer-checked:[&>svg]:rotate-0">
+      <span className="grid size-5 shrink-0 place-items-center rounded-md border-2 border-line bg-ink text-white shadow-[inset_0_1px_2px_rgba(16,24,40,0.06)] transition-all duration-200 hover:border-brand/50 peer-checked:scale-105 peer-checked:border-transparent peer-checked:bg-[linear-gradient(135deg,var(--color-brand),var(--color-brand2))] peer-checked:shadow-[0_3px_12px_color-mix(in_srgb,var(--color-brand)_40%,transparent)] peer-active:scale-90 peer-focus-visible:ring-2 peer-focus-visible:ring-brand/40 peer-focus-visible:ring-offset-2 [&>svg]:scale-0 [&>svg]:-rotate-12 [&>svg]:transition-transform [&>svg]:duration-200 [&>svg]:ease-[cubic-bezier(0.2,0.9,0.3,1.4)] peer-checked:[&>svg]:scale-100 peer-checked:[&>svg]:rotate-0">
         <Check className="size-3.5" strokeWidth={3.5} />
       </span>
       <span>{label}</span>

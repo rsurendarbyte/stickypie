@@ -75,7 +75,7 @@ export default function CustomRail() {
           className="rail-card-drawn group relative w-44 shrink-0 snap-start overflow-hidden rounded-2xl border border-line bg-ink2 transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] sm:w-48 md:w-52"
         >
           {/* art: one sample avatar of the style as a die-cut sticker */}
-          <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-[#fff1f5] via-[#fff8ec] to-[#eef6ff]">
+          <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-brand-soft via-[#fff8ec] to-[#eef6ff]">
             <span
               aria-hidden
               className="absolute inset-0 opacity-60 [background-image:radial-gradient(rgba(16,24,40,0.10)_1px,transparent_1px)] [background-size:14px_14px]"

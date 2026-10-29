@@ -4,13 +4,13 @@
 
 export type EmailContent = { subject: string; html: string; text: string };
 
-type EmailBrand = { siteUrl: string; supportEmail: string };
+/** colors: the shop theme (SHOP_THEME in theme.ts), passed in so this file stays import-free. */
+type EmailBrand = { siteUrl: string; supportEmail: string; colors: { brand: string; brand2: string } };
 
 // Images in emails always load from the live site: inboxes can't reach
 // localhost or a preview address.
 const EMAIL_ASSETS = "https://stickypie.in";
 
-const BRAND = "#ff2e63";
 const INK = "#15161e";
 const MUTED = "#64708a";
 const PAGE = "#f6f7f9";
@@ -56,13 +56,13 @@ function layout(opts: {
       </a>
     </td></tr>
     <tr><td style="background:#ffffff;border:1px solid #e4e7ee;border-radius:18px;overflow:hidden">
-      <div style="height:6px;background:${BRAND};background-image:linear-gradient(90deg,#ff2e63,#ff7a3c)"></div>
+      <div style="height:6px;background:${brand.colors.brand};background-image:linear-gradient(90deg,${brand.colors.brand},${brand.colors.brand2})"></div>
       <div style="padding:30px 28px 26px">
         <h1 style="margin:0 0 14px;font-size:24px;line-height:1.25;color:${INK}">${opts.heading}</h1>
         ${paragraphs}
         ${
           opts.cta
-            ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:22px 0 6px"><tr><td style="border-radius:12px;background:${BRAND};background-image:linear-gradient(90deg,#ff2e63,#ff7a3c)">
+            ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:22px 0 6px"><tr><td style="border-radius:12px;background:${brand.colors.brand};background-image:linear-gradient(90deg,${brand.colors.brand},${brand.colors.brand2})">
           <a href="${opts.cta.url}" style="display:inline-block;padding:13px 26px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none">${escapeHtml(opts.cta.label)}</a>
         </td></tr></table>`
             : ""
@@ -75,7 +75,7 @@ function layout(opts: {
     </td></tr>
     <tr><td style="padding:18px 4px 0;text-align:center;font-size:12px;line-height:1.7;color:${MUTED}">
       Premium die-cut vinyl stickers · <a href="${brand.siteUrl}" style="color:${MUTED}">${host}</a><br>
-      Questions? <a href="mailto:${brand.supportEmail}" style="color:${BRAND};text-decoration:none">${brand.supportEmail}</a>
+      Questions? <a href="mailto:${brand.supportEmail}" style="color:${brand.colors.brand};text-decoration:none">${brand.supportEmail}</a>
     </td></tr>
   </table>
 </td></tr>
@@ -120,10 +120,10 @@ export function welcomeEmail(brand: EmailBrand, name: string): EmailContent {
       heading: greeting,
       paragraphs: [
         "Your StickyPie account is ready. Use it to check out faster and follow every order — from packing to your doorstep.",
-        `Your order history and live tracking are always in <a href="${brand.siteUrl}/account" style="color:${BRAND};text-decoration:none;font-weight:600">My orders</a>.`,
+        `Your order history and live tracking are always in <a href="${brand.siteUrl}/account" style="color:${brand.colors.brand};text-decoration:none;font-weight:600">My orders</a>.`,
       ],
       cta: { label: "Browse stickers", url: `${brand.siteUrl}/stickers` },
-      footnote: `You're getting this because an account was created with this email at ${brand.siteUrl.replace(/^https?:\/\//, "")}. Not you? Write to <a href="mailto:${brand.supportEmail}" style="color:${BRAND};text-decoration:none">${brand.supportEmail}</a> and we'll sort it out.`,
+      footnote: `You're getting this because an account was created with this email at ${brand.siteUrl.replace(/^https?:\/\//, "")}. Not you? Write to <a href="mailto:${brand.supportEmail}" style="color:${brand.colors.brand};text-decoration:none">${brand.supportEmail}</a> and we'll sort it out.`,
     }),
     text: [
       first ? `Welcome aboard, ${first}!` : "Welcome aboard!",

@@ -1186,7 +1186,7 @@ export default function CheckoutClient() {
             placeholder="••••••"
             aria-label="6-digit code"
             autoFocus
-            className="mt-5 h-14 w-full rounded-2xl border border-line bg-ink2 px-4 text-center font-display text-2xl font-bold tracking-[0.5em] outline-none focus:border-brand/60 focus:shadow-[0_0_0_3px_rgba(255,46,99,0.12)]"
+            className="mt-5 h-14 w-full rounded-2xl border border-line bg-ink2 px-4 text-center font-display text-2xl font-bold tracking-[0.5em] outline-none focus:border-brand/60 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-brand)_12%,transparent)]"
           />
           {authError && (
             <p className="mt-2 text-xs font-medium text-brand">{authError}</p>

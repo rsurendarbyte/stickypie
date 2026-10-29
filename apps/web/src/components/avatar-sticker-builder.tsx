@@ -120,7 +120,7 @@ function StyleCover({
   if (covers.length)
     return (
       <span
-        className={`relative block bg-gradient-to-br from-[#fff1f5] to-[#eef6ff] ${className}`}
+        className={`relative block bg-gradient-to-br from-brand-soft to-[#eef6ff] ${className}`}
       >
         {covers.map((src, i) => (
           // Pinned to the box (not sized by the picture), so every card is the same size.

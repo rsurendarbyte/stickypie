@@ -1,5 +1,7 @@
 "use client";
 
+import { SHOP_THEME } from "@stickypie/shared";
+
 // Opens the gateway's payment screen for what /api/checkout or /api/pay/retry
 // returned. Cashfree redirects to its hosted page; Razorpay opens its modal
 // here, then the result is verified on our server before showing the order.
@@ -73,7 +75,7 @@ export async function openPayment(
     description: "Sticker order",
     image: `${location.origin}/icons/icon-192.png`,
     prefill: session.prefill,
-    theme: { color: "#ff2e63" },
+    theme: { color: SHOP_THEME.brand },
     timeout: session.timeout,
     retry: { enabled: true },
     // UPI, cards, netbanking and wallets only — no EMI / pay-later for small

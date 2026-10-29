@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Download, Instagram, Loader2, MessageCircle, Share2, X } from "lucide-react";
+import { SHOP_THEME } from "@stickypie/shared";
 
 const STORY_W = 1080;
 const STORY_H = 1920;
@@ -23,7 +24,7 @@ async function drawStory(urls: string[], makeUrl: string): Promise<Blob> {
   canvas.height = STORY_H;
   const ctx = canvas.getContext("2d")!;
   const bg = ctx.createLinearGradient(0, 0, STORY_W, STORY_H);
-  bg.addColorStop(0, "#fff1f5");
+  bg.addColorStop(0, SHOP_THEME.brandSoft);
   bg.addColorStop(1, "#fff7ed");
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, STORY_W, STORY_H);
@@ -55,7 +56,7 @@ async function drawStory(urls: string[], makeUrl: string): Promise<Blob> {
     ctx.restore();
   });
 
-  ctx.fillStyle = "#e8336d";
+  ctx.fillStyle = SHOP_THEME.brand;
   ctx.font = "bold 52px system-ui, sans-serif";
   ctx.fillText("Make yours at", STORY_W / 2, STORY_H - 220);
   ctx.fillStyle = "#15161e";

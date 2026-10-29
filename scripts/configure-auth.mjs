@@ -19,6 +19,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { resetPasswordEmail } from "../packages/shared/src/emails.ts";
+import { SHOP_THEME } from "../packages/shared/src/theme.ts";
 import { root } from "./lib/target-env.mjs";
 
 const SUPPORT_EMAIL = "hello@clodot.com";
@@ -66,7 +67,7 @@ const TARGETS = [
 ];
 
 for (const target of TARGETS) {
-  const reset = resetPasswordEmail({ siteUrl: target.siteUrl, supportEmail: SUPPORT_EMAIL });
+  const reset = resetPasswordEmail({ siteUrl: target.siteUrl, supportEmail: SUPPORT_EMAIL, colors: SHOP_THEME });
   const config = {
     site_url: target.siteUrl,
     uri_allow_list: target.redirects.join(","),
