@@ -2,6 +2,7 @@
 // ("@stickypie/shared/local", "@stickypie/shared/supabase") because the local
 // driver uses node:fs and must never be pulled into a client bundle.
 export * from "./types";
+export * from "./theme";
 export * from "./constants";
 export * from "./utils";
 export * from "./schemas";

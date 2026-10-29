@@ -638,7 +638,7 @@ function CustomSlideArt({ sizes }: { sizes: { inches: number }[] }) {
 
           {/* the sticker: white die-cut border around a soft artwork area */}
           <div className="relative size-full overflow-hidden rounded-[36px] bg-white p-[6%] shadow-[0_24px_50px_-20px_rgba(16,24,40,0.45)]">
-            <div className="grid size-full place-items-center rounded-[26px] bg-[radial-gradient(circle_at_30%_25%,rgba(255,122,60,0.18),transparent_55%),radial-gradient(circle_at_75%_80%,rgba(255,46,99,0.16),transparent_55%)] text-center">
+            <div className="grid size-full place-items-center rounded-[26px] bg-[radial-gradient(circle_at_30%_25%,color-mix(in_srgb,var(--color-brand2)_18%,transparent),transparent_55%),radial-gradient(circle_at_75%_80%,color-mix(in_srgb,var(--color-brand)_16%,transparent),transparent_55%)] text-center">
               <span>
                 <span className="pie-gradient mx-auto grid size-14 place-items-center rounded-2xl text-white shadow-lg shadow-brand/30 lg:size-16">
                   <ImageUp className="size-7 lg:size-8" />
@@ -733,7 +733,7 @@ function AvatarBookWall({ styles }: { styles: AvatarStyle[] }) {
                     k % 3 === 1 ? "rotate-2" : k % 3 === 2 ? "-rotate-1" : ""
                   }`}
                 >
-                  <span className="block aspect-square bg-gradient-to-br from-[#fff1f5] to-[#eef6ff] p-[7%]">
+                  <span className="block aspect-square bg-gradient-to-br from-brand-soft to-[#eef6ff] p-[7%]">
                     {page.url ? (
                       <img src={page.url} alt="" loading="lazy" className="size-full object-contain drop-shadow-md" />
                     ) : (
@@ -806,7 +806,7 @@ function AvatarSlideCopy({ book }: { book: AvatarBook }) {
         </span>
       </div>
       <h2 className="mt-2.5 line-clamp-2 font-display text-[30px] leading-[1.05] font-bold tracking-tight sm:mt-4 sm:text-6xl lg:mt-5 lg:text-[64px]">
-        <span className="bg-gradient-to-r from-[#ff2e63] to-[#ff7a3c] bg-clip-text text-transparent">AI</span>{" "}
+        <span className="bg-gradient-to-r from-brand to-brand2 bg-clip-text text-transparent">AI</span>{" "}
         stickers of you
       </h2>
       <p className="mt-4 hidden max-w-lg text-base leading-relaxed text-fog sm:line-clamp-2 sm:text-lg lg:line-clamp-3">

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { SUPPORT_EMAIL, signupCodeSchema, verificationCodeEmail } from "@stickypie/shared";
+import { SHOP_THEME, SUPPORT_EMAIL, signupCodeSchema, verificationCodeEmail } from "@stickypie/shared";
 import { sendEmail } from "@/lib/email";
 import { CodeError, issueCode } from "@/lib/email-codes";
 import { siteUrl } from "@/lib/mode";
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Couldn't send a code right now. Please try again." }, { status: 502 });
   }
 
-  const sent = await sendEmail(email, verificationCodeEmail({ siteUrl: siteUrl(), supportEmail: SUPPORT_EMAIL }, code));
+  const sent = await sendEmail(email, verificationCodeEmail({ siteUrl: siteUrl(), supportEmail: SUPPORT_EMAIL, colors: SHOP_THEME }, code));
   if (!sent) {
     // Local/dev without an email key: print the code so sign-up can be tested.
     if (process.env.SITE_ENV !== "production" && !process.env.RESEND_API_KEY) {

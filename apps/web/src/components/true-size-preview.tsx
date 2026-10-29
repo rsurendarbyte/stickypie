@@ -484,7 +484,7 @@ function Calibrator({
           value={ppi}
           onChange={(e) => onChange(Number(e.target.value))}
           aria-label="Card outline size"
-          className="w-full accent-[#ff2e63]"
+          className="w-full accent-brand"
         />
         <button
           type="button"

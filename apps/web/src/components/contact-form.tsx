@@ -159,7 +159,7 @@ export default function ContactForm() {
           />
         )}
         <div className="col-span-2">
-          <label className="relative block rounded-xl border border-line bg-ink2/70 transition-all duration-200 focus-within:border-brand/70 focus-within:shadow-[0_0_0_3px_rgba(255,46,99,0.14)] hover:border-fog/40">
+          <label className="relative block rounded-xl border border-line bg-ink2/70 transition-all duration-200 focus-within:border-brand/70 focus-within:shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-brand)_14%,transparent)] hover:border-fog/40">
             <span className="pointer-events-none absolute top-3 left-4 text-[10.5px] font-semibold tracking-widest text-fog uppercase">
               Message
             </span>
