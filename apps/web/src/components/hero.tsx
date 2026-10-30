@@ -452,7 +452,9 @@ function useWallSize(box: React.RefObject<HTMLDivElement | null>) {
 function BrandSlideArt({ stickers }: { stickers: Product[] }) {
   const box = useRef<HTMLDivElement>(null);
   const size = useWallSize(box);
-  const pool = stickers;
+  // Phones show a small wall: a dozen different pictures (tiles repeat) is
+  // plenty, and far less to download on a slow connection.
+  const pool = size && size.cols * size.perCol < 90 ? stickers.slice(0, 12) : stickers;
   if (!pool.length) return null;
   const columns = size
     ? Array.from({ length: size.cols }, (_, c) =>
@@ -515,6 +517,8 @@ function BrandSlideArt({ stickers }: { stickers: Product[] }) {
                           src={p.thumbUrl ?? p.imageUrl}
                           alt=""
                           loading="lazy"
+                          decoding="async"
+                          fetchPriority="low"
                           className="wall-peel-front wall-poster absolute inset-0 size-full object-cover"
                         />
                         <span
@@ -525,6 +529,8 @@ function BrandSlideArt({ stickers }: { stickers: Product[] }) {
                             src={p.thumbUrl ?? p.imageUrl}
                             alt=""
                             loading="lazy"
+                            decoding="async"
+                            fetchPriority="low"
                             className="wall-peel-flap wall-poster absolute inset-0 size-full object-cover"
                           />
                         </span>
@@ -537,6 +543,8 @@ function BrandSlideArt({ stickers }: { stickers: Product[] }) {
                           src={p.thumbUrl ?? p.imageUrl}
                           alt=""
                           loading="lazy"
+                          decoding="async"
+                          fetchPriority="low"
                           className="wall-peel-front absolute inset-0 size-full object-contain"
                         />
                         <span
@@ -547,6 +555,8 @@ function BrandSlideArt({ stickers }: { stickers: Product[] }) {
                             src={p.thumbUrl ?? p.imageUrl}
                             alt=""
                             loading="lazy"
+                            decoding="async"
+                            fetchPriority="low"
                             className="wall-peel-flap absolute inset-0 size-full object-contain"
                           />
                         </span>
@@ -726,7 +736,9 @@ function AvatarBookWall({ styles }: { styles: AvatarStyle[] }) {
     const drawn = styles
       .filter((s) => !s.covers.length)
       .map((s) => ({ label: s.label, url: null }));
-    setPool(shuffled([...real, ...drawn]));
+    // phones: a dozen different pictures is plenty for the small wall
+    const all = shuffled([...real, ...drawn]);
+    setPool(window.innerWidth < 640 ? all.slice(0, 12) : all);
   }, [styles]);
   const columns =
     size && pool.length
@@ -770,13 +782,15 @@ function AvatarBookWall({ styles }: { styles: AvatarStyle[] }) {
                           src={page.url}
                           alt=""
                           loading="lazy"
+                          decoding="async"
+                          fetchPriority="low"
                           className="col-start-1 row-start-1 h-full min-h-0 w-full object-contain drop-shadow-[0_6px_10px_rgba(16,24,40,0.25)]"
                         />
                       }
                     />
                   ) : (
                     <span className="block aspect-square bg-gradient-to-br from-brand-soft to-[#eef6ff] p-[7%]">
-                      // a drawn stand-in until the admin uploads a card picture
+                      {/* a drawn stand-in until the admin uploads a card picture */}
                       <AvatarArt
                         style={page.label}
                         mood={n % 4}
