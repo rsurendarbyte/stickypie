@@ -3,6 +3,8 @@
 //   node scripts/deploy.mjs dev                 → dev.stickypie.in (noindex)
 //   node scripts/deploy.mjs production          → stickypie.in (indexed)
 //   add --build-only to stop after the build, or --preview to run it locally
+//   (a real deploy first applies pending database migrations — see
+//   scripts/lib/migrate-before-deploy.mjs; SKIP_MIGRATIONS=1 skips that)
 //
 // Prerendered pages bake SEO settings (robots meta, canonical URLs) in at
 // build time, so the build must see the same SITE_ENV / SITE_URL the Worker
@@ -14,6 +16,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { migrateBeforeDeploy } from "../../../scripts/lib/migrate-before-deploy.mjs";
 
 const appDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const [target, ...flags] = process.argv.slice(2);
@@ -95,6 +98,11 @@ const indexable = vars.SITE_ENV === "production";
 console.log(
   `\n▶ ${target}: ${vars.SITE_URL} — search indexing ${indexable ? "ENABLED" : "DISABLED (noindex)"}\n`
 );
+
+// Database first: new code must not go live before the migrations it needs.
+if (!flags.includes("--build-only") && !flags.includes("--preview")) {
+  migrateBeforeDeploy({ prod: target === "production", flags });
+}
 
 function run(cmd, args) {
   const result = spawnSync(cmd, args, {
