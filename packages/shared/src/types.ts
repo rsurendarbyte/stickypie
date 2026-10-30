@@ -219,6 +219,7 @@ export type ListProductsOpts = {
 import type { StoreSettings } from "./shipping";
 import type { FeatureFlags } from "./features";
 import type { HomeRail } from "./home-rails";
+import type { Festival } from "./festivals";
 import type { ContactInput, ContactMessage, NewReviewInput, Review, ReviewStatus } from "./feedback";
 
 export interface DataDriver {
@@ -282,6 +283,9 @@ export interface DataDriver {
   /** Home page layout (DEFAULT_HOME_RAILS until edited). */
   getHomeRails(): Promise<HomeRail[]>;
   updateHomeRails(rails: HomeRail[]): Promise<HomeRail[]>;
+  /** Festivals & special days (DEFAULT_FESTIVALS until edited). */
+  getFestivals(): Promise<Festival[]>;
+  updateFestivals(festivals: Festival[]): Promise<Festival[]>;
   /** Storefront feature switches (admin → Features). */
   getFeatures(): Promise<FeatureFlags>;
   /** Shopper uploaded (or replaced) a custom sticker's artwork after paying. */

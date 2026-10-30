@@ -5,7 +5,7 @@
 // crawlers fetch it often); new stickers appear with the next deploy.
 import { categoryPath, formatINR, inCategory } from "@stickypie/shared";
 import { getDriver } from "@/lib/data";
-import { SURFACES } from "@/lib/surfaces";
+import { SURFACES, allLandings } from "@/lib/surfaces";
 import { SITE_NAME, absoluteUrl, isProductionSite } from "@/lib/site";
 import { avatarFaq, customFaq, seoName, storeFaq } from "@/lib/seo";
 import { loadShopFacts } from "@/lib/shop-facts";
@@ -20,10 +20,12 @@ export async function GET() {
   }
 
   const driver = getDriver();
-  const [products, categories] = await Promise.all([
+  const [products, categories, festivals] = await Promise.all([
     driver.listProducts({ activeOnly: true }),
     driver.listCategories(),
+    driver.getFestivals(),
   ]);
+  const festivalPages = allLandings(festivals, categories).slice(SURFACES.length);
   const facts = await loadShopFacts();
   // store questions first, then the make-your-own ones not already asked
   const faq = storeFaq(facts);
@@ -63,6 +65,7 @@ export async function GET() {
     "## Main pages",
     `- [All stickers](${absoluteUrl("/stickers")})`,
     ...SURFACES.map((s) => `- [${s.name}](${absoluteUrl(`/${s.slug}`)})`),
+    ...festivalPages.map((s) => `- [${s.name}](${absoluteUrl(`/${s.slug}`)}): festival stickers and mini posters for ${s.when}`),
     ...(facts.avatar
       ? [`- [AI avatar stickers](${absoluteUrl("/avatar-stickers")}): stickers of you from your photo in ${facts.avatar.styles.length} AI styles (${facts.avatar.styles.slice(0, 5).join(", ")}…), ${formatINR(facts.avatar.price)} a pack`]
       : []),

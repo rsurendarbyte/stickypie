@@ -21,13 +21,14 @@
 // RLS only exposes is_active products, so items taken off sale never reach the
 // browser. Demo mode (no Supabase env) keeps the server-rendered data.
 import { useEffect, useState, useSyncExternalStore } from "react";
-import type { Category, FeatureFlags, HomeRail, Product, PublicReview, StoreSettings } from "@stickypie/shared";
+import type { Category, FeatureFlags, Festival, HomeRail, Product, PublicReview, StoreSettings } from "@stickypie/shared";
 import {
   DEFAULT_FEATURES,
   DEFAULT_STORE_SETTINGS,
   inCategory,
   rowToCategory,
   rowToFeatures,
+  rowToFestivals,
   rowToHomeRails,
   rowToProduct,
   rowToPublicReview,
@@ -62,6 +63,7 @@ type Bundle = Catalog & {
   version: string;
   settings: StoreSettings;
   rails: HomeRail[];
+  festivals: Festival[];
   features: FeatureFlags;
   reviews: PublicReview[];
   /** Settings checked with the database on this page load (not just the saved copy). */
@@ -128,6 +130,7 @@ function publish(meta: any, catalog: CachedCatalog, fresh = true): Bundle {
     fresh,
     settings: rowToSettings(meta),
     rails: rowToHomeRails(meta?.home_rails),
+    festivals: rowToFestivals(meta?.festivals),
     features: rowToFeatures(meta?.features),
   };
   memory = { bundle, at: Date.now() };
@@ -279,6 +282,13 @@ export function useHomeRails(initial: HomeRail[]): { rails: HomeRail[]; loaded: 
   const { bundle, failed } = useBundle();
   if (!liveCatalogEnabled) return { rails: initial, loaded: true };
   return { rails: bundle?.rails ?? initial, loaded: Boolean(bundle) || failed };
+}
+
+/** Festivals from the admin (Festivals) — what's on is worked out by date in the browser. */
+export function useFestivals(initial: Festival[]): { festivals: Festival[]; loaded: boolean } {
+  const { bundle, failed } = useBundle();
+  if (!liveCatalogEnabled) return { festivals: initial, loaded: true };
+  return { festivals: bundle?.festivals ?? initial, loaded: Boolean(bundle) || failed };
 }
 
 /** Approved reviews for one sticker, newest first (no extra request). */

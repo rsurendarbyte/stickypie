@@ -29,10 +29,11 @@ export function generateMetadata(): Metadata {
 // in the browser (on-sale only), so nothing stale or off-sale is ever shown.
 export default async function HomePage() {
   const driver = getDriver();
-  const [categories, products, rails, facts] = await Promise.all([
+  const [categories, products, rails, festivals, facts] = await Promise.all([
     driver.listCategories(),
     driver.listProducts({ activeOnly: true }),
     driver.getHomeRails(),
+    driver.getFestivals(),
     loadShopFacts(),
   ]);
   const faq = storeFaq(facts);
@@ -62,6 +63,9 @@ export default async function HomePage() {
         <HomeClient
           initial={{ categories, products: productSnapshot(products) }}
           initialRails={rails}
+          initialFestivals={festivals}
+          // festival pages that exist in this deploy (a newer one links to search until the next deploy)
+          festivalPages={festivals.filter((f) => f.visible).map((f) => f.slug)}
         />
       </div>
       <StoreAbout faq={faq} />

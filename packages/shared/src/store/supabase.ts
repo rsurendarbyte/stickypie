@@ -17,6 +17,7 @@ import {
 import { rowToSettings, settingsToRow, type StoreSettings } from "../shipping";
 import { rowToFeatures, type FeatureFlags } from "../features";
 import { rowToHomeRails, type HomeRail } from "../home-rails";
+import { rowToFestivals, type Festival } from "../festivals";
 import {
   REVIEW_PHOTO_BUCKET,
   rowToContact,
@@ -393,6 +394,24 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
         .single();
       if (error) throw friendly(error);
       return rowToHomeRails(data.home_rails);
+    },
+
+    async getFestivals() {
+      const { data, error } = await client.from("store_settings").select("festivals").eq("id", 1).maybeSingle();
+      // column missing (migration not run yet) or no row → the built-in list
+      if (error) return rowToFestivals(null);
+      return rowToFestivals(data?.festivals);
+    },
+
+    async updateFestivals(festivals: Festival[]) {
+      const { data, error } = await client
+        .from("store_settings")
+        .update({ festivals })
+        .eq("id", 1)
+        .select("festivals")
+        .single();
+      if (error) throw friendly(error);
+      return rowToFestivals(data.festivals);
     },
 
     async replaceCustomFile(orderId: string, itemId: string, path: string, url: string) {

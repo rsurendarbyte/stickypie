@@ -7,8 +7,15 @@ import ProductCard from "./product-card";
 import ProductCardSkeleton from "./product-card-skeleton";
 import Row from "./row";
 import CustomRail from "./custom-rail";
-import { resolveHomeRails, type HomeRail } from "@stickypie/shared";
-import { useHomeRails, useLiveCatalog, type Catalog } from "@/lib/live-catalog";
+import {
+  activeFestivals,
+  festivalProducts,
+  festivalShortDate,
+  resolveHomeRails,
+  type Festival,
+  type HomeRail,
+} from "@stickypie/shared";
+import { useFestivals, useHomeRails, useLiveCatalog, type Catalog } from "@/lib/live-catalog";
 import { savedRailScroll, useWindowScrollMemory } from "@/lib/scroll-memory";
 import { useSkinSeed } from "@/lib/skin-seed";
 import StickerLoader from "./sticker-loader";
@@ -16,12 +23,17 @@ import StickerLoader from "./sticker-loader";
 export default function HomeClient({
   initial,
   initialRails,
+  initialFestivals,
+  festivalPages,
 }: {
   initial: Catalog;
   initialRails: HomeRail[];
+  initialFestivals: Festival[];
+  festivalPages: string[];
 }) {
   const catalog = useLiveCatalog(initial);
   const { rails, loaded: railsLoaded } = useHomeRails(initialRails);
+  const { festivals } = useFestivals(initialFestivals);
   const { categories, products, failed, retry } = catalog;
   const loaded = catalog.loaded && railsLoaded;
   useWindowScrollMemory(loaded);
@@ -32,6 +44,11 @@ export default function HomeClient({
   // shows is shuffled once per visit in the browser, so the page feels fresh.
   const seed = useSkinSeed();
   const homeRails = resolveHomeRails(rails, products, categories, seed);
+  // Festivals around today (admin → Festivals) lead the page: from a few days
+  // before the date to a few days after, then they step aside by themselves.
+  const festivalRails = activeFestivals(festivals)
+    .map((f) => ({ f, items: festivalProducts(f, products).slice(0, 24) }))
+    .filter(({ items }) => items.length > 0);
 
   // Placeholders until the live (on-sale only) list arrives — never stale cards.
   if (!loaded) {
@@ -104,7 +121,19 @@ export default function HomeClient({
     <>
       <Hero products={featured.length > 0 ? featured : [hero]} categories={categories} />
       <div className="relative z-10 mt-2 space-y-1 pb-24 sm:space-y-8">
-        {/* "Make your own" (led by the AI avatar styles) is the first row */}
+        {festivalRails.map(({ f, items }) => (
+          <LazyRail
+            key={`festival-${f.id}`}
+            eager
+            title={`${f.name} · ${festivalShortDate(f)}`}
+            href={festivalPages.includes(f.slug) ? `/${f.slug}` : `/stickers?q=${encodeURIComponent(f.tags[0] ?? f.name)}`}
+          >
+            {items.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </LazyRail>
+        ))}
+        {/* "Make your own" (led by the AI avatar styles) is the first row — after any festival */}
         <CustomRail />
         {homeRails.map((rail, i) => (
           // The first two rails render straight away; the rest only when the

@@ -8,15 +8,26 @@ import { productSnapshot } from "@/lib/catalog-snapshot";
 import { getDriver } from "@/lib/data";
 import { itemListStructuredData, seoName } from "@/lib/seo";
 import { absoluteUrl, pageMetadata } from "@/lib/site";
-import { SURFACES, stickersForSurface, surfaceBySlug } from "@/lib/surfaces";
+import { SURFACES, allLandings, stickersForSurface, type Surface } from "@/lib/surfaces";
 
 // "Where it goes" landing pages: /car-stickers, /bike-stickers, /laptop-stickers,
-// /helmet-stickers, /bottle-stickers, plus festival pages like
-// /kannada-rajyotsava-stickers. Only these slugs exist; anything else 404s.
+// /helmet-stickers, /bottle-stickers, plus a page per festival from the admin
+// (Festivals), e.g. /kannada-rajyotsava-stickers — built at deploy, so a new
+// festival's page appears with the next deploy. Anything else 404s.
 export const dynamicParams = false;
 
-export function generateStaticParams() {
-  return SURFACES.map((s) => ({ surface: s.slug }));
+async function landings(): Promise<Surface[]> {
+  const driver = getDriver();
+  const [festivals, categories] = await Promise.all([driver.getFestivals(), driver.listCategories()]);
+  return allLandings(festivals, categories);
+}
+
+async function landingBySlug(slug: string): Promise<Surface | undefined> {
+  return (await landings()).find((s) => s.slug === slug);
+}
+
+export async function generateStaticParams() {
+  return (await landings()).map((s) => ({ surface: s.slug }));
 }
 
 export async function generateMetadata({
@@ -24,7 +35,7 @@ export async function generateMetadata({
 }: {
   params: Promise<{ surface: string }>;
 }): Promise<Metadata> {
-  const surface = surfaceBySlug((await params).surface);
+  const surface = await landingBySlug((await params).surface);
   if (!surface) return {};
   const base = pageMetadata({
     title: surface.title,
@@ -39,7 +50,7 @@ export default async function SurfacePage({
 }: {
   params: Promise<{ surface: string }>;
 }) {
-  const surface = surfaceBySlug((await params).surface);
+  const surface = await landingBySlug((await params).surface);
   if (!surface) notFound();
 
   const driver = getDriver();
@@ -71,15 +82,20 @@ export default async function SurfacePage({
       ],
     },
     itemListStructuredData(listed),
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      mainEntity: surface.faq.map(({ q, a }) => ({
-        "@type": "Question",
-        name: q,
-        acceptedAnswer: { "@type": "Answer", text: a },
-      })),
-    },
+    // a festival may not have questions yet
+    ...(surface.faq.length
+      ? [
+          {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: surface.faq.map(({ q, a }) => ({
+              "@type": "Question",
+              name: q,
+              acceptedAnswer: { "@type": "Answer", text: a },
+            })),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -95,15 +111,19 @@ export default async function SurfacePage({
       <h1 className="mt-2 font-display text-3xl font-bold sm:text-4xl">
         {surface.name}
       </h1>
+      {surface.when && (
+        <p className="mt-1 text-sm font-semibold text-brand">Celebrated on {surface.when}</p>
+      )}
       <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-fog">
         {surface.intro}
       </p>
 
       <SurfaceGrid
-        slug={surface.slug}
+        surface={surface}
         initial={{ categories, products: productSnapshot(products) }}
       />
 
+      {surface.sections.length > 0 && (
       <section className="mt-16 grid max-w-5xl gap-8 md:grid-cols-2">
         {surface.sections.map((s) => (
           <div key={s.heading}>
@@ -114,6 +134,7 @@ export default async function SurfacePage({
           </div>
         ))}
       </section>
+      )}
 
       {popular.length > 0 && (
         <section className="mt-12 max-w-5xl">
@@ -135,16 +156,18 @@ export default async function SurfacePage({
         </section>
       )}
 
-      <section className="mt-12 max-w-3xl">
-        <h2 className="font-display text-xl font-bold">
-          {surface.name}: questions, answered
-        </h2>
-        <div className="mt-4 divide-y divide-line rounded-2xl border border-line bg-ink2/80">
-          {surface.faq.map(({ q, a }) => (
-            <FaqItem key={q} q={q} a={a} />
-          ))}
-        </div>
-      </section>
+      {surface.faq.length > 0 && (
+        <section className="mt-12 max-w-3xl">
+          <h2 className="font-display text-xl font-bold">
+            {surface.name}: questions, answered
+          </h2>
+          <div className="mt-4 divide-y divide-line rounded-2xl border border-line bg-ink2/80">
+            {surface.faq.map(({ q, a }) => (
+              <FaqItem key={q} q={q} a={a} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="mt-12">
         <h2 className="text-sm font-semibold tracking-wide text-fog uppercase">

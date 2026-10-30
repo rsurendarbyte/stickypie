@@ -4,17 +4,15 @@ import ProductCard from "./product-card";
 import ProductCardSkeleton from "./product-card-skeleton";
 import { useLiveCatalog, type Catalog } from "@/lib/live-catalog";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
-import { stickersForSurface, surfaceBySlug } from "@/lib/surfaces";
+import { stickersForSurface, type Surface } from "@/lib/surfaces";
 
 const GRID =
   "grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8";
 
 /** Live, on-sale stickers for one surface page: best fits first, then the rest. */
-export default function SurfaceGrid({ slug, initial }: { slug: string; initial: Catalog }) {
+export default function SurfaceGrid({ surface, initial }: { surface: Surface; initial: Catalog }) {
   const { categories, products, loaded } = useLiveCatalog(initial);
   useWindowScrollMemory(loaded);
-  const surface = surfaceBySlug(slug);
-  if (!surface) return null;
 
   if (!loaded && products.length === 0) {
     return (

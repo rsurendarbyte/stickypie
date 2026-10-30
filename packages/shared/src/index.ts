@@ -12,6 +12,7 @@ export * from "./india";
 export * from "./sizes";
 export * from "./shipping";
 export * from "./home-rails";
+export * from "./festivals";
 export * from "./features";
 export * from "./custom";
 export * from "./feedback";

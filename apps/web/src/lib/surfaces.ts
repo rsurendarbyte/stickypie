@@ -3,7 +3,7 @@
 // categories. Which stickers show is decided by tags and categories, both
 // edited in the admin — add the tag "laptop" to a sticker and it appears on
 // /laptop-stickers.
-import type { Category, Product } from "@stickypie/shared";
+import { festivalLongDate, type Category, type Festival, type Product } from "@stickypie/shared";
 
 export type Surface = {
   slug: string;
@@ -20,6 +20,8 @@ export type Surface = {
   categories: string[];
   sections: { heading: string; body: string }[];
   faq: { q: string; a: string }[];
+  /** Festival pages: "1 November", shown under the heading. */
+  when?: string;
 };
 
 export const SURFACES: Surface[] = [
@@ -187,54 +189,37 @@ export const SURFACES: Surface[] = [
       },
     ],
   },
-  {
-    slug: "kannada-rajyotsava-stickers",
-    name: "Kannada Rajyotsava Stickers",
-    noun: "collection",
-    title: "Kannada Rajyotsava Stickers & Mini Posters – Karnataka Flag Stickers",
-    description:
-      "Kannada Rajyotsava (ಕನ್ನಡ ರಾಜ್ಯೋತ್ಸವ) stickers & mini posters: Kannada flag, Karnataka map, Hampi. Die-cut vinyl for car, bike, laptop.",
-    intro:
-      "Celebrate ಕನ್ನಡ ರಾಜ್ಯೋತ್ಸವ on 1 November with Karnataka pride you can stick anywhere: the red-and-yellow Kannada flag, the map of Karnataka, Vidhana Soudha, Hampi's stone chariot and ಕನ್ನಡ ರಾಜ್ಯೋತ್ಸವದ ಶುಭಾಶಯಗಳು lettering — as die-cut vinyl stickers and mini posters for your car, bike, laptop, bottle or wall.",
-    tags: ["kannada", "karnataka", "rajyotsava", "kannada rajyotsava", "kannada flag", "namma karnataka"],
-    categories: [],
-    sections: [
-      {
-        heading: "Made for Namma Karnataka",
-        body: "Every design carries the yellow and red of the Kannada flag. The sticker is die-cut to its shape with Kannada lettering; the mini poster packs the whole state — temples, waterfalls, Yakshagana, coffee and a festive meal — into one map.",
-      },
-      {
-        heading: "Where to put them",
-        body: "6″–7″ on a car's rear glass or a bike's tank for 1 November rides and rallies, 3″ on a laptop, phone, helmet or bottle. Mini posters also look great on a fridge, desk or wall.",
-      },
-    ],
-    faq: [
-      {
-        q: "When is Kannada Rajyotsava?",
-        a: "Kannada Rajyotsava, also called Karnataka Rajyotsava or Karnataka Formation Day, is celebrated every year on 1 November. It marks the day in 1956 when the Kannada-speaking regions were joined into one state, later named Karnataka.",
-      },
-      {
-        q: "Where can I buy Kannada Rajyotsava stickers online?",
-        a: "On StickyPie (stickypie.in): Kannada Rajyotsava stickers and mini posters with the Kannada flag and the map of Karnataka, in 3″, 6″ and 7″ sizes, shipped across India.",
-      },
-      {
-        q: "What do the colours of the Kannada flag mean?",
-        a: "The Kannada flag is yellow over red. Yellow (arishina) and red (kunkuma) are the turmeric and vermilion of auspicious occasions in Karnataka; the flag is flown everywhere on Kannada Rajyotsava.",
-      },
-      {
-        q: "Can I stick it on my car or bike?",
-        a: "Yes. The stickers are die-cut vinyl and stick cleanly to car glass, painted panels, bike tanks and helmets, and peel off later without damaging the paint.",
-      },
-      {
-        q: "How much do Kannada Rajyotsava stickers cost?",
-        a: "Prices start at ₹14 for a 3″ sticker or mini poster; 6″ and 7″ sizes cost more. Every size and price is shown on each sticker's page.",
-      },
-    ],
-  },
 ];
 
 export function surfaceBySlug(slug: string): Surface | undefined {
   return SURFACES.find((s) => s.slug === slug);
+}
+
+/** A festival (admin → Festivals) as a landing page, same layout as the others. */
+export function festivalSurface(f: Festival, categories: Category[]): Surface {
+  const category = f.categoryId ? categories.find((c) => c.id === f.categoryId) : undefined;
+  return {
+    slug: f.slug,
+    name: `${f.name} Stickers`,
+    noun: "collection",
+    title: f.title || `${f.name} Stickers & Mini Posters`,
+    description: f.description || `${f.name} stickers and mini posters — die-cut vinyl for your car, bike and laptop, shipped across India.`,
+    intro: f.intro,
+    tags: f.tags,
+    categories: category ? [category.slug] : [],
+    sections: [],
+    faq: f.faq,
+    when: festivalLongDate(f),
+  };
+}
+
+/** Every landing page: where-it-goes pages plus one per visible festival (festival addresses never shadow them). */
+export function allLandings(festivals: Festival[], categories: Category[]): Surface[] {
+  const taken = new Set(SURFACES.map((s) => s.slug));
+  return [
+    ...SURFACES,
+    ...festivals.filter((f) => f.visible && !taken.has(f.slug)).map((f) => festivalSurface(f, categories)),
+  ];
 }
 
 /**
