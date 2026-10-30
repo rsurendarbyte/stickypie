@@ -29,14 +29,16 @@ export default function Row({
   return (
     <section className="group/row relative">
       <div className="flex w-full items-center gap-3 px-4 sm:px-8 lg:px-12 2xl:px-20">
-        <span className="pie-gradient h-5 w-1 shrink-0 rounded-full" />
-        <h2 className="font-display text-lg font-semibold tracking-tight sm:text-xl">{title}</h2>
+        <span className="pie-gradient h-5 w-1 shrink-0 self-start rounded-full mt-px sm:self-center sm:mt-0" />
+        <h2 className="line-clamp-2 min-w-0 font-display text-base leading-tight font-semibold tracking-tight sm:text-xl" title={title}>
+          {title}
+        </h2>
         {href && (
           <Link
             href={href}
-            className="peel-btn peel-btn--light ml-auto flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold"
+            className="peel-btn peel-btn--light ml-auto flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold whitespace-nowrap sm:px-3.5"
           >
-            Explore all <ArrowRight className="size-3.5" />
+            <span className="max-sm:hidden">Explore </span>all <ArrowRight className="size-3.5" />
           </Link>
         )}
       </div>
