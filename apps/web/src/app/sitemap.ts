@@ -3,7 +3,7 @@ import { categoryPath, inCategory } from "@stickypie/shared";
 import { getDriver } from "@/lib/data";
 import { generateStaticParams as legalSlugs } from "./legal/[slug]/page";
 import { absoluteUrl, isProductionSite } from "@/lib/site";
-import { SURFACES } from "@/lib/surfaces";
+import { SURFACES, allLandings } from "@/lib/surfaces";
 
 // Built once at deploy and served as a free static file; stickers added from
 // the admin app appear with the next deploy.
@@ -31,10 +31,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     const driver = getDriver();
-    const [products, categories] = await Promise.all([
+    const [products, categories, festivals] = await Promise.all([
       driver.listProducts({ activeOnly: true }),
       driver.listCategories(),
+      driver.getFestivals(),
     ]);
+    // Festival pages (admin → Festivals), kept all year.
+    for (const page of allLandings(festivals, categories).slice(SURFACES.length)) {
+      pages.push({ url: absoluteUrl(`/${page.slug}`), changeFrequency: "weekly", priority: 0.9 });
+    }
     // Category pages that have stickers on sale.
     for (const category of categories) {
       if (!products.some((p) => inCategory(p, category.id))) continue;

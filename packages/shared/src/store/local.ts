@@ -17,6 +17,7 @@ import type {
 import { DEFAULT_STORE_SETTINGS, type StoreSettings } from "../shipping";
 import { rowToFeatures, type FeatureFlags } from "../features";
 import { DEFAULT_HOME_RAILS, type HomeRail } from "../home-rails";
+import { DEFAULT_FESTIVALS, type Festival } from "../festivals";
 import { inCategory } from "../utils";
 import type { ContactInput, ContactMessage, NewReviewInput, Review, ReviewStatus } from "../feedback";
 
@@ -27,6 +28,7 @@ type StoreShape = {
   settings?: StoreSettings;
   features?: FeatureFlags;
   homeRails?: HomeRail[];
+  festivals?: Festival[];
   contactMessages?: ContactMessage[];
   reviews?: Review[];
 };
@@ -457,6 +459,17 @@ export function createLocalDriver(filePath: string): DataDriver {
       store.homeRails = rails;
       persist(store);
       return rails;
+    },
+
+    async getFestivals() {
+      return load().festivals ?? DEFAULT_FESTIVALS;
+    },
+
+    async updateFestivals(festivals: Festival[]) {
+      const store = load();
+      store.festivals = festivals;
+      persist(store);
+      return festivals;
     },
 
     async replaceCustomFile(orderId: string, itemId: string, path: string, url: string) {
