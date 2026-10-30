@@ -44,7 +44,7 @@ export default function HomeClient({
   // shows is shuffled once per visit in the browser, so the page feels fresh.
   const seed = useSkinSeed();
   const homeRails = resolveHomeRails(rails, products, categories, seed);
-  // Festivals around today (admin → Festivals) lead the page: from a few days
+  // Festivals around today (admin → Festivals) come right after Make your own: from a few days
   // before the date to a few days after, then they step aside by themselves.
   const festivalRails = activeFestivals(festivals)
     .map((f) => ({ f, items: festivalProducts(f, products).slice(0, 24) }))
@@ -121,6 +121,8 @@ export default function HomeClient({
     <>
       <Hero products={featured.length > 0 ? featured : [hero]} categories={categories} />
       <div className="relative z-10 mt-2 space-y-1 pb-24 sm:space-y-8">
+        {/* "Make your own" (led by the AI avatar styles) is the first row, then any festival on now */}
+        <CustomRail />
         {festivalRails.map(({ f, items }) => (
           <LazyRail
             key={`festival-${f.id}`}
@@ -133,8 +135,6 @@ export default function HomeClient({
             ))}
           </LazyRail>
         ))}
-        {/* "Make your own" (led by the AI avatar styles) is the first row — after any festival */}
-        <CustomRail />
         {homeRails.map((rail, i) => (
           // The first two rails render straight away; the rest only when the
           // shopper scrolls near them.
