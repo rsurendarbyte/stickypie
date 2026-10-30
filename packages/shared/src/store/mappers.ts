@@ -14,7 +14,7 @@ export function rowToCategory(r: any): Category {
 // bucket's r2.dev address. Same files, same bucket — only the host changes, so
 // links saved with either host work. Unset (dev, admin) → links as stored.
 const R2_DEV_HOST = /^https:\/\/pub-[a-z0-9]+\.r2\.dev(?=\/)/;
-function onImageHost(url: string): string {
+export function onImageHost(url: string): string {
   const host = process.env.NEXT_PUBLIC_IMAGE_HOST;
   return host && url ? url.replace(R2_DEV_HOST, host.replace(/\/+$/, "")) : url;
 }

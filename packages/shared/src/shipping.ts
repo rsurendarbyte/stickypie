@@ -2,6 +2,7 @@
 // Browser-safe, no deps: used by the cart UI, checkout page and checkout API.
 import { matchIndianState } from "./india";
 import { DEFAULT_AVATAR_STYLES, type AvatarBook, type AvatarStyle } from "./custom";
+import { onImageHost } from "./store/mappers";
 
 export type ShippingZone = "local" | "state" | "national" | "remote";
 
@@ -187,14 +188,14 @@ export function rowToSettings(r: any): StoreSettings {
           .map((s: any): AvatarStyle => ({
             label: s.label,
             covers: Array.isArray(s.covers)
-              ? s.covers.filter((u: unknown): u is string => typeof u === "string" && !!u)
+              ? s.covers.filter((u: unknown): u is string => typeof u === "string" && !!u).map(onImageHost)
               : typeof s.cover === "string" && s.cover
-                ? [s.cover]
+                ? [onImageHost(s.cover)]
                 : [],
             images: Array.isArray(s.images)
-              ? s.images.filter((u: unknown): u is string => typeof u === "string")
+              ? s.images.filter((u: unknown): u is string => typeof u === "string").map(onImageHost)
               : typeof s.url === "string"
-                ? [s.url]
+                ? [onImageHost(s.url)]
                 : [],
             ...(Array.isArray(s.poseSets)
               ? { poseSets: s.poseSets.filter((p: unknown): p is string => typeof p === "string" && !!p.trim()) }
