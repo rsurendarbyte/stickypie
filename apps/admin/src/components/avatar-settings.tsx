@@ -290,6 +290,8 @@ export default function AvatarSettings({
     for (const file of Array.from(files).slice(0, room)) {
       const form = new FormData();
       form.set("file", file);
+      // shop-only pictures: stored small (card ≈ 200px on screen; samples can be zoomed)
+      form.set("maxPx", kind === "cover" ? "512" : "1600");
       const res = await fetch("/api/upload", {
         method: "POST",
         body: form,

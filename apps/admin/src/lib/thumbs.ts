@@ -29,22 +29,25 @@ async function imagesBinding(): Promise<ImagesBinding | null> {
   }
 }
 
-async function toWebpThumb(bytes: ArrayBuffer): Promise<Uint8Array> {
+/** Resizes to fit maxPx and encodes as WebP (also used by the upload route). */
+export async function toWebp(bytes: ArrayBuffer, maxPx: number, quality: number): Promise<Uint8Array> {
   const images = await imagesBinding();
   if (images) {
     const out = await images
       .input(new Response(bytes).body!)
-      .transform({ width: THUMB_MAX_PX, height: THUMB_MAX_PX, fit: "scale-down" })
-      .output({ format: "image/webp", quality: THUMB_QUALITY });
+      .transform({ width: maxPx, height: maxPx, fit: "scale-down" })
+      .output({ format: "image/webp", quality });
     return new Uint8Array(await out.response().arrayBuffer());
   }
   const sharpModule = "sharp"; // kept out of the Worker bundle
   const { default: sharp } = await import(/* webpackIgnore: true */ sharpModule);
   return sharp(Buffer.from(bytes))
-    .resize(THUMB_MAX_PX, THUMB_MAX_PX, { fit: "inside", withoutEnlargement: true })
-    .webp({ quality: THUMB_QUALITY, alphaQuality: 90 })
+    .resize(maxPx, maxPx, { fit: "inside", withoutEnlargement: true })
+    .webp({ quality, alphaQuality: 90 })
     .toBuffer();
 }
+
+const toWebpThumb = (bytes: ArrayBuffer) => toWebp(bytes, THUMB_MAX_PX, THUMB_QUALITY);
 
 /** Resizes the artwork and uploads it to R2. null when R2 isn't set up or it fails. */
 export async function makeThumb(imageUrl: string): Promise<string | null> {

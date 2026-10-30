@@ -37,3 +37,4 @@ npm-debug.log*
 # product images staged for import (already shipped in apps/web/public/stickers)
 prod_stickers/
 .static-history/
+.avatar-styles-backup-*.json
