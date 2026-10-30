@@ -6,6 +6,7 @@ import { slugify } from "@stickypie/shared";
 import { supabaseConfigured } from "@/lib/auth";
 import { requireAdminApi } from "@/lib/data";
 import { r2Client, r2Config } from "@/lib/r2";
+import { toWebp } from "@/lib/thumbs";
 import { createServerSupabase } from "@/lib/supabase";
 
 const MAX_SIZE = 4 * 1024 * 1024; // 4 MB
@@ -38,7 +39,25 @@ export async function POST(req: Request) {
   }
 
   const base = slugify(file.name.replace(/\.[^.]+$/, "")) || "sticker";
-  const ext = (file.name.match(/\.([a-zA-Z0-9]+)$/)?.[1] ?? "png").toLowerCase();
+  let ext = (file.name.match(/\.([a-zA-Z0-9]+)$/)?.[1] ?? "png").toLowerCase();
+
+  // "maxPx" = a picture only ever shown on the shop (AI style cards and
+  // samples): stored as a WebP no bigger than that, never the full PNG.
+  const maxPx = Number(form?.get("maxPx")) || 0;
+  let body: Uint8Array = new Uint8Array(await file.arrayBuffer());
+  let contentType = file.type;
+  if (maxPx > 0) {
+    try {
+      body = await toWebp(body.slice().buffer, Math.min(maxPx, 2400), 82);
+      ext = "webp";
+      contentType = "image/webp";
+    } catch (err) {
+      return NextResponse.json(
+        { error: err instanceof Error ? `Could not shrink the picture: ${err.message}` : "Could not shrink the picture" },
+        { status: 500 }
+      );
+    }
+  }
   const name = `${base}-${Date.now()}.${ext}`;
 
   const r2 = r2Config();
@@ -48,8 +67,8 @@ export async function POST(req: Request) {
         new PutObjectCommand({
           Bucket: r2.bucket,
           Key: name,
-          Body: Buffer.from(await file.arrayBuffer()),
-          ContentType: file.type,
+          Body: body,
+          ContentType: contentType,
           // Names are unique per upload, so let the CDN cache forever.
           CacheControl: "public, max-age=31536000, immutable",
         })
@@ -66,14 +85,14 @@ export async function POST(req: Request) {
   if (!supabaseConfigured()) {
     const dir = uploadDir();
     fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(path.join(dir, name), Buffer.from(await file.arrayBuffer()));
+    fs.writeFileSync(path.join(dir, name), body);
     return NextResponse.json({ url: `/stickers/${name}` });
   }
 
   const supabase = await createServerSupabase();
   const { error } = await supabase.storage
     .from("product-images")
-    .upload(name, file, { contentType: file.type, upsert: false });
+    .upload(name, body, { contentType, upsert: false });
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

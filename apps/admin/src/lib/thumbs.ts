@@ -37,7 +37,7 @@ async function imagesBinding(): Promise<ImagesBinding | null> {
   }
 }
 
-async function toWebp(bytes: ArrayBuffer, maxPx: number, quality: number): Promise<Uint8Array> {
+export async function toWebp(bytes: ArrayBuffer, maxPx: number, quality: number): Promise<Uint8Array> {
   const images = await imagesBinding();
   if (images) {
     const out = await images
