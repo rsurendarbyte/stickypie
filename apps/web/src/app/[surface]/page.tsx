@@ -59,7 +59,9 @@ export default async function SurfacePage({
     driver.listProducts({ activeOnly: true }),
   ]);
   const { matched, others } = stickersForSurface(surface, products, categories);
-  const listed = [...matched, ...others];
+  // A festival page lists only its own stickers (for Google too); the
+  // where-it-goes pages fall back on everything, since vinyl fits them all.
+  const listed = surface.when && matched.length ? matched : [...matched, ...others];
   const popular = listed.slice(0, 12);
 
   const structuredData = [
