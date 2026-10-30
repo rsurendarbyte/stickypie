@@ -11,7 +11,8 @@ import { absoluteUrl, pageMetadata } from "@/lib/site";
 import { SURFACES, stickersForSurface, surfaceBySlug } from "@/lib/surfaces";
 
 // "Where it goes" landing pages: /car-stickers, /bike-stickers, /laptop-stickers,
-// /helmet-stickers, /bottle-stickers. Only these slugs exist; anything else 404s.
+// /helmet-stickers, /bottle-stickers, plus festival pages like
+// /kannada-rajyotsava-stickers. Only these slugs exist; anything else 404s.
 export const dynamicParams = false;
 
 export function generateStaticParams() {
