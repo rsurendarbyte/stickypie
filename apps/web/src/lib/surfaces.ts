@@ -187,6 +187,50 @@ export const SURFACES: Surface[] = [
       },
     ],
   },
+  {
+    slug: "kannada-rajyotsava-stickers",
+    name: "Kannada Rajyotsava Stickers",
+    noun: "collection",
+    title: "Kannada Rajyotsava Stickers & Mini Posters – Karnataka Flag Stickers",
+    description:
+      "Kannada Rajyotsava (ಕನ್ನಡ ರಾಜ್ಯೋತ್ಸವ) stickers & mini posters: Kannada flag, Karnataka map, Hampi. Die-cut vinyl for car, bike, laptop.",
+    intro:
+      "Celebrate ಕನ್ನಡ ರಾಜ್ಯೋತ್ಸವ on 1 November with Karnataka pride you can stick anywhere: the red-and-yellow Kannada flag, the map of Karnataka, Vidhana Soudha, Hampi's stone chariot and ಕನ್ನಡ ರಾಜ್ಯೋತ್ಸವದ ಶುಭಾಶಯಗಳು lettering — as die-cut vinyl stickers and mini posters for your car, bike, laptop, bottle or wall.",
+    tags: ["kannada", "karnataka", "rajyotsava", "kannada rajyotsava", "kannada flag", "namma karnataka"],
+    categories: [],
+    sections: [
+      {
+        heading: "Made for Namma Karnataka",
+        body: "Every design carries the yellow and red of the Kannada flag. The sticker is die-cut to its shape with Kannada lettering; the mini poster packs the whole state — temples, waterfalls, Yakshagana, coffee and a festive meal — into one map.",
+      },
+      {
+        heading: "Where to put them",
+        body: "6″–7″ on a car's rear glass or a bike's tank for 1 November rides and rallies, 3″ on a laptop, phone, helmet or bottle. Mini posters also look great on a fridge, desk or wall.",
+      },
+    ],
+    faq: [
+      {
+        q: "When is Kannada Rajyotsava?",
+        a: "Kannada Rajyotsava, also called Karnataka Rajyotsava or Karnataka Formation Day, is celebrated every year on 1 November. It marks the day in 1956 when the Kannada-speaking regions were joined into one state, later named Karnataka.",
+      },
+      {
+        q: "Where can I buy Kannada Rajyotsava stickers online?",
+        a: "On StickyPie (stickypie.in): Kannada Rajyotsava stickers and mini posters with the Kannada flag and the map of Karnataka, in 3″, 6″ and 7″ sizes, shipped across India.",
+      },
+      {
+        q: "What do the colours of the Kannada flag mean?",
+        a: "The Kannada flag is yellow over red. Yellow (arishina) and red (kunkuma) are the turmeric and vermilion of auspicious occasions in Karnataka; the flag is flown everywhere on Kannada Rajyotsava.",
+      },
+      {
+        q: "Can I stick it on my car or bike?",
+        a: "Yes. The stickers are die-cut vinyl and stick cleanly to car glass, painted panels, bike tanks and helmets, and peel off later without damaging the paint.",
+      },
+      {
+        q: "How much do Kannada Rajyotsava stickers cost?",
+        a: "Prices start at ₹14 for a 3″ sticker or mini poster; 6″ and 7″ sizes cost more. Every size and price is shown on each sticker's page.",
+      },
+    ],
+  },
 ];
 
 export function surfaceBySlug(slug: string): Surface | undefined {
