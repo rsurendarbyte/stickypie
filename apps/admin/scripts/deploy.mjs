@@ -2,6 +2,8 @@
 //
 //   node scripts/deploy.mjs                → stickypie-admin.<subdomain>.workers.dev
 //   add --build-only to stop after the build, or --preview to run it locally
+//   (a real deploy first applies pending migrations to the production database —
+//   scripts/lib/migrate-before-deploy.mjs; SKIP_MIGRATIONS=1 skips that)
 //
 // Settings come from the same files `npm run admin:prod` uses:
 // .env.production.local (production database), with anything it doesn't set
@@ -13,6 +15,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { migrateBeforeDeploy } from "../../../scripts/lib/migrate-before-deploy.mjs";
 
 const appDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = path.resolve(appDir, "../..");
@@ -85,6 +88,11 @@ if (missing.length) {
 const secrets = Object.fromEntries(SECRETS.map((key) => [key, fileEnv[key]]));
 
 console.log("\n▶ admin (production database) — noindex, workers.dev only\n");
+
+// Database first: new code must not go live before the migrations it needs.
+if (!flags.includes("--build-only") && !flags.includes("--preview")) {
+  migrateBeforeDeploy({ prod: true, flags });
+}
 
 function run(cmd, args, extraEnv = {}) {
   const result = spawnSync(cmd, args, {
