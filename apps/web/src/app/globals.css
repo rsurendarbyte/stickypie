@@ -1152,52 +1152,6 @@ html[data-lite] .card-shine {
   content-visibility: visible;
 }
 
-/* ── Car cursor (components/car-cursor.tsx) — mouse users only ──────────── */
-html.car-cursor,
-html.car-cursor * {
-  cursor: none !important;
-}
-html.car-cursor input:not([type="checkbox"], [type="radio"], [type="range"]),
-html.car-cursor textarea,
-html.car-cursor [contenteditable] {
-  cursor: text !important;
-}
-.car-cursor-wheel {
-  will-change: transform;
-  transition: opacity 0.15s ease;
-  filter: drop-shadow(0 2px 3px rgba(16, 24, 40, 0.35));
-}
-.car-cursor-wheel svg {
-  transition: transform 0.15s ease;
-}
-.car-cursor-away {
-  visibility: hidden;
-}
-/* over a link / button: the hub lights up */
-.car-cursor-hot .car-cursor-hub {
-  fill: #ffc93c;
-}
-/* over a link / button: a white die-cut sticker edge, no coloured glow */
-.car-cursor-hot {
-  filter: drop-shadow(1.5px 0 0 #fff) drop-shadow(-1.5px 0 0 #fff) drop-shadow(0 1.5px 0 #fff)
-    drop-shadow(0 -1.5px 0 #fff) drop-shadow(0 3px 4px rgba(16, 24, 40, 0.35));
-}
-.car-cursor-press svg {
-  transform: scale(0.82);
-}
-/* burnout: a quick wheelspin */
-.car-cursor-rev svg {
-  animation: car-cursor-rev 0.45s cubic-bezier(0.2, 0.7, 0.3, 1);
-}
-@keyframes car-cursor-rev {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(720deg);
-  }
-}
-
 /* Hero promo slide: diagonal wall of stickers scrolling up / down */
 .sticker-wall {
   -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 14%, #000 70%, transparent 100%);

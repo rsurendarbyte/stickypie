@@ -3,17 +3,18 @@ import { Fredoka, Inter } from "next/font/google";
 import "./globals.css";
 import { shopThemeCss } from "@stickypie/shared";
 import ThemeTryout from "@/components/theme-tryout";
+import CursorTrail from "@/components/cursor-trail";
 import { CartProvider } from "@/components/cart-context";
 import { ConfirmProvider } from "@/components/confirm-dialog";
 import MildBackground from "@/components/mild-background";
 import Nav from "@/components/nav";
-import CarCursor from "@/components/car-cursor";
 import Footer from "@/components/footer";
 import MobileTabBar from "@/components/mobile-tab-bar";
 import CartDrawer from "@/components/cart-drawer";
 import CartShell from "@/components/cart-shell";
 import NavTracker from "@/components/nav-tracker";
 import { META_PIXEL_SCRIPT } from "@/lib/meta-pixel";
+import { stickerCursorCss } from "@/lib/sticker-cursor";
 import PerfProbe from "@/components/perf-probe";
 import { LITE_SCRIPT } from "@/lib/lite-script";
 import { VIEW_SCRIPT } from "@/lib/view-script";
@@ -82,6 +83,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         {/* Theme colours (SHOP_THEME in packages/shared/src/theme.ts) */}
         <style dangerouslySetInnerHTML={{ __html: shopThemeCss() }} />
+        {/* The mouse pointer as a theme-coloured sticker arrow (lib/sticker-cursor.ts) */}
+        <style dangerouslySetInnerHTML={{ __html: stickerCursorCss() }} />
         <script dangerouslySetInnerHTML={{ __html: LITE_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: VIEW_SCRIPT }} />
         {/* Meta pixel for ads (prod only: the ID is set in .env.prod) */}
@@ -96,7 +99,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <PerfProbe />
           <MildBackground />
           <Nav />
-          <CarCursor />
+          <CursorTrail />
           <CartShell>
             <main className="min-h-screen">{children}</main>
             <Footer demoMode={!supabaseConfigured()} />
