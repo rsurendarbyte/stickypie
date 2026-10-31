@@ -38,7 +38,9 @@ export default function Row({
             href={href}
             className="peel-btn peel-btn--light ml-auto flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold whitespace-nowrap sm:px-3.5"
           >
-            <span className="max-sm:hidden">Explore </span>all <ArrowRight className="size-3.5" />
+            <span className="sm:hidden">All</span>
+            <span className="max-sm:hidden">Explore all</span>
+            <ArrowRight className="size-3.5" />
           </Link>
         )}
       </div>
