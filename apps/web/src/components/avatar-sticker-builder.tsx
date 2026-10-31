@@ -110,13 +110,17 @@ function StepCard({
 function StyleCover({
   style,
   offset = 0,
+  eager = false,
   className = "",
 }: {
   style: AvatarStyle;
   offset?: number;
+  /** On screen when the page opens: load first instead of lazily. */
+  eager?: boolean;
   className?: string;
 }) {
-  const { covers } = style;
+  // Made for two (a girl and a boy) taking turns; any more wait their turn.
+  const covers = style.covers.slice(0, 2);
   if (covers.length)
     return (
       <span
@@ -128,13 +132,15 @@ function StyleCover({
             key={src}
             src={src}
             alt=""
-            loading="lazy"
+            loading={eager ? "eager" : "lazy"}
+            fetchPriority={eager && i === 0 ? "high" : undefined}
+            decoding="async"
             className={`absolute inset-[6%] size-[88%] object-contain drop-shadow-md ${
               covers.length > 1 ? "avatar-cover-swap" : ""
             }`}
             style={
               covers.length > 1
-                ? { animationDelay: `${-(offset + i * 3)}s` }
+                ? { animationDelay: `${-(offset + i * 3.5)}s` }
                 : undefined
             }
           />
@@ -165,7 +171,12 @@ function StyleCover({
  * pinned to the bottom. Desktop: steps on the left, the book summary sticky on
  * the right.
  */
-export default function AvatarStickerBuilder() {
+export default function AvatarStickerBuilder({
+  initialStyles,
+}: {
+  /** The styles baked in at deploy: shown until the live settings arrive, so the pictures don't swap and reload. */
+  initialStyles?: AvatarStyle[];
+} = {}) {
   const settings = useStoreSettings();
   // prices come from the admin's settings: placeholders until they've loaded
   const pricesReady = settings.loaded;
@@ -215,7 +226,7 @@ export default function AvatarStickerBuilder() {
     return () => window.removeEventListener("keydown", onKey);
   }, [gallery]);
 
-  const styles = settings.avatarStyles;
+  const styles = !settings.loaded && initialStyles?.length ? initialStyles : settings.avatarStyles;
   // One sheet per picked style: at least the admin's minimum, up to every style.
   const min = book?.pages ?? 0;
   const max = avatarMaxSheets(styles.length);
@@ -415,7 +426,7 @@ export default function AvatarStickerBuilder() {
                         onClick={() => toggleStyle(st.label)}
                         className="block w-full disabled:cursor-not-allowed"
                       >
-                        <StyleCover style={st} offset={n * 0.8} className="aspect-[5/4] w-full" />
+                        <StyleCover style={st} offset={n * 0.8} eager={n < 4} className="aspect-[5/4] w-full" />
                       </button>
                       {on && (
                         <span className="pie-gradient pointer-events-none absolute top-2 left-2 flex h-6 items-center gap-1 rounded-full pr-2 pl-1.5 text-[11px] font-bold text-white shadow ring-2 ring-white">

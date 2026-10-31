@@ -7,6 +7,7 @@ import JsonLd from "@/components/json-ld";
 import { MetaViewContent } from "@/components/meta-track";
 import { avatarFaq, faqStructuredData } from "@/lib/seo";
 import { loadShopFacts } from "@/lib/shop-facts";
+import { getDriver } from "@/lib/data";
 import { formatINR } from "@stickypie/shared";
 import { siteUrl } from "@/lib/mode";
 import { SITE_NAME, absoluteUrl, pageMetadata } from "@/lib/site";
@@ -39,7 +40,7 @@ export const metadata: Metadata = {
 
 export default async function AvatarStickersPage() {
   // Prices and styles answered in plain words, for shoppers, Google and AI assistants.
-  const facts = await loadShopFacts();
+  const [facts, settings] = await Promise.all([loadShopFacts(), getDriver().getSettings()]);
   const faq = avatarFaq(facts);
   const avatar = facts.avatar;
   const page = absoluteUrl("/avatar-stickers");
@@ -122,7 +123,7 @@ export default async function AvatarStickersPage() {
         Pick your styles and send a selfie. We use AI to make a pack of avatar stickers of you in each style, then
         print them on vinyl.
       </p>
-      <AvatarStickerBuilder />
+      <AvatarStickerBuilder initialStyles={settings.avatarStyles} />
       <AvatarLiveInfo initial={avatar} />
       <CustomRequestForm />
     </div>
