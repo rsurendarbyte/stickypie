@@ -24,8 +24,10 @@ import {
  * New-order alerts for the whole admin panel. The moment an order is paid:
  * a pop-up with what to prepare (and an Open button), a chime, a desktop
  * notification when the tab is in the background, "(2)" in the tab title and a
- * red count on Orders. Live via Supabase Realtime, with a check every 30 s as a
- * backup so nothing is missed if the connection drops.
+ * red count on Orders. Live via Supabase Realtime; the API is only polled as a
+ * backup while that live feed is down (every 60 s, backing off up to 10 min
+ * while the server can't be reached), plus one check when the tab comes back
+ * into view or the network returns.
  */
 
 export type AlertOrder = {
@@ -58,7 +60,12 @@ const OrderAlertsContext = createContext<Ctx>({
 });
 export const useOrderAlerts = () => useContext(OrderAlertsContext);
 
-const POLL_MS = 30_000;
+const POLL_MS = 60_000;
+const MAX_BACKOFF_MS = 10 * 60_000;
+/** Realtime bursts (several order updates at once) become one check. */
+const LIVE_DEBOUNCE_MS = 1_500;
+/** Ignore focus / online nudges this soon after the last check. */
+const MIN_GAP_MS = 10_000;
 const LAST_SEEN_KEY = "sp_admin_orders_seen_at";
 const SOUND_KEY = "sp_admin_order_sound";
 
@@ -96,6 +103,11 @@ export function OrderAlertsProvider({
   const audio = useRef<AudioContext | null>(null);
   const pathRef = useRef(pathname);
   pathRef.current = pathname;
+  const inFlight = useRef(false);
+  const lastCheck = useRef(0);
+  const failures = useRef(0);
+  /** Realtime channel is connected — no need to poll. */
+  const live = useRef(false);
 
   // Sound + desktop notifications need one click to allow (browser rule).
   useEffect(() => {
@@ -165,15 +177,28 @@ export function OrderAlertsProvider({
     [chime, router],
   );
 
-  const check = useCallback(async () => {
+  /** Returns false when the server couldn't be reached (used for backoff). */
+  const check = useCallback(async (): Promise<boolean> => {
+    if (inFlight.current) return true;
+    if (typeof navigator !== "undefined" && navigator.onLine === false)
+      return false;
+    inFlight.current = true;
+    lastCheck.current = Date.now();
     let orders: AlertOrder[];
     try {
       const res = await fetch("/api/orders/alerts", { cache: "no-store" });
-      if (!res.ok) return;
+      if (!res.ok) {
+        failures.current++;
+        return false;
+      }
       orders = (await res.json()).orders as AlertOrder[];
     } catch {
-      return;
+      failures.current++;
+      return false;
+    } finally {
+      inFlight.current = false;
     }
+    failures.current = 0;
     setCount(orders.length);
     if (known.current === null) {
       // First look: everything already paid is "known". Orders paid since the
@@ -187,18 +212,39 @@ export function OrderAlertsProvider({
       announce(fresh);
     }
     write(LAST_SEEN_KEY, String(Date.now()));
+    return true;
   }, [announce]);
 
-  // Backup check every 30 s, and whenever the tab comes back into view.
+  // Backup polling: only while the live feed is down, slowing down (up to
+  // 10 min) while the server can't be reached. Plus one check when the tab
+  // comes back into view or the network returns.
   useEffect(() => {
-    void check();
-    const timer = window.setInterval(check, POLL_MS);
-    const onVisible = () =>
-      document.visibilityState === "visible" && void check();
+    let timer = 0;
+    let stopped = false;
+    const schedule = () => {
+      window.clearTimeout(timer);
+      if (stopped) return;
+      const wait = Math.min(POLL_MS * 2 ** failures.current, MAX_BACKOFF_MS);
+      timer = window.setTimeout(tick, wait);
+    };
+    const tick = async () => {
+      if (!live.current) await check();
+      schedule();
+    };
+    const nudge = () => {
+      if (Date.now() - lastCheck.current < MIN_GAP_MS) return;
+      failures.current = 0;
+      void check().then(schedule);
+    };
+    const onVisible = () => document.visibilityState === "visible" && nudge();
+    void check().then(schedule);
     document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", nudge);
     return () => {
-      window.clearInterval(timer);
+      stopped = true;
+      window.clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", nudge);
     };
   }, [check]);
 
@@ -208,6 +254,11 @@ export function OrderAlertsProvider({
     const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
     let channel: ReturnType<typeof supabase.channel> | null = null;
     let stopped = false;
+    let debounce = 0;
+    const checkSoon = () => {
+      window.clearTimeout(debounce);
+      debounce = window.setTimeout(() => void check(), LIVE_DEBOUNCE_MS);
+    };
     // Order rows are admin-only (row-level security), so the live channel must
     // carry the admin's login — load it before subscribing, or nothing arrives.
     void supabase.auth.getSession().then(({ data }) => {
@@ -225,11 +276,16 @@ export function OrderAlertsProvider({
               (payload.old as { status?: string } | undefined)?.status ===
                 "paid"
             ) {
-              void check();
+              checkSoon();
             }
           },
         )
-        .subscribe();
+        .subscribe((status) => {
+          const wasLive = live.current;
+          live.current = status === "SUBSCRIBED";
+          // Reconnected after a drop: catch up on anything missed meanwhile.
+          if (live.current && !wasLive && lastCheck.current) checkSoon();
+        });
     });
     // Keep the live channel's login fresh when the session token renews.
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
@@ -237,6 +293,8 @@ export function OrderAlertsProvider({
     });
     return () => {
       stopped = true;
+      live.current = false;
+      window.clearTimeout(debounce);
       sub.subscription.unsubscribe();
       if (channel) void supabase.removeChannel(channel);
     };
