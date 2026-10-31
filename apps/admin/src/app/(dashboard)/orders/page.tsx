@@ -41,11 +41,11 @@ export default async function OrdersPage({
       </p>
 
       <div className="no-scrollbar mt-5 flex gap-2 overflow-x-auto pb-1">
-        <Link href="/orders" className={chip(!active)}>
+        <Link href="/orders" prefetch={false} className={chip(!active)}>
           All ({all.length})
         </Link>
         {ORDER_STATUSES.map((s) => (
-          <Link key={s} href={`/orders?status=${s}`} className={chip(active === s)}>
+          <Link key={s} href={`/orders?status=${s}`} prefetch={false} className={chip(active === s)}>
             {STATUS_LABELS[s]} ({counts[s] ?? 0})
           </Link>
         ))}
