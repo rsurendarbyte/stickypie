@@ -10,10 +10,11 @@ import { SHOP_THEME } from "@stickypie/shared";
  *   confetti — tiny die-cut stars and dots drop off the arrow's tail and fade
  *   ribbon   — a short theme-coloured sticker ribbon follows the arrow
  *   sparkle  — yellow sparkles twinkle around the arrow now and then
- * Every style pops a small burst of stickers on click. Draws only while
- * something is on screen — a still mouse costs nothing.
+ * Every style pops a small burst of stickers on click — and on a tap on
+ * phones, which get the pop only (a moving finger is scrolling). Draws only
+ * while something is on screen — a still mouse costs nothing.
  *
- * Off on touch screens, for "reduce motion", and on weak devices (lite mode).
+ * Off for "reduce motion" and on weak devices (lite mode).
  * On localhost, ?trail=<style> holds one style while you look at it
  * (remembered in the browser; ?trail=random goes back to random).
  */
@@ -100,19 +101,16 @@ export default function CursorTrail() {
   const [style, setStyle] = useState<TrailStyle | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
 
-  // Only for a real mouse, with motion allowed, and not in lite mode.
+  // With motion allowed and not in lite mode (touch screens get the tap pop only).
   useEffect(() => {
-    const fine = window.matchMedia("(hover: hover) and (pointer: fine)");
     const calm = window.matchMedia("(prefers-reduced-motion: reduce)");
     // Lite "net" only skips big images; weak CPU / low frame rate skips this too.
     const lite = document.documentElement.dataset.lite;
     const check = () =>
-      setStyle(fine.matches && !calm.matches && (!lite || lite === "net") ? chosenStyle() : null);
+      setStyle(!calm.matches && (!lite || lite === "net") ? chosenStyle() : null);
     check();
-    fine.addEventListener("change", check);
     calm.addEventListener("change", check);
     return () => {
-      fine.removeEventListener("change", check);
       calm.removeEventListener("change", check);
     };
   }, []);
@@ -253,7 +251,7 @@ export default function CursorTrail() {
       }
     };
     const onDown = (e: PointerEvent) => {
-      if (e.pointerType !== "mouse") return;
+      if (e.pointerType !== "mouse" && !e.isPrimary) return; // one pop per tap, not per finger
       for (let i = 0; i < BURST; i++) {
         const ang = (i / BURST) * Math.PI * 2 + Math.random() * 0.5;
         const speed = 0.12 + Math.random() * 0.1;
