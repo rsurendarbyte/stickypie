@@ -26,6 +26,17 @@ function allowedOrigins(): Set<string> {
   return new Set(origins.filter(Boolean));
 }
 
+/** The shop's own subdomains (e.g. stickers.stickypie.in), even where R2_PUBLIC_URL isn't set. */
+function shopSubdomain(target: URL): boolean {
+  let shop: string;
+  try {
+    shop = new URL(webUrl()).hostname;
+  } catch {
+    return false;
+  }
+  return target.protocol === "https:" && shop.includes(".") && target.hostname.endsWith(`.${shop}`);
+}
+
 /**
  * GET /api/image-download?url=<image url>&name=<product name>
  * Streams a product image back as a file download (R2 / Supabase / storefront
@@ -44,7 +55,7 @@ export async function GET(req: Request) {
   }
   // Older images may still use the bucket's r2.dev address.
   const r2Dev = target.protocol === "https:" && /^pub-[a-z0-9]+\.r2\.dev$/.test(target.hostname);
-  if (!["http:", "https:"].includes(target.protocol) || (!allowedOrigins().has(target.origin) && !r2Dev)) {
+  if (!["http:", "https:"].includes(target.protocol) || (!allowedOrigins().has(target.origin) && !r2Dev && !shopSubdomain(target))) {
     return NextResponse.json({ error: "Image host not allowed" }, { status: 400 });
   }
 
