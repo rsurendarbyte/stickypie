@@ -12,7 +12,6 @@ import {
   Eye,
   Info,
   Plus,
-  ShoppingBag,
   Shuffle,
   Sparkles,
   Truck,
@@ -288,12 +287,16 @@ export default function AvatarStickerBuilder({
   const stylesDone = picked.length >= min && min > 0;
   const sheets = Math.max(picked.length, min);
   const total = book ? avatarSheetsPrice(book, picked.length) : 0;
-  const missing =
+  // One button, one step at a time: pick the styles, then add the photo, then book.
+  const action =
     picked.length < min
-      ? `Pick ${min - picked.length} more style${min - picked.length === 1 ? "" : "s"}`
+      ? {
+          label: `Pick ${min - picked.length} more style${min - picked.length === 1 ? "" : "s"}`,
+          run: () => stylesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+        }
       : !photo
-        ? "Add your photo"
-        : null;
+        ? { label: "Upload your photo", run: () => inputRef.current?.click() }
+        : { label: "Book now", run: () => void addToCart(true) };
 
   async function addToCart(thenCheckout: boolean, list: string[] = picked, consent = agreed) {
     if (!book || busy) return;
@@ -631,27 +634,15 @@ export default function AvatarStickerBuilder({
             {error && (
               <p className="mt-2 text-sm font-semibold text-brand">{error}</p>
             )}
-            {!error && missing && (
-              <p className="mt-2 text-xs font-semibold text-brand">{missing}</p>
-            )}
-            <div className="mt-3 hidden gap-2 sm:grid sm:grid-cols-2">
-              <button
-                type="button"
-                disabled={busy || !pricesReady}
-                onClick={() => addToCart(false)}
-                className="peel-btn peel-btn--light flex h-12 items-center justify-center gap-2 rounded-xl text-sm font-bold"
-              >
-                <ShoppingBag className="size-4.5" /> Add to cart
-              </button>
-              <button
-                type="button"
-                disabled={busy || !pricesReady}
-                onClick={() => addToCart(true)}
-                className="peel-btn peel-btn--brand flex h-12 items-center justify-center gap-2 rounded-xl text-sm font-bold"
-              >
-                Book now <ArrowRight className="size-4.5" />
-              </button>
-            </div>
+            <button
+              type="button"
+              disabled={busy || reading || !pricesReady}
+              onClick={action.run}
+              className="peel-btn peel-btn--brand mt-3 hidden h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold sm:flex"
+            >
+              {action.label === "Upload your photo" && <Camera className="size-4.5" />}
+              {reading ? "Opening…" : action.label} <ArrowRight className="size-4.5" />
+            </button>
             <p className="mt-3 text-[11px] leading-relaxed text-fog">
               Shipping and GST added at checkout. We make a pack of AI stickers
               of you in each style, show them on your order page, then print on
@@ -864,10 +855,9 @@ export default function AvatarStickerBuilder({
         <CustomBookBar
           total={pricesReady ? total : null}
           summary={avatarBookLabel(sheets)}
-          hint={missing}
-          busy={busy}
-          onAdd={() => addToCart(false)}
-          onBook={() => addToCart(true)}
+          busy={busy || reading}
+          onBook={action.run}
+          label={reading ? "Opening…" : action.label}
         />
       )}
     </>
