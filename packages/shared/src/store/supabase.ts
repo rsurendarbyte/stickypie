@@ -241,6 +241,22 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
 
     getOrder,
 
+    async getOrderByPrintToken(token: string) {
+      if (!token) return null;
+      const { data, error } = await client
+        .from("orders")
+        .select("*, order_items(*)")
+        .eq("print_token", token)
+        .maybeSingle();
+      if (error) throw friendly(error);
+      return data ? rowToOrder(data) : null;
+    },
+
+    async setPrintToken(id: string, token: string | null) {
+      const { error } = await client.from("orders").update({ print_token: token }).eq("id", id);
+      if (error) throw friendly(error);
+    },
+
     async listOrders(opts = {}) {
       let query = client
         .from("orders")

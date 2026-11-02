@@ -7,6 +7,7 @@ import { avatarPoseSets } from "@/lib/avatar-prompts";
 import FinishedStickers from "@/components/finished-stickers";
 import OrderActions from "@/components/order-actions";
 import ShiprocketPanel from "@/components/shiprocket-panel";
+import PrintJobPanel from "@/components/print-job-panel";
 import { shiprocketConfig } from "@/lib/shiprocket";
 import StatusBadge from "@/components/status-badge";
 import { getAdminDriver } from "@/lib/data";
@@ -85,6 +86,7 @@ export default async function OrderDetailPage({
       <div className="mt-5">
         <OrderActions order={order} />
       </div>
+      <PrintJobPanel order={order} webUrl={webUrl()} />
       <ShiprocketPanel order={order} ready={shiprocketConfig() !== null} />
 
       <div className="mt-6 grid gap-5 lg:grid-cols-[1.5fr_1fr]">

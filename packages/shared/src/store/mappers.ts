@@ -92,6 +92,7 @@ export function rowToOrder(r: any): Order {
     discountCode: r.discount_code ?? null,
     total: r.total,
     feedbackToken: r.feedback_token ?? null,
+    printToken: r.print_token ?? null,
     paymentProvider: r.payment_provider,
     cfOrderId: r.cf_order_id,
     cfPaymentId: r.cf_payment_id,

@@ -257,6 +257,7 @@ export function createLocalDriver(filePath: string): DataDriver {
         discountCode: input.discountCode,
         total: input.total,
         feedbackToken: randomUUID().replace(/-/g, ""),
+        printToken: null,
         paymentProvider: input.paymentProvider,
         cfOrderId: null,
         cfPaymentId: null,
@@ -302,6 +303,19 @@ export function createLocalDriver(filePath: string): DataDriver {
 
     async getOrder(id) {
       return load().orders.find((o) => o.id === id) ?? null;
+    },
+
+    async getOrderByPrintToken(token) {
+      if (!token) return null;
+      return load().orders.find((o) => o.printToken === token) ?? null;
+    },
+
+    async setPrintToken(id, token) {
+      const store = load();
+      const order = store.orders.find((o) => o.id === id);
+      if (!order) throw new Error("Order not found");
+      order.printToken = token;
+      persist(store);
     },
 
     async listOrders(opts = {}) {
