@@ -14,11 +14,14 @@ const SPOTS: PosterSpot[] = [{ top: 7, right: 14, height: 38, rotate: 7 }];
 /** The sticker grid's box on the page (mm). */
 const GRID = { top: 84, width: 178, height: 150, gap: 3 };
 
+/** Room under each picture for the name (2 lines) and size. */
+const TEXT_MM = 14;
+
 /** Fewest columns (3–8) whose tiles still fit every line; past 8 columns the rest are counted. */
 function layout(count: number) {
   for (let cols = 3; cols <= 8; cols++) {
     const w = (GRID.width - GRID.gap * (cols - 1)) / cols;
-    const h = w + 11;
+    const h = w + TEXT_MM;
     const rows = Math.floor((GRID.height + GRID.gap) / (h + GRID.gap));
     if (rows * cols >= count || cols === 8) return { cols, w, h, fits: rows * cols };
   }
@@ -46,6 +49,8 @@ export default async function StickerCardPage({ params }: { params: Promise<{ id
   const shown = order.items.length > fits ? order.items.slice(0, fits - 1) : order.items;
   const hidden = order.items.length - shown.length;
   const nameSize = Math.min(3.6, Math.max(2.4, w * 0.105));
+  // Fixed-height picture box (tile padding 1.6 mm each side): tall posters shrink to fit, never cover the name.
+  const imageBox = w - 4;
 
   return (
     <>
@@ -89,13 +94,16 @@ export default async function StickerCardPage({ params }: { params: Promise<{ id
                   className="relative flex flex-col overflow-hidden rounded-[3mm] bg-white p-[1.6mm]"
                   style={{ boxShadow: "0 .6mm 1.6mm rgba(0,0,0,.12)" }}
                 >
-                  <div className="grid min-h-0 flex-1 place-items-center rounded-[2mm] bg-neutral-50">
+                  <div
+                    className="grid shrink-0 place-items-center overflow-hidden rounded-[2mm] bg-neutral-50 p-[1mm]"
+                    style={{ height: `${imageBox}mm` }}
+                  >
                     {item.imageUrl ? (
                       <img
                         src={imageDownloadHref(item.imageUrl)}
                         alt=""
-                        className="max-h-full max-w-full object-contain"
-                        style={{ filter: "drop-shadow(0 .4mm .6mm rgba(0,0,0,.18))" }}
+                        className="w-full object-contain"
+                        style={{ height: `${imageBox - 2}mm`, filter: "drop-shadow(0 .4mm .6mm rgba(0,0,0,.18))" }}
                       />
                     ) : (
                       <span className="font-display text-[4mm] font-bold" style={{ color: SHOP_THEME.brand }}>
