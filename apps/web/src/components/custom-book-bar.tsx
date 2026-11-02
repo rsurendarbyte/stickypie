@@ -17,6 +17,7 @@ export default function CustomBookBar({
   busy,
   onAdd,
   onBook,
+  label = "Book now",
 }: {
   /** null while prices load: a placeholder shows and the buttons wait. */
   total: number | null;
@@ -25,8 +26,11 @@ export default function CustomBookBar({
   /** What's still missing (e.g. "Type your name first"); shown instead of the summary. */
   hint?: string | null;
   busy: boolean;
-  onAdd: () => void;
+  /** Left out: one button only (no cart icon). */
+  onAdd?: () => void;
   onBook: () => void;
+  /** The main button's words, e.g. "Upload your photo" before the photo is in. */
+  label?: string;
 }) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-ink/95 px-4 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgba(16,24,40,0.18)] backdrop-blur-md sm:hidden">
@@ -39,15 +43,17 @@ export default function CustomBookBar({
             {total === null ? <PriceWait className="w-20" /> : formatINR(total)}
           </span>
         </span>
-        <button
-          type="button"
-          disabled={busy || total === null}
-          onClick={onAdd}
-          aria-label="Add to cart"
-          className="peel-btn peel-btn--light grid size-11 shrink-0 place-items-center rounded-xl"
-        >
-          <ShoppingBag className="size-5" />
-        </button>
+        {onAdd && (
+          <button
+            type="button"
+            disabled={busy || total === null}
+            onClick={onAdd}
+            aria-label="Add to cart"
+            className="peel-btn peel-btn--light grid size-11 shrink-0 place-items-center rounded-xl"
+          >
+            <ShoppingBag className="size-5" />
+          </button>
+        )}
         <button
           type="button"
           disabled={busy || total === null}
@@ -55,7 +61,7 @@ export default function CustomBookBar({
           className="peel-btn peel-btn--brand flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl px-5 text-sm font-bold"
         >
           {busy ? <Loader2 className="size-4 animate-spin" /> : null}
-          Book now <ArrowRight className="size-4" />
+          {label} <ArrowRight className="size-4" />
         </button>
       </div>
     </div>
