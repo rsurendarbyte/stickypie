@@ -27,8 +27,9 @@ export function migrateBeforeDeploy({ prod, flags }) {
   if (result.status !== 0) {
     console.error(
       "\n✘ Deploy stopped: the database migrations couldn't be applied, so nothing was deployed.\n" +
-        "  If it says \"Invalid access token\": make a new token (supabase.com → Account → Access Tokens),\n" +
-        "  put it in .env.ops as SUPABASE_ACCESS_TOKEN, and deploy again.\n" +
+        "  If it says \"Invalid access token\" or 403: make a token in the Supabase account that owns the\n" +
+        `  ${prod ? "production" : "dev"} project (supabase.com → Account → Access Tokens), put it in .env.ops as\n` +
+        `  ${prod ? "SUPABASE_ACCESS_TOKEN_PROD" : "SUPABASE_ACCESS_TOKEN_DEV"}, and deploy again.\n" +
         "  Applied them another way (SQL editor)? Deploy with SKIP_MIGRATIONS=1 in front of the command.\n"
     );
     process.exit(1);
