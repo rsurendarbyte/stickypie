@@ -33,6 +33,13 @@ import StickerLoader, { PageLoader } from "./sticker-loader";
 export default function AccountClient() {
   const shopper = useShopper();
 
+  // Sent here from a private page (e.g. an order): go back there once signed in.
+  useEffect(() => {
+    if (!shopper.email) return;
+    const next = new URLSearchParams(window.location.search).get("next");
+    if (next && next.startsWith("/") && !next.startsWith("//")) window.location.replace(next);
+  }, [shopper.email]);
+
   if (!shopper.ready) {
     return <PageLoader />;
   }

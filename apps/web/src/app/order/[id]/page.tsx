@@ -19,9 +19,11 @@ import { MetaPurchase } from "@/components/meta-track";
 import CustomOrderUpload from "@/components/custom-order-upload";
 import OrderReviews from "@/components/order-reviews";
 import OrderTracking from "@/components/order-tracking";
+import OrderSignIn from "@/components/order-sign-in";
 import PaymentPending from "@/components/payment-pending";
 import { latestPaymentAttempt, reconcileOrderPayment } from "@/lib/payments";
 import { getDriver } from "@/lib/data";
+import { canViewOrder } from "@/lib/shopper";
 import { PRIVATE_PAGE_ROBOTS, absoluteUrl } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -47,6 +49,36 @@ export default async function OrderPage({
   const driver = getDriver();
   let order = await driver.getOrder(id);
   if (!order) notFound();
+
+  // Only the signed-in shopper who placed it sees the order. The thank-you
+  // card's QR (valid key) opens just the feedback box, nothing else.
+  if (!(await canViewOrder(order))) {
+    const firstName = order.customerName.trim().split(/\s+/)[0] ?? "";
+    if (!(PAID_LIKE.has(order.status) && sameToken(fb, order.feedbackToken))) {
+      return <OrderSignIn path={`/order/${order.id}`} code={orderCode(order.id)} />;
+    }
+    const [first] = await driver.listOrderReviews(order.id);
+    return (
+      <div className="mx-auto min-h-screen w-full max-w-xl px-4 pt-20 pb-24 sm:pt-24">
+        <CardFeedback
+          orderId={order.id}
+          token={fb!}
+          firstName={firstName}
+          images={[...new Set(order.items.map((i) => i.imageUrl).filter(Boolean))]}
+          initial={first ? { rating: first.rating, body: first.body } : null}
+        />
+        <p className="text-center text-sm text-fog">
+          Want to see your order?{" "}
+          <Link
+            href={`/account?next=${encodeURIComponent(`/order/${order.id}`)}`}
+            className="font-semibold text-brand hover:underline"
+          >
+            Sign in
+          </Link>
+        </p>
+      </div>
+    );
+  }
   const settings = await driver.getSettings();
 
   // Buyer just returned from Cashfree (or the page is polling): ask Cashfree.
