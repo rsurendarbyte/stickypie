@@ -13,7 +13,8 @@
 //   npm run auth:configure              (apply)
 //   npm run auth:configure -- --dry-run (show what would change, no secrets printed)
 //
-// Reads RESEND_API_KEY, SUPABASE_ACCESS_TOKEN, EMAIL_FROM_* and optional
+// Reads RESEND_API_KEY, SUPABASE_ACCESS_TOKEN (or SUPABASE_ACCESS_TOKEN_DEV /
+// SUPABASE_ACCESS_TOKEN_PROD, one per Supabase account), EMAIL_FROM_* and optional
 // BREVO_API_KEY from .env.ops (gitignored).
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -36,7 +37,13 @@ function readEnv(file) {
 
 const ops = readEnv(path.join(root, ".env.ops"));
 const dryRun = process.argv.includes("--dry-run");
-for (const key of ["RESEND_API_KEY", "SUPABASE_ACCESS_TOKEN", "EMAIL_FROM_ADDRESS"]) {
+const tokenFor = (prodProject) =>
+  ops[prodProject ? "SUPABASE_ACCESS_TOKEN_PROD" : "SUPABASE_ACCESS_TOKEN_DEV"] || ops.SUPABASE_ACCESS_TOKEN;
+if (!dryRun && (!tokenFor(false) || !tokenFor(true))) {
+  console.error(".env.ops is missing SUPABASE_ACCESS_TOKEN (or SUPABASE_ACCESS_TOKEN_DEV / _PROD)");
+  process.exit(1);
+}
+for (const key of ["RESEND_API_KEY", "EMAIL_FROM_ADDRESS"]) {
   if (!ops[key] && !(dryRun && key !== "EMAIL_FROM_ADDRESS")) {
     console.error(`.env.ops is missing ${key}`);
     process.exit(1);
@@ -117,7 +124,7 @@ for (const target of TARGETS) {
   const res = await fetch(`https://api.supabase.com/v1/projects/${target.ref}/config/auth`, {
     method: "PATCH",
     headers: {
-      Authorization: `Bearer ${ops.SUPABASE_ACCESS_TOKEN}`,
+      Authorization: `Bearer ${tokenFor(target.wranglerEnv === "production")}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(config),

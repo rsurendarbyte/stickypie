@@ -1,5 +1,7 @@
 // Applies pending SQL migrations without the database password, through the
-// Supabase Management API (SUPABASE_ACCESS_TOKEN from .env.ops):
+// Supabase Management API (token from .env.ops: SUPABASE_ACCESS_TOKEN_DEV /
+// SUPABASE_ACCESS_TOKEN_PROD when dev and prod are in different Supabase
+// accounts, else SUPABASE_ACCESS_TOKEN for both):
 //
 //   npm run db:apply            → dev database
 //   npm run db:apply -- --prod  → production database
@@ -25,9 +27,11 @@ function readOps() {
   return env;
 }
 
-const token = readOps().SUPABASE_ACCESS_TOKEN || process.env.SUPABASE_ACCESS_TOKEN;
+const ops = readOps();
+const own = prod ? "SUPABASE_ACCESS_TOKEN_PROD" : "SUPABASE_ACCESS_TOKEN_DEV";
+const token = ops[own] || ops.SUPABASE_ACCESS_TOKEN || process.env.SUPABASE_ACCESS_TOKEN;
 if (!token) {
-  console.error("Missing SUPABASE_ACCESS_TOKEN in .env.ops (Supabase dashboard → Account → Access Tokens).");
+  console.error(`Missing ${own} (or SUPABASE_ACCESS_TOKEN) in .env.ops (Supabase dashboard → Account → Access Tokens).`);
   process.exit(1);
 }
 
