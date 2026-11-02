@@ -44,16 +44,26 @@ export default async function OrderDetailPage({
         <h1 className="font-display text-2xl font-bold sm:text-3xl">{orderCode(order.id)}</h1>
         <StatusBadge status={order.status} />
         <span className="text-xs text-fog">Placed {formatDateTime(order.createdAt)}</span>
-        {order.feedbackToken && (
+        <span className="ml-auto flex flex-wrap gap-2">
           <a
-            href={`/print/thanks/${order.id}`}
+            href={`/print/stickers/${order.id}`}
             target="_blank"
             rel="noopener"
-            className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-xl border border-line bg-ink2 px-3 text-xs font-semibold text-snow transition-colors hover:border-brand/50 hover:text-brand"
+            className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-line bg-ink2 px-3 text-xs font-semibold text-snow transition-colors hover:border-brand/50 hover:text-brand"
           >
-            <Printer className="size-4" /> Print thank-you card
+            <Printer className="size-4" /> Print sticker card
           </a>
-        )}
+          {order.feedbackToken && (
+            <a
+              href={`/print/thanks/${order.id}`}
+              target="_blank"
+              rel="noopener"
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-line bg-ink2 px-3 text-xs font-semibold text-snow transition-colors hover:border-brand/50 hover:text-brand"
+            >
+              <Printer className="size-4" /> Print thank-you card
+            </a>
+          )}
+        </span>
       </div>
 
       <div className="mt-5">
