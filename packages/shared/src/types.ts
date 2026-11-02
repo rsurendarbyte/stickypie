@@ -117,6 +117,8 @@ export type Order = {
   total: number;
   /** Random key in the thank-you card's QR: opens feedback without signing in. */
   feedbackToken: string | null;
+  /** Random key of the printer's job link (/print-job/<key>); null = no job made. Works only while the order is paid (not yet packed). */
+  printToken: string | null;
   paymentProvider: PaymentProvider;
   cfOrderId: string | null;
   cfPaymentId: string | null;
@@ -243,6 +245,10 @@ export interface DataDriver {
 
   createOrder(input: NewOrderInput): Promise<Order>;
   getOrder(id: string): Promise<Order | null>;
+  /** The order whose print job link has this key (null if none). */
+  getOrderByPrintToken(token: string): Promise<Order | null>;
+  /** Admin: make (random key) or switch off (null) the order's print job link. */
+  setPrintToken(id: string, token: string | null): Promise<void>;
   listOrders(opts?: { status?: OrderStatus; limit?: number }): Promise<Order[]>;
   /** Idempotent: transitions pending/failed → paid and decrements tracked stock once. */
   markOrderPaid(
