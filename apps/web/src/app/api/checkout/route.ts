@@ -16,6 +16,8 @@ import {
   isCustomProductId,
   gstOnTop,
   formatINR,
+  bestOffer,
+  couponDiscount,
   shippingFor,
   priceForSize,
   sizeLabel,
@@ -233,11 +235,36 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
+  // An earlier order with exactly these lines (double click, back from the gateway…).
+  const sameItems = (o: Order) =>
+    o.items.length === orderItems.length &&
+    orderItems.every((i) =>
+      o.items.some(
+        (x) =>
+          x.productId === i.productId &&
+          (x.sizeInches ?? null) === i.sizeInches &&
+          x.quantity === i.quantity &&
+          x.unitPrice === i.unitPrice
+      )
+    );
+  // Thank-you offer the admin approved for this customer (their account email):
+  // applied by itself, once. Skipped while a different unpaid order of theirs
+  // is still holding it, so one offer can't be paid for twice.
+  let offer = bestOffer(await driver.listOpenCouponsFor(customer.email));
+  if (offer && userId) {
+    const since = new Date(Date.now() - 60 * 60_000).toISOString();
+    const holding = (await driver.listPendingOrdersForUser(userId, since)).some(
+      (o) => o.discountCode === offer!.code && !sameItems(o)
+    );
+    if (holding) offer = null;
+  }
+  const discountCode = offer?.code ?? null;
+  const discountAmount = offer ? couponDiscount(subtotal, offer.percent) : 0;
   // Always charged, by distance from the dispatch PIN code (zones set in the admin).
   const shippingFee = shippingFor(settings, customer.pincode, customer.state).fee;
-  // GST is added on top of sticker prices + shipping (rate from admin → Settings).
-  const gst = gstOnTop(settings, subtotal, shippingFee);
-  const total = subtotal + shippingFee + gst.amount;
+  // GST is added on top of sticker prices (after the discount) + shipping (rate from admin → Settings).
+  const gst = gstOnTop(settings, subtotal - discountAmount, shippingFee);
+  const total = subtotal - discountAmount + shippingFee + gst.amount;
   // Gateway picked in admin → Settings (falls back to whichever has keys).
   const provider = checkoutGateway(settings.paymentGateway) ?? "simulator";
 
@@ -245,19 +272,7 @@ export async function POST(req: Request) {
   // (double click, back from the gateway, second tab): reuse that order and
   // its gateway payment instead of creating a second one that could also be paid.
   if (provider !== "simulator" && userId) {
-    const sameCart = (o: Order) =>
-      o.paymentProvider === provider &&
-      o.total === total &&
-      o.items.length === orderItems.length &&
-      orderItems.every((i) =>
-        o.items.some(
-          (x) =>
-            x.productId === i.productId &&
-            (x.sizeInches ?? null) === i.sizeInches &&
-            x.quantity === i.quantity &&
-            x.unitPrice === i.unitPrice
-        )
-      );
+    const sameCart = (o: Order) => o.paymentProvider === provider && o.total === total && sameItems(o);
     const earlier = (await driver.listPendingOrdersForUser(userId, reuseWindowStart(provider))).filter(sameCart);
     for (const existing of earlier) {
       try {
@@ -276,6 +291,8 @@ export async function POST(req: Request) {
     shippingFee,
     gstAmount: gst.amount,
     gstRate: gst.rate,
+    discountAmount,
+    discountCode,
     total,
     paymentProvider: provider,
     userId,

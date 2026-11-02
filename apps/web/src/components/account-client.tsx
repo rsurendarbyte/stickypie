@@ -26,6 +26,7 @@ import AddressTypePicker, { AddressTypeBadge } from "./address-type-picker";
 import AuthShell from "./auth-shell";
 import { useConfirm } from "./confirm-dialog";
 import MyOrders from "./my-orders";
+import OfferCard from "./my-offer";
 import { CheckField, PasswordField, SelectField, TextField } from "./field";
 import StickerLoader, { PageLoader } from "./sticker-loader";
 
@@ -75,6 +76,8 @@ function AccountHome({ email, name }: { email: string; name?: string | null }) {
         </div>
         <SignOutButton />
       </div>
+
+      <OfferCard />
 
       {/* Orders on one side, saved addresses on the other (stacked on phones) */}
       <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-8">

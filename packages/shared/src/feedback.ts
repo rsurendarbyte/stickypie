@@ -69,7 +69,8 @@ export type Review = PublicReview & {
   photoPath: string | null;
   orderId: string;
   orderItemId: string;
-  userId: string;
+  /** null = left from the thank-you card link on a guest order. */
+  userId: string | null;
   status: ReviewStatus;
   reviewedAt: string | null;
 };
@@ -78,7 +79,7 @@ export type NewReviewInput = {
   productId: string | null;
   orderId: string;
   orderItemId: string;
-  userId: string;
+  userId: string | null;
   authorName: string;
   rating: number;
   body: string | null;
@@ -142,7 +143,7 @@ export function rowToReview(r: any): Review {
     photoPath: r.photo_path ?? null,
     orderId: r.order_id,
     orderItemId: r.order_item_id,
-    userId: r.user_id,
+    userId: r.user_id ?? null,
     status: r.status,
     reviewedAt: r.reviewed_at ?? null,
   };

@@ -20,6 +20,7 @@ import { DEFAULT_HOME_RAILS, type HomeRail } from "../home-rails";
 import { DEFAULT_FESTIVALS, type Festival } from "../festivals";
 import { inCategory } from "../utils";
 import type { ContactInput, ContactMessage, NewReviewInput, Review, ReviewStatus } from "../feedback";
+import type { Coupon, NewCouponInput } from "../thanks";
 
 type StoreShape = {
   categories: Category[];
@@ -31,6 +32,7 @@ type StoreShape = {
   festivals?: Festival[];
   contactMessages?: ContactMessage[];
   reviews?: Review[];
+  coupons?: Coupon[];
 };
 
 const DAY_MS = 86_400_000;
@@ -251,7 +253,10 @@ export function createLocalDriver(filePath: string): DataDriver {
         shippingFee: input.shippingFee,
         gstAmount: input.gstAmount,
         gstRate: input.gstRate,
+        discountAmount: input.discountAmount,
+        discountCode: input.discountCode,
         total: input.total,
+        feedbackToken: randomUUID().replace(/-/g, ""),
         paymentProvider: input.paymentProvider,
         cfOrderId: null,
         cfPaymentId: null,
@@ -315,6 +320,10 @@ export function createLocalDriver(filePath: string): DataDriver {
       order.updatedAt = order.paidAt;
       if (info.paymentId) order.cfPaymentId = info.paymentId;
       if (info.note) order.paymentNote = info.note;
+      const coupon = order.discountCode
+        ? store.coupons?.find((c) => c.code === order.discountCode && !c.usedOrderId)
+        : null;
+      if (coupon) Object.assign(coupon, { usedOrderId: order.id, usedAt: order.paidAt });
       for (const item of order.items) {
         if (!item.productId) continue;
         const product = store.products.find((p) => p.id === item.productId);
@@ -558,6 +567,47 @@ export function createLocalDriver(filePath: string): DataDriver {
     async deleteReview(id) {
       const store = load();
       store.reviews = (store.reviews ?? []).filter((x) => x.id !== id);
+      persist(store);
+    },
+
+    async createCoupon(input: NewCouponInput) {
+      const store = load();
+      if ((store.coupons ?? []).some((c) => c.sourceOrderId === input.sourceOrderId || c.code === input.code)) {
+        throw new Error("A code already exists for this order.");
+      }
+      const coupon: Coupon = {
+        ...input,
+        email: input.email.toLowerCase(),
+        id: randomUUID(),
+        usedOrderId: null,
+        usedAt: null,
+        disabled: Boolean(input.disabled),
+        createdAt: now(),
+      };
+      store.coupons = [coupon, ...(store.coupons ?? [])];
+      persist(store);
+      return coupon;
+    },
+
+    async getCouponForOrder(sourceOrderId) {
+      return (load().coupons ?? []).find((c) => c.sourceOrderId === sourceOrderId) ?? null;
+    },
+
+    async listOpenCouponsFor(email) {
+      const at = now();
+      const mail = email.trim().toLowerCase();
+      return (load().coupons ?? []).filter((c) => c.email === mail && !c.usedOrderId && !c.disabled && c.expiresAt > at);
+    },
+
+    async listCoupons() {
+      return load().coupons ?? [];
+    },
+
+    async updateCoupon(id, patch) {
+      const store = load();
+      const c = store.coupons?.find((x) => x.id === id);
+      if (!c || c.usedOrderId) throw new Error("This offer was already used, so it can't be changed.");
+      Object.assign(c, patch);
       persist(store);
     },
 

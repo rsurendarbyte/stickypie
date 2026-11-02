@@ -38,7 +38,8 @@ export type InvoiceTotals = {
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
 export function computeInvoice(
-  order: Pick<Order, "items" | "shippingFee" | "total" | "state" | "gstAmount" | "gstRate">,
+  order: Pick<Order, "items" | "shippingFee" | "total" | "state" | "gstAmount" | "gstRate"> &
+    Partial<Pick<Order, "discountAmount" | "discountCode">>,
   business: BusinessDetails,
   sellerState: string | null
 ): InvoiceTotals {
@@ -63,6 +64,17 @@ export function computeInvoice(
       ...split(amount),
     };
   });
+  // Next-order code: given before the sale, so it lowers the taxable value.
+  if (order.discountAmount) {
+    lines.push({
+      description: `Discount${order.discountCode ? ` (${order.discountCode})` : ""}`,
+      hsn: business.hsn,
+      quantity: 1,
+      unitPrice: -order.discountAmount,
+      amount: -order.discountAmount,
+      ...split(-order.discountAmount),
+    });
+  }
   if (order.shippingFee > 0) {
     lines.push({
       description: "Shipping & handling",
