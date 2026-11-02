@@ -9,8 +9,10 @@ import {
   formatINR,
   needsArtwork,
   orderCode,
+  sameToken,
   type AvatarStickerSpec,
 } from "@stickypie/shared";
+import CardFeedback from "@/components/card-feedback";
 import AvatarStickersShare from "@/components/avatar-stickers-share";
 import ClearCartOnPaid from "@/components/clear-cart-on-paid";
 import { MetaPurchase } from "@/components/meta-track";
@@ -33,8 +35,15 @@ function avatarSummary(spec: AvatarStickerSpec): string {
   return spec.styles.join(", ");
 }
 
-export default async function OrderPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function OrderPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ fb?: string }>;
+}) {
   const { id } = await params;
+  const { fb } = await searchParams;
   const driver = getDriver();
   let order = await driver.getOrder(id);
   if (!order) notFound();
@@ -72,6 +81,13 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const needsUpload = needsArtwork;
   // Avatar sticker sheets we've finished making, shown with share buttons.
   const finished = order.items.flatMap((i) => (i.customSpec?.kind === "avatar" ? i.finishedFiles : []));
+  // Opened from the thank-you card's QR: rate the order without signing in.
+  const fromCard = paid && sameToken(fb, order.feedbackToken);
+  let cardDone: { rating: number; body: string | null } | null = null;
+  if (fromCard) {
+    const [first] = await driver.listOrderReviews(order.id);
+    if (first) cardDone = { rating: first.rating, body: first.body };
+  }
   const customUploadStep =
     order.items.some(needsUpload) &&
     (CUSTOM_UPLOAD_STATUSES as readonly string[]).includes(order.status);
@@ -103,6 +119,16 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         total={order.total}
         items={order.items.map((i) => ({ id: i.productId ?? i.name, qty: i.quantity, price: i.unitPrice }))}
       />
+
+      {fromCard && (
+        <CardFeedback
+          orderId={order.id}
+          token={fb!}
+          firstName={order.customerName.trim().split(/\s+/)[0] ?? ""}
+          images={[...new Set(order.items.map((i) => i.imageUrl).filter(Boolean))]}
+          initial={cardDone}
+        />
+      )}
 
       {customUploadStep && (
         <CustomOrderUpload
@@ -206,7 +232,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         </div>
       )}
 
-      {order.status === "delivered" && (
+      {order.status === "delivered" && !fromCard && (
         <OrderReviews orderId={order.id} orderUserId={order.userId} items={order.items} />
       )}
 
@@ -281,6 +307,12 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               <span>Subtotal</span>
               <span className="text-snow">{formatINR(order.subtotal)}</span>
             </div>
+            {order.discountAmount > 0 && (
+              <div className="flex justify-between text-fog">
+                <span>Thank-you offer</span>
+                <span className="font-medium text-mint">−{formatINR(order.discountAmount)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-fog">
               <span>Shipping</span>
               <span className={order.shippingFee === 0 ? "font-medium text-mint" : "text-snow"}>

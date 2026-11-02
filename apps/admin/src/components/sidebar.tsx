@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { OrderAlertsToggle, useOrderAlerts } from "./order-alerts";
-import { BarChart3, CalendarHeart, Inbox, LayoutDashboard, LayoutList, LogOut, Package, Settings, ShoppingCart, Smile, Star, Tags, ToggleRight } from "lucide-react";
+import { BarChart3, CalendarHeart, Inbox, LayoutDashboard, LayoutList, LogOut, Package, Settings, ShoppingCart, Smile, Star, Tag, Tags, ToggleRight } from "lucide-react";
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -15,6 +15,7 @@ const NAV = [
   { href: "/avatar-book", label: "Avatar packs", icon: Smile },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/reviews", label: "Reviews", icon: Star },
+  { href: "/offers", label: "Offers", icon: Tag },
   { href: "/messages", label: "Messages", icon: Inbox },
   { href: "/features", label: "Features", icon: ToggleRight },
   { href: "/settings", label: "Settings", icon: Settings },

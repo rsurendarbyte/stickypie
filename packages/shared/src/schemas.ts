@@ -253,4 +253,10 @@ export const storeSettingsSchema = z.object({
     .max(AVATAR_MAX_STYLES, `Up to ${AVATAR_MAX_STYLES} styles`)
     .refine((list) => new Set(list.map((s) => s.label.toLowerCase())).size === list.length, "Each style name only once")
     .default([]),
+  thanksPercent: z
+    .number({ invalid_type_error: "Enter the offer %" })
+    .int("Whole numbers only")
+    .min(1, "Offer is at least 1%")
+    .max(50, "Offer is at most 50%")
+    .default(10),
 });

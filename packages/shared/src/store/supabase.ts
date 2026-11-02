@@ -26,6 +26,7 @@ import {
   type NewReviewInput,
   type ReviewStatus,
 } from "../feedback";
+import { rowToCoupon, type NewCouponInput } from "../thanks";
 
 function friendly(error: { code?: string; message: string }): Error {
   if (error.code === "23505") {
@@ -204,6 +205,8 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
           shipping_fee: input.shippingFee,
           gst_amount: input.gstAmount,
           gst_rate: input.gstRate,
+          discount_amount: input.discountAmount,
+          discount_code: input.discountCode,
           total: input.total,
           payment_provider: input.paymentProvider,
           ...(input.userId ? { user_id: input.userId } : {}),
@@ -536,6 +539,67 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
       await removeReviewPhoto(id);
       const { error } = await client.from("product_reviews").delete().eq("id", id);
       if (error) throw friendly(error);
+    },
+
+    async createCoupon(input: NewCouponInput) {
+      const { data, error } = await client
+        .from("coupons")
+        .insert({
+          code: input.code,
+          percent: input.percent,
+          source_order_id: input.sourceOrderId,
+          email: input.email.toLowerCase(),
+          phone: input.phone,
+          expires_at: input.expiresAt,
+          disabled: Boolean(input.disabled),
+        })
+        .select()
+        .single();
+      if (error) throw friendly(error);
+      return rowToCoupon(data);
+    },
+
+    async getCouponForOrder(sourceOrderId: string) {
+      const { data, error } = await client
+        .from("coupons")
+        .select("*")
+        .eq("source_order_id", sourceOrderId)
+        .maybeSingle();
+      if (error) throw friendly(error);
+      return data ? rowToCoupon(data) : null;
+    },
+
+    async listOpenCouponsFor(email: string) {
+      const { data, error } = await client
+        .from("coupons")
+        .select("*")
+        .eq("email", email.trim().toLowerCase())
+        .is("used_order_id", null)
+        .eq("disabled", false)
+        .gt("expires_at", new Date().toISOString());
+      if (error) throw friendly(error);
+      return (data ?? []).map(rowToCoupon);
+    },
+
+    async listCoupons() {
+      const { data, error } = await client
+        .from("coupons")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) throw friendly(error);
+      return (data ?? []).map(rowToCoupon);
+    },
+
+    async updateCoupon(id: string, patch: { percent?: number; disabled?: boolean }) {
+      const { data, error } = await client
+        .from("coupons")
+        .update(patch)
+        .eq("id", id)
+        .is("used_order_id", null)
+        .select("id");
+      if (error) throw friendly(error);
+      if (!data?.length) throw new Error("This offer was already used, so it can't be changed.");
     },
 
     async stats() {

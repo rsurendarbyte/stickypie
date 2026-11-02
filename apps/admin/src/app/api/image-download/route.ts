@@ -26,15 +26,22 @@ function allowedOrigins(): Set<string> {
   return new Set(origins.filter(Boolean));
 }
 
-/** The shop's own subdomains (e.g. stickers.stickypie.in), even where R2_PUBLIC_URL isn't set. */
+/** The live shop's domain: its image subdomains are allowed even on a local admin. */
+const SHOP_DOMAIN = "stickypie.in";
+
+/**
+ * The shop's own subdomains (e.g. stickers.stickypie.in), even where
+ * R2_PUBLIC_URL isn't set or the admin points at a local shop.
+ */
 function shopSubdomain(target: URL): boolean {
-  let shop: string;
+  if (target.protocol !== "https:") return false;
+  let shop = "";
   try {
     shop = new URL(webUrl()).hostname;
   } catch {
-    return false;
+    // fall through to the live domain
   }
-  return target.protocol === "https:" && shop.includes(".") && target.hostname.endsWith(`.${shop}`);
+  return [shop, SHOP_DOMAIN].some((d) => d.includes(".") && target.hostname.endsWith(`.${d}`));
 }
 
 /**

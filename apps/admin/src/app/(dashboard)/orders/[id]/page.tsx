@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Download, ImageUp } from "lucide-react";
+import { ArrowLeft, Download, ImageUp, Printer } from "lucide-react";
 import { formatDateTime, formatINR, needsArtwork, orderCode } from "@stickypie/shared";
 import AvatarOrderPrompts from "@/components/avatar-order-prompts";
 import { avatarPoseSets } from "@/lib/avatar-prompts";
@@ -44,6 +44,16 @@ export default async function OrderDetailPage({
         <h1 className="font-display text-2xl font-bold sm:text-3xl">{orderCode(order.id)}</h1>
         <StatusBadge status={order.status} />
         <span className="text-xs text-fog">Placed {formatDateTime(order.createdAt)}</span>
+        {order.feedbackToken && (
+          <a
+            href={`/print/thanks/${order.id}`}
+            target="_blank"
+            rel="noopener"
+            className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-xl border border-line bg-ink2 px-3 text-xs font-semibold text-snow transition-colors hover:border-brand/50 hover:text-brand"
+          >
+            <Printer className="size-4" /> Print thank-you card
+          </a>
+        )}
       </div>
 
       <div className="mt-5">
@@ -188,6 +198,12 @@ export default async function OrderDetailPage({
               <span>Subtotal</span>
               <span className="text-snow tabular-nums">{formatINR(order.subtotal)}</span>
             </div>
+            {order.discountAmount > 0 && (
+              <div className="flex justify-between text-fog">
+                <span>Discount{order.discountCode ? ` · ${order.discountCode}` : ""}</span>
+                <span className="text-mint tabular-nums">−{formatINR(order.discountAmount)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-fog">
               <span>Shipping</span>
               <span className="text-snow tabular-nums">

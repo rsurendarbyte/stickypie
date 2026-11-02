@@ -110,8 +110,13 @@ export type Order = {
   /** GST added on top (whole ₹). null = older order whose prices included GST. */
   gstAmount: number | null;
   gstRate: number | null;
-  /** subtotal + shippingFee + gstAmount. */
+  /** ₹ off the sticker subtotal from a next-order code (0 = none). */
+  discountAmount: number;
+  discountCode: string | null;
+  /** subtotal − discountAmount + shippingFee + gstAmount. */
   total: number;
+  /** Random key in the thank-you card's QR: opens feedback without signing in. */
+  feedbackToken: string | null;
   paymentProvider: PaymentProvider;
   cfOrderId: string | null;
   cfPaymentId: string | null;
@@ -190,6 +195,8 @@ export type NewOrderInput = {
   shippingFee: number;
   gstAmount: number;
   gstRate: number;
+  discountAmount: number;
+  discountCode: string | null;
   total: number;
   paymentProvider: PaymentProvider;
   userId: string | null;
@@ -218,6 +225,7 @@ import type { FeatureFlags } from "./features";
 import type { HomeRail } from "./home-rails";
 import type { Festival } from "./festivals";
 import type { ContactInput, ContactMessage, NewReviewInput, Review, ReviewStatus } from "./feedback";
+import type { Coupon, NewCouponInput } from "./thanks";
 
 export interface DataDriver {
   listCategories(): Promise<Category[]>;
@@ -303,6 +311,15 @@ export interface DataDriver {
   listOrderReviews(orderId: string): Promise<Review[]>;
   setReviewStatus(id: string, status: ReviewStatus): Promise<void>;
   deleteReview(id: string): Promise<void>;
+
+  /** Next-order offers the admin approved from thank-you card feedback. */
+  createCoupon(input: NewCouponInput): Promise<Coupon>;
+  getCouponForOrder(sourceOrderId: string): Promise<Coupon | null>;
+  /** Approved, unused, unexpired offers for this customer's (verified account) email. */
+  listOpenCouponsFor(email: string): Promise<Coupon[]>;
+  listCoupons(): Promise<Coupon[]>;
+  /** Admin edits an offer (until it's used): its % and/or on/off. */
+  updateCoupon(id: string, patch: { percent?: number; disabled?: boolean }): Promise<void>;
 
   stats(): Promise<AdminStats>;
   /** Local demo driver only. */

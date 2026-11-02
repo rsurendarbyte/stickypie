@@ -18,3 +18,4 @@ export * from "./custom";
 export * from "./feedback";
 export * from "./invoice";
 export * from "./fulfilment";
+export * from "./thanks";

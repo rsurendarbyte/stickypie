@@ -67,6 +67,8 @@ export default function StoreSettingsForm({ initial }: { initial: StoreSettings 
       // Saved on the Avatar book page; the server keeps the current values.
       avatarBook: initial.avatarBook,
       avatarStyles: initial.avatarStyles,
+      // Saved on the Offers page.
+      thanksPercent: initial.thanksPercent,
       minOrder: num(minOrder),
       originPincode: pincode.trim() || null,
       originState: state || null,

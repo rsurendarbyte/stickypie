@@ -9,6 +9,7 @@ import {
   Check,
   CheckCircle2,
   ChevronDown,
+  Gift,
   Lock,
   MailCheck,
   MapPin,
@@ -22,6 +23,7 @@ import {
   INDIAN_STATES,
   ZONE_LABELS,
   belowMinimum,
+  couponDiscount,
   customerSchema,
   gstOnTop,
   formatINR,
@@ -51,6 +53,7 @@ import {
 import AddressTypePicker, { AddressTypeBadge } from "./address-type-picker";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
+import { useMyOffer } from "./my-offer";
 import { CheckField, PasswordField, SelectField, TextField } from "./field";
 import LabelModal from "./label-modal";
 import StickerLoader, { PageLoader } from "./sticker-loader";
@@ -106,6 +109,8 @@ export default function CheckoutClient() {
     Partial<Record<keyof FormState, string>>
   >({});
   const [serverError, setServerError] = useState<string | null>(null);
+  // Thank-you offer the shop approved for this account: the server applies it by itself.
+  const discount = useMyOffer();
   const [submitting, setSubmitting] = useState(false);
   const shopper = useShopper();
   const [authMode, setAuthMode] = useState<"create" | "signin">("create");
@@ -219,9 +224,10 @@ export default function CheckoutClient() {
     addressKnown && settings.loaded
       ? shippingFor(settings, form.pincode, form.state)
       : null;
-  // GST on top of stickers + shipping — the same sum the server charges.
-  const gst = gstOnTop(settings, subtotal, quote?.fee ?? 0);
-  const total = subtotal + (quote?.fee ?? 0) + gst.amount;
+  const discountAmount = discount ? couponDiscount(subtotal, discount.percent) : 0;
+  // GST on top of stickers (after any discount) + shipping — the same sum the server charges.
+  const gst = gstOnTop(settings, subtotal - discountAmount, quote?.fee ?? 0);
+  const total = subtotal - discountAmount + (quote?.fee ?? 0) + gst.amount;
   const shortBy = belowMinimum(settings, subtotal, items);
   // Gateway switched on in admin; null until settings load (no wrong-name flash).
   const gatewayName = usePaymentPartner();
@@ -1045,6 +1051,17 @@ export default function CheckoutClient() {
                   {formatINR(subtotal)}
                 </dd>
               </div>
+              {discount && (
+                <div className="flex items-center justify-between gap-3 text-fog">
+                  <dt className="flex min-w-0 items-center gap-1.5">
+                    <Gift className="size-3.5 shrink-0 text-mint" />
+                    <span className="truncate">Thank-you offer · {discount.percent}% off</span>
+                  </dt>
+                  <dd className="font-medium text-mint tabular-nums">
+                    −{formatINR(discountAmount)}
+                  </dd>
+                </div>
+              )}
               <div className="flex justify-between gap-3 text-fog">
                 <dt>
                   Shipping
