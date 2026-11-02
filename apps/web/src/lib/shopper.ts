@@ -10,9 +10,26 @@ export function accountsEnabled(): boolean {
   return supabaseConfigured();
 }
 
+/**
+ * Cookie copy of the shopper's access token, kept in step with the browser
+ * session by <AuthCookieSync>, so server-rendered pages (order, invoice) know
+ * who is looking.
+ */
+export const SHOPPER_COOKIE = "sp_at";
+
 export async function shopperFromRequest(req: Request): Promise<Shopper | null> {
   const header = req.headers.get("authorization") ?? "";
   const token = header.startsWith("Bearer ") ? header.slice(7).trim() : "";
+  return shopperFromToken(token);
+}
+
+/** Server components: the shopper whose token is in the cookie (null if none / expired). */
+export async function shopperFromCookies(): Promise<Shopper | null> {
+  const { cookies } = await import("next/headers");
+  return shopperFromToken((await cookies()).get(SHOPPER_COOKIE)?.value ?? "");
+}
+
+async function shopperFromToken(token: string): Promise<Shopper | null> {
   if (!token) return null;
 
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
@@ -24,4 +41,14 @@ export async function shopperFromRequest(req: Request): Promise<Shopper | null> 
   const user = (await res.json().catch(() => null)) as { id?: string; email?: string } | null;
   if (!user?.id || !user.email) return null;
   return { id: user.id, email: user.email.toLowerCase() };
+}
+
+/**
+ * Who may see an order's details: only the signed-in shopper who placed it.
+ * Demo mode (no accounts) keeps orders open.
+ */
+export async function canViewOrder(order: { userId: string | null }): Promise<boolean> {
+  if (!accountsEnabled()) return true;
+  const shopper = await shopperFromCookies();
+  return Boolean(shopper && order.userId && shopper.id === order.userId);
 }

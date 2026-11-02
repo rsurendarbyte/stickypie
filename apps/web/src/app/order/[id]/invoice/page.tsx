@@ -3,8 +3,10 @@ import Link from "@/components/page-link";
 import { notFound } from "next/navigation";
 import { FileClock } from "lucide-react";
 import { computeInvoice, formatINR, orderCode, rupeesInWords } from "@stickypie/shared";
+import OrderSignIn from "@/components/order-sign-in";
 import PrintButton from "@/components/print-button";
 import { getDriver } from "@/lib/data";
+import { canViewOrder } from "@/lib/shopper";
 import { PRIVATE_PAGE_ROBOTS } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +22,10 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
   const driver = getDriver();
   const [order, settings] = await Promise.all([driver.getOrder(id), driver.getSettings()]);
   if (!order) notFound();
+  // Only the shopper who placed the order.
+  if (!(await canViewOrder(order))) {
+    return <OrderSignIn path={`/order/${order.id}/invoice`} code={orderCode(order.id)} />;
+  }
 
   const business = settings.business;
   // Tax invoices exist only after delivery (number assigned then) and once the

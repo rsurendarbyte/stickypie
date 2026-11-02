@@ -13,6 +13,7 @@ import MobileTabBar from "@/components/mobile-tab-bar";
 import CartDrawer from "@/components/cart-drawer";
 import CartShell from "@/components/cart-shell";
 import NavTracker from "@/components/nav-tracker";
+import AuthCookieSync from "@/components/auth-cookie-sync";
 import { META_PIXEL_SCRIPT } from "@/lib/meta-pixel";
 import { stickerCursorCss } from "@/lib/sticker-cursor";
 import PerfProbe from "@/components/perf-probe";
@@ -96,6 +97,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ConfirmProvider>
         <CartProvider>
           <NavTracker />
+          <AuthCookieSync />
           <PerfProbe />
           <MildBackground />
           <Nav />
