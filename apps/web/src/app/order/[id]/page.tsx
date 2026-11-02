@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "@/components/page-link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CheckCircle2, FileText, PackageX, ShoppingBag, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Eye, FileText, PackageX, ShoppingBag, XCircle } from "lucide-react";
 import {
   CUSTOM_UPLOAD_STATUSES,
   STATUS_LABELS,
@@ -23,7 +23,7 @@ import OrderSignIn from "@/components/order-sign-in";
 import PaymentPending from "@/components/payment-pending";
 import { latestPaymentAttempt, reconcileOrderPayment } from "@/lib/payments";
 import { getDriver } from "@/lib/data";
-import { canViewOrder } from "@/lib/shopper";
+import { orderViewer } from "@/lib/shopper";
 import { PRIVATE_PAGE_ROBOTS, absoluteUrl } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -52,7 +52,11 @@ export default async function OrderPage({
 
   // Only the signed-in shopper who placed it sees the order. The thank-you
   // card's QR (valid key) opens just the feedback box, nothing else.
-  if (!(await canViewOrder(order))) {
+  const viewer = await orderViewer(order);
+  // Admin "View as customer": same page, but nothing that acts as the shopper
+  // (no purchase pixel, no clearing this browser's cart).
+  const adminView = viewer === "admin";
+  if (!viewer) {
     const firstName = order.customerName.trim().split(/\s+/)[0] ?? "";
     if (!(PAID_LIKE.has(order.status) && sameToken(fb, order.feedbackToken))) {
       return <OrderSignIn path={`/order/${order.id}`} code={orderCode(order.id)} />;
@@ -144,13 +148,21 @@ export default async function OrderPage({
           <ShoppingBag className="peel-icon size-4" /> Shop more
         </Link>
       </div>
-      <ClearCartOnPaid orderId={order.id} paid={paid} />
-      <MetaPurchase
-        orderId={order.id}
-        paid={paid}
-        total={order.total}
-        items={order.items.map((i) => ({ id: i.productId ?? i.name, qty: i.quantity, price: i.unitPrice }))}
-      />
+      {adminView ? (
+        <p className="mb-6 flex items-center gap-2 rounded-xl border border-gold/30 bg-gold/10 px-3.5 py-2.5 text-xs font-semibold text-gold">
+          <Eye className="size-4 shrink-0" /> Admin preview — this is what {order.customerName.split(" ")[0]} sees.
+        </p>
+      ) : (
+        <>
+          <ClearCartOnPaid orderId={order.id} paid={paid} />
+          <MetaPurchase
+            orderId={order.id}
+            paid={paid}
+            total={order.total}
+            items={order.items.map((i) => ({ id: i.productId ?? i.name, qty: i.quantity, price: i.unitPrice }))}
+          />
+        </>
+      )}
 
       {fromCard && (
         <CardFeedback
