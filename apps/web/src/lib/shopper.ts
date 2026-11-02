@@ -44,11 +44,41 @@ async function shopperFromToken(token: string): Promise<Shopper | null> {
 }
 
 /**
- * Who may see an order's details: only the signed-in shopper who placed it.
+ * Admin preview of an order page: holds the admin's access token, set by
+ * /api/admin-view when the admin clicks "View as customer". httpOnly, 1 hour.
+ */
+export const ADMIN_VIEW_COOKIE = "sp_av";
+
+/** True when the token belongs to an account in admin_users. */
+export async function isAdminToken(token: string): Promise<boolean> {
+  const user = await shopperFromToken(token);
+  if (!user) return false;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+  const res = await fetch(
+    `${supabaseUrl()}/rest/v1/admin_users?select=user_id&user_id=eq.${encodeURIComponent(user.id)}`,
+    { headers: { apikey: key, Authorization: `Bearer ${key}` }, cache: "no-store" }
+  );
+  if (!res.ok) return false;
+  const rows = (await res.json().catch(() => [])) as unknown[];
+  return Array.isArray(rows) && rows.length > 0;
+}
+
+/**
+ * Who is looking at an order: the signed-in shopper who placed it ("owner"),
+ * an admin previewing it ("admin"), or nobody allowed (null).
  * Demo mode (no accounts) keeps orders open.
  */
-export async function canViewOrder(order: { userId: string | null }): Promise<boolean> {
-  if (!accountsEnabled()) return true;
+export async function orderViewer(order: { userId: string | null }): Promise<"owner" | "admin" | null> {
+  if (!accountsEnabled()) return "owner";
   const shopper = await shopperFromCookies();
-  return Boolean(shopper && order.userId && shopper.id === order.userId);
+  if (shopper && order.userId && shopper.id === order.userId) return "owner";
+  const { cookies } = await import("next/headers");
+  const adminToken = (await cookies()).get(ADMIN_VIEW_COOKIE)?.value ?? "";
+  if (adminToken && (await isAdminToken(adminToken))) return "admin";
+  return null;
+}
+
+/** Who may see an order's details: its shopper, or an admin previewing it. */
+export async function canViewOrder(order: { userId: string | null }): Promise<boolean> {
+  return (await orderViewer(order)) !== null;
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Download, ImageUp, Printer } from "lucide-react";
+import { ArrowLeft, Download, Eye, ImageUp, Printer } from "lucide-react";
 import { formatDateTime, formatINR, needsArtwork, orderCode } from "@stickypie/shared";
 import AvatarOrderPrompts from "@/components/avatar-order-prompts";
 import { avatarPoseSets } from "@/lib/avatar-prompts";
@@ -10,6 +10,8 @@ import ShiprocketPanel from "@/components/shiprocket-panel";
 import { shiprocketConfig } from "@/lib/shiprocket";
 import StatusBadge from "@/components/status-badge";
 import { getAdminDriver } from "@/lib/data";
+import { supabaseConfigured, webUrl } from "@/lib/auth";
+import { createServerSupabase } from "@/lib/supabase";
 import { SpecDetails, SpecDownload, SpecThumb } from "@/components/spec-print-file";
 import { imageDownloadHref, imageSrc } from "@/lib/img";
 
@@ -30,6 +32,10 @@ export default async function OrderDetailPage({
   const avatarStyles = order.items.some((i) => i.customSpec?.kind === "avatar")
     ? (await driver.getSettings()).avatarStyles
     : [];
+  // "View as customer": the storefront opens the order for an admin's token.
+  const viewToken = supabaseConfigured()
+    ? ((await (await createServerSupabase()).auth.getSession()).data.session?.access_token ?? "")
+    : "";
 
   return (
     <div className="mx-auto w-full max-w-[1400px]">
@@ -45,6 +51,16 @@ export default async function OrderDetailPage({
         <StatusBadge status={order.status} />
         <span className="text-xs text-fog">Placed {formatDateTime(order.createdAt)}</span>
         <span className="ml-auto flex flex-wrap gap-2">
+          <form method="post" action={`${webUrl()}/api/admin-view`} target="_blank">
+            <input type="hidden" name="orderId" value={order.id} />
+            <input type="hidden" name="token" value={viewToken} />
+            <button
+              type="submit"
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-line bg-ink2 px-3 text-xs font-semibold text-snow transition-colors hover:border-brand/50 hover:text-brand"
+            >
+              <Eye className="size-4" /> View as customer
+            </button>
+          </form>
           <a
             href={`/print/stickers/${order.id}`}
             target="_blank"
