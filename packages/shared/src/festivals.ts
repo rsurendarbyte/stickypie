@@ -195,14 +195,22 @@ export function festivalDate(f: Festival, now = new Date()): string {
   return `${year}-${m}-${d}`;
 }
 
-/** Festivals whose home row is showing now (from daysBefore to daysAfter), soonest first. */
+/**
+ * Festivals whose home row is showing now (from daysBefore to daysAfter):
+ * today's and upcoming ones first, soonest first; ones already past go
+ * below them, most recent first (so Diwali beats last week's Rajyotsava).
+ */
 export function activeFestivals(list: Festival[], now = new Date()): Festival[] {
   const today = todayInIndia(now);
   return list
     .filter((f) => f.visible)
     .map((f) => ({ f, day: dayNumber(festivalDate(f, now)) }))
     .filter(({ f, day }) => today >= day - f.daysBefore && today <= day + f.daysAfter)
-    .sort((a, b) => a.day - b.day)
+    .sort((a, b) => {
+      const aPast = a.day < today, bPast = b.day < today;
+      if (aPast !== bPast) return aPast ? 1 : -1;
+      return aPast ? b.day - a.day : a.day - b.day;
+    })
     .map(({ f }) => f);
 }
 
