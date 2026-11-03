@@ -139,7 +139,7 @@ function shortDate(iso: string): string {
 }
 
 /** Shopper's order list: status filters with counts, search, progress per order. */
-export default function MyOrders({ email }: { email: string }) {
+export default function MyOrders({ email, userId }: { email: string; userId: string }) {
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -148,6 +148,8 @@ export default function MyOrders({ email }: { email: string }) {
     authClient()!
       .from("orders")
       .select("*, order_items(*)")
+      // Only this shopper's orders — RLS alone would hand an admin every order.
+      .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .then(({ data, error: err }) => {
         if (!alive) return;
@@ -161,7 +163,7 @@ export default function MyOrders({ email }: { email: string }) {
     return () => {
       alive = false;
     };
-  }, [email]);
+  }, [email, userId]);
 
   if (error) return <p className="mt-6 text-sm text-brand">{error}</p>;
   if (!orders) {

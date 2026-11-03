@@ -60,13 +60,22 @@ export default function AccountClient() {
   return (
     <AccountHome
       email={shopper.email}
+      userId={shopper.session?.user.id ?? ""}
       name={shopper.session?.user.user_metadata?.name as string | undefined}
     />
   );
 }
 
 /** Signed in: profile header, then Orders / Addresses tabs. */
-function AccountHome({ email, name }: { email: string; name?: string | null }) {
+function AccountHome({
+  email,
+  userId,
+  name,
+}: {
+  email: string;
+  userId: string;
+  name?: string | null;
+}) {
   const display = name?.trim() || email.split("@")[0];
 
   return (
@@ -92,7 +101,7 @@ function AccountHome({ email, name }: { email: string; name?: string | null }) {
           <h2 className="flex items-center gap-2 font-display text-lg font-bold">
             <Package className="size-5 text-brand" /> My orders
           </h2>
-          <MyOrders email={email} />
+          <MyOrders email={email} userId={userId} />
         </section>
         <aside className="min-w-0 lg:sticky lg:top-24">
           <SavedAddresses email={email} />
