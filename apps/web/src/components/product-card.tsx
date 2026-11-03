@@ -4,9 +4,9 @@ import PageLink from "./page-link";
 import { useState } from "react";
 import { Check, Frame, Ruler, ShoppingBag } from "lucide-react";
 import type { Product } from "@stickypie/shared";
-import { LOW_STOCK_THRESHOLD, discountPercent, formatINR, packPosterSizes, posterSizeLabel } from "@stickypie/shared";
+import { LOW_STOCK_THRESHOLD, discountPercent, formatINR } from "@stickypie/shared";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
-import { isMiniPoster, isPosterPack, sizeChipLabel } from "@/lib/poster";
+import { isMiniPoster, isPosterPack, packSizeLine, sizeChipLabel } from "@/lib/poster";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
@@ -243,8 +243,6 @@ function PackCard({ product, width }: { product: Product; width: string }) {
   const out = product.stock === 0;
   const off = discountPercent(price, compareAtPrice);
   const count = product.packItems.length;
-  // Every poster in a pack is 2:3 (portrait), so a size is one poster's width × height.
-  const big = packPosterSizes(product).filter((s) => s > 6).length;
 
   return (
     <div
@@ -280,7 +278,7 @@ function PackCard({ product, width }: { product: Product; width: string }) {
           <p className="truncate font-display text-[15px] font-bold text-snow">{packTitle(product.name)}</p>
         </PageLink>
         <p className="mt-0.5 truncate text-[11px] text-fog">
-          {big > 0 ? `${big} big ${posterSizeLabel(9)} + ${count - big} small ${posterSizeLabel(6)}` : `${count} mini posters · each ${posterSizeLabel(6)}`}
+          {packSizeLine(product)}
         </p>
         <div className="mt-1.5 flex h-7 items-center gap-2">
           {sizes.length > 1 && !out && (
