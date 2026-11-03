@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { ChevronDown, ExternalLink, Eye, EyeOff, Loader2, Plus, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, ExternalLink, Eye, EyeOff, Loader2, Plus, Trash2, X } from "lucide-react";
 import {
   activeFestivals,
   FESTIVAL_DEFAULT_DAYS,
@@ -55,11 +55,21 @@ export default function FestivalsEditor({
 
   const onSale = useMemo(() => products.filter((p) => p.isActive), [products]);
   const liveNow = new Set(activeFestivals(festivals).map((f) => f.id));
-  // soonest first, so the list reads like a calendar
-  const order = [...festivals].sort((a, b) => festivalDate(a).localeCompare(festivalDate(b)));
 
   function update(id: string, patch: Partial<Festival>) {
     setFestivals((list) => list.map((f) => (f.id === id ? { ...f, ...patch } : f)));
+  }
+
+  // list order = home page row order when several festivals are on at once
+  function move(id: string, by: -1 | 1) {
+    setFestivals((list) => {
+      const i = list.findIndex((f) => f.id === id);
+      const j = i + by;
+      if (i < 0 || j < 0 || j >= list.length) return list;
+      const next = [...list];
+      [next[i], next[j]] = [next[j], next[i]];
+      return next;
+    });
   }
 
   function add() {
@@ -114,7 +124,7 @@ export default function FestivalsEditor({
   return (
     <div className="pb-28">
       <ol className="space-y-3">
-        {order.map((f) => {
+        {festivals.map((f, i) => {
           const date = festivalDate(f);
           const count = festivalProducts(f, onSale).length;
           const isOpen = open === f.id;
@@ -145,6 +155,12 @@ export default function FestivalsEditor({
                 <span className="text-xs text-fog">
                   {count} sticker{count === 1 ? "" : "s"}
                 </span>
+                <IconButton label="Move up" disabled={i === 0} onClick={() => move(f.id, -1)}>
+                  <ArrowUp className="size-4" />
+                </IconButton>
+                <IconButton label="Move down" disabled={i === festivals.length - 1} onClick={() => move(f.id, 1)}>
+                  <ArrowDown className="size-4" />
+                </IconButton>
                 <IconButton
                   label={f.visible ? "Hide festival" : "Show festival"}
                   onClick={() => update(f.id, { visible: !f.visible })}
@@ -372,11 +388,13 @@ function IconButton({
   label,
   onClick,
   danger,
+  disabled,
   children,
 }: {
   label: string;
   onClick: () => void;
   danger?: boolean;
+  disabled?: boolean;
   children: React.ReactNode;
 }) {
   return (
@@ -385,7 +403,8 @@ function IconButton({
       aria-label={label}
       title={label}
       onClick={onClick}
-      className={`grid size-8 place-items-center rounded-lg text-fog transition-colors ${
+      disabled={disabled}
+      className={`grid size-8 place-items-center rounded-lg text-fog transition-colors disabled:pointer-events-none disabled:opacity-30 ${
         danger ? "hover:bg-brand/15 hover:text-brand" : "hover:bg-white/10 hover:text-snow"
       }`}
     >

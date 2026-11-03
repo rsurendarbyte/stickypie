@@ -19,7 +19,8 @@ export default async function FestivalsPage() {
       <h1 className="font-display text-2xl font-bold sm:text-3xl">Festivals</h1>
       <p className="mt-1 text-sm text-fog">
         Festivals and special days. Around each date its stickers become the first row of the home
-        page — that switches on and off by itself and shows as soon as you save. Every festival also
+        page — that switches on and off by itself and shows as soon as you save. When several are on
+        at once, their rows follow this list&apos;s order: use the arrows to move one up. Every festival also
         has its own page for Google and AI search, kept all year; a new festival&apos;s page goes live
         with the next deploy.
       </p>
