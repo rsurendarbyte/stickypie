@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Product, ProductSize } from "@stickypie/shared";
 import { formatINR, formatInches, priceForSize, productSizes } from "@stickypie/shared";
+import { isPosterPack, sizeChipLabel } from "@/lib/poster";
 import type { CartProduct } from "./cart-context";
 
 /** The lowest-priced size — what the shop shows first. */
@@ -36,7 +37,7 @@ export function toCartProduct(product: Product, size: number | null, price: numb
     thumbUrl: product.thumbUrl,
     stock: product.stock,
     size,
-    sizeLabel: size === null ? null : `${formatInches(size)}″`,
+    sizeLabel: size === null ? null : isPosterPack(product) ? `${sizeChipLabel(product, size)} in posters` : `${formatInches(size)}″`,
   };
 }
 
@@ -50,12 +51,15 @@ export default function SizePicker({
   onChange,
   compact = false,
   disabled = false,
+  label = (inches) => `${formatInches(inches)}″`,
 }: {
   sizes: ProductSize[];
   value: number | null;
   onChange: (inches: number) => void;
   compact?: boolean;
   disabled?: boolean;
+  /** A size's name on its chip (poster packs: the real size, e.g. "4×6"). */
+  label?: (inches: number) => string;
 }) {
   if (sizes.length < 2 && compact) return null;
   if (sizes.length === 0) return null;
@@ -82,7 +86,7 @@ export default function SizePicker({
                 active ? "bg-snow text-white" : "text-fog hover:text-snow"
               }`}
             >
-              {formatInches(s.inches)}″
+              {label(s.inches)}
             </button>
           );
         })}
@@ -112,7 +116,7 @@ export default function SizePicker({
                   : "border-line bg-ink hover:border-snow/30"
               }`}
             >
-              <span className="block font-display text-base font-bold">{formatInches(s.inches)}″</span>
+              <span className="block font-display text-base font-bold">{label(s.inches)}</span>
               <span className={`mt-1 block text-sm font-bold ${active ? "text-brand" : "text-snow"}`}>
                 {formatINR(s.price)}
               </span>

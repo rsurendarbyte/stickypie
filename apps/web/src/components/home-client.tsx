@@ -7,6 +7,7 @@ import ProductCard from "./product-card";
 import ProductCardSkeleton from "./product-card-skeleton";
 import Row from "./row";
 import CustomRail from "./custom-rail";
+import { isPosterPack } from "@/lib/poster";
 import {
   activeFestivals,
   festivalProducts,
@@ -38,16 +39,19 @@ export default function HomeClient({
   const loaded = catalog.loaded && railsLoaded;
   useWindowScrollMemory(loaded);
 
-  const featured = products.filter((p) => p.featured);
-  const hero = featured[0] ?? products[0];
+  // Poster packs sit in the first row after the AI card; every other row is single stickers.
+  const packs = products.filter(isPosterPack);
+  const singles = products.filter((p) => !isPosterPack(p));
+  const featured = singles.filter((p) => p.featured);
+  const hero = featured[0] ?? singles[0] ?? products[0];
   // Rails and their order come from the admin (Home page); what each rail
   // shows is shuffled once per visit in the browser, so the page feels fresh.
   const seed = useSkinSeed();
-  const homeRails = resolveHomeRails(rails, products, categories, seed);
+  const homeRails = resolveHomeRails(rails, singles, categories, seed);
   // Festivals around today (admin → Festivals) come right after Make your own: from a few days
   // before the date to a few days after, then they step aside by themselves.
   const festivalRails = activeFestivals(festivals)
-    .map((f) => ({ f, items: festivalProducts(f, products).slice(0, 24) }))
+    .map((f) => ({ f, items: festivalProducts(f, singles).slice(0, 24) }))
     .filter(({ items }) => items.length > 0);
 
   // Placeholders until the live (on-sale only) list arrives — never stale cards.
@@ -121,8 +125,14 @@ export default function HomeClient({
     <>
       <Hero products={featured.length > 0 ? featured : [hero]} categories={categories} />
       <div className="relative z-10 mt-2 space-y-1 pb-24 sm:space-y-8">
-        {/* "Make your own" (led by the AI avatar styles) is the first row, then any festival on now */}
-        <CustomRail />
+        {/* First row: the AI "Stickers of YOU" card, then the wall poster sets, then the
+            AI styles; then any festival on now */}
+        <CustomRail
+          title={packs.length > 0 ? "Make it yours" : undefined}
+          afterLead={packs.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        />
         {festivalRails.map(({ f, items }) => (
           <LazyRail
             key={`festival-${f.id}`}

@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, ChevronUp, LayoutList, Ruler, Share2, ShoppingBag, Truck } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronUp, LayoutList, Ruler, Share2, ShoppingBag, Truck, ZoomIn } from "lucide-react";
 import type { Product } from "@stickypie/shared";
-import { belowMinimum, discountPercent, formatINR, inCategory } from "@stickypie/shared";
+import { belowMinimum, discountPercent, formatINR, inCategory, packPosterSizes, packSizeSummary } from "@stickypie/shared";
 import { useLiveCatalog, useStoreSettings } from "@/lib/live-catalog";
 import { cardSkinFor } from "@/lib/palette";
-import { isMiniPoster } from "@/lib/poster";
+import { isMiniPoster, isPosterPack, sizeChipLabel } from "@/lib/poster";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { PAGE_VIEW_ONCE_KEY } from "@/lib/view-script";
 import { lineKey, useCart } from "./cart-context";
@@ -14,6 +14,7 @@ import CartStepper from "./cart-stepper";
 import PageLink from "./page-link";
 import LabelModal from "./label-modal";
 import { toCartProduct, useSizeChoice } from "./size-picker";
+import ImageZoom from "./image-zoom";
 import TrueSizePreview from "./true-size-preview";
 
 /**
@@ -252,11 +253,13 @@ function ReelItem({
   const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product);
   const off = discountPercent(price, compareAtPrice);
   const out = product.stock === 0;
-  const poster = isMiniPoster(product);
+  const pack = isPosterPack(product);
+  const poster = pack || isMiniPoster(product);
   // This size already in the cart: a quantity stepper and Checkout instead of Add to cart.
   const inCart = items.find((item) => lineKey(item) === lineKey({ productId: product.id, size }));
   const [details, setDetails] = useState(false);
   const [trueSize, setTrueSize] = useState(false);
+  const [zoom, setZoom] = useState(false);
   const [pops, setPops] = useState<{ id: number; x: number; y: number }[]>([]);
   const lastTap = useRef<{ t: number; x: number; y: number } | null>(null);
 
@@ -314,10 +317,16 @@ function ReelItem({
 
       {/* Side rail */}
       <div className="absolute right-3 bottom-[248px] flex flex-col items-center gap-3">
-        {sizes.length > 0 && (
-          <RailButton label="Size" onClick={() => setTrueSize(true)}>
-            <Ruler className="size-5" />
+        {pack ? (
+          <RailButton label="Zoom" onClick={() => setZoom(true)}>
+            <ZoomIn className="size-5" />
           </RailButton>
+        ) : (
+          sizes.length > 0 && (
+            <RailButton label="Size" onClick={() => setTrueSize(true)}>
+              <Ruler className="size-5" />
+            </RailButton>
+          )
         )}
         <RailButton label="Share" onClick={share}>
           <Share2 className="size-5" />
@@ -328,7 +337,11 @@ function ReelItem({
       <div className="rounded-t-[28px] border-t border-white bg-white/92 px-4 pt-3.5 pb-[calc(0.9rem+env(safe-area-inset-bottom,0px))] shadow-[0_-12px_30px_-18px_rgba(16,24,40,0.45)] backdrop-blur-md">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
-            {poster && <p className="text-[10px] font-bold tracking-wider text-brand uppercase">Mini poster</p>}
+            {poster && (
+              <p className="text-[10px] font-bold tracking-wider text-brand uppercase">
+                {pack ? `Poster pack · ${product.packItems.length} posters` : "Mini poster"}
+              </p>
+            )}
             <h2 className="line-clamp-2 font-display text-lg leading-tight font-bold">{name}</h2>
           </div>
           <div className="shrink-0 text-right">
@@ -356,7 +369,7 @@ function ReelItem({
                     on ? "border-brand bg-brand/[0.07] text-brand" : "border-line bg-white text-snow"
                   }`}
                 >
-                  <span className="block font-display text-sm font-bold">{s.inches}″</span>
+                  <span className="block font-display text-sm font-bold">{sizeChipLabel(product, s.inches)}</span>
                   <span className="block text-[11px]">{formatINR(s.price)}</span>
                 </button>
               );
@@ -438,8 +451,17 @@ function ReelItem({
         <h3 id={`reel-details-${product.id}`} className="font-display text-lg font-bold">{name}</h3>
         {product.description && <p className="mt-2 text-sm leading-relaxed text-fog">{product.description}</p>}
         <ul className="mt-3 space-y-1.5 text-sm">
-          <li>Die-cut vinyl, peel and stick — size is the longest side.</li>
-          <li>Goes on a car, bike, helmet, laptop, water bottle or phone case.</li>
+          {pack ? (
+            <>
+              <li>{product.packItems.length} vinyl mini posters ({packSizeSummary(packPosterSizes(product))}), peel and stick.</li>
+              <li>Goes on a wall, door, cupboard or mirror — lay them out like the picture.</li>
+            </>
+          ) : (
+            <>
+              <li>Die-cut vinyl, peel and stick — size is the longest side.</li>
+              <li>Goes on a car, bike, helmet, laptop, water bottle or phone case.</li>
+            </>
+          )}
           <li className="flex items-center gap-1.5">
             <Truck className="size-4 text-mint" /> Dispatched in 2–4 days, delivered in 3–5 days across India.
           </li>
@@ -449,7 +471,8 @@ function ReelItem({
         </button>
       </LabelModal>
 
-      {trueSize && (
+      {pack && <ImageZoom open={zoom} onClose={() => setZoom(false)} src={product.imageUrl} title={product.name} />}
+      {trueSize && !pack && (
         <TrueSizePreview
           open
           onClose={() => setTrueSize(false)}

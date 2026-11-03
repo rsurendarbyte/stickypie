@@ -2,11 +2,11 @@
 
 import PageLink from "./page-link";
 import { useState } from "react";
-import { Check, Ruler, ShoppingBag } from "lucide-react";
+import { Check, Frame, Ruler, ShoppingBag } from "lucide-react";
 import type { Product } from "@stickypie/shared";
-import { LOW_STOCK_THRESHOLD, discountPercent, formatINR } from "@stickypie/shared";
+import { LOW_STOCK_THRESHOLD, discountPercent, formatINR, packPosterSizes, posterSizeLabel } from "@stickypie/shared";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
-import { isMiniPoster } from "@/lib/poster";
+import { isMiniPoster, isPosterPack, sizeChipLabel } from "@/lib/poster";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
@@ -29,13 +29,17 @@ export function posterTitle(name: string) {
   return name.replace(/\s*(—\s*)?Mini Poster\s*$/i, "").trim() || name;
 }
 
-export default function ProductCard({
-  product,
-  width = "w-44 shrink-0 sm:w-48 md:w-52",
-}: {
-  product: Product;
-  width?: string;
-}) {
+const CARD_WIDTH = "w-44 shrink-0 sm:w-48 md:w-52";
+
+export default function ProductCard({ product, width = CARD_WIDTH }: { product: Product; width?: string }) {
+  return isPosterPack(product) ? (
+    <PackCard product={product} width={width} />
+  ) : (
+    <StickerCard product={product} width={width} />
+  );
+}
+
+function StickerCard({ product, width }: { product: Product; width: string }) {
   const poster = isMiniPoster(product);
   const posterRatio = Math.max(product.aspectRatio ?? 0.6, POSTER_MIN_RATIO);
   const { add, items } = useCart();
@@ -217,6 +221,110 @@ export default function ProductCard({
             </>
           )}
         </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** "Red Line — 6 Mini Poster Pack" → "Red Line". */
+function packTitle(name: string) {
+  return name.replace(/\s*—\s*\d+\s+Mini Poster Pack\s*$/i, "").trim() || name;
+}
+
+/**
+ * A poster pack: its 2:3 collage of every poster in the pack, edge to edge,
+ * the pack's size on a plaque, and its posters' sizes (big ones 6 × 9 in, the rest 4 × 6 in).
+ */
+function PackCard({ product, width }: { product: Product; width: string }) {
+  const { add, items } = useCart();
+  const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product);
+  const inCart = items.find((item) => lineKey(item) === lineKey({ productId: product.id, size }));
+  const out = product.stock === 0;
+  const off = discountPercent(price, compareAtPrice);
+  const count = product.packItems.length;
+  // Every poster in a pack is 2:3 (portrait), so a size is one poster's width × height.
+  const big = packPosterSizes(product).filter((s) => s > 6).length;
+
+  return (
+    <div
+      className={`@container group relative snap-start overflow-hidden rounded-2xl border border-line bg-white transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] ${width}`}
+    >
+      {/* The pack's 2:3 picture, full width and height (no side bars) */}
+      <PageLink
+        href={`/sticker/${product.slug}`}
+        className="relative block aspect-[2/3] overflow-hidden bg-[#f4f1ec]"
+        tabIndex={-1}
+        aria-hidden
+      >
+        {/* edge to edge: the cover's own background fills the sides, so the posters sit as big as they fit */}
+        <img
+          src={product.thumbUrl ?? product.imageUrl}
+          alt={product.name}
+          loading="lazy"
+          decoding="async"
+          className={`size-full object-cover transition-transform duration-300 group-hover:scale-[1.03] ${out ? "opacity-40 saturate-50" : ""}`}
+        />
+        <span className="absolute top-2 left-2.5 inline-flex items-center gap-1 rounded-md bg-white/92 px-2 py-1 text-[10px] font-bold tracking-wider text-snow uppercase shadow-sm backdrop-blur-sm">
+          <Frame className="size-3 text-brand" /> {count} posters
+        </span>
+        {product.isNew && !out && (
+          <span className="absolute top-2 right-2.5 rounded-md bg-mint px-2 py-0.5 text-[10px] font-bold tracking-wider text-ink uppercase shadow-sm">
+            New
+          </span>
+        )}
+      </PageLink>
+
+      <div className="px-3 pt-2.5">
+        <PageLink href={`/sticker/${product.slug}`} className="block">
+          <p className="truncate font-display text-[15px] font-bold text-snow">{packTitle(product.name)}</p>
+        </PageLink>
+        <p className="mt-0.5 truncate text-[11px] text-fog">
+          {big > 0 ? `${big} big ${posterSizeLabel(9)} + ${count - big} small ${posterSizeLabel(6)}` : `${count} mini posters · each ${posterSizeLabel(6)}`}
+        </p>
+        <div className="mt-1.5 flex h-7 items-center gap-2">
+          {sizes.length > 1 && !out && (
+            <SizePicker compact sizes={sizes} value={size} onChange={setSize} label={(inches) => sizeChipLabel(product, inches)} />
+          )}
+          <span className="ml-auto flex items-center gap-1.5 text-[11px] whitespace-nowrap">
+            {compareAtPrice !== null && compareAtPrice > price && (
+              <>
+                <span className="text-fog line-through">{formatINR(compareAtPrice)}</span>
+                {off !== null && <span className="font-bold text-mint">{off}% off</span>}
+              </>
+            )}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex p-3 pt-2">
+        {inCart ? (
+          <div className="flex h-10 w-full items-center justify-between gap-2 sm:h-11">
+            <CartStepper item={inCart} size="sm" sticker />
+            <span className="text-right font-display text-lg leading-none font-bold whitespace-nowrap tabular-nums">
+              {formatINR(inCart.qty * inCart.price)}
+            </span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => !out && add(toCartProduct(product, size, price))}
+            disabled={out}
+            aria-label={out ? "Out of stock" : `Add ${product.name}${size ? ` (${size} inch posters)` : ""} to cart for ${formatINR(price)}`}
+            className={`flex h-10 w-full items-center justify-center gap-2 rounded-xl sm:h-11 ${
+              out ? "cursor-not-allowed bg-panel px-3.5 text-xs font-bold text-fog/60" : "peel-btn px-3"
+            }`}
+          >
+            {out ? (
+              "Out of stock"
+            ) : (
+              <>
+                <ShoppingBag className="peel-icon size-4 shrink-0" />
+                <span className="font-display text-lg leading-none font-bold whitespace-nowrap">{formatINR(price)}</span>
+                <span className="hidden text-xs font-semibold opacity-80 @[15rem]:inline">· whole set</span>
+              </>
+            )}
+          </button>
         )}
       </div>
     </div>

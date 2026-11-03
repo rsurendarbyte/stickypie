@@ -7,7 +7,7 @@ import type { Order } from "@stickypie/shared";
 import { useToast } from "./toast";
 
 /**
- * Print job for the printing person: a public link on the shop with the
+ * Print job for the printing person: a public link (on a neutral address when set) with the
  * stickers, their files and A3 sheets (no prices). It closes by itself once
  * the order is marked packed.
  */
@@ -19,7 +19,9 @@ export default function PrintJobPanel({ order, webUrl }: { order: Order; webUrl:
   const [copied, setCopied] = useState(false);
   const open = order.status === "paid";
   if (!open && !token) return null;
-  const link = token ? `${webUrl}/print-job/${token}` : "";
+  // The printer gets the neutral print address when one is set (infra/print-desk), else the shop's own.
+  const printUrl = process.env.NEXT_PUBLIC_PRINT_URL?.replace(/\/+$/, "");
+  const link = token ? (printUrl ? `${printUrl}/j/${token}` : `${webUrl}/print-job/${token}`) : "";
 
   async function save(off: boolean) {
     setBusy(true);

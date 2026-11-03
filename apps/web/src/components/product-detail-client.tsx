@@ -2,10 +2,12 @@
 
 import SmartImg from "./smart-img";
 import PageLink from "./page-link";
+import ImageZoom from "./image-zoom";
+import { isPosterPack, sizeChipLabel } from "@/lib/poster";
 import { useState } from "react";
-import { BadgeCheck, Car, ChevronsUpDown, PackageX, Ruler, Sparkles, Truck } from "lucide-react";
+import { BadgeCheck, Car, ChevronsUpDown, Frame, PackageX, Ruler, Sparkles, Truck } from "lucide-react";
 import type { Product } from "@stickypie/shared";
-import { LOW_STOCK_THRESHOLD, discountPercent, formatINR } from "@stickypie/shared";
+import { LOW_STOCK_THRESHOLD, discountPercent, formatINR, packSizeSummary, posterSizeLabel } from "@stickypie/shared";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { useFeatures, useLiveProduct, useRelatedProducts } from "@/lib/live-catalog";
@@ -22,16 +24,21 @@ import SizePicker, { useSizeChoice } from "./size-picker";
 import SizeRuler from "./size-ruler";
 import TrueSizePreview from "./true-size-preview";
 
+/** A poster in a poster pack, as shown under "What's inside". */
+export type PackPosterLink = { slug: string; name: string; imageUrl: string; active: boolean; /** printed size, longest side */ inches: number };
+
 export default function ProductDetailClient({
   initial,
   category,
   related,
   steps,
+  packPosters = [],
 }: {
   initial: Product;
   category: { name: string; slug: string } | null;
   related: Product[];
   steps: Steps | null;
+  packPosters?: PackPosterLink[];
 }) {
   // Static snapshot first paint; live stock/price/availability from Supabase.
   const { product, unavailable } = useLiveProduct(initial.slug, initial);
@@ -54,6 +61,9 @@ export default function ProductDetailClient({
   const features = useFeatures();
   const swipe = useStepSwipe(steps);
   const low = product.stock !== null && product.stock > 0 && product.stock <= LOW_STOCK_THRESHOLD;
+  // A pack's picture is the whole wall, so "actual size" would mislead — its posters are listed instead.
+  const isPack = isPosterPack(product) || packPosters.length > 0;
+  const [zoom, setZoom] = useState(false);
 
   return (
     <>
@@ -93,16 +103,17 @@ export default function ProductDetailClient({
       </div>
 
       <div className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-10">
-        {/* Art */}
-        <div>
-        <div className="relative aspect-[5/4] max-h-[440px] w-full sm:aspect-square" {...swipe}>
+        {/* Art — stays in view on wide screens while the details (e.g. a pack's posters) scroll */}
+        <div className="lg:sticky lg:top-24 lg:self-start">
+        <div className={`relative w-full ${isPack ? "aspect-[4/5] max-h-[620px]" : "aspect-[5/4] max-h-[440px] sm:aspect-square"}`} {...swipe}>
           <button
             type="button"
-            onClick={() => setTrueSize(true)}
-            aria-label="See actual size"
+            // A pack's picture is a collage of all its posters — no "actual size" for it.
+            onClick={() => (isPack ? setZoom(true) : setTrueSize(true))}
+            aria-label={isPack ? `Zoom into ${product.name}` : "See actual size"}
             // one fixed-size cell, so max-h-full has a height to fit tall art (posters) into
-            className="absolute inset-0 grid cursor-zoom-in grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center p-6 sm:p-10"
-            style={{ transform: `rotate(${rotate / 2}deg)` }}
+            className={`absolute inset-0 grid cursor-zoom-in grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center ${isPack ? "p-2" : "p-6 sm:p-10"}`}
+            style={{ transform: isPack ? undefined : `rotate(${rotate / 2}deg)` }}
           >
             <SmartImg
               full={product.imageUrl}
@@ -114,7 +125,7 @@ export default function ProductDetailClient({
                 out || unavailable ? "opacity-50 saturate-50" : ""
               }`}
             />
-            {features.sizeRuler && <SizeRuler img={artEl} inches={sizes.length > 0 ? size : null} aspectRatio={product.aspectRatio} />}
+            {features.sizeRuler && !isPack && <SizeRuler img={artEl} inches={sizes.length > 0 ? size : null} aspectRatio={product.aspectRatio} />}
           </button>
           {off !== null && !unavailable && (
             <span className="pie-gradient absolute top-4 left-4 rounded-full px-3 py-1 text-xs font-bold text-white">
@@ -125,7 +136,7 @@ export default function ProductDetailClient({
         {/* Below the art, so it never covers it or the size ruler. Phones skip it to keep
             the price in the first screen — the "see it at actual size" link under the
             size picker does the same there. */}
-        <div className="mt-1 hidden justify-center sm:flex">
+        <div className={`mt-1 hidden justify-center ${isPack ? "" : "sm:flex"}`}>
           <button
             type="button"
             onClick={() => setTrueSize(true)}
@@ -175,18 +186,19 @@ export default function ProductDetailClient({
                 {product.description}
               </p>
 
-              {sizes.length > 0 && !out && (
+              {sizes.length > (isPack ? 1 : 0) && !out && (
                 <div className="mt-4">
                   <SizePicker
                     sizes={sizes}
                     value={size}
                     onChange={setSize}
+                    label={(inches) => sizeChipLabel(product, inches)}
                   />
                 </div>
               )}
 
               <ProductPurchase product={product} stickerSize={size} price={price} />
-              {sizes.length > 0 && (
+              {sizes.length > 0 && !isPack && (
                 <button
                   type="button"
                   onClick={() => setTrueSize(true)}
@@ -203,7 +215,15 @@ export default function ProductDetailClient({
               <BadgeCheck className="size-4 text-mint" /> Die-cut, peel &amp; stick
             </li>
             <li className="flex items-center gap-2">
-              <Car className="size-4 text-mint" /> Car, bike &amp; laptop
+              {isPack ? (
+                <>
+                  <Frame className="size-4 text-mint" /> Walls, doors &amp; cupboards
+                </>
+              ) : (
+                <>
+                  <Car className="size-4 text-mint" /> Car, bike &amp; laptop
+                </>
+              )}
             </li>
             <li className="flex items-center gap-2">
               <Sparkles className="size-4 text-mint" /> Clean with a dry cloth
@@ -212,6 +232,41 @@ export default function ProductDetailClient({
               <Truck className="size-4 text-mint" /> Ships in 2–4 days
             </li>
           </ul>
+
+          {isPack && (
+            <div className="mt-5">
+              <h2 className="font-display text-lg font-semibold">
+                What&apos;s inside · {packPosters.length} posters
+              </h2>
+              <p className="text-xs text-fog">
+                {packSizeSummary(packPosters.map((p) => p.inches))}. Lay them out like the picture.
+              </p>
+              <ol className="mt-2 grid max-w-md grid-cols-3 gap-2 sm:grid-cols-4">
+                {packPosters.map((p, n) => {
+                  const tile = (
+                    <>
+                      <SmartImg full={p.imageUrl} thumb={null} alt={p.name} className="aspect-[2/3] w-full rounded-md object-cover" />
+                      <span className="mt-1 line-clamp-2 text-[11px] leading-tight text-fog">
+                        {n + 1}. {p.name.replace(/ — Mini Poster$| Mini Poster$/, "")}
+                        <span className={`block font-semibold ${p.inches > 6 ? "text-brand" : "text-fog"}`}>{posterSizeLabel(p.inches)}</span>
+                      </span>
+                    </>
+                  );
+                  return (
+                    <li key={p.slug}>
+                      {p.active ? (
+                        <PageLink href={`/sticker/${p.slug}`} className="block transition-opacity hover:opacity-80">
+                          {tile}
+                        </PageLink>
+                      ) : (
+                        tile
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+          )}
 
           {!unavailable && <ProductDetails size={sizes.length > 0 ? size : null} />}
 
@@ -245,8 +300,11 @@ export default function ProductDetailClient({
       )}
       <ProductReviews productId={product.id} />
 
+      {isPack && (
+        <ImageZoom open={zoom} onClose={() => setZoom(false)} src={product.imageUrl} title={product.name} />
+      )}
       <TrueSizePreview
-        open={trueSize}
+        open={trueSize && !isPack}
         onClose={() => setTrueSize(false)}
         name={product.name}
         imageUrl={product.imageUrl}

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Download, Eye, ImageUp, Printer } from "lucide-react";
-import { formatDateTime, formatINR, needsArtwork, orderCode } from "@stickypie/shared";
+import { formatDateTime, formatINR, needsArtwork, orderCode, posterSizeLabel } from "@stickypie/shared";
 import AvatarOrderPrompts from "@/components/avatar-order-prompts";
 import { avatarPoseSets } from "@/lib/avatar-prompts";
 import FinishedStickers from "@/components/finished-stickers";
@@ -182,6 +182,28 @@ export default async function OrderDetailPage({
                         Call {order.phone}
                       </a>
                     </p>
+                  )}
+                  {item.packPosters && (
+                    <div className="mt-1 text-xs">
+                      <p className="text-fog">Poster pack — print each poster × {item.quantity}:</p>
+                      <ol className="mt-1 flex flex-wrap gap-1.5">
+                        {item.packPosters.map((poster, n) => (
+                          <li key={n}>
+                            <a
+                              href={imageSrc(poster.imageUrl)}
+                              target="_blank"
+                              rel="noreferrer"
+                              title={poster.name}
+                              className="flex items-center gap-1.5 rounded-full border border-line py-0.5 pr-2 pl-0.5 hover:border-snow"
+                            >
+                              <img src={imageSrc(poster.imageUrl)} alt="" className="h-6 w-4 rounded-sm object-cover" />
+                              <span className="text-fog">#{n + 1}</span> {poster.name.replace(/ — Mini Poster$| Mini Poster$/, "")}
+                              <span className="font-semibold text-gold">{posterSizeLabel(poster.inches)}</span>
+                            </a>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
                   )}
                   {item.sizeLabel && (
                     <p className="mt-0.5 inline-block rounded-md bg-gold/15 px-1.5 py-0.5 text-xs font-semibold text-gold">

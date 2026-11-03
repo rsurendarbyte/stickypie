@@ -21,6 +21,8 @@ import {
   shippingFor,
   priceForSize,
   sizeLabel,
+  packPosterSizes,
+  packSizeSummary,
   type NewOrderInput,
   type Order,
 } from "@stickypie/shared";
@@ -168,6 +170,12 @@ export async function POST(req: Request) {
     }
   }
 
+  // Poster packs print as their posters: freeze each pack's posters on its order line.
+  const packIds = [...new Set(products.flatMap((p) => p.packItems))];
+  const packPosters = new Map(
+    (packIds.length ? await driver.getProductsByIds(packIds) : []).map((p) => [p.id, p])
+  );
+
   const orderItems: NewOrderInput["items"] = [];
   for (const line of lines.values()) {
     const product = byId.get(line.productId)!;
@@ -181,14 +189,28 @@ export async function POST(req: Request) {
         { status: 409 }
       );
     }
+    const sizesOf = packPosterSizes(product);
+    const posters = product.packItems.flatMap((id, i) => {
+      const p = packPosters.get(id);
+      return p ? [{ name: p.name, imageUrl: p.imageUrl, inches: sizesOf[i] }] : [];
+    });
+    if (product.packItems.length > 0 && posters.length === 0) {
+      return NextResponse.json(
+        { error: `"${product.name}" can't be ordered right now. Please remove it from your cart.` },
+        { status: 409 }
+      );
+    }
+    const label = line.size == null ? null : sizeLabel(line.size, product.aspectRatio);
     orderItems.push({
       productId: line.productId,
       name: product.name,
       unitPrice: priced.price,
       quantity: line.quantity,
       imageUrl: product.imageUrl,
-      sizeInches: line.size,
-      sizeLabel: line.size == null ? null : sizeLabel(line.size, product.aspectRatio),
+      // A pack has one price; its posters keep their own sizes.
+      sizeInches: posters.length ? null : line.size,
+      sizeLabel: posters.length ? packSizeSummary(posters.map((p) => p.inches)) : label,
+      packPosters: posters.length ? posters : null,
     });
   }
 

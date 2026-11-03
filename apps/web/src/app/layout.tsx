@@ -12,6 +12,7 @@ import Footer from "@/components/footer";
 import MobileTabBar from "@/components/mobile-tab-bar";
 import CartDrawer from "@/components/cart-drawer";
 import CartShell from "@/components/cart-shell";
+import SiteChrome from "@/components/site-chrome";
 import NavTracker from "@/components/nav-tracker";
 import AuthCookieSync from "@/components/auth-cookie-sync";
 import { META_PIXEL_SCRIPT } from "@/lib/meta-pixel";
@@ -99,17 +100,23 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <NavTracker />
           <AuthCookieSync />
           <PerfProbe />
-          <MildBackground />
-          <Nav />
-          <CursorTrail />
+          <SiteChrome>
+            <MildBackground />
+            <Nav />
+            <CursorTrail />
+          </SiteChrome>
           <CartShell>
             <main className="min-h-screen">{children}</main>
-            <Footer demoMode={!supabaseConfigured()} />
-            {/* keeps the footer clear of the phone tab bar */}
-            <div aria-hidden className="h-[var(--tabbar,0px)]" />
-            <MobileTabBar />
+            <SiteChrome>
+              <Footer demoMode={!supabaseConfigured()} />
+              {/* keeps the footer clear of the phone tab bar */}
+              <div aria-hidden className="h-[var(--tabbar,0px)]" />
+              <MobileTabBar />
+            </SiteChrome>
           </CartShell>
-          <CartDrawer />
+          <SiteChrome>
+            <CartDrawer />
+          </SiteChrome>
         </CartProvider>
         </ConfirmProvider>
       </body>

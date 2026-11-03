@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Download, Loader2, Printer } from "lucide-react";
-import { TEXT_STICKER_FONTS, type QrStickerSpec, type TextStickerSpec } from "@stickypie/shared";
+import { TEXT_STICKER_FONTS, posterSizeLabel, type QrStickerSpec, type TextStickerSpec } from "@stickypie/shared";
 import { drawSticker } from "@stickypie/shared/qr-art";
 import { drawTextSticker, loadStickerFont } from "@stickypie/shared/text-art";
 import { STICKER_FONTS } from "@/lib/sticker-fonts";
@@ -19,6 +19,8 @@ export type JobItem = {
   drawn: QrStickerSpec | TextStickerSpec | null;
   /** Avatar orders: packs ordered (their sheets are printed as they are, not on the A3 sheets). */
   avatarPacks: number | null;
+  /** Poster packs: each poster's name and size (file n = poster n); every poster goes on the A3 sheets. */
+  posters: { name: string; inches: number }[] | null;
 };
 
 // A3 portrait, everything in mm. Stickers sit at their real size with room to cut between them.
@@ -162,8 +164,8 @@ export default function PrintJob({
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [sheets, setSheets] = useState<Sheet[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const onSheets = items.filter((i) => i.avatarPacks == null && i.sizeInches && (i.files > 0 || i.drawn));
-  const totalStickers = onSheets.reduce((n, i) => n + i.quantity, 0);
+  const onSheets = items.filter((i) => i.avatarPacks == null && (i.posters || (i.sizeInches && (i.files > 0 || i.drawn))));
+  const totalStickers = onSheets.reduce((n, i) => n + i.quantity * (i.posters?.length ?? 1), 0);
 
   useEffect(() => {
     let live = true;
@@ -172,7 +174,7 @@ export default function PrintJob({
       try {
         const pieces: Piece[] = [];
         for (const item of onSheets) {
-          const longest = item.sizeInches! * MM_PER_IN;
+          const longest = (item.sizeInches ?? 0) * MM_PER_IN;
           let src: CanvasImageSource;
           let w: number;
           let h: number;
@@ -181,8 +183,16 @@ export default function PrintJob({
             if (live) setThumbs((t) => ({ ...t, [item.id]: canvas.toDataURL("image/png") }));
             [src, w, h] = [canvas, canvas.width, canvas.height];
           } else {
-            const img = await loadImage(fileUrl(token, item.id, 0));
-            [src, w, h] = [img, img.naturalWidth, img.naturalHeight];
+            // A poster pack puts every poster on the sheets at its own size; anything else has one file.
+            for (const [f, poster] of (item.posters ?? [{ name: item.name, inches: item.sizeInches! }]).entries()) {
+              const name = poster.name;
+              const img = await loadImage(fileUrl(token, item.id, f));
+              const scale = Math.min((poster.inches * MM_PER_IN) / Math.max(img.naturalWidth, img.naturalHeight), (SHEET_W - MARGIN * 2) / img.naturalWidth, (SHEET_H - MARGIN * 2) / img.naturalHeight);
+              for (let n = 0; n < item.quantity; n++) {
+                pieces.push({ name, w: img.naturalWidth * scale, h: img.naturalHeight * scale, src: img });
+              }
+            }
+            continue;
           }
           const scale = Math.min(longest / Math.max(w, h), (SHEET_W - MARGIN * 2) / w, (SHEET_H - MARGIN * 2) / h);
           for (let n = 0; n < item.quantity; n++) pieces.push({ name: item.name, w: w * scale, h: h * scale, src });
@@ -223,7 +233,7 @@ export default function PrintJob({
   }
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-[1100px] px-4 pt-20 pb-24 sm:px-8 sm:pt-24">
+    <div className="mx-auto min-h-screen w-full max-w-[1100px] px-4 pt-8 pb-16 sm:px-8 sm:pt-10">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <h1 className="flex items-center gap-2 font-display text-2xl font-bold sm:text-3xl">
           <Printer className="size-6 text-brand" /> Print job {code}
@@ -237,7 +247,36 @@ export default function PrintJob({
       <section className="mt-6 rounded-2xl border border-line bg-ink2 p-4 sm:p-5">
         <h2 className="font-display text-lg font-semibold">Stickers</h2>
         <ul className="mt-3 divide-y divide-line">
-          {items.map((item) => (
+          {items.map((item) =>
+            item.posters ? (
+            // A poster pack: one tile per poster, with its own size and file.
+            <li key={item.id} className="py-3">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <p className="text-sm font-semibold">{item.name}</p>
+                <span className="rounded-lg bg-brand/10 px-2.5 py-1 text-sm font-bold text-brand">× {item.quantity} set{item.quantity === 1 ? "" : "s"}</span>
+                {item.sizeLabel && <p className="text-xs text-fog">{item.sizeLabel}</p>}
+              </div>
+              <ol className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+                {item.posters.map((poster, n) => (
+                  <li key={n} className="flex flex-col rounded-xl border border-line bg-white p-2">
+                    <img src={fileUrl(token, item.id, n)} alt="" loading="lazy" className="aspect-[2/3] w-full rounded-md object-cover" />
+                    <p className="mt-1.5 line-clamp-2 text-xs font-medium text-[#15161e]">
+                      {n + 1}. {poster.name.replace(/ — Mini Poster$| Mini Poster$/, "")}
+                    </p>
+                    <p className={`text-xs font-bold ${poster.inches > 6 ? "text-brand" : "text-fog"}`}>
+                      {posterSizeLabel(poster.inches)} × {item.quantity}
+                    </p>
+                    <a
+                      href={fileUrl(token, item.id, n, true)}
+                      className="peel-btn peel-btn--light mt-2 inline-flex h-8 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-bold"
+                    >
+                      <Download className="size-3.5" /> File
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </li>
+            ) : (
             <li key={item.id} className="flex flex-wrap items-center gap-3 py-3">
               <span className="grid size-14 shrink-0 place-items-center rounded-lg bg-white p-1 ring-1 ring-line">
                 {item.drawn ? (
@@ -282,7 +321,8 @@ export default function PrintJob({
                 ))
               )}
             </li>
-          ))}
+            )
+          )}
         </ul>
       </section>
 

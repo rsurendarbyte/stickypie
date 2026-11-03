@@ -37,6 +37,10 @@ export type Product = {
   sizes: ProductSize[];
   /** Artwork width / height — turns "6 inch" into real dimensions. */
   aspectRatio: number | null;
+  /** Poster packs: the posters in the pack (product ids, wall order). Empty = a normal sticker. */
+  packItems: string[];
+  /** Poster packs: each poster's size (longest side, inches), same order as packItems. Missing → 6 (4 × 6 in). */
+  packSizes: number[];
   createdAt: string;
   updatedAt: string;
 };
@@ -81,7 +85,12 @@ export type OrderItem = {
   customSpec: CustomSpec | null;
   /** Avatar packs: the finished stickers we drew, shown to the shopper on the order page. */
   finishedFiles: string[];
+  /** Poster packs: the posters bought, frozen at order time (wall order); null for anything else. */
+  packPosters: PackPoster[] | null;
 };
+
+/** One poster of an ordered poster pack. */
+export type PackPoster = { name: string; imageUrl: string; /** Longest side, inches (2:3: 6 = 4 × 6 in, 9 = 6 × 9 in). */ inches: number };
 
 export type CustomerInfo = {
   name: string;
@@ -169,6 +178,8 @@ export type ProductInput = {
   stock: number | null;
   sizes: ProductSize[];
   aspectRatio: number | null;
+  packItems?: string[];
+  packSizes?: number[];
   thumbUrl?: string | null;
 };
 
@@ -192,6 +203,7 @@ export type NewOrderInput = {
     isCustom?: boolean;
     customRef?: string | null;
     customSpec?: CustomSpec | null;
+    packPosters?: PackPoster[] | null;
   }>;
   subtotal: number;
   shippingFee: number;
