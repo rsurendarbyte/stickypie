@@ -156,10 +156,10 @@ export default function Hero({
           ) : (
             <AvatarBookWall key="book-wall" styles={settings.avatarStyles} />
           )}
-          {/* white wash behind the words: from below on phones, from the left on desktop */}
+          {/* white wash behind the words: from below on phones, from the left on tablets and desktop */}
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,rgba(255,255,255,0.97)_0%,rgba(255,255,255,0.9)_42%,rgba(255,255,255,0.15)_75%,transparent_100%)] lg:bg-[linear-gradient(to_right,rgba(255,255,255,0.96)_0%,rgba(255,255,255,0.9)_30%,rgba(255,255,255,0.35)_42%,transparent_52%)]"
+            className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,rgba(255,255,255,0.97)_0%,rgba(255,255,255,0.9)_42%,rgba(255,255,255,0.15)_75%,transparent_100%)] sm:max-lg:bg-[linear-gradient(to_right,rgba(255,255,255,0.95)_0%,rgba(255,255,255,0.88)_50%,rgba(255,255,255,0.4)_72%,transparent_88%)] lg:bg-[linear-gradient(to_right,rgba(255,255,255,0.96)_0%,rgba(255,255,255,0.9)_30%,rgba(255,255,255,0.35)_42%,transparent_52%)]"
           />
         </>
       )}
@@ -174,7 +174,12 @@ export default function Hero({
         {/* Copy: every slide is laid out in the same cell, so the hero keeps the
             height of the tallest slide and never jumps as slides change. */}
         {/* z-10: on phones the sticker can reach down behind the text — it stays a backdrop */}
-        <div className="pointer-events-auto relative z-10 order-2 grid max-w-2xl lg:order-1">
+        {/* Tablets / small laptop windows: on the wall slides the picture box above is empty
+            (the wall is the backdrop), so the words slide up into it — a shift only, the
+            hero keeps its height and the page below never jumps between slides. */}
+        <div
+          className={`pointer-events-auto relative z-10 order-2 grid max-w-2xl lg:order-1 ${slide.kind === "brand" || slide.kind === "avatar" ? "sm:max-lg:-translate-y-[min(42svh,28.8rem)]" : ""}`}
+        >
           {/* Phones: a soft frosted fade behind the text, so the picture above
               melts away under it instead of clashing with the badge. */}
           <div
@@ -188,7 +193,9 @@ export default function Hero({
                 key={s.kind === "product" ? s.product.id : s.kind}
                 aria-hidden={!active}
                 inert={!active}
-                className={`col-start-1 row-start-1 self-end ${active ? "animate-hero-in" : "pointer-events-none invisible"}`}
+                // Tablets / small laptop windows: the StickyPie and avatar text sits at the top (the
+                // wall fills the hero behind it), not at the foot of the tallest slide's space.
+                className={`col-start-1 row-start-1 self-end ${s.kind === "brand" || s.kind === "avatar" ? "sm:max-lg:self-start" : ""} ${active ? "animate-hero-in" : "pointer-events-none invisible"}`}
               >
                 {s.kind === "product" ? (
                   <ProductSlideCopy
@@ -211,7 +218,7 @@ export default function Hero({
           })}
 
           {slides.length > 1 && (
-            <div className="col-start-1 row-start-2 mt-4 flex items-center justify-center gap-2 sm:hidden">
+            <div className="col-start-1 row-start-2 mt-4 flex items-center justify-center gap-2 sm:row-start-3 sm:mt-5 sm:justify-start lg:hidden">
               {slides.map((s, i) => (
                 <button
                   key={s.kind === "product" ? s.product.id : s.kind}
@@ -262,7 +269,7 @@ export default function Hero({
 
           <div
             key={key}
-            className="animate-hero-img-in relative aspect-[5/4] max-sm:max-h-[38svh] max-sm:w-full sm:aspect-[5/4] lg:aspect-auto lg:h-[min(50vh,560px)]"
+            className="animate-hero-img-in relative aspect-[5/4] max-sm:max-h-[38svh] max-sm:w-full sm:aspect-[5/4] sm:max-lg:max-h-[42svh] sm:max-lg:w-full lg:aspect-auto lg:h-[min(50vh,560px)]"
           >
             {product ? (
               // Tapping the art opens the sticker: the swipe view on phones,
@@ -288,7 +295,7 @@ export default function Hero({
 
           {/* Slide indicator */}
           {slides.length > 1 && (
-            <div className="relative z-10 mt-4 hidden items-center justify-center gap-2 sm:flex lg:mt-7">
+            <div className="relative z-10 mt-7 hidden items-center justify-center gap-2 lg:flex">
               {slides.map((s, i) => (
                 <button
                   key={s.kind === "product" ? s.product.id : s.kind}
