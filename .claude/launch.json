@@ -27,6 +27,24 @@
         "admin:prod"
       ],
       "port": 3200
+    },
+    {
+      "name": "poster-kit",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "prod_stickers/2x3-ai-kit/server.mjs"
+      ],
+      "port": 8765,
+      "autoPort": false
+    },
+    {
+      "name": "reel-studio",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "scripts/pack-reel/studio.mjs"
+      ],
+      "port": 8766,
+      "autoPort": false
     }
   ]
 }
