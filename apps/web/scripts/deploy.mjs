@@ -104,11 +104,15 @@ if (!flags.includes("--build-only") && !flags.includes("--preview")) {
   migrateBeforeDeploy({ prod: target === "production", flags });
 }
 
+// Each deploy's version: baked into the pages, and served as /build.json, so
+// open pages notice a newer deploy and reload (components/version-check.tsx).
+const BUILD_ID = Date.now().toString(36);
+
 function run(cmd, args) {
   const result = spawnSync(cmd, args, {
     cwd: appDir,
     stdio: "inherit",
-    env: { ...process.env, ...buildEnv, ...vars },
+    env: { ...process.env, ...buildEnv, ...vars, NEXT_PUBLIC_BUILD_ID: BUILD_ID },
   });
   return result.status ?? 1;
 }
@@ -179,16 +183,16 @@ if (fs.existsSync(bundledEnv) && /"[A-Z0-9_]+"\s*:/.test(fs.readFileSync(bundled
 status = spawnSync("node", ["scripts/copy-static-pages.mjs", target], { cwd: appDir, stdio: "inherit" }).status ?? 1;
 if (status !== 0) process.exit(status);
 
-// Static assets bypass the Worker, so their noindex header comes from
-// Cloudflare's `_headers` file rather than next.config.
+fs.writeFileSync(path.join(appDir, ".open-next/assets/build.json"), JSON.stringify({ id: BUILD_ID }));
+
+// Static assets bypass the Worker, so their headers come from Cloudflare's
+// `_headers` file rather than next.config: build.json is never cached, and
+// non-production sites are noindex.
 const headersFile = path.join(appDir, ".open-next/assets/_headers");
+const BUILD_RULE = "/build.json\n  Cache-Control: no-store\n";
 const NOINDEX_RULE = "/*\n  X-Robots-Tag: noindex, nofollow, noimageindex\n";
-if (indexable) {
-  fs.rmSync(headersFile, { force: true });
-} else {
-  fs.writeFileSync(headersFile, NOINDEX_RULE);
-  console.log("deploy: wrote noindex _headers for static assets");
-}
+fs.writeFileSync(headersFile, indexable ? BUILD_RULE : BUILD_RULE + NOINDEX_RULE);
+if (!indexable) console.log("deploy: wrote noindex _headers for static assets");
 
 if (flags.includes("--build-only")) process.exit(0);
 const preview = flags.includes("--preview");
