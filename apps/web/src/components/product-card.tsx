@@ -245,8 +245,10 @@ function PackCard({ product, width }: { product: Product; width: string }) {
   const count = product.packItems.length;
 
   return (
+    // rail-card-drawn: always laid out (no 320px stand-in or a size remembered at another
+    // screen width), so the row is exactly as tall as the packs really are
     <div
-      className={`@container group relative snap-start overflow-hidden rounded-2xl border border-line bg-white transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] ${width}`}
+      className={`rail-card-drawn @container group relative snap-start overflow-hidden rounded-2xl border border-line bg-white transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] ${width}`}
     >
       {/* The pack's 2:3 picture, full width and height (no side bars) */}
       <PageLink
