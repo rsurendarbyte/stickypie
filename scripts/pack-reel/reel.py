@@ -6,6 +6,7 @@ in the pack's layout → what's inside → price and stickypie.in.
   python3 scripts/pack-reel/reel.py 4x4-garage-poster-pack [more slugs…]
   python3 scripts/pack-reel/reel.py --all          → every active pack
   add --dev to read the dev database instead of prod
+  add --caption-only to only (re)write the Instagram caption, without making the video
   --theme=NAME picks the style (default classic):
     classic      "Blank wall?" → posters stick on one by one
     night        dark garage, posters light up like spotlights
@@ -19,7 +20,7 @@ in the pack's layout → what's inside → price and stickypie.in.
     rows         rows of posters slide in from alternating sides
 
 Reels land in prod_stickers/poster-packs/reels/<slug>.mp4 (classic) or
-<slug>-<theme>.mp4, plus a matching -cover.jpg to use as the reel cover. Add trending audio in Instagram.
+<slug>-<theme>.mp4, plus a matching -cover.jpg to use as the reel cover and -caption.txt to paste in Instagram. Add trending audio in Instagram.
 """
 import io, json, math, os, random, re, shutil, subprocess, sys, tempfile, urllib.request
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
@@ -86,18 +87,72 @@ def get(url, raw=False):
         data = r.read()
     return data if raw else json.loads(data)
 
-def load_pack(slug):
-    [p] = get(f"{URL}/rest/v1/products?slug=eq.{slug}&select=slug,name,price,compare_at_price,pack_items,pack_sizes")
+def load_pack(slug, images=True):
+    [p] = get(f"{URL}/rest/v1/products?slug=eq.{slug}&select=slug,name,price,compare_at_price,pack_items,pack_sizes,tags")
     rows = get(f"{URL}/rest/v1/products?id=in.({','.join(p['pack_items'])})&select=id,name,display_url,image_url")
     by_id = {r["id"]: r for r in rows}
-    posters = []
+    posters, names = [], []
     for pid in p["pack_items"]:
         r = by_id[pid]
-        img = Image.open(io.BytesIO(get(r["display_url"] or r["image_url"], raw=True))).convert("RGBA")
-        posters.append(img)
+        names.append(re.sub(r"\s*[—-]?\s*Mini Poster$", "", r["name"]).strip())
+        if images:
+            posters.append(Image.open(io.BytesIO(get(r["display_url"] or r["image_url"], raw=True))).convert("RGBA"))
     title = re.sub(r"\s+[—-]\s+\d+\s+Mini Poster Pack$", "", p["name"])
-    sizes = [(p["pack_sizes"] or [])[i] if i < len(p["pack_sizes"] or []) else 6 for i in range(len(posters))]
-    return dict(slug=slug, title=title, price=p["price"], compare=p["compare_at_price"], posters=posters, sizes=sizes)
+    count = len(p["pack_items"])
+    sizes = [(p["pack_sizes"] or [])[i] if i < len(p["pack_sizes"] or []) else 6 for i in range(count)]
+    return dict(slug=slug, title=title, price=p["price"], compare=p["compare_at_price"], posters=posters,
+                sizes=sizes, names=names, tags=p.get("tags") or [], count=count)
+
+# ---------- caption ----------
+HOOKS = {
+    "classic": "Blank wall? Fixed. 🖼️",
+    "night": "Lights on. 🔦",
+    "beforeafter": "Before → After. Same wall, whole new vibe. ✨",
+    "onebyone": "Every poster in the {title} set 👇",
+    "zoom": "Wait for it… 👀",
+    "scatter": "From a pile to a wall in seconds. 🧩",
+    "polaroid": "Hang it up. 📸",
+    "quickcuts": "{n} posters. 1 wall. 🔥",
+    "flip": "Flip to see what's inside 🔄",
+    "rows": "Row by row, wall done. ✅",
+}
+BASE_TAGS = ["wallposters", "posterwall", "wallcollage", "roomdecor", "walldecor", "homedecorindia", "stickypie"]
+
+def caption(pack, theme):
+    """A ready-to-paste Instagram caption for the pack's reel."""
+    n = pack["count"]
+    hook = HOOKS.get(theme, HOOKS["classic"]).format(title=pack["title"], n=n)
+    price = inr(pack["price"])
+    if pack["compare"] and pack["compare"] > pack["price"]:
+        save = round((1 - pack["price"] / pack["compare"]) * 100)
+        price += f" (was {inr(pack['compare'])}, save {save}%)"
+    names = [nm.split(" — ")[0].strip() for nm in pack["names"]]
+    inside = ", ".join(names[:3]) + (f" + {n - 3} more" if n > 3 else "")
+    own = []
+    for tg in pack["tags"]:
+        tag = re.sub(r"[^a-z0-9]", "", tg.lower())
+        if tag and tag not in ("posterpack", "wallcollage") and tag not in own:
+            own.append(tag)
+    tags = " ".join("#" + x for x in (own[:6] + [b for b in BASE_TAGS if b not in own]))
+    return "\n".join([
+        hook,
+        "",
+        f"{pack['title']}: {n} mini posters for your wall, {size_text(pack['sizes'])}.",
+        f"Inside: {inside}.",
+        f"One set, one price: {price}.",
+        "",
+        "Ships across India 🇮🇳 Shop at stickypie.in (link in bio)",
+        "",
+        tags,
+    ]) + "\n"
+
+def write_caption(pack, theme):
+    name = pack["slug"] if theme == "classic" else f"{pack['slug']}-{theme}"
+    path = os.path.join(OUT, f"{name}-caption.txt")
+    os.makedirs(OUT, exist_ok=True)
+    with open(path, "w") as f:
+        f.write(caption(pack, theme))
+    return path
 
 # ---------- drawing helpers ----------
 def ease_out_back(t, s=1.6):
@@ -857,6 +912,7 @@ def make(slug, theme="classic"):
         out = os.path.join(OUT, f"{name}.mp4")
         subprocess.run(["swift", os.path.join(HERE, "encode.swift"), frames_dir, out, str(FPS)], check=True)
         cover.save(os.path.join(OUT, f"{name}-cover.jpg"), quality=90)
+        write_caption(pack, theme)
         print(f"  ✔ {pack['title']} ({theme}): {out} ({nframes / FPS:.1f} s)")
     finally:
         shutil.rmtree(frames_dir, ignore_errors=True)
@@ -873,4 +929,7 @@ if __name__ == "__main__":
         print(f"unknown theme {theme}; pick one of {', '.join(THEMES)}")
         sys.exit(1)
     for s in slugs:
-        make(s, theme)
+        if "--caption-only" in sys.argv:
+            print(f"  ✔ caption: {write_caption(load_pack(s, images=False), theme)}")
+        else:
+            make(s, theme)

@@ -72,6 +72,11 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   pre { white-space: pre-wrap; font-size: 11px; color: var(--red); margin: 6px 0 0; max-height: 120px; overflow: auto; }
   .empty { color: var(--muted); padding: 10px 0; }
+  .cap { margin-top: 8px; }
+  .cap textarea { width: 100%; height: 150px; resize: vertical; font: 12px/1.45 -apple-system, BlinkMacSystemFont, sans-serif; border: 1px solid var(--line); border-radius: 9px; padding: 7px 8px; background: #fbf8f5; color: var(--ink); }
+  .cap .row { margin-top: 6px; }
+  .cap button { padding: 5px 10px; font-size: 13px; font-weight: 600; }
+  .cap button.copied { background: var(--mint); color: #fff; border-color: var(--mint); }
   .err { color: var(--red); }
 </style>
 </head>
@@ -94,9 +99,14 @@
   </div>
   <div class="packs" id="packs"><p class="empty">Loading packs from the shop…</p></div>
 
-  <h2><span class="n">3</span> Your reels</h2>
-  <div class="jobs" id="jobs"></div>
-  <p class="empty" id="nojobs">Reels you make here show up here, ready to play and download.</p>
+  <div id="making" hidden>
+    <h2><span class="n">3</span> Making now</h2>
+    <div class="jobs" id="jobs"></div>
+  </div>
+
+  <h2><span class="n">✓</span> Your reels <small style="color:var(--muted);font-weight:400">— newest first, each with its Instagram caption</small></h2>
+  <div class="jobs" id="library"></div>
+  <p class="empty" id="nolib">Reels you make show up here, ready to play, copy the caption and download.</p>
 </main>
 
 <div class="bar"><div class="in">
@@ -169,8 +179,54 @@ function summary() {
     : "Pick a style and at least one pack.";
 }
 
-function drawJobs(jobs) {
-  $("nojobs").style.display = jobs.length ? "none" : "";
+function parseFile(file) {
+  const th = THEMES.find((x) => x.id !== "classic" && file.endsWith(`-${x.id}`));
+  return th ? { slug: file.slice(0, -(th.id.length + 1)), theme: th } : { slug: file, theme: THEMES[0] };
+}
+
+function drawLibrary() {
+  const list = [...reels.entries()].sort((a, b) => b[1].made - a[1].made);
+  $("nolib").style.display = list.length ? "none" : "";
+  const name = (slug) => packs.find((p) => p.slug === slug)?.name || slug;
+  $("library").innerHTML = list.map(([file, r]) => {
+    const { slug, theme: th } = parseFile(file);
+    const v = Math.round(r.made);
+    return `<div class="job" data-file="${file}">
+      <video controls playsinline preload="none" poster="/reels/${file}-cover.jpg?v=${v}" src="/reels/${file}.mp4?v=${v}"></video>
+      <div class="info"><b>${esc(name(slug))}</b><small>${th.name}</small>
+        <div class="cap">${r.caption
+          ? `<textarea readonly>Loading caption…</textarea><div class="row"><button data-copy>Copy caption</button><button data-recap>Remake caption</button></div>`
+          : `<button data-recap>Make caption</button>`}</div>
+        <div class="dl"><a class="main" href="/reels/${file}.mp4?download=1">Download video</a><a href="/reels/${file}-cover.jpg?download=1">Cover</a></div>
+      </div></div>`;
+  }).join("");
+  document.querySelectorAll("#library .job").forEach((el) => {
+    const file = el.dataset.file;
+    const ta = el.querySelector("textarea");
+    if (ta) fetch(`/reels/${file}-caption.txt?v=${Date.now()}`).then((r) => r.text()).then((x) => (ta.value = x));
+    const copy = el.querySelector("[data-copy]");
+    if (copy) copy.onclick = async () => {
+      try { await navigator.clipboard.writeText(ta.value); } catch { ta.select(); document.execCommand("copy"); }
+      copy.textContent = "Copied ✓"; copy.classList.add("copied");
+      setTimeout(() => { copy.textContent = "Copy caption"; copy.classList.remove("copied"); }, 1600);
+    };
+    el.querySelector("[data-recap]").onclick = async (e) => {
+      e.target.textContent = "Writing…"; e.target.disabled = true;
+      const res = await fetch("/api/caption", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ file }) });
+      if (!res.ok) { e.target.textContent = "Couldn't write it"; return; }
+      await loadReels(); drawLibrary();
+    };
+  });
+}
+
+async function loadReels() {
+  reels = new Map((await (await fetch("/api/reels")).json()).map((r) => [r.file, r]));
+}
+
+function drawJobs(all) {
+  // finished reels move to "Your reels"; here only what's waiting, being made or failed
+  const jobs = all.filter((j) => j.state !== "done");
+  $("making").hidden = !jobs.length;
   const name = (slug) => packs.find((p) => p.slug === slug)?.name || slug;
   $("jobs").innerHTML = jobs.slice().reverse().map((j) => {
     const t = THEMES.find((x) => x.id === j.theme)?.name || j.theme;
@@ -196,7 +252,7 @@ async function poll() {
     // redraw when something changed (and every tick while one is making, for its timer);
     // finished reels are redrawn once, so a playing video isn't interrupted
     if (key !== lastJobs || making) {
-      if (key !== lastJobs) { reels = new Map((await (await fetch("/api/reels")).json()).map((r) => [r.file, r.made])); drawThemes(); drawPacks(); }
+      if (key !== lastJobs) { await loadReels(); drawThemes(); drawPacks(); drawLibrary(); }
       if (key !== lastJobs) drawJobs(jobs);
       else document.querySelectorAll(".job").forEach((el) => {
         const j = jobs.find((x) => String(x.id) === el.dataset.id);
@@ -215,7 +271,8 @@ $("make").onclick = async () => {
   const res = await fetch("/api/make", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slugs, theme }) });
   if (!res.ok) alert((await res.json()).error || "Could not start");
   picked.clear(); drawPacks(); summary();
-  $("jobs").scrollIntoView({ behavior: "smooth", block: "start" });
+  $("making").hidden = false;
+  $("making").scrollIntoView({ behavior: "smooth", block: "start" });
 };
 $("q").oninput = drawPacks;
 $("all").onclick = () => { packs.forEach((p) => picked.add(p.slug)); drawPacks(); summary(); };
@@ -223,7 +280,7 @@ $("none").onclick = () => { picked.clear(); drawPacks(); summary(); };
 $("notmade").onclick = () => { picked.clear(); packs.forEach((p) => !reels.has(fileOf(p.slug, theme)) && picked.add(p.slug)); drawPacks(); summary(); };
 
 (async () => {
-  reels = new Map((await (await fetch("/api/reels")).json()).map((r) => [r.file, r.made]));
+  await loadReels();
   drawThemes();
   try {
     packs = await (await fetch("/api/packs")).json();
@@ -233,6 +290,7 @@ $("notmade").onclick = () => { picked.clear(); packs.forEach((p) => !reels.has(f
     $("packs").innerHTML = `<p class="err">Couldn't load packs from the shop (${esc(e.message)}). Check the internet and reload.</p>`;
   }
   summary();
+  drawLibrary();
   poll();
 })();
 </script>
