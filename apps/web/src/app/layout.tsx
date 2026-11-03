@@ -14,6 +14,7 @@ import CartDrawer from "@/components/cart-drawer";
 import CartShell from "@/components/cart-shell";
 import SiteChrome from "@/components/site-chrome";
 import NavTracker from "@/components/nav-tracker";
+import VersionCheck from "@/components/version-check";
 import AuthCookieSync from "@/components/auth-cookie-sync";
 import { META_PIXEL_SCRIPT } from "@/lib/meta-pixel";
 import { stickerCursorCss } from "@/lib/sticker-cursor";
@@ -97,6 +98,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {process.env.NODE_ENV !== "production" && <ThemeTryout />}
         <ConfirmProvider>
         <CartProvider>
+          <VersionCheck />
           <NavTracker />
           <AuthCookieSync />
           <PerfProbe />
