@@ -123,7 +123,7 @@ export default function HomeClient({
 
   return (
     <>
-      <Hero products={featured.length > 0 ? featured : [hero]} categories={categories} />
+      <Hero products={featured.length > 0 ? featured : [hero]} packs={packs} categories={categories} />
       <div className="relative z-10 mt-2 space-y-1 pb-24 sm:space-y-8">
         {/* First row: the AI "Stickers of YOU" card, then the wall poster sets, then the
             AI styles; then any festival on now */}

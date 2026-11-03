@@ -3,25 +3,20 @@
 import Link from "@/components/page-link";
 import SmartImg from "./smart-img";
 import PageLink from "./page-link";
-import { isMiniPoster, isPosterPack } from "@/lib/poster";
+import { isMiniPoster, isPosterPack, packSizeLine } from "@/lib/poster";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   BadgeCheck,
+  Frame,
   Car,
   ImageUp,
-  Link2,
   Loader2,
-  MessageCircle,
-  QrCode,
   Ruler,
-  Scissors,
-  Shapes,
   Sparkles,
   Smile,
   Sticker,
   Truck,
-  Wallet,
 } from "lucide-react";
 import type {
   AvatarBook,
@@ -31,7 +26,6 @@ import type {
 } from "@stickypie/shared";
 import {
   avatarBook,
-  customSizes,
   discountPercent,
   formatINR,
   formatInches,
@@ -49,33 +43,34 @@ import {
   useLiveCatalog,
   useStoreSettings,
 } from "@/lib/live-catalog";
-import { drawSticker } from "@/lib/qr-art";
 
 /** Rotating hero: the featured sticker is staged on a big tilted product card. */
 export default function Hero({
   products,
+  packs = [],
   categories,
 }: {
   products: Product[];
+  /** Wall poster sets: a few of them take turns between the sticker slides. */
+  packs?: Product[];
   categories: Category[];
 }) {
-  // Poster packs have their own rail; the hero shows single stickers and posters.
   const picks = products.filter((p) => !isPosterPack(p)).slice(0, 5);
   const features = useFeatures();
   const settings = useStoreSettings();
-  const custom = features.customStickers
-    ? customSizes(settings.customPrices)
-    : [];
-  const qr = features.customStickers ? customSizes(settings.qrPrices) : [];
-  // Sticker slides, with "your own design" second and "QR code sticker" fourth (when on).
-  const slides: Slide[] = picks.map((p) => ({
-    kind: "product" as const,
-    product: p,
-  }));
-  if (picks.length > 0 && custom.length > 0)
-    slides.splice(1, 0, { kind: "custom" });
-  if (picks.length > 0 && qr.length > 0)
-    slides.splice(Math.min(3, slides.length), 0, { kind: "qr" });
+  const seed = useSkinSeed();
+  // Three wall poster sets, featured ones first, a different three each visit.
+  const packOrder = [...packs.filter((p) => p.featured), ...packs.filter((p) => !p.featured)];
+  const start = packOrder.length ? seed % packOrder.length : 0;
+  const packPicks = [...packOrder.slice(start), ...packOrder.slice(0, start)].slice(0, 3);
+  // Sticker slides with a wall poster set after every second one.
+  const slides: Slide[] = [];
+  const queue = [...packPicks];
+  picks.forEach((p, i) => {
+    slides.push({ kind: "product", product: p });
+    if (i % 2 === 1 && queue.length) slides.push({ kind: "product", product: queue.shift()! });
+  });
+  for (const p of queue) slides.push({ kind: "product", product: p });
   // StickyPie itself opens the hero: what we are + a nudge to order…
   if (picks.length > 0) slides.unshift({ kind: "brand" });
   // …except the avatar sticker book, the headline product, which leads when on sale.
@@ -87,7 +82,6 @@ export default function Hero({
   });
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
-  const seed = useSkinSeed();
   // Shopper picked a size → stop rotating so the slide doesn't change under them.
   const [engaged, setEngaged] = useState(false);
   const slide = slides[Math.min(index, slides.length - 1)];
@@ -112,13 +106,9 @@ export default function Hero({
   const key = product ? product.id : slide.kind;
   const skinSlug = product
     ? product.slug
-    : slide.kind === "qr"
-      ? "qr-code-stickers"
-      : slide.kind === "avatar"
-        ? "avatar-stickers"
-        : slide.kind === "brand"
-          ? "stickypie"
-          : "custom-stickers";
+    : slide.kind === "avatar"
+      ? "avatar-stickers"
+      : "stickypie";
 
   const tile = tileFor(skinSlug);
   // Each slide sits on a sticker sheet or cutting mat — a new mix every load.
@@ -160,6 +150,7 @@ export default function Hero({
               stickers={wallItems(
                 catalog.length ? catalog : products,
                 features.wallPostersOnly,
+                seed,
               )}
             />
           ) : (
@@ -212,13 +203,8 @@ export default function Hero({
                   <BrandSlideCopy
                     catalog={catalog.length ? catalog : products}
                   />
-                ) : s.kind === "avatar" ? (
-                  <AvatarSlideCopy book={book!} />
                 ) : (
-                  <CustomSlideCopy
-                    kind={s.kind}
-                    sizes={s.kind === "qr" ? qr : custom}
-                  />
+                  <AvatarSlideCopy book={book!} />
                 )}
               </div>
             );
@@ -293,15 +279,11 @@ export default function Hero({
                   thumb={product.thumbUrl}
                   alt={product.name}
                   priority
-                  className="sticker-cut animate-float max-h-full max-w-full rotate-2 cursor-pointer object-contain transition-transform duration-200 hover:scale-[1.03] lg:max-h-[min(46vh,520px)]"
+                  // a wall poster set's collage stands straight with rounded corners, like its card
+                  className={`animate-float max-h-full max-w-full cursor-pointer object-contain transition-transform duration-200 hover:scale-[1.03] lg:max-h-[min(46vh,520px)] ${isPosterPack(product) ? "rounded-2xl shadow-[0_24px_50px_-20px_rgba(16,24,40,0.45)]" : "sticker-cut rotate-2"}`}
                 />
               </PageLink>
-            ) : slide.kind === "brand" ||
-              slide.kind === "avatar" ? null : slide.kind === "qr" ? (
-              <QrSlideArt />
-            ) : (
-              <CustomSlideArt sizes={custom} />
-            )}
+            ) : null}
           </div>
 
           {/* Slide indicator */}
@@ -314,13 +296,9 @@ export default function Hero({
                   aria-label={
                     s.kind === "product"
                       ? `Show ${s.product.name}`
-                      : s.kind === "qr"
-                        ? "Show QR code stickers"
-                        : s.kind === "avatar"
-                          ? "Show avatar stickers"
-                          : s.kind === "brand"
-                            ? "Show StickyPie"
-                            : "Show custom stickers"
+                      : s.kind === "avatar"
+                        ? "Show avatar stickers"
+                        : "Show StickyPie"
                   }
                   onClick={() => setIndex(i)}
                   className={`h-2.5 rounded-full transition-all duration-300 ${
@@ -343,9 +321,7 @@ export default function Hero({
 type Slide =
   | { kind: "product"; product: Product }
   | { kind: "brand" }
-  | { kind: "avatar" }
-  | { kind: "custom" }
-  | { kind: "qr" };
+  | { kind: "avatar" };
 
 /** First slide: StickyPie in one line, a few quick facts, and two ways to order. */
 function BrandSlideCopy({ catalog }: { catalog: Product[] }) {
@@ -398,11 +374,43 @@ function BrandSlideCopy({ catalog }: { catalog: Product[] }) {
 
 /** What the banner wall shows: only mini posters when admin → Features says so
  *  (falls back to everything while there are none), otherwise all of it —
- *  never poster packs (a pack's picture is a whole wall, not one sticker). */
-function wallItems(everything: Product[], postersOnly: boolean) {
+ *  never poster packs (a pack's picture is a whole wall, not one sticker).
+ *  Categories take turns (one from each, round and round) so no single one —
+ *  a festival's dozen posters, say — fills the wall; the mix changes each visit. */
+function wallItems(everything: Product[], postersOnly: boolean, seed: number) {
   const all = everything.filter((p) => !isPosterPack(p));
   const posters = postersOnly ? all.filter(isMiniPoster) : [];
-  return (posters.length ? posters : all).slice(0, 30);
+  const pool = posters.length ? posters : all;
+  const random = seededRandom(seed);
+  const mix = <T,>(list: T[]) => {
+    for (let i = list.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1));
+      [list[i], list[j]] = [list[j], list[i]];
+    }
+    return list;
+  };
+  const groups = new Map<string, Product[]>();
+  for (const p of pool) {
+    const key = p.categoryId ?? "none";
+    groups.set(key, [...(groups.get(key) ?? []), p]);
+  }
+  const queues = mix([...groups.values()].map((g) => mix([...g])));
+  const out: Product[] = [];
+  while (out.length < 30 && queues.some((q) => q.length)) {
+    for (const q of queues) if (q.length && out.length < 30) out.push(q.shift()!);
+  }
+  return out;
+}
+
+/** Small repeatable random numbers (mulberry32): same seed, same wall. */
+function seededRandom(seed: number) {
+  let a = seed >>> 0 || 1;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let x = Math.imul(a ^ (a >>> 15), 1 | a);
+    x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
 /**
@@ -576,46 +584,6 @@ function BrandSlideArt({ stickers }: { stickers: Product[] }) {
   );
 }
 
-/** QR slide picture: a real QR sticker (pointing at our QR page), drawn on the device. */
-function QrSlideArt() {
-  const [src, setSrc] = useState<string | null>(null);
-  useEffect(() => {
-    try {
-      setSrc(
-        drawSticker(
-          "https://stickypie.in/qr-code-stickers",
-          "Scan to pay",
-          520,
-        ).toDataURL("image/png"),
-      );
-    } catch {
-      setSrc(null);
-    }
-  }, []);
-  return (
-    <div className="absolute inset-0 grid place-items-center">
-      <div className="relative h-[62%] max-h-[380px] sm:h-[74%]">
-        {src && (
-          <img
-            src={src}
-            alt=""
-            className="sticker-cut animate-float h-full w-auto -rotate-3 rounded-[28px] object-contain"
-          />
-        )}
-        <span className="animate-float-slow absolute top-[8%] -left-[22%] hidden sm:inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold whitespace-nowrap text-snow shadow-md">
-          <Wallet className="size-3.5 text-brand" /> UPI payments
-        </span>
-        <span className="animate-float-slow absolute top-[45%] -right-[26%] hidden sm:inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold whitespace-nowrap text-snow shadow-md [animation-delay:-4s]">
-          <MessageCircle className="size-3.5 text-mint" /> WhatsApp
-        </span>
-        <span className="animate-float-slow absolute bottom-[4%] -left-[18%] hidden sm:inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold whitespace-nowrap text-snow shadow-md [animation-delay:-7s]">
-          <Link2 className="size-3.5 text-brand" /> Website &amp; Instagram
-        </span>
-      </div>
-    </div>
-  );
-}
-
 /** A sticker slide's text: badges, name, description, price and buy controls. */
 function ProductSlideCopy({
   product,
@@ -626,13 +594,22 @@ function ProductSlideCopy({
   categoryName: string | undefined;
   onPickSize: () => void;
 }) {
+  const pack = isPosterPack(product);
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-white/90 px-3 py-1 text-[10px] font-bold tracking-widest text-brand uppercase shadow-sm backdrop-blur-sm sm:px-3.5 sm:py-1.5 sm:text-[11px]">
-          <Sparkles className="size-3.5" /> Featured drop
+          {pack ? (
+            <>
+              <Frame className="size-3.5" /> Wall poster set
+            </>
+          ) : (
+            <>
+              <Sparkles className="size-3.5" /> Featured drop
+            </>
+          )}
         </span>
-        {categoryName && (
+        {categoryName && !pack && (
           <span className="rounded-full border border-line bg-ink2 px-3 py-1 text-[10px] font-semibold tracking-widest text-fog uppercase sm:px-3.5 sm:py-1.5 sm:text-[11px]">
             {categoryName}
           </span>
@@ -642,68 +619,18 @@ function ProductSlideCopy({
       <h2 className="mt-2 line-clamp-2 font-display text-[24px] leading-[1.1] font-bold tracking-tight sm:mt-4 sm:text-6xl lg:mt-5 lg:text-[64px]">
         {product.name}
       </h2>
+      {pack && (
+        <p className="mt-2 text-sm font-semibold text-snow sm:mt-3 sm:text-base">
+          {packSizeLine(product).includes("mini posters")
+            ? packSizeLine(product)
+            : `${product.packItems.length} mini posters · ${packSizeLine(product)}`}
+        </p>
+      )}
       <p className="mt-4 hidden max-w-lg text-base leading-relaxed text-fog sm:line-clamp-2 sm:text-lg lg:line-clamp-3">
         {product.description}
       </p>
       <HeroBuy product={product} onPickSize={onPickSize} />
     </>
-  );
-}
-
-/**
- * The custom slide's picture: a blank die-cut sticker "in the making" — cut
- * line with scissors, a peeling corner, a second copy behind and a few
- * floating labels. Pure shapes and icons (no sticker artwork).
- */
-function CustomSlideArt({ sizes }: { sizes: { inches: number }[] }) {
-  return (
-    <div className="absolute inset-0 grid place-items-center">
-      <div className="relative aspect-square h-[70%] max-h-[380px] sm:h-[74%]">
-        {/* second copy peeking out behind */}
-        <div className="absolute inset-0 translate-x-[9%] translate-y-[5%] rotate-[9deg] rounded-[36px] bg-white/70 shadow-lg ring-1 ring-black/5" />
-
-        <div className="animate-float absolute inset-0">
-          {/* plotter cut line */}
-          <div className="absolute -inset-[7%] rounded-[46px] border-2 border-dashed border-brand/60" />
-          <span className="absolute top-[-7%] left-[18%] grid size-8 -translate-y-1/2 place-items-center rounded-full bg-white text-brand shadow-md ring-1 ring-brand/20">
-            <Scissors className="size-4 -rotate-90" />
-          </span>
-
-          {/* the sticker: white die-cut border around a soft artwork area */}
-          <div className="relative size-full overflow-hidden rounded-[36px] bg-white p-[6%] shadow-[0_24px_50px_-20px_rgba(16,24,40,0.45)]">
-            <div className="grid size-full place-items-center rounded-[26px] bg-[radial-gradient(circle_at_30%_25%,color-mix(in_srgb,var(--color-brand2)_18%,transparent),transparent_55%),radial-gradient(circle_at_75%_80%,color-mix(in_srgb,var(--color-brand)_16%,transparent),transparent_55%)] text-center">
-              <span>
-                <span className="pie-gradient mx-auto grid size-14 place-items-center rounded-2xl text-white shadow-lg shadow-brand/30 lg:size-16">
-                  <ImageUp className="size-7 lg:size-8" />
-                </span>
-                <span className="mt-3 block font-display text-2xl font-bold text-snow lg:text-3xl">
-                  Your design
-                </span>
-                <span className="mt-0.5 block text-xs font-semibold tracking-wide text-fog uppercase">
-                  logo · photo · art
-                </span>
-              </span>
-            </div>
-            {/* peeling corner */}
-            <span className="absolute right-0 bottom-0 size-[22%] bg-[linear-gradient(135deg,transparent_50%,#e9ecf2_50%,#ffffff_78%)] shadow-[-4px_-4px_10px_-6px_rgba(16,24,40,0.35)]" />
-          </div>
-        </div>
-
-        {/* floating labels */}
-        <span className="animate-float-slow absolute top-[6%] -left-[14%] hidden sm:inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-snow shadow-md">
-          <Shapes className="size-3.5 text-brand" /> Any shape
-        </span>
-        <span className="animate-float-slow absolute top-[42%] -right-[16%] hidden sm:inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-snow shadow-md [animation-delay:-4s]">
-          <Ruler className="size-3.5 text-brand" />{" "}
-          {sizes.length > 3
-            ? `${formatInches(sizes[0].inches)}″ – ${formatInches(sizes[sizes.length - 1].inches)}″`
-            : sizes.map((s) => `${formatInches(s.inches)}″`).join(" · ")}
-        </span>
-        <span className="animate-float-slow absolute bottom-[2%] -left-[8%] hidden sm:inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-snow shadow-md [animation-delay:-7s]">
-          <Scissors className="size-3.5 text-mint" /> Clean die-cut
-        </span>
-      </div>
-    </div>
   );
 }
 
@@ -900,100 +827,6 @@ function AvatarSlideCopy({ book }: { book: AvatarBook }) {
           ) : (
             <ArrowRight className="size-4" />
           )}
-        </PageLink>
-      </div>
-    </>
-  );
-}
-
-const SPECIAL_SLIDES = {
-  custom: {
-    icon: ImageUp,
-    badge: "Custom print",
-    title: "Your design, as a sticker",
-    text: "Logo, photo or artwork on die-cut vinyl. Pick a size and quantity, book, and send your design — now or after paying.",
-    href: "/custom-stickers/design",
-    cta: "Make your sticker",
-  },
-  qr: {
-    icon: QrCode,
-    badge: "QR stickers",
-    title: "Scan-to-pay QR stickers",
-    text: "Your UPI, WhatsApp, Instagram or website as a QR sticker with a label like “Scan to pay”. Made in a minute, printed on vinyl.",
-    href: "/qr-code-stickers",
-    cta: "Make your QR sticker",
-  },
-} as const;
-
-/** Custom / QR slide: copy, prices per size and the call to action. */
-function CustomSlideCopy({
-  kind,
-  sizes,
-}: {
-  kind: keyof typeof SPECIAL_SLIDES;
-  sizes: { inches: number; price: number }[];
-}) {
-  const { loaded: pricesReady } = useStoreSettings();
-  const c = SPECIAL_SLIDES[kind];
-  const Icon = c.icon;
-  const from = Math.min(...sizes.map((s) => s.price));
-  return (
-    <>
-      <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-3 py-1 text-[10px] font-bold tracking-widest text-brand uppercase backdrop-blur-sm sm:px-3.5 sm:py-1.5 sm:text-[11px]">
-        <Icon className="size-3.5" /> {c.badge}
-      </span>
-      <h2 className="mt-2 line-clamp-2 font-display text-[24px] leading-[1.1] font-bold tracking-tight sm:mt-4 sm:text-6xl lg:mt-5 lg:text-[64px]">
-        {c.title}
-      </h2>
-      <p className="mt-4 hidden max-w-lg text-base leading-relaxed text-fog sm:line-clamp-2 sm:text-lg lg:line-clamp-3">
-        {c.text}
-      </p>
-      <div className="mt-1.5 flex items-baseline gap-2 sm:mt-6">
-        <span className="text-sm text-fog">from</span>
-        <span className="font-display text-[28px] leading-none font-bold text-gold sm:text-4xl">
-          {pricesReady ? formatINR(from) : <PriceWait className="w-20" />}
-        </span>
-        {/* phones: the picture's floating labels, as one quiet line */}
-        <span className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-fog sm:hidden">
-          {kind === "qr" ? (
-            <>
-              <Wallet className="size-3.5 text-mint" /> UPI, WhatsApp, links
-            </>
-          ) : (
-            <>
-              <Scissors className="size-3.5 text-mint" /> Any shape, die-cut
-            </>
-          )}
-        </span>
-      </div>
-      <div className="mt-3 grid grid-cols-3 gap-2 sm:mt-4 sm:flex sm:flex-wrap">
-        {sizes.map((s, i) => (
-          <span
-            key={s.inches}
-            // phones: one row of three
-            className={`items-baseline justify-center gap-1.5 rounded-xl border border-line bg-ink2/80 px-2 py-2 backdrop-blur-sm sm:inline-flex sm:px-3.5 ${i < 3 ? "inline-flex" : "hidden"}`}
-          >
-            <span className="font-display text-base font-bold">
-              {formatInches(s.inches)}″
-            </span>
-            <span className="text-xs font-semibold text-fog">
-              {pricesReady ? formatINR(s.price) : <PriceWait className="w-8" />}
-            </span>
-          </span>
-        ))}
-      </div>
-      <div className="mt-3 flex flex-wrap items-center gap-2.5 sm:mt-6 sm:gap-3">
-        <PageLink
-          href={c.href}
-          className="peel-btn inline-flex h-12 items-center justify-center gap-2 rounded-xl px-6 text-base font-bold max-sm:w-full"
-        >
-          {c.cta} <ArrowRight className="size-4" />
-        </PageLink>
-        <PageLink
-          href={c.href}
-          className="hidden h-12 items-center px-2 text-sm font-semibold text-fog transition-colors hover:text-brand sm:inline-flex"
-        >
-          Bulk or special requests
         </PageLink>
       </div>
     </>

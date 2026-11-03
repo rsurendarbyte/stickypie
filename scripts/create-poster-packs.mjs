@@ -8,6 +8,7 @@
 //   add --dry to check the packs without changing anything,
 //   --prices to also reset the prices of packs already made,
 //   or --covers to only draw the cover pictures into prod_stickers/poster-packs/covers/
+//   --only=red-line,riders to run just those packs
 //
 // Running it again updates the packs in place (matched by slug) with a new cover.
 import fs from "node:fs";
@@ -147,7 +148,9 @@ async function cover(pack, posters) {
   return { png: out, ratio: 0.6667 };
 }
 
-const packs = JSON.parse(fs.readFileSync(PACKS, "utf8"));
+// --only=id1,id2 limits the run to those packs (the others stay as they are).
+const only = args.find((a) => a.startsWith("--only="))?.slice(7).split(",");
+const packs = JSON.parse(fs.readFileSync(PACKS, "utf8")).filter((p) => !only || only.includes(p.id));
 
 let [category] = await rest(`categories?slug=eq.${CATEGORY.slug}&select=id`);
 if (!category && !dry) [category] = await rest("categories", { method: "POST", headers: { Prefer: "return=representation" }, body: JSON.stringify(CATEGORY) });
