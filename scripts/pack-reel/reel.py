@@ -13,6 +13,10 @@ in the pack's layout → what's inside → price and stickypie.in.
     onebyone     every poster full screen with a 1/9 counter, then the wall
     zoom         close on one poster ("Wait for it…") → pulls back to the wall
     scatter      a messy pile of posters → each flies to its place
+    polaroid     posters swing in on strings with pegs, then become the wall
+    quickcuts    fast full-screen cuts on flashing colours, then the wall slams in
+    flip         orange StickyPie cards flip over in a wave to show the posters
+    rows         rows of posters slide in from alternating sides
 
 Reels land in prod_stickers/poster-packs/reels/<slug>.mp4 (classic) or
 <slug>-<theme>.mp4, plus a matching -cover.jpg to use as the reel cover. Add trending audio in Instagram.
@@ -601,6 +605,177 @@ def intro_scatter(pack, tiles, a):
             show_title(frame, a, t - t_done + 0.2)
     return dur, draw
 
+def intro_polaroid(pack, tiles, a, collage_full):
+    """Posters hang on strings like polaroids, swing to rest, then become the wall."""
+    n = len(tiles)
+    cols = 2 if n == 4 else (3 if n <= 9 else 5)
+    rows = math.ceil(n / cols)
+    top, bottom = 400, 1500
+    h_avail = (bottom - top) / rows
+    cellw = (W - 120) / cols
+    pw = int(min(cellw * 0.8, (h_avail - 60) / 1.72))
+    ph = round(pw * 1.5)
+    border, chin = max(8, pw // 16), max(22, pw // 5)
+    pols = []
+    for img in pack["posters"]:
+        photo = img.convert("RGBA")
+        sw, sh = photo.size
+        s = max(pw / sw, ph / sh)
+        photo = photo.resize((max(pw, round(sw * s)), max(ph, round(sh * s))), Image.LANCZOS)
+        photo = photo.crop(((photo.width - pw) // 2, (photo.height - ph) // 2, (photo.width - pw) // 2 + pw, (photo.height - ph) // 2 + ph))
+        card = Image.new("RGBA", (pw + 2 * border, ph + border + chin), (255, 255, 255, 255))
+        card.alpha_composite(photo, (border, border))
+        pad = 30
+        out = Image.new("RGBA", (card.width + 2 * pad, card.height + 2 * pad), (0, 0, 0, 0))
+        sm = Image.new("L", out.size, 0)
+        ImageDraw.Draw(sm).rectangle([pad + 4, pad + 10, pad + card.width + 4, pad + card.height + 10], fill=80)
+        sh_ = Image.new("RGBA", out.size, (0, 0, 0, 0))
+        sh_.putalpha(sm.filter(ImageFilter.GaussianBlur(10)))
+        out.alpha_composite(sh_)
+        out.alpha_composite(card, (pad, pad))
+        pols.append(dict(tile=out))
+    ch = ph + border + chin
+    pins = []
+    for i in range(n):
+        r, c = divmod(i, cols)
+        in_row = min(cols, n - r * cols)
+        x = 60 + cellw * (c + (cols - in_row) / 2) + cellw / 2
+        y = top + r * h_avail + 30
+        sag = 22 * (1 - ((x - W / 2) / (W / 2)) ** 2)
+        pins.append((x, y + sag))
+    hook = text_layer("HANG IT UP.", DISPLAY(110), INK)
+    t0, step = 0.9, min(0.33, 3.0 / n)
+    t_hung = t0 + step * (n - 1) + 1.1
+    dur = t_hung + 0.7 + 0.8
+    def draw(frame, t):
+        fade = ease_in_out(clamp((t - t_hung) / 0.7))
+        if fade < 1:
+            layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+            d = ImageDraw.Draw(layer)
+            for r in range(rows):
+                y0 = top + r * h_avail + 30
+                pts = [(x, y0 + 22 * (1 - ((x - W / 2) / (W / 2)) ** 2)) for x in range(20, W - 19, 20)]
+                d.line(pts, fill=(120, 96, 80, 255), width=3)
+            for i, (pl, (px, py)) in enumerate(zip(pols, pins)):
+                p = (t - (t0 + i * step)) / 0.35
+                if p <= 0:
+                    continue
+                k = t - (t0 + i * step) - 0.35
+                drop = -260 * (1 - ease_out(clamp(p)))
+                rot = 16 * math.exp(-3.2 * max(0, k)) * math.cos(9 * max(0, k)) * (1 if i % 2 else -1)
+                a_r = math.radians(rot)
+                cx = px + (ch / 2) * math.sin(a_r)
+                cy = py + drop + (ch / 2) * math.cos(a_r)
+                draw_tile(layer, pl, cx, cy, rot=rot, alpha=clamp(p * 3))
+                ImageDraw.Draw(layer).rounded_rectangle([px - 7, py + drop - 16, px + 7, py + drop + 14], 3, fill=(176, 128, 82, 255))
+            frame.alpha_composite(faded(layer, 1 - fade) if fade > 0 else layer)
+        if fade > 0:
+            frame.alpha_composite(faded(collage_full, fade))
+        if t < t_hung:
+            pop(frame, hook, W / 2, 230, t / 0.4)
+        else:
+            show_title(frame, a, t - t_hung)
+    return dur, draw
+
+def intro_quickcuts(pack, tiles, a, hi):
+    """Fast full-screen cuts, one poster per beat on flashing colours, then the wall slams in."""
+    n = len(tiles)
+    BW, BH = 700, 1050
+    bigs = [poster_tile(img, BW, BH)[0] for img in pack["posters"]]
+    colors = [ORANGE, YELLOW, INK, (40, 120, 200)]
+    slot = min(0.34, 3.4 / n)
+    t_wall = 0.5 + n * slot
+    dur = t_wall + 1.3
+    head = text_layer(f"{n} POSTERS.", DISPLAY(112), (255, 255, 255), stroke=10, stroke_fill=INK)
+    wall = text_layer("1 WALL.", DISPLAY(112), ORANGE, stroke=10, stroke_fill=INK)
+    def draw(frame, t):
+        if t < t_wall:
+            i = int(max(0, t - 0.5) / slot) if t >= 0.5 else -1
+            col = colors[(i + 4) % len(colors)] if i >= 0 else BG
+            frame.paste(Image.new("RGBA", (W, H), col + (255,)), (0, 0))
+            if i >= 0:
+                p = ((t - 0.5) - i * slot) / slot
+                s = 1.12 - 0.12 * ease_out(clamp(p * 2))
+                draw_tile(frame, dict(tile=bigs[min(i, n - 1)]), W / 2, 960, scale=s, rot=(3 if i % 2 else -3))
+            pop(frame, head, W / 2, 230, t / 0.3)
+        else:
+            te = t - t_wall
+            e = ease_out_back(clamp(te / 0.45), 1.4)
+            z = 1.25 - 0.25 * e
+            paste_collage(frame, hi, 1, CX - CW * (z - 1) / 2, CY - CH * (z - 1) / 2, z)
+            if te < 0.18:
+                frame.alpha_composite(Image.new("RGBA", (W, H), (255, 255, 255, round(255 * (1 - te / 0.18)))))
+            if te < 0.8:
+                pop(frame, wall, W / 2, 230, te / 0.3)
+            else:
+                show_title(frame, a, te - 0.8)
+    return dur, draw
+
+def intro_flip(pack, tiles, a):
+    """Orange StickyPie cards flip over in a wave to show the posters."""
+    logo = Image.open(os.path.join(ROOT, "apps/web/public/icons/icon-512.png")).convert("RGBA")
+    backs = []
+    for tl in tiles:
+        back = Image.new("RGBA", (tl["w"], tl["h"]), ORANGE + (255,))
+        d = ImageDraw.Draw(back)
+        for y in range(-tl["w"], tl["h"], 26):
+            d.line([(0, y), (tl["w"], y + tl["w"])], fill=(255, 120, 60, 255), width=8)
+        s = int(min(tl["w"], tl["h"]) * 0.42)
+        back.alpha_composite(logo.resize((s, s), Image.LANCZOS), ((tl["w"] - s) // 2, (tl["h"] - s) // 2))
+        backs.append(dict(tile=poster_tile(back, tl["w"], tl["h"])[0]))
+    hook = text_layer("FLIP IT.", DISPLAY(118), INK)
+    rows = sorted({tl["top"] for tl in tiles})
+    colsx = sorted({tl["left"] for tl in tiles})
+    delays = [0.13 * (rows.index(tl["top"]) + colsx.index(tl["left"])) for tl in tiles]
+    t0, flip = 1.2, 0.42
+    t_done = t0 + max(delays) + flip
+    dur = t_done + 1.0
+    def squash(tile, sx):
+        img = tile["tile"]
+        return dict(tile=img.resize((max(1, round(img.width * sx)), img.height), Image.BILINEAR))
+    def draw(frame, t):
+        for i, tl in enumerate(tiles):
+            p = clamp((t - t0 - delays[i]) / flip)
+            hx, hy = home(tl)
+            pop_in = clamp(t / 0.5 - i * 0.04)
+            if p < 0.5:
+                sx = math.cos(p * math.pi)
+                draw_tile(frame, squash(backs[i], max(0.02, sx)), hx, hy, scale=1, alpha=pop_in)
+            else:
+                sx = -math.cos(p * math.pi)
+                draw_tile(frame, squash(tl, max(0.02, sx)), hx, hy)
+        if t < t_done - 0.3:
+            pop(frame, hook, W / 2, 250, t / 0.4)
+        else:
+            show_title(frame, a, t - t_done + 0.3)
+    return dur, draw
+
+def intro_rows(pack, tiles, a):
+    """Rows of posters slide in from alternating sides."""
+    rows = sorted({tl["top"] for tl in tiles})
+    hook = text_layer("ROW BY ROW.", DISPLAY(110), INK)
+    t0, gap = 0.9, 0.5
+    starts = []
+    for i, tl in enumerate(tiles):
+        r = rows.index(tl["top"])
+        k = sum(1 for o in tiles[:i] if o["top"] == tl["top"])
+        starts.append((t0 + r * gap + k * 0.07, -1 if r % 2 else 1))
+    t_done = max(s for s, _ in starts) + 0.6
+    dur = t_done + 0.9
+    def draw(frame, t):
+        for (st, side), tl in zip(starts, tiles):
+            p = clamp((t - st) / 0.6)
+            if p <= 0:
+                continue
+            hx, hy = home(tl)
+            off = (1 - ease_out_back(p, 1.2)) * (W * 0.9) * side
+            draw_tile(frame, tl, hx + off, hy, rot=-6 * side * (1 - p))
+        if t < t_done - 0.3:
+            pop(frame, hook, W / 2, 230, t / 0.4)
+        else:
+            show_title(frame, a, t - t_done + 0.3)
+    return dur, draw
+
 def render_theme(pack, frames_dir, theme):
     tiles = setup(pack)
     dark = theme == "night"
@@ -620,6 +795,14 @@ def render_theme(pack, frames_dir, theme):
         dur, intro = intro_zoom(pack, tiles, a, collage_image(tiles, hs), hs)
     elif theme == "scatter":
         dur, intro = intro_scatter(pack, tiles, a)
+    elif theme == "polaroid":
+        dur, intro = intro_polaroid(pack, tiles, a, collage_full)
+    elif theme == "quickcuts":
+        dur, intro = intro_quickcuts(pack, tiles, a, hi)
+    elif theme == "flip":
+        dur, intro = intro_flip(pack, tiles, a)
+    elif theme == "rows":
+        dur, intro = intro_rows(pack, tiles, a)
     else:
         raise SystemExit(f"unknown theme {theme}")
 
@@ -662,7 +845,7 @@ def render_theme(pack, frames_dir, theme):
             cover = frame.convert("RGB")
     return nframes, cover
 
-THEMES = ["classic", "night", "beforeafter", "onebyone", "zoom", "scatter"]
+THEMES = ["classic", "night", "beforeafter", "onebyone", "zoom", "scatter", "polaroid", "quickcuts", "flip", "rows"]
 
 def make(slug, theme="classic"):
     pack = load_pack(slug)
