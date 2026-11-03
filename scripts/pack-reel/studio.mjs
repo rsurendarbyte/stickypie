@@ -104,7 +104,10 @@ http
         const list = fs
           .readdirSync(REELS)
           .filter((f) => f.endsWith(".mp4"))
-          .map((f) => ({ file: f.replace(/\.mp4$/, ""), made: fs.statSync(path.join(REELS, f)).mtimeMs }));
+          .map((f) => {
+            const file = f.replace(/\.mp4$/, "");
+            return { file, made: fs.statSync(path.join(REELS, f)).mtimeMs, caption: fs.existsSync(path.join(REELS, `${file}-caption.txt`)) };
+          });
         return send(res, 200, list);
       }
       if (req.method === "GET" && url.pathname === "/api/jobs") return send(res, 200, jobs.slice(-60));
@@ -119,12 +122,28 @@ http
         runNext();
         return send(res, 200, { queued: ok.length });
       }
-      // /reels/<name>.mp4 | /reels/<name>-cover.jpg   (?download=1 to save it)
-      const m = url.pathname.match(/^\/reels\/([a-z0-9-]+)(\.mp4|-cover\.jpg)$/);
+      // (Re)write a reel's Instagram caption without making the video again.
+      if (req.method === "POST" && url.pathname === "/api/caption") {
+        let body = "";
+        for await (const c of req) body += c;
+        const { file } = JSON.parse(body || "{}");
+        const theme = THEMES.find((th) => th !== "classic" && file?.endsWith(`-${th}`)) ?? "classic";
+        const slug = theme === "classic" ? file : file?.slice(0, -(theme.length + 1));
+        if (!SLUG.test(slug ?? "")) return send(res, 400, { error: "unknown reel" });
+        const code = await new Promise((done) =>
+          spawn("python3", [path.join(HERE, "reel.py"), slug, `--theme=${theme}`, "--caption-only"], { cwd: ROOT }).on("close", done)
+        );
+        const txt = path.join(REELS, `${fileName(slug, theme)}-caption.txt`);
+        if (code !== 0 || !fs.existsSync(txt)) return send(res, 500, { error: "could not write the caption" });
+        return send(res, 200, { caption: fs.readFileSync(txt, "utf8") });
+      }
+      // /reels/<name>.mp4 | -cover.jpg | -caption.txt   (?download=1 to save it)
+      const m = url.pathname.match(/^\/reels\/([a-z0-9-]+)(\.mp4|-cover\.jpg|-caption\.txt)$/);
       if (req.method === "GET" && m) {
         const file = path.join(REELS, m[1] + m[2]);
         if (!fs.existsSync(file)) return send(res, 404, "not made yet", "text/plain");
-        return sendFile(req, res, file, m[2] === ".mp4" ? "video/mp4" : "image/jpeg", url.searchParams.has("download"));
+        const type = m[2] === ".mp4" ? "video/mp4" : m[2] === "-cover.jpg" ? "image/jpeg" : "text/plain; charset=utf-8";
+        return sendFile(req, res, file, type, url.searchParams.has("download"));
       }
       send(res, 404, "not found", "text/plain");
     } catch (err) {
