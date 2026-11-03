@@ -8,7 +8,7 @@ import {
   MAX_SIZES_PER_STICKER,
   MAX_STICKER_INCHES,
   MIN_STICKER_INCHES,
-  STICKER_SIZES,
+  usualSizes,
   formatDimensions,
   formatINR,
   productInputSchema,
@@ -55,7 +55,7 @@ export default function ProductForm({
   const [isActive, setIsActive] = useState(product?.isActive ?? true);
   // The usual sizes plus any extra size this sticker is already sold in.
   const [sizeRows, setSizeRows] = useState<SizeRow[]>(() =>
-    [...new Set<number>([...STICKER_SIZES, ...(product?.sizes ?? []).map((s) => s.inches)])]
+    [...new Set<number>([...usualSizes(product), ...(product?.sizes ?? []).map((s) => s.inches)])]
       .sort((a, b) => a - b)
       .map((inches) => {
         const existing = product?.sizes?.find((s) => s.inches === inches);
@@ -330,7 +330,7 @@ export default function ProductForm({
                 ) : (
                   <p className="pt-3 text-xs text-fog/70 sm:col-span-2">Not sold in this size</p>
                 )}
-                {!(STICKER_SIZES as readonly number[]).includes(row.inches) && (
+                {!usualSizes(product).includes(row.inches) && (
                   <button
                     type="button"
                     onClick={() => removeSize(row.inches)}

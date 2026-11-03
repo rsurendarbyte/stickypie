@@ -4,6 +4,16 @@ import type { Product, ProductSize } from "./types";
 
 /** Sizes offered by default for a new sticker; the admin can add any other whole-inch size. */
 export const STICKER_SIZES = [3, 6, 7] as const;
+/** Mini posters are 2:3, so their sizes are 2 × 3, 4 × 6 and 6 × 9 in (longest side 3, 6, 9). */
+export const POSTER_SIZES = [3, 6, 9] as const;
+/** A product is a mini poster when its slug ends in -mini-poster or it's tagged "mini poster". */
+export function isMiniPosterProduct(product: { slug?: string; tags?: string[] } | null | undefined): boolean {
+  return !!product && (!!product.slug?.endsWith("-mini-poster") || !!product.tags?.some((t) => t.toLowerCase() === "mini poster"));
+}
+/** The usual sizes offered for a product: poster sizes for mini posters, sticker sizes otherwise. */
+export function usualSizes(product: { slug?: string; tags?: string[] } | null | undefined): readonly number[] {
+  return isMiniPosterProduct(product) ? POSTER_SIZES : STICKER_SIZES;
+}
 /** Allowed range for any size (whole inches, longest side). */
 export const MIN_STICKER_INCHES = 1;
 export const MAX_STICKER_INCHES = 48;
@@ -109,4 +119,24 @@ export function imageAspectFromBytes(bytes: Uint8Array): number | null {
     }
   }
   return null;
+}
+
+/** A poster pack poster's size: 6 → "4 × 6 in", 9 → "6 × 9 in" (posters are 2:3). */
+export function posterSizeLabel(inches: number): string {
+  return formatDimensions(inches, 2 / 3);
+}
+
+/** What's in a poster pack by size: "1 poster 6 × 9 in + 5 posters 4 × 6 in" (biggest first). */
+export function packSizeSummary(sizes: number[]): string {
+  const counts = new Map<number, number>();
+  for (const s of sizes) counts.set(s, (counts.get(s) ?? 0) + 1);
+  return [...counts]
+    .sort((a, b) => b[0] - a[0])
+    .map(([inches, n]) => `${n} poster${n === 1 ? "" : "s"} ${posterSizeLabel(inches)}`)
+    .join(" + ");
+}
+
+/** A poster pack's sizes, one per poster (missing ones are 4 × 6 in). */
+export function packPosterSizes(product: Pick<Product, "packItems" | "packSizes">): number[] {
+  return product.packItems.map((_, i) => product.packSizes[i] ?? 6);
 }

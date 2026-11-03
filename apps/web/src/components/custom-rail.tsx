@@ -15,7 +15,7 @@ import {
   customSizes,
   formatINR,
 } from "@stickypie/shared";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import PriceWait from "./price-wait";
 import { useFeatures, useStoreSettings } from "@/lib/live-catalog";
 import { cardSkinFor } from "@/lib/palette";
@@ -29,7 +29,14 @@ import Row from "./row";
  * The AI avatar styles lead the row: one card per sample avatar (a style's girl
  * and boy each get their own card), opening the maker with that style picked.
  */
-export default function CustomRail() {
+export default function CustomRail({
+  title = "Make your own",
+  afterLead,
+}: {
+  title?: string;
+  /** Cards shown right after the "Stickers of YOU" card (the home page puts the wall poster sets here). */
+  afterLead?: ReactNode;
+} = {}) {
   const features = useFeatures();
   const settings = useStoreSettings();
   const seed = useSkinSeed();
@@ -44,7 +51,7 @@ export default function CustomRail() {
     const t = window.setInterval(() => setShown((n) => n + 1), 2200);
     return () => window.clearInterval(t);
   }, []);
-  if (!features.customStickers && !features.avatarStickers) return null;
+  if (!features.customStickers && !features.avatarStickers) return afterLead ? <Row title={title}>{afterLead}</Row> : null;
 
   const from = (prices: Record<string, number>) => {
     const sizes = customSizes(prices);
@@ -94,10 +101,10 @@ export default function CustomRail() {
         st.covers.slice(0, 2).map((src) => ({ label: st.label, src })),
       )
     : [];
-  if (!cards.length && !styleCards.length) return null;
+  if (!cards.length && !styleCards.length) return afterLead ? <Row title={title}>{afterLead}</Row> : null;
 
   return (
-    <Row title="Make your own" href="/custom-stickers">
+    <Row title={title} href="/custom-stickers">
       {styleCards.length > 0 && (
         <LeadCard
           stickers={styleCards.map((c) => c.src)}
@@ -105,12 +112,13 @@ export default function CustomRail() {
           price={settings.loaded ? formatINR(book!.price) : <PriceWait />}
         />
       )}
+      {afterLead}
       {styleCards.map(({ label, src }, i) => (
         <PageLink
           key={src}
           href={`/avatar-stickers?style=${encodeURIComponent(label)}`}
           aria-label={`${label} AI avatar stickers of you`}
-          className="rail-card-drawn group relative w-44 shrink-0 snap-start overflow-hidden rounded-2xl border border-line bg-ink2 transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] sm:w-48 md:w-52"
+          className="rail-card-drawn group relative flex w-44 shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-line bg-ink2 transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] sm:w-48 md:w-52"
         >
           {/* art: the style's sample avatar, shown one of three ways (picked at random per visit) */}
           <StickerArt
@@ -156,14 +164,14 @@ export default function CustomRail() {
             key={href}
             href={href}
             style={{ backgroundColor: s.card }}
-            className="rail-card-drawn group relative w-44 shrink-0 snap-start overflow-hidden rounded-2xl border border-line transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] sm:w-48 md:w-52"
+            className="rail-card-drawn group relative flex w-44 shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-line transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] sm:w-48 md:w-52"
           >
             {/* art: a blank die-cut sticker with the option's icon, slightly tilted */}
             <div
-              className="relative grid aspect-square place-items-center overflow-hidden"
+              className="relative grid aspect-square flex-1 place-items-center overflow-hidden"
               style={s.art}
             >
-              <span className="grid size-[58%] -rotate-6 place-items-center rounded-[28%] border-[5px] border-white bg-white/70 shadow-[0_14px_28px_-14px_rgba(16,24,40,0.45)] transition-transform duration-300 group-hover:rotate-0">
+              <span className="grid aspect-square w-[58%] -rotate-6 place-items-center rounded-[28%] border-[5px] border-white bg-white/70 shadow-[0_14px_28px_-14px_rgba(16,24,40,0.45)] transition-transform duration-300 group-hover:rotate-0">
                 <span className="pie-gradient grid size-[62%] place-items-center rounded-[26%] text-white shadow-md shadow-brand/30">
                   <Icon className="size-[48%]" />
                 </span>
@@ -210,7 +218,8 @@ export function StickerArt({
 }) {
   const corner = "absolute size-5 border-brand";
   return (
-    <div className="relative flex aspect-square flex-col items-center overflow-hidden bg-gradient-to-br from-brand-soft via-[#fff8ec] to-[#eef6ff] px-[9%] pt-[6%] pb-[7%]">
+    // aspect-square is its least height; in a card (flex column) it grows to fill a taller row, so no empty strip
+    <div className="relative flex aspect-square flex-1 flex-col items-center overflow-hidden bg-gradient-to-br from-brand-soft via-[#fff8ec] to-[#eef6ff] px-[9%] pt-[6%] pb-[7%]">
       <span
         aria-hidden
         className="absolute inset-0 opacity-60 [background-image:radial-gradient(rgba(16,24,40,0.10)_1px,transparent_1px)] [background-size:14px_14px]"
@@ -324,7 +333,7 @@ function LeadCard({
     <PageLink
       href="/avatar-stickers"
       aria-label="Turn your photo into AI stickers"
-      className="rail-card-drawn group relative w-44 shrink-0 snap-start overflow-hidden rounded-2xl border border-brand/40 bg-ink2 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] sm:w-48 md:w-52"
+      className="rail-card-drawn group relative flex w-44 shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-brand/40 bg-ink2 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] sm:w-48 md:w-52"
     >
       <StickerArt design="frame" pictures={pictures} label />
       <div className="p-3">

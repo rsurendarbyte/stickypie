@@ -229,6 +229,9 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
         is_custom: Boolean(item.isCustom),
         custom_ref: item.isCustom ? (item.customRef ?? null) : null,
         custom_spec: item.isCustom ? (item.customSpec ?? null) : null,
+        pack_posters: item.packPosters?.length
+          ? item.packPosters.map((p) => ({ name: p.name, image_url: p.imageUrl, inches: p.inches }))
+          : null,
       }));
       const { error: itemsError } = await client.from("order_items").insert(items);
       if (itemsError) {

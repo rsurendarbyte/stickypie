@@ -48,6 +48,9 @@ export function rowToProduct(r: any): Product {
         }))
       : [],
     aspectRatio: r.aspect_ratio == null ? null : Number(r.aspect_ratio),
+    // Absent until the 20261104 migration runs — not a pack.
+    packItems: Array.isArray(r.pack_items) ? r.pack_items : [],
+    packSizes: Array.isArray(r.pack_sizes) ? r.pack_sizes.map(Number) : [],
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   };
@@ -69,6 +72,13 @@ export function rowToItem(r: any): OrderItem {
     customRef: r.custom_ref ?? null,
     customSpec: r.custom_spec ?? null,
     finishedFiles: Array.isArray(r.finished_files) ? r.finished_files.filter((u: unknown) => typeof u === "string") : [],
+    packPosters: Array.isArray(r.pack_posters)
+      ? r.pack_posters.map((p: any) => ({
+          name: String(p.name ?? ""),
+          imageUrl: onImageHost(String(p.image_url ?? "")),
+          inches: Number(p.inches) || 6,
+        }))
+      : null,
   };
 }
 
@@ -145,5 +155,7 @@ export function productToRow(input: Partial<ProductInput>): Record<string, unkno
     }));
   }
   if (input.aspectRatio !== undefined) row.aspect_ratio = input.aspectRatio;
+  if (input.packItems !== undefined) row.pack_items = input.packItems;
+  if (input.packSizes !== undefined) row.pack_sizes = input.packSizes;
   return row;
 }

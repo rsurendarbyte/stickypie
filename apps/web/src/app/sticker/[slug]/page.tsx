@@ -77,6 +77,15 @@ export default async function ProductPage({
     .listReviews("approved")
     .then((all) => all.filter((r) => r.productId === product.id))
     .catch(() => []);
+  // Poster packs show what's inside (wall order).
+  const packPosters = product.packItems.length
+    ? await driver.getProductsByIds(product.packItems).then((found) =>
+        product.packItems.flatMap((id, i) => {
+          const p = found.find((f) => f.id === id);
+          return p ? [{ slug: p.slug, name: p.name, imageUrl: p.thumbUrl ?? p.imageUrl, active: p.isActive, inches: product.packSizes[i] ?? 6 }] : [];
+        })
+      )
+    : [];
   const structuredData = productStructuredData(product, category, reviews);
   const details = productDetails(
     product,
@@ -107,6 +116,7 @@ export default async function ProductPage({
         category={category ? { name: category.name, slug: category.slug } : null}
         related={productSnapshot(related)}
         steps={steps}
+        packPosters={packPosters}
       />
       <ProductAbout {...details} />
     </div>

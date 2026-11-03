@@ -3,9 +3,10 @@
 // stickers", "vinyl stickers", "peel and stick") are woven into
 // real, readable text — never hidden or stuffed.
 import type { Category, Product, PublicReview } from "@stickypie/shared";
-import { categoryPath, formatINR } from "@stickypie/shared";
+import { categoryPath, formatINR, packPosterSizes, packSizeSummary } from "@stickypie/shared";
 import { SITE_NAME, absoluteUrl } from "./site";
 import { siteUrl } from "./mode";
+import { isPosterPack, sizeChipLabel } from "./poster";
 
 /** Where parcels go and how long they take (matches the shipping policy). */
 const HANDLING_DAYS = { min: 2, max: 4 };
@@ -18,18 +19,19 @@ export function seoName(product: Product): string {
 
 function sizeList(product: Product): string {
   const inches = product.sizes.map((s) => s.inches).sort((a, b) => a - b);
+  if (isPosterPack(product)) return inches.map((i) => `${sizeChipLabel(product, i).replace("×", " × ")} in`).join(", ");
   return inches.length ? inches.map((i) => `${i}″`).join(", ") : "";
 }
 
 export function productSeoTitle(product: Product): string {
-  return `${seoName(product)} – Die-Cut Vinyl Decal`;
+  return isPosterPack(product) ? `${product.name} – Wall Poster Set` : `${seoName(product)} – Die-Cut Vinyl Decal`;
 }
 
 export function productSeoDescription(product: Product): string {
   const sizes = sizeList(product);
   const pitch = `Buy the ${seoName(product)} from ${SITE_NAME}, online in India from ${formatINR(product.price)}${
     sizes ? ` in ${sizes} sizes` : ""
-  }. Die-cut vinyl for car, bike, laptop & helmet. Peel and stick.`;
+  }. ${isPosterPack(product) ? "Peel-and-stick mini posters for your wall." : "Die-cut vinyl for car, bike, laptop & helmet. Peel and stick."}`;
   const lead = product.description.trim();
   const text = lead ? `${lead} ${pitch}` : pitch;
   return text.length > 160 ? `${text.slice(0, 157).trimEnd()}…` : text;
@@ -40,6 +42,22 @@ export function productDetails(product: Product, categoryNames: string[]) {
   const name = seoName(product);
   const sizes = sizeList(product);
   const cats = categoryNames.length ? categoryNames.join(", ") : null;
+  if (isPosterPack(product)) {
+    const count = product.packItems.length;
+    return {
+      heading: `About the ${product.name}`,
+      intro: `The ${product.name} is a set of ${count} matching mini posters, printed on vinyl for your order. Its posters are ${packSizeSummary(packPosterSizes(product))} — stick them up side by side, like the picture, for an instant wall collage.`,
+      facts: [
+        ["In the set", `${count} mini posters`],
+        ["Material", "Premium vinyl, peel and stick"],
+        ["Poster sizes", packSizeSummary(packPosterSizes(product))],
+        ["Price", `${formatINR(product.price)} for the whole set`],
+        ["Sticks on", "Walls, doors, cupboards, mirrors and other smooth surfaces"],
+        ["Shipping", `Dispatched in ${HANDLING_DAYS.min}–${HANDLING_DAYS.max} days, then ${TRANSIT_DAYS.min}–${TRANSIT_DAYS.max} days to reach you anywhere in India`],
+      ] as [string, string][],
+      tips: "Wipe the wall clean and dry, plan the layout first (a pencil dot for each corner helps), then peel each poster and press it down from the centre outwards.",
+    };
+  }
   return {
     heading: `About the ${name}`,
     intro: `The ${name} is a die-cut vinyl sticker printed for your order and cut to the shape of the design${

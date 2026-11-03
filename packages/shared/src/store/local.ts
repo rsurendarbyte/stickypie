@@ -58,6 +58,8 @@ function buildSeedStore(): StoreShape {
       compareAtPrice: p.compareAtPrice,
       categoryId: idBySlug.get(p.category) ?? null,
       categoryIds: idBySlug.has(p.category) ? [idBySlug.get(p.category)!] : [],
+      packItems: [],
+      packSizes: [],
       imageUrl: p.image,
       tags: p.tags,
       featured: p.featured,
@@ -204,6 +206,8 @@ export function createLocalDriver(filePath: string): DataDriver {
         categoryId: input.categoryIds[0] ?? null,
         thumbUrl: input.thumbUrl ?? null,
         displayUrl: input.displayUrl ?? null,
+        packItems: input.packItems ?? [],
+        packSizes: input.packSizes ?? [],
         createdAt: ts,
         updatedAt: ts,
       };
@@ -294,6 +298,7 @@ export function createLocalDriver(filePath: string): DataDriver {
           customRef: item.customRef ?? null,
           customSpec: item.customSpec ?? null,
           finishedFiles: [],
+          packPosters: item.packPosters ?? null,
         })),
       };
       store.orders.unshift(order);

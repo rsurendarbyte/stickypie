@@ -1,7 +1,7 @@
 // GET /api/print-job/<key>/file?item=<line id>&n=<file #>[&dl=1]
 // One print file of an open print job, served from this site so the page can
 // draw it onto the A3 sheets (and download it with a proper name).
-import { orderCode, slugify } from "@stickypie/shared";
+import { orderCode, posterSizeLabel, slugify } from "@stickypie/shared";
 import { itemFiles, openPrintJob } from "@/lib/print-job";
 
 const EXT: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp" };
@@ -25,7 +25,9 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
   if (params.get("dl")) {
     const files = itemFiles(item).length;
     const name = slugify(
-      `${orderCode(order.id)} ${item.name}${item.sizeInches ? ` ${item.sizeInches}in` : ""} x${item.quantity}${files > 1 ? ` ${n + 1}` : ""}`
+      item.packPosters?.[n]
+        ? `${orderCode(order.id)} ${n + 1} ${item.packPosters[n].name} ${posterSizeLabel(item.packPosters[n].inches)} x${item.quantity}`
+        : `${orderCode(order.id)} ${item.name}${item.sizeInches ? ` ${item.sizeInches}in` : ""} x${item.quantity}${files > 1 ? ` ${n + 1}` : ""}`
     );
     headers["Content-Disposition"] = `attachment; filename="${name}.${EXT[type] ?? "png"}"`;
   }

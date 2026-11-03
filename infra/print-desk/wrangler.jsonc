@@ -1,0 +1,12 @@
+// A neutral-named Worker for print job links (one for both shops), so the
+// printing person's page doesn't carry the shop's name. Deploy: npm run deploy:print.
+// The admin's NEXT_PUBLIC_PRINT_URL points at it.
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "printdesk-q7m2",
+  "main": "index.js",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": { "SHOP_URL": "https://stickypie.in", "DEV_SHOP_URL": "https://dev.stickypie.in" }
+}

@@ -48,6 +48,10 @@ export default function Loading() {
           category={category ? { name: category.name, slug: category.slug } : null}
           related={siblings.filter((p) => p.id !== product.id).slice(0, 10)}
           steps={steps}
+          packPosters={product.packItems.flatMap((id, i) => {
+            const p = products.find((x) => x.id === id);
+            return p ? [{ slug: p.slug, name: p.name, imageUrl: p.thumbUrl ?? p.imageUrl, active: true, inches: product.packSizes[i] ?? 6 }] : [];
+          })}
         />
       </div>
     </div>

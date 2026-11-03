@@ -3,7 +3,7 @@
 import Link from "@/components/page-link";
 import SmartImg from "./smart-img";
 import PageLink from "./page-link";
-import { isMiniPoster } from "@/lib/poster";
+import { isMiniPoster, isPosterPack } from "@/lib/poster";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -59,7 +59,8 @@ export default function Hero({
   products: Product[];
   categories: Category[];
 }) {
-  const picks = products.slice(0, 5);
+  // Poster packs have their own rail; the hero shows single stickers and posters.
+  const picks = products.filter((p) => !isPosterPack(p)).slice(0, 5);
   const features = useFeatures();
   const settings = useStoreSettings();
   const custom = features.customStickers
@@ -396,8 +397,10 @@ function BrandSlideCopy({ catalog }: { catalog: Product[] }) {
 }
 
 /** What the banner wall shows: only mini posters when admin → Features says so
- *  (falls back to everything while there are none), otherwise all of it. */
-function wallItems(all: Product[], postersOnly: boolean) {
+ *  (falls back to everything while there are none), otherwise all of it —
+ *  never poster packs (a pack's picture is a whole wall, not one sticker). */
+function wallItems(everything: Product[], postersOnly: boolean) {
+  const all = everything.filter((p) => !isPosterPack(p));
   const posters = postersOnly ? all.filter(isMiniPoster) : [];
   return (posters.length ? posters : all).slice(0, 30);
 }
