@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Activity, Eye, Gauge, Users } from "lucide-react";
 import StatCard from "@/components/stat-card";
+import { getProductViews, type ProductViews } from "@/lib/product-views";
 import {
   analyticsConfigured,
   FREE_DAILY_REQUESTS,
@@ -28,6 +29,14 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
     } catch (e) {
       error = e instanceof Error ? e.message : "Couldn't reach Cloudflare.";
     }
+  }
+
+  let viewed: ProductViews | null = null;
+  let viewedError = "";
+  try {
+    viewed = await getProductViews(range);
+  } catch (e) {
+    viewedError = e instanceof Error ? e.message : "Couldn't load sticker views.";
   }
 
   return (
@@ -61,6 +70,8 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
       ) : data ? (
         <Report data={data} range={range} />
       ) : null}
+
+      <MostViewed viewed={viewed} error={viewedError} />
     </div>
   );
 }
@@ -196,6 +207,56 @@ function List({
       <h2 className="font-display text-base font-semibold">{title}</h2>
       {body}
       {note && <p className="mt-3 text-[11px] text-fog">{note}</p>}
+    </section>
+  );
+}
+
+const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL ?? "https://stickypie.in";
+
+/** Sticker pages opened most (our own counter), with how many sold in the same days. */
+function MostViewed({ viewed, error }: { viewed: ProductViews | null; error: string }) {
+  const top = Math.max(1, ...(viewed?.products.map((p) => p.views) ?? []));
+  return (
+    <section className="mt-6 rounded-2xl border border-line bg-ink2 p-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="font-display text-base font-semibold">Most viewed stickers</h2>
+        {viewed && <span className="text-xs text-fog">{n(viewed.total)} sticker page views</span>}
+      </div>
+      <p className="mt-1 text-xs text-fog">
+        Each shopper counts once per sticker per visit. Lots of views but no sales? Check its price, photos or sizes.
+      </p>
+      {error ? (
+        <p className="mt-3 text-sm text-red-400">{error}</p>
+      ) : !viewed?.products.length ? (
+        <p className="mt-3 text-sm text-fog">No views counted yet.</p>
+      ) : (
+        <ul className="mt-3 space-y-1.5">
+          {viewed.products.map((p) => (
+            <li key={p.id} className="relative overflow-hidden rounded-lg px-2 py-1.5 text-sm">
+              <span aria-hidden className="absolute inset-y-0 left-0 rounded-lg bg-brand/10" style={{ width: `${(p.views / top) * 100}%` }} />
+              <span className="relative flex items-center gap-3">
+                {p.thumb ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.thumb} alt="" className="size-8 shrink-0 rounded-md bg-snow/5 object-contain" />
+                ) : (
+                  <span className="size-8 shrink-0 rounded-md bg-snow/5" />
+                )}
+                {p.slug ? (
+                  <a href={`${WEB_URL}/sticker/${p.slug}`} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate hover:underline">
+                    {p.name}
+                  </a>
+                ) : (
+                  <span className="min-w-0 flex-1 truncate">{p.name}</span>
+                )}
+                <span className="shrink-0 text-xs text-fog tabular-nums">
+                  {n(p.views)} {p.views === 1 ? "view" : "views"} ·{" "}
+                  <span className={p.sold ? "text-mint" : ""}>{n(p.sold)} sold</span>
+                </span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
