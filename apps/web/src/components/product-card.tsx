@@ -10,7 +10,7 @@ import { isMiniPoster, isPosterPack, packSizeLine, sizeChipLabel } from "@/lib/p
 import { useSkinSeed } from "@/lib/skin-seed";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
-import SizePicker, { toCartProduct, useSizeChoice } from "./size-picker";
+import SizePicker, { toCartProduct, useLineFinish, useSizeChoice } from "./size-picker";
 import TrueSizePreview from "./true-size-preview";
 
 // E-commerce product card: die-cut art on its own sticker sheet or cutting
@@ -44,7 +44,8 @@ function StickerCard({ product, width }: { product: Product; width: string }) {
   const posterRatio = Math.max(product.aspectRatio ?? 0.6, POSTER_MIN_RATIO);
   const { add, items } = useCart();
   const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product);
-  const inCart = items.find((item) => lineKey(item) === lineKey({ productId: product.id, size }));
+  const finish = useLineFinish(product);
+  const inCart = items.find((item) => lineKey(item) === lineKey({ productId: product.id, size, finish }));
   const inCartAnySize = items
     .filter((item) => item.productId === product.id)
     .reduce((sum, item) => sum + item.qty, 0);
@@ -170,7 +171,7 @@ function StickerCard({ product, width }: { product: Product; width: string }) {
           </span>
         </div>
         <div className="mt-2 flex h-7 items-center">
-          {sizes.length > 1 && !out && <SizePicker compact sizes={sizes} value={size} onChange={setSize} />}
+          {sizes.length > 1 && !out && <SizePicker compact sizes={sizes} value={size} onChange={setSize} label={(inches) => sizeChipLabel(product, inches)} />}
         </div>
       </div>
       {trueSize && (
@@ -229,7 +230,7 @@ function StickerCard({ product, width }: { product: Product; width: string }) {
 
 /** "Red Line — 6 Mini Poster Pack" → "Red Line". */
 function packTitle(name: string) {
-  return name.replace(/\s*—\s*\d+\s+Mini Poster Pack\s*$/i, "").trim() || name;
+  return name.replace(/\s*—\s*\d+\s+Mini Poster Pack\s*$/i, "").replace(/\s+Wall Setup$/i, "").trim() || name;
 }
 
 /**

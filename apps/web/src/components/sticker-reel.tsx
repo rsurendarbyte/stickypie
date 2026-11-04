@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, ChevronUp, LayoutList, Ruler, Share2, ShoppingBag, Truck, ZoomIn } from "lucide-react";
 import type { Product } from "@stickypie/shared";
-import { belowMinimum, discountPercent, formatINR, inCategory, packPosterSizes, packSizeSummary } from "@stickypie/shared";
+import { POSTER_ADHESIVE, POSTER_PAPER, belowMinimum, discountPercent, formatINR, inCategory, packPosterSizes, packSizeSummary } from "@stickypie/shared";
 import { useLiveCatalog, useStoreSettings } from "@/lib/live-catalog";
 import { cardSkinFor } from "@/lib/palette";
 import { isMiniPoster, isPosterPack, sizeChipLabel } from "@/lib/poster";
@@ -13,7 +13,8 @@ import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
 import PageLink from "./page-link";
 import LabelModal from "./label-modal";
-import { toCartProduct, useSizeChoice } from "./size-picker";
+import FinishPicker from "./finish-picker";
+import { toCartProduct, useLineFinish, useSizeChoice } from "./size-picker";
 import ImageZoom from "./image-zoom";
 import TrueSizePreview from "./true-size-preview";
 
@@ -256,7 +257,9 @@ function ReelItem({
   const pack = isPosterPack(product);
   const poster = pack || isMiniPoster(product);
   // This size already in the cart: a quantity stepper and Checkout instead of Add to cart.
-  const inCart = items.find((item) => lineKey(item) === lineKey({ productId: product.id, size }));
+  const finish = useLineFinish(product);
+  const paper = pack || (poster && finish !== "sticker");
+  const inCart = items.find((item) => lineKey(item) === lineKey({ productId: product.id, size, finish }));
   const [details, setDetails] = useState(false);
   const [trueSize, setTrueSize] = useState(false);
   const [zoom, setZoom] = useState(false);
@@ -354,8 +357,13 @@ function ReelItem({
             )}
           </div>
         </div>
+        {poster && !pack && (
+          <div className="mt-3">
+            <FinishPicker compact />
+          </div>
+        )}
         {sizes.length > 1 && (
-          <div role="radiogroup" aria-label="Sticker size" className="mt-3 grid grid-cols-3 gap-2">
+          <div role="radiogroup" aria-label="Sticker size" className="mt-2 grid grid-cols-3 gap-2">
             {sizes.map((s) => {
               const on = s.inches === size;
               return (
@@ -453,8 +461,13 @@ function ReelItem({
         <ul className="mt-3 space-y-1.5 text-sm">
           {pack ? (
             <>
-              <li>{product.packItems.length} vinyl mini posters ({packSizeSummary(packPosterSizes(product))}), peel and stick.</li>
-              <li>Goes on a wall, door, cupboard or mirror — lay them out like the picture.</li>
+              <li>{product.packItems.length} mini posters ({packSizeSummary(packPosterSizes(product))}) on {POSTER_PAPER}, not stickers.</li>
+              <li>{POSTER_ADHESIVE[0].toUpperCase() + POSTER_ADHESIVE.slice(1)} included — lay them out on your wall like the picture.</li>
+            </>
+          ) : paper ? (
+            <>
+              <li>A wall poster on {POSTER_PAPER}.</li>
+              <li>{POSTER_ADHESIVE[0].toUpperCase() + POSTER_ADHESIVE.slice(1)} included for your wall, door or cupboard.</li>
             </>
           ) : (
             <>

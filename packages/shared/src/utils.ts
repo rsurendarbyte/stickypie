@@ -36,7 +36,7 @@ export function categoryPath(slug: string): string {
 
 /** "Cars" → "Cars Stickers"; "Sticker Packs" stays as is. */
 export function categoryTitle(name: string): string {
-  return /sticker|decal|badge|label/i.test(name) ? name : `${name} Stickers`;
+  return /sticker|poster|decal|badge|label/i.test(name) ? name : `${name} Stickers`;
 }
 
 /** Human-friendly order code derived from the order id. */

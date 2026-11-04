@@ -3,10 +3,10 @@
 // stickers", "vinyl stickers", "peel and stick") are woven into
 // real, readable text — never hidden or stuffed.
 import type { Category, Product, PublicReview } from "@stickypie/shared";
-import { categoryPath, formatINR, packPosterSizes, packSizeSummary } from "@stickypie/shared";
+import { POSTER_ADHESIVE, POSTER_PAPER, categoryPath, formatINR, packPosterSizes, packSizeSummary, type PosterFinish } from "@stickypie/shared";
 import { SITE_NAME, absoluteUrl } from "./site";
 import { siteUrl } from "./mode";
-import { isPosterPack, sizeChipLabel } from "./poster";
+import { isMiniPoster, isPoster, isPosterPack, sizeChipLabel } from "./poster";
 
 /** Where parcels go and how long they take (matches the shipping policy). */
 const HANDLING_DAYS = { min: 2, max: 4 };
@@ -14,31 +14,35 @@ const TRANSIT_DAYS = { min: 3, max: 5 };
 
 /** "Made in India" → "Made in India Sticker"; leaves "… Decal/Badge/Pack" alone. */
 export function seoName(product: Product): string {
+  if (isMiniPoster(product)) return /poster/i.test(product.name) ? product.name : `${product.name} Mini Poster`;
   return /sticker|decal|badge|pack|label/i.test(product.name) ? product.name : `${product.name} Sticker`;
 }
 
 function sizeList(product: Product): string {
   const inches = product.sizes.map((s) => s.inches).sort((a, b) => a - b);
-  if (isPosterPack(product)) return inches.map((i) => `${sizeChipLabel(product, i).replace("×", " × ")} in`).join(", ");
+  if (isPoster(product)) return inches.map((i) => `${sizeChipLabel(product, i).replace("×", " × ")} in`).join(", ");
   return inches.length ? inches.map((i) => `${i}″`).join(", ") : "";
 }
 
 export function productSeoTitle(product: Product): string {
-  return isPosterPack(product) ? `${product.name} – Wall Poster Set` : `${seoName(product)} – Die-Cut Vinyl Decal`;
+  if (isPosterPack(product)) return `${product.name} – Wall Poster Set`;
+  return isMiniPoster(product) ? `${seoName(product)} – Wall Poster or Vinyl Sticker` : `${seoName(product)} – Die-Cut Vinyl Decal`;
 }
 
 export function productSeoDescription(product: Product): string {
   const sizes = sizeList(product);
   const pitch = `Buy the ${seoName(product)} from ${SITE_NAME}, online in India from ${formatINR(product.price)}${
     sizes ? ` in ${sizes} sizes` : ""
-  }. ${isPosterPack(product) ? "Peel-and-stick mini posters for your wall." : "Die-cut vinyl for car, bike, laptop & helmet. Peel and stick."}`;
+  }. ${isPosterPack(product) ? `Printed on ${POSTER_PAPER}, ${POSTER_ADHESIVE} included.` : isMiniPoster(product) ? `Choose a ${POSTER_PAPER} wall poster or a vinyl sticker.` : "Die-cut vinyl for car, bike, laptop & helmet. Peel and stick."}`;
   const lead = product.description.trim();
   const text = lead ? `${lead} ${pitch}` : pitch;
   return text.length > 160 ? `${text.slice(0, 157).trimEnd()}…` : text;
 }
 
+const POSTER_TIPS = `Wipe the wall clean and dry and plan the layout first (a pencil dot for each corner helps). Put the ${POSTER_ADHESIVE} on the back of each poster, then press it onto the wall.`;
+
 /** Plain-language details shown on every sticker page (and read by Google). */
-export function productDetails(product: Product, categoryNames: string[]) {
+export function productDetails(product: Product, categoryNames: string[], finish: PosterFinish = "poster") {
   const name = seoName(product);
   const sizes = sizeList(product);
   const cats = categoryNames.length ? categoryNames.join(", ") : null;
@@ -46,16 +50,50 @@ export function productDetails(product: Product, categoryNames: string[]) {
     const count = product.packItems.length;
     return {
       heading: `About the ${product.name}`,
-      intro: `The ${product.name} is a set of ${count} matching mini posters, printed on vinyl for your order. Its posters are ${packSizeSummary(packPosterSizes(product))} — stick them up side by side, like the picture, for an instant wall collage.`,
+      intro: `The ${product.name} is a set of ${count} matching mini posters, printed on ${POSTER_PAPER} for your order. Its posters are ${packSizeSummary(packPosterSizes(product))}, and ${POSTER_ADHESIVE} come in the box so you can put them up side by side, like the picture, for an instant wall collage.`,
       facts: [
         ["In the set", `${count} mini posters`],
-        ["Material", "Premium vinyl, peel and stick"],
+        ["Material", POSTER_PAPER],
+        ["In the box", `All ${count} posters plus ${POSTER_ADHESIVE}`],
         ["Poster sizes", packSizeSummary(packPosterSizes(product))],
         ["Price", `${formatINR(product.price)} for the whole set`],
-        ["Sticks on", "Walls, doors, cupboards, mirrors and other smooth surfaces"],
+        ["Goes on", "Walls, doors, cupboards and other smooth surfaces"],
         ["Shipping", `Dispatched in ${HANDLING_DAYS.min}–${HANDLING_DAYS.max} days, then ${TRANSIT_DAYS.min}–${TRANSIT_DAYS.max} days to reach you anywhere in India`],
       ] as [string, string][],
-      tips: "Wipe the wall clean and dry, plan the layout first (a pencil dot for each corner helps), then peel each poster and press it down from the centre outwards.",
+      tips: POSTER_TIPS,
+    };
+  }
+  if (isMiniPoster(product) && finish === "sticker") {
+    return {
+      heading: `About the ${name} sticker`,
+      intro: `This is the ${name} as a vinyl sticker, printed for your order${
+        cats ? ` — part of our ${cats} collection` : ""
+      }. It goes on a car, bike, helmet, laptop, water bottle or fridge. Just peel and stick.`,
+      facts: [
+        ["Material", "Premium vinyl, peel and stick"],
+        ...(sizes ? [["Sizes", sizes]] : []),
+        ["Price", product.sizes.length > 1 ? `From ${formatINR(product.price)}` : formatINR(product.price)],
+        ["Sticks on", "Cars, bikes, helmets, laptops, bottles, fridges"],
+        ["Shipping", `Dispatched in ${HANDLING_DAYS.min}–${HANDLING_DAYS.max} days, then ${TRANSIT_DAYS.min}–${TRANSIT_DAYS.max} days to reach you anywhere in India`],
+      ] as [string, string][],
+      tips: "Clean and dry the surface first, peel the sticker off its backing, press it down from the centre outwards and smooth out any air bubbles. Leave it 24 hours before washing.",
+    };
+  }
+  if (isMiniPoster(product)) {
+    return {
+      heading: `About the ${name}`,
+      intro: `This is the ${name} as a wall poster, printed for your order on ${POSTER_PAPER}${
+        cats ? ` — part of our ${cats} collection` : ""
+      }. ${POSTER_ADHESIVE[0].toUpperCase()}${POSTER_ADHESIVE.slice(1)} come with it, so it's ready to go up on your wall.`,
+      facts: [
+        ["Material", POSTER_PAPER],
+        ...(sizes ? [["Sizes", sizes]] : []),
+        ["Price", product.sizes.length > 1 ? `From ${formatINR(product.price)}` : formatINR(product.price)],
+        ["In the box", `Your poster plus ${POSTER_ADHESIVE}`],
+        ["Goes on", "Walls, doors, cupboards and other smooth surfaces"],
+        ["Shipping", `Dispatched in ${HANDLING_DAYS.min}–${HANDLING_DAYS.max} days, then ${TRANSIT_DAYS.min}–${TRANSIT_DAYS.max} days to reach you anywhere in India`],
+      ] as [string, string][],
+      tips: POSTER_TIPS,
     };
   }
   return {
@@ -77,6 +115,12 @@ export function productDetails(product: Product, categoryNames: string[]) {
 /** Intro text for a category page. */
 export function categoryIntro(category: Category, count: number): string {
   const name = category.name.toLowerCase();
+  if (/mini poster/.test(name)) {
+    return `Browse ${count} ${name} from ${SITE_NAME}. Pick each one as a wall poster on ${POSTER_PAPER}, with ${POSTER_ADHESIVE} included, or as a vinyl sticker. Printed to order and shipped across India.`;
+  }
+  if (/poster/.test(name)) {
+    return `Browse ${count} ${name} from ${SITE_NAME} — wall posters printed to order on ${POSTER_PAPER}, with ${POSTER_ADHESIVE} included, shipped across India.`;
+  }
   return `Browse ${count} ${name} sticker${count === 1 ? "" : "s"} from ${SITE_NAME} — die-cut vinyl decals for your car, bike, laptop, helmet and more. Every ${name} sticker is printed to order in the size you pick and shipped across India.`;
 }
 
@@ -121,6 +165,14 @@ export function storeFaq(facts: ShopFacts): Faq[] {
         facts.posters ? ", mini posters" : ""
       }${facts.avatar ? ", AI avatar stickers made from your photo" : ""} and custom stickers, printed to order and shipped across India.`,
     },
+    ...(facts.posters
+      ? [
+          {
+            q: "Are StickyPie mini posters stickers?",
+            a: `You choose. A mini poster comes as a wall poster on ${POSTER_PAPER}, with ${POSTER_ADHESIVE} included, or as a vinyl sticker you peel and stick. Wall poster sets are always on poster paper.`,
+          },
+        ]
+      : []),
     {
       q: "Where can I buy stickers online in India?",
       a: `${SITE_NAME} (stickypie.in) sells ${facts.designs} die-cut vinyl sticker designs online in India — car, bike, laptop, helmet and water bottle stickers${
@@ -164,7 +216,7 @@ export function storeFaq(facts: ShopFacts): Faq[] {
       ? [
           {
             q: "Do you sell mini posters?",
-            a: `Yes — ${facts.posters} mini posters of cars, bikes and more, printed as stickers you can put on a car, bike, laptop, bottle, fridge or wall, from ${formatINR(
+            a: `Yes — ${facts.posters} mini posters of cars, bikes and more, as wall posters on ${POSTER_PAPER} or as vinyl stickers, from ${formatINR(
               facts.posterFrom
             )}.`,
           },
@@ -369,15 +421,17 @@ export function productStructuredData(
     sku: product.slug,
     mpn: product.slug,
     brand: { "@type": "Brand", name: SITE_NAME },
-    material: "Vinyl",
-    ...(mainCategory ? { category: `Stickers > ${mainCategory.name}` } : { category: "Stickers" }),
+    material: isPosterPack(product) ? POSTER_PAPER : isMiniPoster(product) ? `${POSTER_PAPER} or vinyl` : "Vinyl",
+    ...(mainCategory
+      ? { category: `${isPoster(product) ? "Posters" : "Stickers"} > ${mainCategory.name}` }
+      : { category: isPoster(product) ? "Posters" : "Stickers" }),
     ...(product.tags.length ? { keywords: product.tags.join(", ") } : {}),
     ...(sizes[0].inches
       ? {
           additionalProperty: {
             "@type": "PropertyValue",
             name: "Sizes",
-            value: sizes.map((s) => `${s.inches}″`).join(", "),
+            value: sizes.map((s) => (s.inches ? sizeChipLabel(product, s.inches) : "")).join(", "),
           },
         }
       : {}),

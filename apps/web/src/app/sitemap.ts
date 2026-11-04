@@ -16,6 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl("/"), changeFrequency: "daily", priority: 1 },
     { url: absoluteUrl("/stickers"), changeFrequency: "daily", priority: 0.9 },
     { url: absoluteUrl("/custom-stickers"), changeFrequency: "monthly" as const, priority: 0.8 },
+    { url: absoluteUrl("/wall-builder"), changeFrequency: "monthly" as const, priority: 0.7 },
     { url: absoluteUrl("/custom-stickers/design"), changeFrequency: "monthly" as const, priority: 0.7 },
     { url: absoluteUrl("/avatar-stickers"), changeFrequency: "monthly" as const, priority: 0.9 },
     { url: absoluteUrl("/qr-code-stickers"), changeFrequency: "monthly" as const, priority: 0.8 },

@@ -23,8 +23,12 @@ import {
   sizeLabel,
   packPosterSizes,
   packSizeSummary,
+  finishLabel,
+  isMiniPosterProduct,
+  wallLayout,
   type NewOrderInput,
   type Order,
+  type PosterFinish,
 } from "@stickypie/shared";
 import { getDriver } from "@/lib/data";
 import { checkIndianAddress } from "@/lib/india-address";
@@ -80,7 +84,8 @@ export async function POST(req: Request) {
 
   // Custom stickers (artwork uploaded after payment) are priced per size from
   // admin → Settings. One order line per design, so each keeps its own artwork.
-  const customItems = items.filter((item) => isCustomProductId(item.productId));
+  const wallItems = items.filter((item) => item.customKind === "wall");
+  const customItems = items.filter((item) => isCustomProductId(item.productId) && item.customKind !== "wall");
   // Custom and regular stickers can share one order: regular lines are priced
   // from the catalogue below, custom lines from these per-size prices, and the
   // order page asks for the custom artwork once it's paid.
@@ -131,12 +136,13 @@ export async function POST(req: Request) {
   }
 
   // Merge duplicate lines (same product + size), then re-price everything server-side.
-  const lines = new Map<string, { productId: string; size: number | null; quantity: number }>();
+  const lines = new Map<string, { productId: string; size: number | null; finish: PosterFinish; quantity: number }>();
   for (const item of items) {
-    if (customItems.includes(item)) continue;
+    if (isCustomProductId(item.productId)) continue;
     const size = item.size ?? null;
-    const key = `${item.productId}:${size ?? ""}`;
-    const line = lines.get(key) ?? { productId: item.productId, size, quantity: 0 };
+    const finish = item.finish ?? "poster";
+    const key = `${item.productId}:${size ?? ""}:${finish}`;
+    const line = lines.get(key) ?? { productId: item.productId, size, finish, quantity: 0 };
     line.quantity += item.quantity;
     lines.set(key, line);
   }
@@ -200,7 +206,11 @@ export async function POST(req: Request) {
         { status: 409 }
       );
     }
-    const label = line.size == null ? null : sizeLabel(line.size, product.aspectRatio);
+    const mini = isMiniPosterProduct(product) && product.packItems.length === 0;
+    const label =
+      line.size == null
+        ? null
+        : `${sizeLabel(line.size, product.aspectRatio)}${mini ? ` · ${finishLabel(line.finish)}` : ""}`;
     orderItems.push({
       productId: line.productId,
       name: product.name,
@@ -240,9 +250,51 @@ export async function POST(req: Request) {
       isCustom: true,
       customRef: item.customRef ?? null,
       customSpec:
-        item.customKind === "qr" || item.customKind === "text" || item.customKind === "avatar"
-          ? (item.customSpec ?? null)
+        item.customSpec && item.customSpec.kind !== "wall" && item.customKind === item.customSpec.kind
+          ? item.customSpec
           : null,
+    });
+  }
+
+  // A wall the shopper built: one line that prints as its posters, priced poster
+  // by poster from the catalogue. Always on poster paper.
+  for (const item of wallItems) {
+    const spec = item.customSpec?.kind === "wall" ? item.customSpec : null;
+    const layout = spec ? wallLayout(spec.layout) : null;
+    if (!spec || !layout || spec.posters.length !== layout.tiles.length) {
+      return NextResponse.json(
+        { error: "This wall layout has changed. Please build your wall again.", code: "wall_changed" },
+        { status: 409 }
+      );
+    }
+    const found = new Map((await driver.getProductsByIds(spec.posters)).map((p) => [p.id, p]));
+    const posters: { name: string; imageUrl: string; inches: number }[] = [];
+    let price = 0;
+    for (const [i, id] of spec.posters.entries()) {
+      const inches = layout.tiles[i].inches;
+      const poster = found.get(id);
+      const priced = poster?.isActive && poster.stock !== 0 && isMiniPosterProduct(poster) ? priceForSize(poster, inches) : null;
+      if (!poster || !priced) {
+        return NextResponse.json(
+          {
+            error: `${poster ? `"${poster.name}"` : "A poster on your wall"} isn't available any more. Please swap it on your wall.`,
+            code: "wall_changed",
+          },
+          { status: 409 }
+        );
+      }
+      posters.push({ name: poster.name, imageUrl: poster.imageUrl, inches });
+      price += priced.price;
+    }
+    orderItems.push({
+      productId: null,
+      name: `Your wall · ${layout.name}`,
+      unitPrice: price,
+      quantity: 1,
+      imageUrl: posters[0].imageUrl,
+      sizeInches: null,
+      sizeLabel: packSizeSummary(posters.map((p) => p.inches)),
+      packPosters: posters,
     });
   }
 
@@ -265,6 +317,7 @@ export async function POST(req: Request) {
         (x) =>
           x.productId === i.productId &&
           (x.sizeInches ?? null) === i.sizeInches &&
+          (x.sizeLabel ?? null) === (i.sizeLabel ?? null) &&
           x.quantity === i.quantity &&
           x.unitPrice === i.unitPrice
       )

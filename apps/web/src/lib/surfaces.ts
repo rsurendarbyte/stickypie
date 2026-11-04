@@ -203,7 +203,7 @@ export function festivalSurface(f: Festival, categories: Category[]): Surface {
     name: `${f.name} Stickers`,
     noun: "collection",
     title: f.title || `${f.name} Stickers & Mini Posters`,
-    description: f.description || `${f.name} stickers and mini posters — die-cut vinyl for your car, bike and laptop, shipped across India.`,
+    description: f.description || `${f.name} die-cut vinyl stickers for your car, bike and laptop, and mini posters as wall posters or stickers, shipped across India.`,
     intro: f.intro,
     tags: f.tags,
     categories: category ? [category.slug] : [],

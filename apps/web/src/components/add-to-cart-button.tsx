@@ -5,7 +5,7 @@ import type { Product } from "@stickypie/shared";
 import { formatINR, priceForSize } from "@stickypie/shared";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
-import { defaultSize, toCartProduct } from "./size-picker";
+import { defaultSize, toCartProduct, useLineFinish } from "./size-picker";
 
 export default function AddToCartButton({
   product,
@@ -29,9 +29,10 @@ export default function AddToCartButton({
 }) {
   const { add, items } = useCart();
   const out = product.stock === 0;
+  const finish = useLineFinish(product);
   const chosen = stickerSize === undefined ? defaultSize(product) : stickerSize;
   const price = priceForSize(product, chosen)?.price ?? product.price;
-  const inCart = items.find((item) => lineKey(item) === lineKey({ productId: product.id, size: chosen }));
+  const inCart = items.find((item) => lineKey(item) === lineKey({ productId: product.id, size: chosen, finish }));
 
   // Already in the cart → the button becomes the synced quantity stepper.
   if (inCart && !out) {

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import type { Product, ProductSize } from "@stickypie/shared";
+import type { PosterFinish, Product, ProductSize } from "@stickypie/shared";
 import { formatINR, formatInches, priceForSize, productSizes } from "@stickypie/shared";
-import { isPosterPack, sizeChipLabel } from "@/lib/poster";
+import { isMiniPoster, isPosterPack, sizeChipLabel } from "@/lib/poster";
+import { getFinish, useFinish } from "@/lib/poster-finish";
 import type { CartProduct } from "./cart-context";
 
 /** The lowest-priced size — what the shop shows first. */
@@ -26,8 +27,16 @@ export function useSizeChoice(product: Product) {
   return { sizes, size, setSize: setPicked, price: priced.price, compareAtPrice: priced.compareAtPrice };
 }
 
+/** The cart line's finish for this product: "sticker" for a mini poster bought as one. */
+export function useLineFinish(product: Product): PosterFinish | undefined {
+  const finish = useFinish();
+  return finish === "sticker" && isMiniPoster(product) && !isPosterPack(product) ? finish : undefined;
+}
+
 /** What goes into the cart for this product in this size. */
 export function toCartProduct(product: Product, size: number | null, price: number): CartProduct {
+  const mini = isMiniPoster(product) && !isPosterPack(product);
+  const finish = getFinish();
   return {
     productId: product.id,
     slug: product.slug,
@@ -37,7 +46,15 @@ export function toCartProduct(product: Product, size: number | null, price: numb
     thumbUrl: product.thumbUrl,
     stock: product.stock,
     size,
-    sizeLabel: size === null ? null : isPosterPack(product) ? `${sizeChipLabel(product, size)} in posters` : `${formatInches(size)}″`,
+    sizeLabel:
+      size === null
+        ? null
+        : isPosterPack(product)
+          ? `${sizeChipLabel(product, size)} in posters`
+          : mini
+            ? `${sizeChipLabel(product, size)} in · ${finish === "sticker" ? "Sticker" : "Wall poster"}`
+            : `${formatInches(size)}″`,
+    ...(mini ? { finish } : {}),
   };
 }
 

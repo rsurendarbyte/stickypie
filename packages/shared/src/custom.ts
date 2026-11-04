@@ -18,7 +18,7 @@ export const AVATAR_STICKER_NAME = "Avatar sticker packs";
  * Kinds of custom sticker: an uploaded design, a QR / name sticker drawn on
  * the site, or avatar sticker sheets (AI stickers of the shopper from their photo).
  */
-export type CustomKind = "design" | "qr" | "text" | "avatar";
+export type CustomKind = "design" | "qr" | "text" | "avatar" | "wall";
 
 /**
  * Fonts for name / text stickers. Each app (storefront, admin) loads the same
@@ -67,7 +67,11 @@ export type AvatarStickerSpec = {
   /** A couple photo: both people in every sticker. Absent = just one person. */
   couple?: boolean;
 };
+/** A wall the shopper built: a layout and the poster picked for each spot, in order. */
+export type WallSpec = { kind: "wall"; layout: string; posters: string[] };
 export type CustomSpec = QrStickerSpec | TextStickerSpec | AvatarStickerSpec;
+/** What a cart line can carry: a wall becomes its posters at checkout, so orders never hold one. */
+export type CartCustomSpec = CustomSpec | WallSpec;
 
 /**
  * A style the shopper can pick for a page (admin → Avatar book): a card

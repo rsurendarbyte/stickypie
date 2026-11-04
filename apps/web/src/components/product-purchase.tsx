@@ -6,7 +6,7 @@ import { formatINR } from "@stickypie/shared";
 import AddToCartButton from "./add-to-cart-button";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
-import { toCartProduct } from "./size-picker";
+import { toCartProduct, useLineFinish } from "./size-picker";
 
 export default function ProductPurchase({
   product,
@@ -20,8 +20,9 @@ export default function ProductPurchase({
 }) {
   const { add, count, items } = useCart();
   const out = product.stock === 0;
+  const finish = useLineFinish(product);
   const inCart = items.find(
-    (item) => lineKey(item) === lineKey({ productId: product.id, size: stickerSize })
+    (item) => lineKey(item) === lineKey({ productId: product.id, size: stickerSize, finish })
   );
 
   function addNow() {

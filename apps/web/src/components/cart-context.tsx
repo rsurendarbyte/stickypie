@@ -10,7 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
-import type { CustomKind, CustomSpec } from "@stickypie/shared";
+import type { CartCustomSpec, CustomKind, PosterFinish } from "@stickypie/shared";
 
 export type CartItem = {
   productId: string;
@@ -34,7 +34,9 @@ export type CartItem = {
   /** Custom sticker kind: an uploaded design, or a QR / name sticker made on the site. */
   customKind?: CustomKind;
   /** QR / name stickers: what to draw (no image is uploaded for these). */
-  customSpec?: CustomSpec;
+  customSpec?: CartCustomSpec;
+  /** Mini posters: "sticker" when bought as one (else a wall poster). */
+  finish?: PosterFinish;
 };
 
 export type CartProduct = Omit<CartItem, "qty">;
@@ -64,12 +66,13 @@ export function itemHref(item: { slug: string; custom?: boolean; customKind?: Cu
   if (item.customKind === "qr") return "/qr-code-stickers";
   if (item.customKind === "text") return "/name-stickers";
   if (item.customKind === "avatar") return "/avatar-stickers";
+  if (item.customKind === "wall") return "/wall-builder";
   return "/custom-stickers/design";
 }
 
-/** One cart line per sticker per size. */
-export function lineKey(item: { productId: string; size?: number | null }): string {
-  return `${item.productId}:${item.size ?? ""}`;
+/** One cart line per sticker per size (a mini poster's sticker is its own line). */
+export function lineKey(item: { productId: string; size?: number | null; finish?: PosterFinish }): string {
+  return `${item.productId}:${item.size ?? ""}${item.finish === "sticker" ? ":sticker" : ""}`;
 }
 
 function clampQty(qty: number, stock: number | null): number {

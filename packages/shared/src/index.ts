@@ -10,6 +10,7 @@ export * from "./store/mappers";
 export * from "./emails";
 export * from "./india";
 export * from "./sizes";
+export * from "./walls";
 export * from "./shipping";
 export * from "./home-rails";
 export * from "./festivals";

@@ -4,6 +4,7 @@
 // size and link. Built once at deploy and served as a free static file (AI
 // crawlers fetch it often); new stickers appear with the next deploy.
 import { categoryPath, formatINR, inCategory } from "@stickypie/shared";
+import { isPoster, sizeChipLabel } from "@/lib/poster";
 import { getDriver } from "@/lib/data";
 import { SURFACES, allLandings } from "@/lib/surfaces";
 import { SITE_NAME, absoluteUrl, isProductionSite } from "@/lib/site";
@@ -72,7 +73,7 @@ export async function GET() {
     `- [Custom stickers](${absoluteUrl("/custom-stickers")}): print your own design, QR code or name`,
     `- [QR code stickers](${absoluteUrl("/qr-code-stickers")})`,
     `- [Name & text stickers](${absoluteUrl("/name-stickers")})`,
-    ...(facts.posters ? [`- [Mini posters](${absoluteUrl(categoryPath("mini-posters"))}): ${facts.posters} car, bike and art mini posters`] : []),
+    ...(facts.posters ? [`- [Mini posters](${absoluteUrl(categoryPath("mini-posters"))}): ${facts.posters} car, bike and art mini posters, each as a wall poster on 300 GSM poster paper (glue dots or double-sided tape included) or as a vinyl sticker`] : []),
     `- [Contact](${absoluteUrl("/contact")})`,
     `- [Shipping policy](${absoluteUrl("/legal/shipping")}) · [Refunds & cancellations](${absoluteUrl("/legal/refunds")})`,
     "",
@@ -86,7 +87,7 @@ export async function GET() {
   for (const p of products) {
     const sizes = [...p.sizes].sort((a, b) => a.inches - b.inches);
     const price = sizes.length
-      ? sizes.map((s) => `${s.inches}″ ${formatINR(s.price)}`).join(", ")
+      ? sizes.map((s) => `${isPoster(p) ? `${sizeChipLabel(p, s.inches)} in` : `${s.inches}″`} ${formatINR(s.price)}`).join(", ")
       : formatINR(p.price);
     const stock = p.stock === 0 ? " (out of stock)" : "";
     lines.push(`- [${seoName(p)}](${absoluteUrl(`/sticker/${p.slug}`)}): ${price}${stock}${p.description ? ` — ${p.description.trim()}` : ""}`);

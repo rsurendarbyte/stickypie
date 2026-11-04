@@ -105,7 +105,7 @@ export default async function ThankYouCardPage({ params }: { params: Promise<{ i
 
           {/* Sticker tips */}
           <div className="absolute right-[96mm] bottom-[42mm] left-[18mm]">
-            <StickingTips />
+            <StickingTips items={order.items} />
           </div>
 
           {/* Footer */}

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { SHOP_THEME, formatDateTime, formatInches, orderCode, type OrderItem } from "@stickypie/shared";
+import { SHOP_THEME, formatDateTime, formatInches, isPosterItem, orderCode, posterSizeLabel, type OrderItem } from "@stickypie/shared";
 import { getAdminDriver } from "@/lib/data";
 import { imageDownloadHref } from "@/lib/img";
 import { Brand, CardStyles, CardToolbar, Posters, StickingTips, firstNameOf, randomPosters, type PosterSpot } from "../../card-kit";
@@ -30,6 +30,7 @@ function layout(count: number) {
 
 function sizeText(item: OrderItem): string | null {
   if (item.customSpec?.kind === "avatar") return null;
+  if (item.sizeInches && isPosterItem(item)) return posterSizeLabel(item.sizeInches);
   return item.sizeInches ? `${formatInches(item.sizeInches)}″` : null;
 }
 
@@ -145,7 +146,7 @@ export default async function StickerCardPage({ params }: { params: Promise<{ id
           {/* Tips + help */}
           <div className="absolute right-[16mm] bottom-[32mm] left-[18mm] flex items-end gap-[8mm]">
             <div className="min-w-0 flex-1">
-              <StickingTips />
+              <StickingTips items={order.items} />
             </div>
             <div className="sticker relative w-[78mm] shrink-0 p-[5mm]">
               <p className="font-display text-[5mm] leading-tight font-bold">Something missing or damaged?</p>

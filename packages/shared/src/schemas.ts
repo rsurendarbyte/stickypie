@@ -30,6 +30,12 @@ export const customSpecSchema = z.discriminatedUnion("kind", [
     color2: hexColor.nullable(),
     style: z.enum(["cut", "label"]),
   }),
+  // Checkout checks the posters against the layout and the catalogue.
+  z.object({
+    kind: z.literal("wall"),
+    layout: z.string().min(1).max(30),
+    posters: z.array(z.string().uuid()).min(1).max(40),
+  }),
   // One style per page — checkout also checks them against the book on sale.
   z.object({
     kind: z.literal("avatar"),
@@ -73,9 +79,11 @@ export const checkoutSchema = z.object({
         /** Custom stickers: id linking the line to artwork kept in the shopper's browser. */
         customRef: z.string().uuid().optional(),
         /** Custom stickers: "qr" / "text" = made on the site, "avatar" = a sticker book drawn from a photo (own price). */
-        customKind: z.enum(["design", "qr", "text", "avatar"]).optional(),
+        customKind: z.enum(["design", "qr", "text", "avatar", "wall"]).optional(),
         /** QR / name stickers: what to draw — saved instead of an image. Avatar books: pages + styles. */
         customSpec: customSpecSchema.optional(),
+        /** Mini posters: wall poster (default) or sticker. */
+        finish: z.enum(["poster", "sticker"]).optional(),
       })
     )
     .min(1, "Your cart is empty")

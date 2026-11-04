@@ -4,12 +4,15 @@
 // and served as a free static file; new stickers appear with the next deploy.
 import { getDriver } from "@/lib/data";
 import { productSeoDescription, seoName } from "@/lib/seo";
+import { isPoster, isPosterPack, sizeChipLabel } from "@/lib/poster";
 import { SITE_NAME, absoluteUrl, isProductionSite } from "@/lib/site";
 
 export const dynamic = "force-static";
 
 const GOOGLE_CATEGORY =
   "Arts & Entertainment > Hobbies & Creative Arts > Arts & Crafts > Art & Crafting Materials > Embellishments & Trims > Decorative Stickers";
+
+const GOOGLE_POSTER_CATEGORY = "Home & Garden > Decor > Artwork > Posters, Prints, & Visual Artwork";
 
 function xml(value: string): string {
   return value
@@ -34,13 +37,14 @@ export async function GET() {
       ? product.sizes
       : [{ inches: null as number | null, price: product.price, compareAtPrice: product.compareAtPrice }];
     const availability = product.stock === 0 ? "out_of_stock" : "in_stock";
-    const type = ["Stickers", catName.get(product.categoryId ?? "")].filter(Boolean).join(" > ");
+    const poster = isPoster(product);
+    const type = [poster ? "Posters" : "Stickers", catName.get(product.categoryId ?? "")].filter(Boolean).join(" > ");
     return sizes.map((size) => {
       const sale = size.compareAtPrice && size.compareAtPrice > size.price;
       const fields: [string, string][] = [
         ["g:id", size.inches ? `${product.slug}-${size.inches}in` : product.slug],
         ["g:item_group_id", product.slug],
-        ["g:title", `${seoName(product)}${size.inches ? ` – ${size.inches} inch` : ""} | Die-Cut Vinyl`],
+        ["g:title", `${seoName(product)}${size.inches ? ` – ${poster ? sizeChipLabel(product, size.inches) : size.inches} inch` : ""} | ${poster ? "Wall Poster" : "Die-Cut Vinyl"}`],
         ["g:description", productSeoDescription(product)],
         ["g:link", absoluteUrl(`/sticker/${product.slug}`)],
         ["g:image_link", absoluteUrl(product.imageUrl)],
@@ -50,10 +54,10 @@ export async function GET() {
         ["g:brand", SITE_NAME],
         ["g:condition", "new"],
         ["g:identifier_exists", "no"],
-        ["g:google_product_category", GOOGLE_CATEGORY],
+        ["g:google_product_category", poster ? GOOGLE_POSTER_CATEGORY : GOOGLE_CATEGORY],
         ["g:product_type", type],
-        ["g:material", "Vinyl"],
-        ...(size.inches ? [["g:size", `${size.inches} inch`] as [string, string]] : []),
+        ["g:material", isPosterPack(product) ? "Poster Paper" : poster ? "Poster Paper or Vinyl" : "Vinyl"],
+        ...(size.inches ? [["g:size", `${poster ? sizeChipLabel(product, size.inches) : size.inches} inch`] as [string, string]] : []),
       ];
       return `    <item>\n${fields.map(([k, v]) => `      <${k}>${xml(v)}</${k}>`).join("\n")}\n    </item>`;
     });

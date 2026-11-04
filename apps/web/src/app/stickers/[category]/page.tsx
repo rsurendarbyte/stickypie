@@ -1,3 +1,5 @@
+import { ArrowRight } from "lucide-react";
+import Link from "@/components/page-link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import JsonLd from "@/components/json-ld";
@@ -39,7 +41,11 @@ export async function generateMetadata({
   const title = categoryTitle(category.name);
   return pageMetadata({
     title: `${title} — Buy Online in India`,
-    description: `Shop ${title.toLowerCase()} at StickyPie: die-cut vinyl in several sizes for cars, bikes, laptops and more. Ships across India.`,
+    description: /mini poster/i.test(category.name)
+      ? `Shop ${title.toLowerCase()} at StickyPie: each as a 300 GSM wall poster or a vinyl sticker. Ships across India.`
+      : /poster/i.test(category.name)
+      ? `Shop ${title.toLowerCase()} at StickyPie: wall posters on 300 GSM poster paper, glue dots or double-sided tape included. Ships across India.`
+      : `Shop ${title.toLowerCase()} at StickyPie: die-cut vinyl in several sizes for cars, bikes, laptops and more. Ships across India.`,
     path: categoryPath(category.slug),
   });
 }
@@ -63,6 +69,18 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
   return (
     <div className="min-h-screen w-full px-4 pt-[76px] pb-24 sm:px-8 sm:pt-24 lg:px-12 2xl:px-20">
       <JsonLd data={[breadcrumbLd, itemListStructuredData(inThis)]} />
+      {/poster/i.test(category.name) && (
+        <Link
+          href="/wall-builder"
+          className="mb-3 flex items-center justify-between gap-3 rounded-2xl border border-brand/30 bg-brand/[0.07] px-4 py-3"
+        >
+          <span>
+            <span className="block font-display text-base font-bold">Build your own wall</span>
+            <span className="block text-xs text-fog">Pick a layout, choose every poster</span>
+          </span>
+          <ArrowRight className="size-5 shrink-0 text-brand" />
+        </Link>
+      )}
       <Suspense
         fallback={
           <div className="grid min-h-[40vh] place-items-center">
