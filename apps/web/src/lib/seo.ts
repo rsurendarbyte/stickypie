@@ -6,7 +6,7 @@ import type { Category, Product, PublicReview } from "@stickypie/shared";
 import { POSTER_ADHESIVE, POSTER_PAPER, categoryPath, formatINR, packPosterSizes, packSizeSummary, type PosterFinish } from "@stickypie/shared";
 import { SITE_NAME, absoluteUrl } from "./site";
 import { siteUrl } from "./mode";
-import { isMiniPoster, isPoster, isPosterPack, sizeChipLabel } from "./poster";
+import { isInternalTag, isMiniPoster, isPoster, isPosterPack, sizeChipLabel } from "./poster";
 
 /** Where parcels go and how long they take (matches the shipping policy). */
 const HANDLING_DAYS = { min: 2, max: 4 };
@@ -425,7 +425,7 @@ export function productStructuredData(
     ...(mainCategory
       ? { category: `${isPoster(product) ? "Posters" : "Stickers"} > ${mainCategory.name}` }
       : { category: isPoster(product) ? "Posters" : "Stickers" }),
-    ...(product.tags.length ? { keywords: product.tags.filter((t) => !t.startsWith("wall theme:")).join(", ") } : {}),
+    ...(product.tags.length ? { keywords: product.tags.filter((t) => !isInternalTag(t)).join(", ") } : {}),
     ...(sizes[0].inches
       ? {
           additionalProperty: {

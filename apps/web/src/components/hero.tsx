@@ -3,7 +3,7 @@
 import Link from "@/components/page-link";
 import SmartImg from "./smart-img";
 import PageLink from "./page-link";
-import { isMiniPoster, isPosterPack, packSizeLine, sizeChipLabel } from "@/lib/poster";
+import { isMiniPoster, isPosterPack, packSizeLine, posterSetName, sizeChipLabel, wallSize } from "@/lib/poster";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -33,7 +33,7 @@ import {
   formatINR,
 } from "@stickypie/shared";
 import { cardSkinFor, tileFor } from "@/lib/palette";
-import { useSkinSeed } from "@/lib/skin-seed";
+import { useDaySeed, useSkinSeed } from "@/lib/skin-seed";
 import AddToCartButton from "./add-to-cart-button";
 import AvatarArt from "./avatar-art";
 import { STYLE_DESIGNS, StickerArt, type ArtDesign } from "./custom-rail";
@@ -64,6 +64,7 @@ export default function Hero({
   const features = useFeatures();
   const settings = useStoreSettings();
   const seed = useSkinSeed();
+  const daySeed = useDaySeed();
   const { products: catalog } = useLiveCatalog({
     categories: [],
     products: [],
@@ -118,6 +119,11 @@ export default function Hero({
   if (!slide) return null;
   const product = slide.kind === "product" ? slide.product : null;
   const key = product ? product.id : slide.kind;
+  // A wall set shows its own posters, fanned out, not its wall picture.
+  const fan =
+    product && isPosterPack(product)
+      ? product.packItems.slice(0, 5).flatMap((id) => (catalog.length ? catalog : products).filter((p) => p.id === id))
+      : [];
   // The words sit on a moving wall on these slides.
   const onWall = slide.kind !== "product";
   const posterChips = slide.kind === "posters" || (product !== null && isPosterPack(product));
@@ -169,7 +175,7 @@ export default function Hero({
               stickers={wallItems(
                 catalog.length ? catalog : products,
                 slide.kind === "posters",
-                seed,
+                daySeed,
               )}
             />
           ) : (
@@ -329,6 +335,9 @@ export default function Hero({
                 // one fixed-size cell, so max-h-full has a height to fit tall art (posters) into
                 className="absolute inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center p-2 sm:p-4 lg:px-6 lg:pt-0 lg:pb-5"
               >
+                {fan.length >= 3 ? (
+                  <PosterFan posters={fan} />
+                ) : (
                 <SmartImg
                   full={product.displayUrl ?? product.imageUrl}
                   thumb={product.thumbUrl}
@@ -337,6 +346,7 @@ export default function Hero({
                   // a wall poster set's collage stands straight with rounded corners, like its card
                   className={`animate-float max-h-full max-w-full cursor-pointer object-contain transition-transform duration-200 hover:scale-[1.03] lg:max-h-[min(46vh,520px)] ${isPosterPack(product) ? "rounded-2xl shadow-[0_24px_50px_-20px_rgba(16,24,40,0.45)]" : "sticker-cut rotate-2"}`}
                 />
+                )}
               </PageLink>
             ) : null}
           </div>
@@ -423,6 +433,41 @@ function BrandSlideCopy({ catalog }: { catalog: Product[] }) {
         </PageLink>
       </div>
     </>
+  );
+}
+
+/** Fan of paper prints, spread by place: [left %, height %, tilt]. The first poster leads in the middle. */
+const FAN = [
+  [50, 100, 0],
+  [28, 86, -7],
+  [72, 86, 7],
+  [9, 70, -13],
+  [91, 70, 13],
+];
+
+/** A wall set in the banner: its real posters large and loose, with the first in front. */
+function PosterFan({ posters }: { posters: Product[] }) {
+  return (
+    <div className="relative size-full">
+      {posters.map((p, i) => {
+        const [left, height, tilt] = FAN[i];
+        return (
+          <img
+            key={p.id}
+            src={p.displayUrl ?? p.imageUrl}
+            alt=""
+            draggable={false}
+            className="absolute top-1/2 aspect-[2/3] rounded-md object-cover shadow-[0_18px_34px_-14px_rgba(16,24,40,0.55)] transition-transform duration-300 hover:scale-[1.03]"
+            style={{
+              left: `${left}%`,
+              height: `${height}%`,
+              zIndex: 5 - i,
+              transform: `translate(-50%, -50%) rotate(${tilt}deg)`,
+            }}
+          />
+        );
+      })}
+    </div>
   );
 }
 
@@ -534,7 +579,7 @@ function heroPicks(
 /** What a banner wall shows: only stickers or only mini posters, so the two never
  *  mix — never poster packs (a pack's picture is a whole wall, not one sticker).
  *  Categories take turns (one from each, round and round) so no single one —
- *  a festival's dozen posters, say — fills the wall; the mix changes each visit. */
+ *  a festival's dozen posters, say — fills the wall; the mix changes each day. */
 function wallItems(everything: Product[], posters: boolean, seed: number) {
   const pool = everything.filter((p) => !isPosterPack(p) && isMiniPoster(p) === posters);
   const random = seededRandom(seed);
@@ -781,18 +826,18 @@ function ProductSlideCopy({
       </div>
       {/* The page's H1 is in the shop intro below; a rotating product isn't the page topic. */}
       <h2 className="mt-2 line-clamp-2 font-display text-[24px] leading-[1.1] font-bold tracking-tight sm:mt-4 sm:text-6xl lg:mt-5 lg:text-[64px]">
-        {product.name}
+        {pack ? posterSetName(product.name) : product.name}
       </h2>
       {pack && (
         <p className="mt-2 text-sm font-semibold text-snow sm:mt-3 sm:text-base">
-          {packSizeLine(product).includes("mini posters")
-            ? packSizeLine(product)
-            : `${product.packItems.length} mini posters · ${packSizeLine(product)}`}
+          {`${product.packItems.length} posters · ${wallSize(product) ? `about ${wallSize(product)} on your wall` : packSizeLine(product)}`}
         </p>
       )}
-      <p className="mt-4 hidden max-w-lg text-base leading-relaxed text-fog sm:line-clamp-2 sm:text-lg lg:line-clamp-3">
-        {product.description}
-      </p>
+      {!pack && (
+        <p className="mt-4 hidden max-w-lg text-base leading-relaxed text-fog sm:line-clamp-2 sm:text-lg lg:line-clamp-3">
+          {product.description}
+        </p>
+      )}
       <HeroBuy product={product} onPickSize={onPickSize} />
     </>
   );
@@ -1137,7 +1182,7 @@ function HeroBuy({
           </button>
         )}
       </div>
-      {features.customStickers && (
+      {features.customStickers && !isPosterPack(product) && (
         <PageLink
           href="/custom-stickers"
           className="group mt-4 hidden items-center gap-2.5 rounded-2xl border border-dashed border-brand/40 sm:inline-flex bg-ink2/80 px-4 py-2.5 text-sm backdrop-blur-sm transition-colors hover:border-brand sm:mt-5"

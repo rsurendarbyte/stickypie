@@ -6,7 +6,7 @@ import { Check, Frame, Ruler, ShoppingBag } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR } from "@stickypie/shared";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
-import { isMiniPoster, isPosterPack, packSizeLine, sizeChipLabel } from "@/lib/poster";
+import { isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel, wallSize } from "@/lib/poster";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
@@ -230,99 +230,85 @@ function StickerCard({ product, width }: { product: Product; width: string }) {
 
 /** "Red Line — 6 Mini Poster Pack" → "Red Line". */
 function packTitle(name: string) {
-  return name.replace(/\s*—\s*\d+\s+Mini Poster Pack\s*$/i, "").replace(/\s+Wall Setup$/i, "").trim() || name;
+  return posterSetName(name).replace(/\s+Wall Setup$/i, "");
 }
 
 /**
- * A poster pack: its 2:3 collage of every poster in the pack, edge to edge,
- * the pack's size on a plaque, and its posters' sizes (big ones 6 × 9 in, the rest 4 × 6 in).
+ * A wall set: no sticker-style box, just the wall filling a square and a tight
+ * line of name, price and size under it. An older 2:3 collage shows whole, on a
+ * soft blurred copy of itself, so nothing is cropped.
  */
 function PackCard({ product, width }: { product: Product; width: string }) {
   const { add, items } = useCart();
-  const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product);
+  const { size, price, compareAtPrice } = useSizeChoice(product);
   const inCart = items.find((item) => lineKey(item) === lineKey({ productId: product.id, size }));
   const out = product.stock === 0;
   const off = discountPercent(price, compareAtPrice);
-  const count = product.packItems.length;
+  const wall = isWallSetup(product);
+  const small = product.thumbUrl ?? product.imageUrl;
+  const srcSet = product.thumbUrl && product.displayUrl ? `${product.thumbUrl} 320w, ${product.displayUrl} 683w` : undefined;
+  const feet = wallSize(product);
 
   return (
-    // rail-card-drawn: always laid out (no 320px stand-in or a size remembered at another
-    // screen width), so the row is exactly as tall as the packs really are
-    <div
-      className={`rail-card-drawn @container group relative snap-start overflow-hidden rounded-2xl border border-line bg-white transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] ${width}`}
-    >
-      {/* The pack's 2:3 picture, full width and height (no side bars) */}
+    <div className={`rail-card-drawn group relative snap-start ${width}`}>
       <PageLink
         href={`/sticker/${product.slug}`}
-        className="relative block aspect-[2/3] overflow-hidden bg-[#f4f1ec]"
+        className="relative block aspect-square overflow-hidden rounded-2xl bg-[#ece7df] shadow-[0_10px_24px_-14px_rgba(16,24,40,0.45)]"
         tabIndex={-1}
         aria-hidden
       >
-        {/* edge to edge: the cover's own background fills the sides, so the posters sit as big as they fit */}
+        {!wall && <img src={small} alt="" loading="lazy" decoding="async" className="absolute inset-0 size-full scale-110 object-cover opacity-60 blur-xl" />}
         <img
-          src={product.thumbUrl ?? product.imageUrl}
+          src={small}
+          srcSet={srcSet}
+          sizes="320px"
           alt={product.name}
           loading="lazy"
           decoding="async"
-          className={`size-full object-cover transition-transform duration-300 group-hover:scale-[1.03] ${out ? "opacity-40 saturate-50" : ""}`}
+          className={`relative size-full ${wall ? "object-cover" : "object-contain"} transition-transform duration-300 group-hover:scale-[1.03] ${out ? "opacity-40 saturate-50" : ""}`}
         />
-        <span className="absolute top-2 left-2.5 inline-flex items-center gap-1 rounded-md bg-white/92 px-2 py-1 text-[10px] font-bold tracking-wider text-snow uppercase shadow-sm backdrop-blur-sm">
-          <Frame className="size-3 text-brand" /> {count} posters
-        </span>
-        {product.isNew && !out && (
-          <span className="absolute top-2 right-2.5 rounded-md bg-mint px-2 py-0.5 text-[10px] font-bold tracking-wider text-ink uppercase shadow-sm">
-            New
-          </span>
+        {off !== null && !out && (
+          <span className="absolute top-2 left-2 rounded-md bg-white/92 px-1.5 py-0.5 text-[10px] font-bold text-mint shadow-sm">{off}% off</span>
         )}
       </PageLink>
 
-      <div className="px-3 pt-2.5">
-        <PageLink href={`/sticker/${product.slug}`} className="block">
-          <p className="truncate font-display text-[15px] font-bold text-snow">{packTitle(product.name)}</p>
-        </PageLink>
-        <p className="mt-0.5 truncate text-[11px] text-fog">
-          {packSizeLine(product)}
-        </p>
-        <div className="mt-1.5 flex h-7 items-center gap-2">
-          {sizes.length > 1 && !out && (
-            <SizePicker compact sizes={sizes} value={size} onChange={setSize} label={(inches) => sizeChipLabel(product, inches)} />
-          )}
-          <span className="ml-auto flex items-center gap-1.5 text-[11px] whitespace-nowrap">
-            {compareAtPrice !== null && compareAtPrice > price && (
-              <>
-                <span className="text-fog line-through">{formatINR(compareAtPrice)}</span>
-                {off !== null && <span className="font-bold text-mint">{off}% off</span>}
-              </>
-            )}
-          </span>
+      <div className="mt-2 flex items-start justify-between gap-2 px-0.5">
+        <div className="min-w-0">
+          <PageLink href={`/sticker/${product.slug}`} className="block">
+            <p className="truncate font-display text-[15px] leading-tight font-bold text-snow">{packTitle(product.name)}</p>
+          </PageLink>
+          <p className="mt-0.5 truncate text-[11px] text-fog">
+            {product.packItems.length} posters{feet ? ` · ${feet}` : ""}
+          </p>
         </div>
+        <p className="shrink-0 text-right">
+          <span className="block font-display text-base leading-tight font-bold text-snow">{formatINR(price)}</span>
+          {compareAtPrice !== null && compareAtPrice > price && (
+            <span className="block text-[10px] leading-tight text-fog line-through">{formatINR(compareAtPrice)}</span>
+          )}
+        </p>
       </div>
 
-      <div className="flex p-3 pt-2">
+      <div className="mt-1.5">
         {inCart ? (
-          <div className="flex h-10 w-full items-center justify-between gap-2 sm:h-11">
+          <div className="flex h-9 items-center">
             <CartStepper item={inCart} size="sm" sticker />
-            <span className="text-right font-display text-lg leading-none font-bold whitespace-nowrap tabular-nums">
-              {formatINR(inCart.qty * inCart.price)}
-            </span>
           </div>
         ) : (
           <button
             type="button"
             onClick={() => !out && add(toCartProduct(product, size, price))}
             disabled={out}
-            aria-label={out ? "Out of stock" : `Add ${product.name}${size ? ` (${size} inch posters)` : ""} to cart for ${formatINR(price)}`}
-            className={`flex h-10 w-full items-center justify-center gap-2 rounded-xl sm:h-11 ${
-              out ? "cursor-not-allowed bg-panel px-3.5 text-xs font-bold text-fog/60" : "peel-btn px-3"
+            aria-label={out ? "Out of stock" : `Add ${product.name} to cart for ${formatINR(price)}`}
+            className={`flex h-9 w-full items-center justify-center gap-1.5 rounded-xl text-sm font-bold ${
+              out ? "cursor-not-allowed bg-panel text-xs text-fog/60" : "peel-btn"
             }`}
           >
             {out ? (
               "Out of stock"
             ) : (
               <>
-                <ShoppingBag className="peel-icon size-4 shrink-0" />
-                <span className="font-display text-lg leading-none font-bold whitespace-nowrap">{formatINR(price)}</span>
-                <span className="hidden text-xs font-semibold opacity-80 @[15rem]:inline">· whole set</span>
+                <ShoppingBag className="peel-icon size-4 shrink-0" /> Add to cart
               </>
             )}
           </button>

@@ -3,7 +3,7 @@
 import SmartImg from "./smart-img";
 import PageLink from "./page-link";
 import ImageZoom from "./image-zoom";
-import { isMiniPoster, isPosterPack, sizeChipLabel } from "@/lib/poster";
+import { isInternalTag, isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel } from "@/lib/poster";
 import { useEffect, useState } from "react";
 import { BadgeCheck, Car, ChevronsUpDown, Frame, Gift, PackageX, Ruler, Sparkles, Truck } from "lucide-react";
 import type { Product } from "@stickypie/shared";
@@ -72,8 +72,8 @@ export default function ProductDetailClient({
   const finish = useLineFinish(product);
   const poster = isPack || (isMiniPoster(product) && finish !== "sticker");
   const [zoom, setZoom] = useState(false);
-  // "wall theme:cars" only sorts a set into its home row.
-  const shownTags = product.tags.filter((t) => !t.startsWith("wall theme:"));
+  const shownTags = product.tags.filter((t) => !isInternalTag(t));
+  const wall = isWallSetup(product);
 
   return (
     <>
@@ -115,7 +115,7 @@ export default function ProductDetailClient({
       <div className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-10">
         {/* Art — stays in view on wide screens while the details (e.g. a pack's posters) scroll */}
         <div className="lg:sticky lg:top-24 lg:self-start">
-        <div className={`relative w-full ${isPack ? "aspect-[4/5] max-h-[620px]" : "aspect-[5/4] max-h-[440px] sm:aspect-square"}`} {...swipe}>
+        <div className={`relative w-full ${wall ? "aspect-square max-h-[620px]" : isPack ? "aspect-[4/5] max-h-[620px]" : "aspect-[5/4] max-h-[440px] sm:aspect-square"}`} {...swipe}>
           <button
             type="button"
             // A pack's picture is a collage of all its posters — no "actual size" for it.
@@ -131,7 +131,7 @@ export default function ProductDetailClient({
               alt={product.name}
               priority
               imgRef={setArtEl}
-              className={`sticker-cut max-h-full max-w-full object-contain ${
+              className={`${wall ? "rounded-2xl shadow-[0_18px_40px_-18px_rgba(16,24,40,0.5)]" : "sticker-cut"} max-h-full max-w-full object-contain ${
                 out || unavailable ? "opacity-50 saturate-50" : ""
               }`}
             />
@@ -159,7 +159,7 @@ export default function ProductDetailClient({
 
         {/* Details */}
         <div>
-          <h1 className="font-display text-3xl font-bold sm:text-4xl">{product.name}</h1>
+          <h1 className="font-display text-3xl font-bold sm:text-4xl">{isPack ? posterSetName(product.name) : product.name}</h1>
           <RatingSummary productId={product.id} />
 
           <div className="mt-1.5 flex items-baseline gap-3">
@@ -325,7 +325,7 @@ export default function ProductDetailClient({
       <ProductReviews productId={product.id} />
 
       {isPack && (
-        <ImageZoom open={zoom} onClose={() => setZoom(false)} src={product.imageUrl} title={product.name} />
+        <ImageZoom open={zoom} onClose={() => setZoom(false)} src={product.imageUrl} title={product.name} ratio={product.aspectRatio ?? undefined} />
       )}
       <TrueSizePreview
         open={trueSize && !isPack}

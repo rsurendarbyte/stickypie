@@ -21,7 +21,7 @@ import {
 } from "@stickypie/shared";
 import { useFestivals, useHomeRails, useLiveCatalog, type Catalog } from "@/lib/live-catalog";
 import { savedRailScroll, useWindowScrollMemory } from "@/lib/scroll-memory";
-import { useSkinSeed } from "@/lib/skin-seed";
+import { useDaySeed } from "@/lib/skin-seed";
 import StickerLoader from "./sticker-loader";
 
 export default function HomeClient({
@@ -51,8 +51,8 @@ export default function HomeClient({
   const featured = singles.filter((p) => p.featured);
   const hero = featured[0] ?? singles[0] ?? products[0];
   // Rails and their order come from the admin (Home page); what each rail
-  // shows is shuffled once per visit in the browser, so the page feels fresh.
-  const seed = useSkinSeed();
+  // shows changes once a day, not on every refresh.
+  const seed = useDaySeed();
   const wallMix = mixWalls(packs, seed);
   const homeRails = resolveHomeRails(rails, singles, categories, seed);
   // Festivals around today (admin → Festivals) come right after Make your own: from a few days
@@ -140,16 +140,16 @@ export default function HomeClient({
         {/* First row: a mix of every wall set; then a row per wall theme; then the AI
             "Stickers of YOU" card and the AI styles; then any festival on now */}
         {wallMix.length > 0 && (
-          <LazyRail eager title="Wall poster sets" href={categoryPath("poster-packs")}>
+          <LazyRail eager wide title="Wall poster sets" href={categoryPath("poster-packs")}>
             {wallMix.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard key={product.id} product={product} width={WALL_CARD_WIDTH} />
             ))}
           </LazyRail>
         )}
         {wallRows.map((row, i) => (
-          <LazyRail key={row.id} eager={i < 1} title={row.title} href={categoryPath("poster-packs")}>
+          <LazyRail key={row.id} eager={i < 1} wide title={row.title} href={`${categoryPath("poster-packs")}?theme=${row.id}`}>
             {row.items.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard key={product.id} product={product} width={WALL_CARD_WIDTH} />
             ))}
           </LazyRail>
         ))}
@@ -182,10 +182,13 @@ export default function HomeClient({
   );
 }
 
+/** Wall set cards are wider than sticker cards: a wall has many posters to see. */
+const WALL_CARD_WIDTH = "w-64 shrink-0 sm:w-72 md:w-80";
+
 /** The 4x4 Garage set runs in the reel ad: it always opens the mix. */
 const WALL_MIX_LEAD = "4x4-garage-poster-pack";
 
-/** Every wall set, one theme after another so none fills the row; a new order per visit. */
+/** Every wall set, one theme after another so none fills the row; a new order each day. */
 function mixWalls(packs: Product[], seed: number): Product[] {
   const spin = (slug: string) => [...slug].reduce((n, c) => Math.imul(n ^ c.charCodeAt(0), 16777619) >>> 0, seed >>> 0);
   const themeOf = (p: Product) => p.tags.find((t) => t.startsWith("wall theme:")) ?? "";
@@ -211,11 +214,14 @@ const RAIL_STEP = 6;
 
 function LazyRail({
   eager,
+  wide = false,
   title,
   href,
   children,
 }: {
   eager: boolean;
+  /** Wall sets: bigger cards, so the posters on the wall can be seen. */
+  wide?: boolean;
   title: string;
   href?: string;
   children: React.ReactNode;
@@ -304,9 +310,9 @@ function LazyRail({
         {near
           ? cards.slice(0, shown)
           : Array.from({ length: 4 }, (_, i) => (
-              <div key={i} aria-hidden className="w-44 shrink-0 overflow-hidden rounded-2xl border border-line bg-ink sm:w-48 md:w-52">
-                <div className="aspect-[4/5] bg-ink2" />
-                <div className="h-[100px]" />
+              <div key={i} aria-hidden className={`${wide ? WALL_CARD_WIDTH : "w-44 shrink-0 sm:w-48 md:w-52"} overflow-hidden rounded-2xl border border-line bg-ink`}>
+                <div className={`${wide ? "aspect-square" : "aspect-[4/5]"} bg-ink2`} />
+                <div className={wide ? "h-[84px]" : "h-[100px]"} />
               </div>
             ))}
       </Row>

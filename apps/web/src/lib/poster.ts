@@ -11,6 +11,29 @@ export function isPosterPack(product: Product) {
   return (product.packItems?.length ?? 0) > 0;
 }
 
+/** A wall setup: a poster pack shown on a painted wall (square picture). */
+export function isWallSetup(product: Product) {
+  return isPosterPack(product) && product.tags.some((t) => t.toLowerCase() === "wall setup");
+}
+
+const tagValue = (product: Product, name: string) =>
+  product.tags.find((t) => t.startsWith(`wall ${name}:`))?.slice(name.length + 6) ?? null;
+
+/** A wall's size on the wall: "1.7 × 1.5 ft". */
+export function wallSize(product: Product): string | null {
+  return tagValue(product, "size");
+}
+
+/** Tags that only drive the shop (row, size), never shown to shoppers. */
+export function isInternalTag(tag: string) {
+  return /^wall (theme|size):/.test(tag);
+}
+
+/** "Red Line — 6 Mini Poster Pack" → "Red Line": a set's name for shoppers. */
+export function posterSetName(name: string) {
+  return name.replace(/\s*—\s*\d+\s+Mini Poster Pack\s*$/i, "").trim() || name;
+}
+
 /** Anything printed on poster paper: a mini poster or a poster pack. */
 export function isPoster(product: Product) {
   return isMiniPoster(product) || isPosterPack(product);

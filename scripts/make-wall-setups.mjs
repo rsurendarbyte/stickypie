@@ -1,5 +1,5 @@
 // Draws wall setups from the shop's own posters: big 6 × 9 in posters with
-// 4 × 6 in ones around them (the only sizes sold), on a room wall. Pictures go
+// 4 × 6 in ones around them (the only sizes sold), hung on a painted gallery wall. Pictures go
 // to prod_stickers/wall-setups/.
 //
 //   node scripts/make-wall-setups.mjs            → previews, posters from the dev database
@@ -18,8 +18,7 @@ const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 
 const OUT = path.join(root, "prod_stickers/wall-setups");
 const W = 1600;
-const H = 2400; // 2:3, the shape of a poster set card
-const WALL_BOTTOM = 2160; // where the desk starts
+const H = 1600; // square, the shape of a wall card: the posters fill it
 const GAP = 0.3; // inches between posters
 const IMAGE_HOST = "https://stickers.stickypie.in";
 const SMALL = { w: 4, h: 6 };
@@ -27,12 +26,12 @@ const BIG = { w: 6, h: 9 };
 
 // pack: id in packs.json; its first poster goes big.
 const SETUPS = [
-  { pack: "car-wall-20", file: "car-wall", theme: "cars", title: "Dream Garage Wall Setup", layout: "centre", wall: ["#ded9d0", "#cfc8bc"], desk: "#7a5436" },
-  { pack: "motivation", file: "motivation", theme: "motivational", title: "Do It Now Wall Setup", layout: "side", wall: ["#3a3f47", "#2c3036"], desk: "#26231f" },
-  { pack: "world-traveller", file: "world-traveller", theme: "travel", title: "World Traveller Wall Setup", layout: "trio", wall: ["#e7dfd2", "#d9cdbb"], desk: "#a97c50" },
-  { pack: "har-har-mahadev", file: "mahadev", theme: "devotional", title: "Mahadev Wall Setup", layout: "centre", wall: ["#c9cdc2", "#b4baab"], desk: "#6b4a2f" },
-  { pack: "swag-pop", file: "swag-pop", title: "Swag Pop Wall Setup", layout: "side", wall: ["#e6e7ea", "#d3d5da"], desk: "#2f2f33" },
-  { pack: "incredible-india", file: "incredible-india", theme: "india", title: "Incredible India Wall Setup", layout: "trio", wall: ["#d9b99b", "#c8a382"], desk: "#5d3f28" },
+  { pack: "car-wall-20", file: "car-wall", theme: "cars", title: "Dream Garage Wall Setup", layout: "centre" },
+  { pack: "motivation", file: "motivation", theme: "motivational", title: "Do It Now Wall Setup", layout: "side" },
+  { pack: "world-traveller", file: "world-traveller", theme: "travel", title: "World Traveller Wall Setup", layout: "trio" },
+  { pack: "har-har-mahadev", file: "mahadev", theme: "devotional", title: "Mahadev Wall Setup", layout: "centre" },
+  { pack: "swag-pop", file: "swag-pop", title: "Swag Pop Wall Setup", layout: "side" },
+  { pack: "incredible-india", file: "incredible-india", theme: "india", title: "Incredible India Wall Setup", layout: "trio" },
 ];
 
 // Rows of wall sets: each set is drawn from these poster categories (not festival
@@ -76,14 +75,26 @@ const THEMES = [
 ];
 // Layout and poster count for set 1, 2, 3… of a theme.
 const CYCLE = [["centre", 8], ["trio", 9], ["side", 8], ["centre", 14], ["trio", 7], ["trio", 11], ["centre", 6], ["side", 10], ["trio", 9], ["centre", 8]];
-const ROOMS = [
-  { wall: ["#ded9d0", "#cfc8bc"], desk: "#7a5436" },
-  { wall: ["#3a3f47", "#2c3036"], desk: "#26231f" },
-  { wall: ["#e7dfd2", "#d9cdbb"], desk: "#a97c50" },
-  { wall: ["#c9cdc2", "#b4baab"], desk: "#6b4a2f" },
-  { wall: ["#e6e7ea", "#d3d5da"], desk: "#2f2f33" },
-  { wall: ["#d9b99b", "#c8a382"], desk: "#5d3f28" },
-];
+// Wall paint: soft colours, never dark, so the posters stay the loudest thing.
+const SAGE = ["#c3cbbc", "#b2bbaa"];
+const DUSTY_BLUE = ["#c0ccd5", "#aebbc6"];
+const CLAY = ["#dcc3b0", "#cfb29c"];
+const WARM_GREY = ["#d3cdc3", "#c4bdb2"];
+const CREAM = ["#f1ece3", "#e2dacd"];
+const BLUSH = ["#e6d3cd", "#dbc4bc"];
+const PAINTS = {
+  cars: [WARM_GREY, DUSTY_BLUE, SAGE],
+  ride: [SAGE, CLAY, WARM_GREY],
+  travel: [DUSTY_BLUE, CREAM, CLAY],
+  india: [CLAY, CREAM, BLUSH],
+  devotional: [CREAM, BLUSH, CLAY],
+  motivational: [DUSTY_BLUE, WARM_GREY, BLUSH],
+  retro: [CLAY, SAGE, CREAM],
+};
+const paintFor = (theme, i) => {
+  const list = PAINTS[theme] ?? [CREAM, DUSTY_BLUE, SAGE];
+  return { paint: list[i % list.length] };
+};
 
 /** Spots on the wall, inches from the top left: big posters first, always even, no leftovers. */
 function layoutSpots(name, count) {
@@ -123,57 +134,46 @@ function layoutSpots(name, count) {
   return [big(left, 0), big(left, bigH), ...sides.flat()];
 }
 
-function room(wall, desk) {
-  const [a, b] = wall;
-  const d = WALL_BOTTOM;
-  return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
-  <defs>
-    <linearGradient id="w" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>
-    <radialGradient id="light" cx="0.5" cy="0.3" r="0.8"><stop offset="0" stop-color="#fff" stop-opacity="0.16"/><stop offset="0.6" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.16"/></radialGradient>
-    <linearGradient id="top" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.16"/><stop offset="1" stop-color="#000" stop-opacity="0.12"/></linearGradient>
-    <linearGradient id="cast" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.2"/></linearGradient>
-    <linearGradient id="lamp" x1="0.5" y1="0" x2="0.5" y2="1"><stop offset="0" stop-color="#ffd9a0" stop-opacity="0.34"/><stop offset="1" stop-color="#ffd9a0" stop-opacity="0"/></linearGradient>
-    <filter id="soft"><feGaussianBlur stdDeviation="14"/></filter>
-  </defs>
-  <rect width="${W}" height="${d}" fill="url(#w)"/>
-  <rect width="${W}" height="${d}" fill="url(#light)"/>
-  <rect y="${d - 70}" width="${W}" height="70" fill="url(#cast)"/>
-  <rect y="${d}" width="${W}" height="${H - d}" fill="${desk}"/>
-  <rect y="${d}" width="${W}" height="${H - d}" fill="url(#top)"/>
-  <!-- lamp glow -->
-  <path d="M1335 ${d - 250} L1120 ${d} L1550 ${d} Z" fill="url(#lamp)" filter="url(#soft)"/>
-  <!-- laptop, closed -->
-  <ellipse cx="800" cy="${d + 62}" rx="300" ry="16" fill="#000" opacity="0.28" filter="url(#soft)"/>
-  <path d="M530 ${d + 54} L580 ${d + 18} L1020 ${d + 18} L1070 ${d + 54} Z" fill="#a9acb2"/>
-  <rect x="530" y="${d + 54}" width="540" height="9" rx="4" fill="#7d8086"/>
-  <!-- mug -->
-  <rect x="1115" y="${d - 26}" width="66" height="74" rx="10" fill="#e9e4da"/>
-  <path d="M1181 ${d - 8} h16 a16 16 0 0 1 0 34 h-16" fill="none" stroke="#e9e4da" stroke-width="9"/>
-  <!-- lamp -->
-  <ellipse cx="1335" cy="${d + 36}" rx="80" ry="12" fill="#17171a"/>
-  <rect x="1330" y="${d - 240}" width="10" height="272" fill="#17171a"/>
-  <path d="M1250 ${d - 225} q85 -105 170 0 z" fill="#17171a"/>
-  <!-- plant -->
-  <ellipse cx="265" cy="${d + 44}" rx="80" ry="12" fill="#000" opacity="0.26" filter="url(#soft)"/>
-  <path d="M205 ${d - 60} h120 l-14 104 h-92 z" fill="#efe9df"/>
-  <path d="M265 ${d - 60} C215 ${d - 140} 165 ${d - 150} 140 ${d - 225} C215 ${d - 205} 262 ${d - 160} 265 ${d - 60}Z" fill="#3f6b48"/>
-  <path d="M265 ${d - 60} C295 ${d - 165} 350 ${d - 180} 385 ${d - 250} C325 ${d - 235} 270 ${d - 175} 265 ${d - 60}Z" fill="#4e8259"/>
-  <path d="M265 ${d - 60} C248 ${d - 170} 256 ${d - 250} 282 ${d - 310} C305 ${d - 230} 290 ${d - 150} 265 ${d - 60}Z" fill="#35603f"/>
-</svg>`);
+/** Painted plaster: paint colour, fine grain, one soft light from the top left. */
+async function plaster([a, b]) {
+  const paint = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><defs>
+    <linearGradient id="p" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>
+    <radialGradient id="l" cx="0.22" cy="0.1" r="1.1"><stop offset="0" stop-color="#fff" stop-opacity="0.26"/><stop offset="0.55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.1"/></radialGradient>
+    </defs><rect width="${W}" height="${H}" fill="url(#p)"/><rect width="${W}" height="${H}" fill="url(#l)"/></svg>`);
+  const grain = await sharp({ create: { width: W, height: H, channels: 3, background: "#808080", noise: { type: "gaussian", mean: 128, sigma: 16 } } }).blur(0.7).png().toBuffer();
+  return sharp(paint).composite([{ input: grain, blend: "soft-light" }]).png().toBuffer();
 }
 
-const rounded = (w, h, r) => Buffer.from(`<svg width="${w}" height="${h}"><rect width="${w}" height="${h}" rx="${r}" fill="#fff"/></svg>`);
-
-async function piece(buffer, w, h, left, top) {
-  const data = await sharp(buffer).resize(w, h, { fit: "cover" }).composite([{ input: rounded(w, h, 3), blend: "dest-in" }]).png().toBuffer();
-  const pad = 26;
-  const shadow = await sharp({ create: { width: w + pad * 2, height: h + pad * 2, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
-    .composite([{ input: await sharp({ create: { width: w, height: h, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0.42 } } }).png().toBuffer(), left: pad, top: pad }])
+/** Paper print: art trimmed past its rounded corners, square edge, faint sheen. */
+async function print(buffer, w, h) {
+  const meta = await sharp(buffer).metadata();
+  const trim = Math.round(meta.width * 0.025);
+  const sheen = Buffer.from(`<svg width="${w}" height="${h}"><defs><linearGradient id="s" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.09"/><stop offset="0.5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity="0.07"/></linearGradient></defs><rect width="${w}" height="${h}" fill="url(#s)"/></svg>`);
+  return sharp(buffer)
+    .extract({ left: trim, top: trim, width: meta.width - trim * 2, height: meta.height - trim * 2 })
+    .flatten({ background: "#ffffff" })
+    .resize(w, h, { fit: "cover" })
+    .composite([{ input: sheen }])
     .png()
     .toBuffer();
+}
+
+/** A shadow cast to the lower right. */
+async function shadow(w, h, pad, blur, alpha) {
+  const solid = await sharp({ create: { width: w, height: h, channels: 4, background: { r: 25, g: 18, b: 12, alpha } } }).png().toBuffer();
+  const layer = await sharp({ create: { width: w + pad * 2, height: h + pad * 2, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite([{ input: solid, left: pad, top: pad }])
+    .png()
+    .toBuffer();
+  return sharp(layer).blur(blur).png().toBuffer();
+}
+
+async function piece(buffer, w, h, left, top) {
+  const pad = 44;
   return [
-    { input: await sharp(shadow).blur(9).png().toBuffer(), left: left - pad + 5, top: top - pad + 9 },
-    { input: data, left, top },
+    { input: await shadow(w, h, pad, 20, 0.34), left: left - pad + 12, top: top - pad + 18 },
+    { input: await shadow(w, h, pad, 3, 0.4), left: left - pad + 2, top: top - pad + 3 },
+    { input: await print(buffer, w, h), left, top },
   ];
 }
 
@@ -181,17 +181,18 @@ async function draw(setup, posters) {
   const spots = layoutSpots(setup.layout, posters.length);
   const width = Math.max(...spots.map((s) => s.x + s.w));
   const height = Math.max(...spots.map((s) => s.y + s.h));
-  const scale = Math.min((W * 0.86) / width, (WALL_BOTTOM - 560) / height);
+  const scale = Math.min((W * 0.92) / width, (H * 0.92) / height);
   const ox = Math.round((W - width * scale) / 2);
-  const oy = Math.round((WALL_BOTTOM - 340 - height * scale) / 2 + 40);
+  const oy = Math.round((H - height * scale) / 2);
   const layers = [];
   for (const [i, s] of spots.entries()) {
     layers.push(...(await piece(posters[i], Math.round(s.w * scale), Math.round(s.h * scale), ox + Math.round(s.x * scale), oy + Math.round(s.y * scale))));
   }
   const file = path.join(OUT, `${setup.file}.jpg`);
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  await sharp(room(setup.wall, setup.desk)).composite(layers).jpeg({ quality: 88 }).toFile(file);
-  return { file, sizes: spots.map((s) => s.h), feet: `${(width / 12).toFixed(1)} × ${(height / 12).toFixed(1)} ft` };
+  const feet = `${(width / 12).toFixed(1)} × ${(height / 12).toFixed(1)} ft`;
+  await sharp(await plaster(setup.paint)).composite(layers).jpeg({ quality: 90 }).toFile(file);
+  return { file, sizes: spots.map((s) => s.h), feet };
 }
 
 const { url, key, args } = loadTargetEnv();
@@ -242,7 +243,7 @@ async function saveSetup(setup, tags, rows, done) {
     category_id: category.id,
     pack_items: rows.map((r) => r.id),
     pack_sizes: done.sizes,
-    tags: ["poster pack", "wall setup", ...(setup.theme ? [`wall theme:${setup.theme}`] : []), ...tags],
+    tags: ["poster pack", "wall setup", `wall size:${done.feet}`, ...(setup.theme ? [`wall theme:${setup.theme}`] : []), ...tags],
   };
   for (const [column, maxPx, quality, prefix] of [["thumb_url", 480, 80, "thumbs"], ["display_url", 1024, 82, "display"]]) {
     const webp = await sharp(master).resize(maxPx, maxPx, { fit: "inside" }).webp({ quality }).toBuffer();
@@ -287,7 +288,7 @@ for (const setup of args.includes("--themes") ? [] : SETUPS) {
     console.log(`✘ ${pack.name}: only ${posters.length} posters`);
     continue;
   }
-  const done = await draw(setup, posters);
+  const done = await draw({ ...setup, ...paintFor(setup.theme, SETUPS.indexOf(setup)) }, posters);
   results.push(done.file);
   if (save) console.log(`  saved ${await saveSetup(setup, pack.tags, order.slice(0, done.sizes.length), done)}`);
   console.log(`✓ ${pack.name}: ${done.sizes.filter((n) => n === 9).length} × 6 × 9 in, ${done.sizes.filter((n) => n === 6).length} × 4 × 6 in, ${done.feet}`);
@@ -343,8 +344,7 @@ if (args.includes("--themes")) {
       const count = Math.min(wanted, ordered.length);
       const start = Math.floor((i * ordered.length) / theme.names.length);
       const rows = Array.from({ length: count }, (_, k) => ordered[(start + k) % ordered.length]);
-      const room = ROOMS[(i + THEMES.indexOf(theme)) % ROOMS.length];
-      const setup = { file: `${theme.id}/${kebab(name)}`, theme: theme.id, title: `${name.replace(/ Wall$/, "")} Wall Setup`, layout, ...room };
+      const setup = { file: `${theme.id}/${kebab(name)}`, theme: theme.id, title: `${name.replace(/ Wall$/, "")} Wall Setup`, layout, ...paintFor(theme.id, i) };
       const done = await draw(setup, rows.map((r) => pictures.get(r.id).buffer));
       if (save) await saveSetup(setup, [theme.id], rows.slice(0, done.sizes.length), done);
       saved++;
@@ -357,7 +357,7 @@ if (args.includes("--themes")) {
 if (results.length) {
   const cols = 3;
   const cw = 640;
-  const ch = 960;
+  const ch = 640;
   const rows = Math.ceil(results.length / cols);
   const tiles = await Promise.all(
     results.map(async (f, i) => ({
