@@ -5,6 +5,7 @@
 /** Rows of wall sets on the home page; a set says its row with the tag "wall theme:<id>". */
 export const WALL_THEMES = [
   { id: "cars", title: "Car walls" },
+  { id: "legends", title: "Legends walls" },
   { id: "ride", title: "Ride & adventure walls" },
   { id: "travel", title: "Travel walls" },
   { id: "india", title: "Incredible India walls" },

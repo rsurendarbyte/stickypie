@@ -8,6 +8,7 @@
 //   add --save to also save them as wall sets (poster packs) in that database,
 //   and --prices to reset the prices of sets already saved
 //   --themes makes the rows of about 10 sets per theme instead (--only=cars,travel for some)
+//   --sets=<file> makes the sets picked in that file instead
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -274,7 +275,7 @@ const packs = JSON.parse(fs.readFileSync(path.join(root, "prod_stickers/poster-p
 fs.mkdirSync(OUT, { recursive: true });
 
 const results = [];
-for (const setup of args.includes("--themes") || args.includes("--older") ? [] : SETUPS) {
+for (const setup of args.some((a) => a === "--themes" || a === "--older" || a.startsWith("--sets=")) ? [] : SETUPS) {
   const pack = packs.find((p) => p.id === setup.pack);
   if (!pack) {
     console.log(`✘ no pack "${setup.pack}" (ids: ${packs.map((p) => p.id).join(", ")})`);
@@ -356,6 +357,30 @@ if (args.includes("--themes")) {
       saved++;
     }
     console.log(`✓ ${theme.id}: ${saved} sets from ${pool.length} posters`);
+  }
+}
+
+// Sets picked by hand: --sets=<file>, a list of { name, theme, layout, posters: [slugs] }.
+// The first posters in the list are the big ones.
+const setsFile = args.find((a) => a.startsWith("--sets="))?.slice(7);
+if (setsFile) {
+  const list = JSON.parse(fs.readFileSync(path.resolve(root, setsFile), "utf8"));
+  const slugs = [...new Set(list.flatMap((s) => s.posters))].map((s) => `${s}-mini-poster`);
+  const posters = await rest(`products?slug=in.(${slugs.join(",")})&is_active=eq.true&select=id,slug,image_url,display_url`);
+  const pictures = new Map();
+  for (const [i, set] of list.entries()) {
+    const rows = set.posters.map((s) => {
+      const row = posters.find((p) => p.slug === `${s}-mini-poster`);
+      if (!row) throw new Error(`${set.name}: no poster ${s}`);
+      return row;
+    });
+    if (new Set(rows).size !== rows.length) throw new Error(`${set.name}: a poster twice`);
+    for (const row of rows) if (!pictures.has(row.id)) pictures.set(row.id, await picture(row.display_url ?? row.image_url));
+    const setup = { file: `${set.theme}/${kebab(set.name)}`, theme: set.theme, title: `${set.name} Wall Setup`, layout: set.layout, ...paintFor(set.theme, i) };
+    const done = await draw(setup, rows.map((r) => pictures.get(r.id)));
+    if (done.sizes.length !== rows.length) throw new Error(`${set.name}: ${rows.length} posters, layout holds ${done.sizes.length}`);
+    if (save) await saveSetup(setup, [set.theme], rows, done);
+    console.log(`✓ ${set.name}: ${rows.length} posters, ${done.feet}`);
   }
 }
 
