@@ -3,7 +3,9 @@
 import Link from "@/components/page-link";
 import SmartImg from "./smart-img";
 import PageLink from "./page-link";
-import { isMiniPoster, isPosterPack, packSizeLine, posterSetName, sizeChipLabel, wallSize } from "@/lib/poster";
+import { isMiniPoster, isPosterPack, packSizeLine, posterSetName, sizeChipLabel, wallSize, wallSpots } from "@/lib/poster";
+import { rememberPosters } from "@/lib/poster-images";
+import WallStage from "./wall-stage";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -72,6 +74,7 @@ export default function Hero({
   const interest = useInterest();
   // A fresh mix for every shopper every day: categories take turns (the ones they
   // look at first), featured and new likelier, a cheap sticker and a mini poster in it.
+  rememberPosters(catalog.length ? catalog : products);
   const { picks, packPicks, momentOf } = heroPicks(
     (catalog.length ? catalog : products).filter((p) => !isPosterPack(p)),
     packs,
@@ -119,11 +122,6 @@ export default function Hero({
   if (!slide) return null;
   const product = slide.kind === "product" ? slide.product : null;
   const key = product ? product.id : slide.kind;
-  // A wall set shows its own posters, fanned out, not its wall picture.
-  const fan =
-    product && isPosterPack(product)
-      ? product.packItems.slice(0, 5).flatMap((id) => (catalog.length ? catalog : products).filter((p) => p.id === id))
-      : [];
   // The words sit on a moving wall on these slides.
   const onWall = slide.kind !== "product";
   const posterChips = slide.kind === "posters" || (product !== null && isPosterPack(product));
@@ -335,8 +333,8 @@ export default function Hero({
                 // one fixed-size cell, so max-h-full has a height to fit tall art (posters) into
                 className="absolute inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center p-2 sm:p-4 lg:px-6 lg:pt-0 lg:pb-5"
               >
-                {fan.length >= 3 ? (
-                  <PosterFan posters={fan} />
+                {wallSpots(product).length > 0 ? (
+                  <WallStage bare product={product} src={product.displayUrl ?? product.imageUrl} alt={product.name} />
                 ) : (
                 <SmartImg
                   full={product.displayUrl ?? product.imageUrl}
@@ -433,41 +431,6 @@ function BrandSlideCopy({ catalog }: { catalog: Product[] }) {
         </PageLink>
       </div>
     </>
-  );
-}
-
-/** Fan of paper prints, spread by place: [left %, height %, tilt]. The first poster leads in the middle. */
-const FAN = [
-  [50, 100, 0],
-  [28, 86, -7],
-  [72, 86, 7],
-  [9, 70, -13],
-  [91, 70, 13],
-];
-
-/** A wall set in the banner: its real posters large and loose, with the first in front. */
-function PosterFan({ posters }: { posters: Product[] }) {
-  return (
-    <div className="relative size-full">
-      {posters.map((p, i) => {
-        const [left, height, tilt] = FAN[i];
-        return (
-          <img
-            key={p.id}
-            src={p.displayUrl ?? p.imageUrl}
-            alt=""
-            draggable={false}
-            className="absolute top-1/2 aspect-[2/3] rounded-md object-cover shadow-[0_18px_34px_-14px_rgba(16,24,40,0.55)] transition-transform duration-300 hover:scale-[1.03]"
-            style={{
-              left: `${left}%`,
-              height: `${height}%`,
-              zIndex: 5 - i,
-              transform: `translate(-50%, -50%) rotate(${tilt}deg)`,
-            }}
-          />
-        );
-      })}
-    </div>
   );
 }
 

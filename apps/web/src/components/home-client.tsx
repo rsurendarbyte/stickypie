@@ -8,6 +8,7 @@ import ProductCardSkeleton from "./product-card-skeleton";
 import Row from "./row";
 import CustomRail from "./custom-rail";
 import { isPosterPack } from "@/lib/poster";
+import { rememberPosters } from "@/lib/poster-images";
 import {
   WALL_THEMES,
   categoryPath,
@@ -43,6 +44,7 @@ export default function HomeClient({
   useWindowScrollMemory(loaded);
 
   // Poster packs get the first row, wall setups leading; every other row is single stickers.
+  rememberPosters(products);
   const packs = products.filter(isPosterPack);
   // A row per wall theme, after the mix of every set.
   const inTheme = (id: string) => packs.filter((p) => p.tags.includes(`wall theme:${id}`));

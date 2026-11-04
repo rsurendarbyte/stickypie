@@ -67,7 +67,7 @@ export default async function ProductPage({
   const at = siblings.findIndex((p) => p.id === product.id);
   const pick = (i: number) => {
     const p = siblings[(i + siblings.length) % siblings.length];
-    return { slug: p.slug, name: p.name, imageUrl: p.imageUrl };
+    return { id: p.id, slug: p.slug, name: p.name, imageUrl: p.imageUrl };
   };
   const steps =
     at >= 0 && siblings.length > 1
@@ -84,7 +84,7 @@ export default async function ProductPage({
     ? await driver.getProductsByIds(product.packItems).then((found) =>
         product.packItems.flatMap((id, i) => {
           const p = found.find((f) => f.id === id);
-          return p ? [{ slug: p.slug, name: p.name, imageUrl: p.thumbUrl ?? p.imageUrl, active: p.isActive, inches: product.packSizes[i] ?? 6 }] : [];
+          return p ? [{ id: p.id, slug: p.slug, name: p.name, imageUrl: p.thumbUrl ?? p.imageUrl, active: p.isActive, inches: product.packSizes[i] ?? 6 }] : [];
         })
       )
     : [];
