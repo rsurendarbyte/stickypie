@@ -220,10 +220,14 @@ function MostViewed({ viewed, error }: { viewed: ProductViews | null; error: str
     <section className="mt-6 rounded-2xl border border-line bg-ink2 p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="font-display text-base font-semibold">Most viewed stickers</h2>
-        {viewed && <span className="text-xs text-fog">{n(viewed.total)} sticker page views</span>}
+        {viewed && (
+          <span className="text-xs text-fog">
+            {n(viewed.total)} sticker page views · {n(viewed.saves)} picture saves
+          </span>
+        )}
       </div>
       <p className="mt-1 text-xs text-fog">
-        Each shopper counts once per sticker per visit. Lots of views but no sales? Check its price, photos or sizes.
+        Each shopper counts once per sticker per visit. Lots of views but no sales? Check its price, photos or sizes. &ldquo;Saved&rdquo; means they right-clicked, long-pressed or dragged its picture — the ways to download it (screenshots can&apos;t be seen).
       </p>
       {error ? (
         <p className="mt-3 text-sm text-red-400">{error}</p>
@@ -250,6 +254,7 @@ function MostViewed({ viewed, error }: { viewed: ProductViews | null; error: str
                 )}
                 <span className="shrink-0 text-xs text-fog tabular-nums">
                   {n(p.views)} {p.views === 1 ? "view" : "views"} ·{" "}
+                  {p.saves > 0 && <span className="text-amber-400">{n(p.saves)} saved · </span>}
                   <span className={p.sold ? "text-mint" : ""}>{n(p.sold)} sold</span>
                 </span>
               </span>
