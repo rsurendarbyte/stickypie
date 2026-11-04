@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Download, Eye, ImageUp, Printer } from "lucide-react";
-import { formatDateTime, formatINR, needsArtwork, orderCode, posterSizeLabel } from "@stickypie/shared";
+import { formatDateTime, formatINR, isPosterItem, needsArtwork, orderCode, posterSizeLabel } from "@stickypie/shared";
 import AvatarOrderPrompts from "@/components/avatar-order-prompts";
 import { avatarPoseSets } from "@/lib/avatar-prompts";
 import FinishedStickers from "@/components/finished-stickers";
@@ -92,6 +92,11 @@ export default async function OrderDetailPage({
       <div className="mt-6 grid gap-5 lg:grid-cols-[1.5fr_1fr]">
         <section className="rounded-2xl border border-line bg-ink2 p-5">
           <h2 className="font-display text-lg font-semibold">Items</h2>
+          {order.items.some(isPosterItem) && (
+            <p className="mt-2 rounded-lg bg-gold/15 px-3 py-2 text-xs font-semibold text-gold">
+              Has posters: print on 300 GSM paper and pack glue dots or double-sided tape.
+            </p>
+          )}
           <ul className="mt-4 space-y-3">
             {order.items.map((item) => {
               // QR / name stickers we draw from their details; avatar packs we draw by hand.

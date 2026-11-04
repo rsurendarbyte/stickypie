@@ -7,8 +7,10 @@ import ProductCard from "./product-card";
 import ProductCardSkeleton from "./product-card-skeleton";
 import Row from "./row";
 import CustomRail from "./custom-rail";
-import { isPosterPack } from "@/lib/poster";
+import { isPosterPack, isWallSetup } from "@/lib/poster";
 import {
+  WALL_THEMES,
+  categoryPath,
   activeFestivals,
   festivalProducts,
   festivalShortDate,
@@ -39,8 +41,12 @@ export default function HomeClient({
   const loaded = catalog.loaded && railsLoaded;
   useWindowScrollMemory(loaded);
 
-  // Poster packs sit in the first row after the AI card; every other row is single stickers.
-  const packs = products.filter(isPosterPack);
+  // Poster packs get the first row, wall setups leading; every other row is single stickers.
+  const packs = products.filter(isPosterPack).sort((a, b) => Number(isWallSetup(b)) - Number(isWallSetup(a)));
+  // A row per wall theme, then the other sets.
+  const inTheme = (id: string) => packs.filter((p) => p.tags.includes(`wall theme:${id}`));
+  const wallRows = WALL_THEMES.map((t) => ({ ...t, items: inTheme(t.id) })).filter((t) => t.items.length > 0);
+  const otherPacks = packs.filter((p) => !p.tags.some((t) => t.startsWith("wall theme:")));
   const singles = products.filter((p) => !isPosterPack(p));
   const featured = singles.filter((p) => p.featured);
   const hero = featured[0] ?? singles[0] ?? products[0];
@@ -130,14 +136,23 @@ export default function HomeClient({
         moments={festivalRails.map(({ f, items }) => ({ label: `${f.name} · ${festivalShortDate(f)}`, products: items }))}
       />
       <div className="relative z-10 mt-2 space-y-1 pb-24 sm:space-y-8">
-        {/* First row: the AI "Stickers of YOU" card, then the wall poster sets, then the
+        {/* First row: the wall poster sets; then the AI "Stickers of YOU" card and the
             AI styles; then any festival on now */}
-        <CustomRail
-          title={packs.length > 0 ? "Make it yours" : undefined}
-          afterLead={packs.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        />
+        {wallRows.map((row, i) => (
+          <LazyRail key={row.id} eager={i < 2} title={row.title} href={categoryPath("poster-packs")}>
+            {row.items.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </LazyRail>
+        ))}
+        {otherPacks.length > 0 && (
+          <LazyRail eager={wallRows.length === 0} title="Wall poster sets" href={categoryPath("poster-packs")}>
+            {otherPacks.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </LazyRail>
+        )}
+        <CustomRail />
         {festivalRails.map(({ f, items }) => (
           <LazyRail
             key={`festival-${f.id}`}

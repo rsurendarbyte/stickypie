@@ -3,13 +3,15 @@
 import Link from "@/components/page-link";
 import SmartImg from "./smart-img";
 import PageLink from "./page-link";
-import { isMiniPoster, isPosterPack, packSizeLine } from "@/lib/poster";
+import { isMiniPoster, isPosterPack, packSizeLine, sizeChipLabel } from "@/lib/poster";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   BadgeCheck,
   CalendarHeart,
   Frame,
+  Gift,
+  LayoutGrid,
   Car,
   ImageUp,
   Loader2,
@@ -29,7 +31,6 @@ import {
   avatarBook,
   discountPercent,
   formatINR,
-  formatInches,
 } from "@stickypie/shared";
 import { cardSkinFor, tileFor } from "@/lib/palette";
 import { useSkinSeed } from "@/lib/skin-seed";
@@ -85,8 +86,11 @@ export default function Hero({
     if (i % 2 === 1 && queue.length) slides.push({ kind: "product", product: queue.shift()! });
   });
   for (const p of queue) slides.push({ kind: "product", product: p });
-  // StickyPie itself opens the hero: what we are + a nudge to order…
-  if (picks.length > 0) slides.unshift({ kind: "brand" });
+  // StickyPie itself opens the hero: a slide for stickers, then one for wall posters…
+  if (picks.length > 0) {
+    const posters = (catalog.length ? catalog : products).some(isMiniPoster);
+    slides.unshift({ kind: "brand" }, ...(posters ? [{ kind: "posters" } as const] : []));
+  }
   // …except the avatar sticker book, the headline product, which leads when on sale.
   const book = features.avatarStickers ? avatarBook(settings) : null;
   if (book) slides.unshift({ kind: "avatar" });
@@ -114,11 +118,16 @@ export default function Hero({
   if (!slide) return null;
   const product = slide.kind === "product" ? slide.product : null;
   const key = product ? product.id : slide.kind;
+  // The words sit on a moving wall on these slides.
+  const onWall = slide.kind !== "product";
+  const posterChips = slide.kind === "posters" || (product !== null && isPosterPack(product));
   const skinSlug = product
     ? product.slug
     : slide.kind === "avatar"
       ? "avatar-stickers"
-      : "stickypie";
+      : slide.kind === "posters"
+        ? "wall-posters"
+        : "stickypie";
 
   const tile = tileFor(skinSlug);
   // Each slide sits on a sticker sheet or cutting mat — a new mix every load.
@@ -152,14 +161,14 @@ export default function Hero({
         style={skin.art}
         className="pointer-events-none absolute inset-0 transition-[background-color] duration-700 [mask-image:linear-gradient(to_bottom,black_0%,black_62%,transparent_100%)]"
       />
-      {(slide.kind === "brand" || slide.kind === "avatar") && (
+      {onWall && (
         <>
-          {slide.kind === "brand" ? (
+          {slide.kind !== "avatar" ? (
             <BrandSlideArt
-              key="wall"
+              key={slide.kind}
               stickers={wallItems(
                 catalog.length ? catalog : products,
-                features.wallPostersOnly,
+                slide.kind === "posters",
                 seed,
               )}
             />
@@ -179,7 +188,7 @@ export default function Hero({
       />
 
       <div
-        className={`relative grid w-full items-center gap-3 px-4 pt-[68px] pb-5 sm:gap-8 sm:px-8 sm:pt-24 lg:grid-cols-[1fr_1.2fr] lg:gap-14 lg:px-12 lg:pt-24 lg:pb-10 2xl:px-20 ${slide.kind === "brand" || slide.kind === "avatar" ? "pointer-events-none" : ""}`}
+        className={`relative grid w-full items-center gap-3 px-4 pt-[68px] pb-5 sm:gap-8 sm:px-8 sm:pt-24 lg:grid-cols-[1fr_1.2fr] lg:gap-14 lg:px-12 lg:pt-24 lg:pb-10 2xl:px-20 ${onWall ? "pointer-events-none" : ""}`}
       >
         {/* Copy: every slide is laid out in the same cell, so the hero keeps the
             height of the tallest slide and never jumps as slides change. */}
@@ -188,7 +197,7 @@ export default function Hero({
             (the wall is the backdrop), so the words slide up into it — a shift only, the
             hero keeps its height and the page below never jumps between slides. */}
         <div
-          className={`pointer-events-auto relative z-10 order-2 grid max-w-2xl lg:order-1 ${slide.kind === "brand" || slide.kind === "avatar" ? "sm:max-lg:-translate-y-[min(42svh,28.8rem)]" : ""}`}
+          className={`pointer-events-auto relative z-10 order-2 grid max-w-2xl lg:order-1 ${onWall ? "sm:max-lg:-translate-y-[min(42svh,28.8rem)]" : ""}`}
         >
           {/* Phones: a soft frosted fade behind the text, so the picture above
               melts away under it instead of clashing with the badge. */}
@@ -205,7 +214,7 @@ export default function Hero({
                 inert={!active}
                 // Tablets / small laptop windows: the StickyPie and avatar text sits at the top (the
                 // wall fills the hero behind it), not at the foot of the tallest slide's space.
-                className={`col-start-1 row-start-1 self-end ${s.kind === "brand" || s.kind === "avatar" ? "sm:max-lg:self-start" : ""} ${active ? "animate-hero-in" : "pointer-events-none invisible"}`}
+                className={`col-start-1 row-start-1 self-end ${s.kind !== "product" ? "sm:max-lg:self-start" : ""} ${active ? "animate-hero-in" : "pointer-events-none invisible"}`}
               >
                 {s.kind === "product" ? (
                   <ProductSlideCopy
@@ -219,6 +228,10 @@ export default function Hero({
                   />
                 ) : s.kind === "brand" ? (
                   <BrandSlideCopy
+                    catalog={catalog.length ? catalog : products}
+                  />
+                ) : s.kind === "posters" ? (
+                  <PosterSlideCopy
                     catalog={catalog.length ? catalog : products}
                   />
                 ) : (
@@ -249,13 +262,37 @@ export default function Hero({
           )}
           <ul className="col-start-1 row-start-2 mt-8 hidden flex-wrap gap-2 text-[11px] font-semibold tracking-wide text-fog sm:flex">
             <li className="flex items-center gap-1.5 rounded-full border border-line bg-ink2 px-3 py-1.5">
-              <Sticker className="size-3.5 text-mint" /> Peel &amp; stick
+              {posterChips ? (
+                <>
+                  <BadgeCheck className="size-3.5 text-mint" /> 300 GSM paper
+                </>
+              ) : (
+                <>
+                  <Sticker className="size-3.5 text-mint" /> Peel &amp; stick
+                </>
+              )}
             </li>
             <li className="flex items-center gap-1.5 rounded-full border border-line bg-ink2 px-3 py-1.5">
-              <BadgeCheck className="size-3.5 text-mint" /> Die-cut edges
+              {posterChips ? (
+                <>
+                  <Gift className="size-3.5 text-mint" /> Glue dots included
+                </>
+              ) : (
+                <>
+                  <BadgeCheck className="size-3.5 text-mint" /> Die-cut edges
+                </>
+              )}
             </li>
             <li className="flex items-center gap-1.5 rounded-full border border-line bg-ink2 px-3 py-1.5">
-              <Car className="size-3.5 text-mint" /> Car, bike &amp; laptop
+              {posterChips ? (
+                <>
+                  <Frame className="size-3.5 text-mint" /> Walls &amp; doors
+                </>
+              ) : (
+                <>
+                  <Car className="size-3.5 text-mint" /> Car, bike &amp; laptop
+                </>
+              )}
             </li>
             <li className="flex items-center gap-1.5 rounded-full border border-line bg-ink2 px-3 py-1.5">
               <Truck className="size-3.5 text-mint" /> Ships across India
@@ -265,10 +302,10 @@ export default function Hero({
 
         {/* Artwork, floating on the mat */}
         <div
-          className={`relative z-0 order-1 mx-auto w-full max-w-[360px] sm:max-w-xl lg:order-2 ${slide.kind === "brand" || slide.kind === "avatar" ? "pointer-events-none [&_button]:pointer-events-auto" : ""} lg:mx-0 lg:max-w-none`}
+          className={`relative z-0 order-1 mx-auto w-full max-w-[360px] sm:max-w-xl lg:order-2 ${onWall ? "pointer-events-none [&_button]:pointer-events-auto" : ""} lg:mx-0 lg:max-w-none`}
         >
           {/* product-tinted wash behind the art (not on the wall slides: it fogs the wall) */}
-          {slide.kind !== "brand" && slide.kind !== "avatar" && (
+          {!onWall && (
             <>
               <div
                 className="pointer-events-none absolute inset-0 m-auto aspect-square w-[105%] rounded-full blur-[85px] transition-colors duration-700"
@@ -316,7 +353,9 @@ export default function Hero({
                       ? `Show ${s.product.name}`
                       : s.kind === "avatar"
                         ? "Show avatar stickers"
-                        : "Show StickyPie"
+                        : s.kind === "posters"
+                          ? "Show wall posters"
+                          : "Show stickers"
                   }
                   onClick={() => setIndex(i)}
                   className={`h-2.5 rounded-full transition-all duration-300 ${
@@ -339,20 +378,28 @@ export default function Hero({
 type Slide =
   | { kind: "product"; product: Product }
   | { kind: "brand" }
+  | { kind: "posters" }
   | { kind: "avatar" };
 
-/** First slide: StickyPie in one line, a few quick facts, and two ways to order. */
-function BrandSlideCopy({ catalog }: { catalog: Product[] }) {
-  const from = catalog.length ? Math.min(...catalog.map((p) => p.price)) : null;
+/** "150+ designs · from ₹80" for a slide's own products. */
+function SlideFacts({ items }: { items: Product[] }) {
+  if (!items.length) return null;
+  const from = Math.min(...items.map((p) => p.price));
   // Rounded down to a friendly "100+" style number.
-  const count =
-    catalog.length >= 20
-      ? `${Math.floor(catalog.length / 10) * 10}+`
-      : `${catalog.length}`;
+  const count = items.length >= 20 ? `${Math.floor(items.length / 10) * 10}+` : `${items.length}`;
+  return (
+    <p className="mt-3 text-sm font-semibold text-snow sm:mt-5">
+      {count} designs · from <span className="font-display text-gold">{formatINR(from)}</span>
+    </p>
+  );
+}
+
+/** First slide: stickers in one line, a few quick facts, and two ways to order. */
+function BrandSlideCopy({ catalog }: { catalog: Product[] }) {
   return (
     <>
       <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 text-[11px] font-bold tracking-widest text-brand uppercase backdrop-blur-sm">
-        <Sparkles className="size-3.5" /> StickyPie stickers
+        <Sticker className="size-3.5" /> Stickers
       </span>
       <h2 className="mt-2.5 font-display text-[30px] leading-[1.05] font-bold tracking-tight sm:mt-4 sm:text-6xl lg:mt-5 lg:text-[64px]">
         Stick your style.
@@ -360,18 +407,7 @@ function BrandSlideCopy({ catalog }: { catalog: Product[] }) {
       <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-fog sm:mt-4 sm:text-lg">
         Die-cut vinyl stickers for your car, bike, laptop and bottle.
       </p>
-      {catalog.length > 0 && (
-        <p className="mt-3 text-sm font-semibold text-snow sm:mt-5">
-          {count} designs
-          {from !== null && (
-            <>
-              {" "}
-              · from{" "}
-              <span className="font-display text-gold">{formatINR(from)}</span>
-            </>
-          )}
-        </p>
-      )}
+      <SlideFacts items={catalog.filter((p) => !isMiniPoster(p) && !isPosterPack(p))} />
       <div className="mt-3 flex flex-wrap items-center gap-2.5 sm:mt-6 sm:gap-3">
         <PageLink
           href="/stickers"
@@ -384,6 +420,38 @@ function BrandSlideCopy({ catalog }: { catalog: Product[] }) {
           className="peel-btn peel-btn--light inline-flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold sm:h-12 sm:px-5"
         >
           <ImageUp className="size-4" /> Make your own
+        </PageLink>
+      </div>
+    </>
+  );
+}
+
+/** Second slide: wall posters, kept apart from the stickers. */
+function PosterSlideCopy({ catalog }: { catalog: Product[] }) {
+  return (
+    <>
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 text-[11px] font-bold tracking-widest text-brand uppercase backdrop-blur-sm">
+        <Frame className="size-3.5" /> Wall posters
+      </span>
+      <h2 className="mt-2.5 font-display text-[30px] leading-[1.05] font-bold tracking-tight sm:mt-4 sm:text-6xl lg:mt-5 lg:text-[64px]">
+        Style your wall.
+      </h2>
+      <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-fog sm:mt-4 sm:text-lg">
+        300 GSM posters for your room, with glue dots or tape included.
+      </p>
+      <SlideFacts items={catalog.filter((p) => isMiniPoster(p) && !isPosterPack(p))} />
+      <div className="mt-3 flex flex-wrap items-center gap-2.5 sm:mt-6 sm:gap-3">
+        <PageLink
+          href="/stickers/mini-posters"
+          className="peel-btn inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-bold sm:h-12 sm:px-6 sm:text-base"
+        >
+          Shop posters <ArrowRight className="size-4" />
+        </PageLink>
+        <PageLink
+          href="/wall-builder"
+          className="peel-btn peel-btn--light inline-flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold sm:h-12 sm:px-5"
+        >
+          <LayoutGrid className="size-4" /> Build your wall
         </PageLink>
       </div>
     </>
@@ -463,15 +531,12 @@ function heroPicks(
   return { picks, packPicks, momentOf };
 }
 
-/** What the banner wall shows: only mini posters when admin → Features says so
- *  (falls back to everything while there are none), otherwise all of it —
- *  never poster packs (a pack's picture is a whole wall, not one sticker).
+/** What a banner wall shows: only stickers or only mini posters, so the two never
+ *  mix — never poster packs (a pack's picture is a whole wall, not one sticker).
  *  Categories take turns (one from each, round and round) so no single one —
  *  a festival's dozen posters, say — fills the wall; the mix changes each visit. */
-function wallItems(everything: Product[], postersOnly: boolean, seed: number) {
-  const all = everything.filter((p) => !isPosterPack(p));
-  const posters = postersOnly ? all.filter(isMiniPoster) : [];
-  const pool = posters.length ? posters : all;
+function wallItems(everything: Product[], posters: boolean, seed: number) {
+  const pool = everything.filter((p) => !isPosterPack(p) && isMiniPoster(p) === posters);
   const random = seededRandom(seed);
   const mix = <T,>(list: T[]) => {
     for (let i = list.length - 1; i > 0; i--) {
@@ -1032,7 +1097,7 @@ function HeroBuy({
                 }`}
               >
                 <span className="font-display text-base font-bold">
-                  {formatInches(s.inches)}″
+                  {sizeChipLabel(product, s.inches)}
                 </span>
                 <span
                   className={`text-xs font-semibold ${active ? "text-brand" : "text-fog"}`}

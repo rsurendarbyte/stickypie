@@ -15,7 +15,7 @@ import {
   customSizes,
   formatINR,
 } from "@stickypie/shared";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState } from "react";
 import PriceWait from "./price-wait";
 import { useFeatures, useStoreSettings } from "@/lib/live-catalog";
 import { cardSkinFor } from "@/lib/palette";
@@ -29,14 +29,7 @@ import Row from "./row";
  * The AI avatar styles lead the row: one card per sample avatar (a style's girl
  * and boy each get their own card), opening the maker with that style picked.
  */
-export default function CustomRail({
-  title = "Make your own",
-  afterLead,
-}: {
-  title?: string;
-  /** Cards shown right after the "Stickers of YOU" card (the home page puts the wall poster sets here). */
-  afterLead?: ReactNode;
-} = {}) {
+export default function CustomRail({ title = "Make your own" }: { title?: string } = {}) {
   const features = useFeatures();
   const settings = useStoreSettings();
   const seed = useSkinSeed();
@@ -51,7 +44,7 @@ export default function CustomRail({
     const t = window.setInterval(() => setShown((n) => n + 1), 2200);
     return () => window.clearInterval(t);
   }, []);
-  if (!features.customStickers && !features.avatarStickers) return afterLead ? <Row title={title}>{afterLead}</Row> : null;
+  if (!features.customStickers && !features.avatarStickers) return null;
 
   const from = (prices: Record<string, number>) => {
     const sizes = customSizes(prices);
@@ -101,7 +94,7 @@ export default function CustomRail({
         st.covers.slice(0, 2).map((src) => ({ label: st.label, src })),
       )
     : [];
-  if (!cards.length && !styleCards.length) return afterLead ? <Row title={title}>{afterLead}</Row> : null;
+  if (!cards.length && !styleCards.length) return null;
 
   return (
     <Row title={title} href="/custom-stickers">
@@ -112,7 +105,6 @@ export default function CustomRail({
           price={settings.loaded ? formatINR(book!.price) : <PriceWait />}
         />
       )}
-      {afterLead}
       {styleCards.map(({ label, src }, i) => (
         <PageLink
           key={src}

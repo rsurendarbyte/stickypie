@@ -4,11 +4,26 @@ import type { Product, ProductSize } from "./types";
 
 /** Sizes offered by default for a new sticker; the admin can add any other whole-inch size. */
 export const STICKER_SIZES = [3, 6, 7] as const;
-/** Mini posters are 2:3, so their sizes are 2 × 3, 4 × 6 and 6 × 9 in (longest side 3, 6, 9). */
-export const POSTER_SIZES = [3, 6, 9] as const;
+/** Mini posters are 2:3 and sold in 4 × 6 and 6 × 9 in only (longest side 6, 9). */
+export const POSTER_SIZES = [6, 9] as const;
 /** A product is a mini poster when its slug ends in -mini-poster or it's tagged "mini poster". */
 export function isMiniPosterProduct(product: { slug?: string; tags?: string[] } | null | undefined): boolean {
   return !!product && (!!product.slug?.endsWith("-mini-poster") || !!product.tags?.some((t) => t.toLowerCase() === "mini poster"));
+}
+/** What posters are, wherever the shop describes them: paper, not sticker vinyl. */
+export const POSTER_PAPER = "300 GSM poster paper";
+/** Posters have no sticky back, so every poster order comes with these. */
+export const POSTER_ADHESIVE = "glue dots or double-sided tape";
+/** A mini poster is sold as a wall poster (paper) or a sticker (vinyl); wall sets are paper only. */
+export type PosterFinish = "poster" | "sticker";
+/** How the choice reads on the order line, so printing knows the material. */
+export function finishLabel(finish: PosterFinish): string {
+  return finish === "sticker" ? "Vinyl sticker" : "300 GSM poster";
+}
+/** An order line printed on poster paper: a pack, or a mini poster not bought as a sticker. */
+export function isPosterItem(item: { name: string; sizeLabel?: string | null; packPosters?: unknown[] | null }): boolean {
+  if (item.packPosters?.length) return true;
+  return /mini poster/i.test(item.name) && !/vinyl sticker/i.test(item.sizeLabel ?? "");
 }
 /** The usual sizes offered for a product: poster sizes for mini posters, sticker sizes otherwise. */
 export function usualSizes(product: { slug?: string; tags?: string[] } | null | undefined): readonly number[] {

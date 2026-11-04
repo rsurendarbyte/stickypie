@@ -3,9 +3,9 @@
 import SmartImg from "./smart-img";
 import PageLink from "./page-link";
 import ImageZoom from "./image-zoom";
-import { isPosterPack, sizeChipLabel } from "@/lib/poster";
+import { isMiniPoster, isPosterPack, sizeChipLabel } from "@/lib/poster";
 import { useEffect, useState } from "react";
-import { BadgeCheck, Car, ChevronsUpDown, Frame, PackageX, Ruler, Sparkles, Truck } from "lucide-react";
+import { BadgeCheck, Car, ChevronsUpDown, Frame, Gift, PackageX, Ruler, Sparkles, Truck } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR, packSizeSummary, posterSizeLabel } from "@stickypie/shared";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
@@ -21,7 +21,8 @@ import ProductDetails from "./product-details";
 import ProductReviews, { RatingSummary } from "./product-reviews";
 import ProductPurchase from "./product-purchase";
 import Row from "./row";
-import SizePicker, { useSizeChoice } from "./size-picker";
+import FinishPicker from "./finish-picker";
+import SizePicker, { useLineFinish, useSizeChoice } from "./size-picker";
 import SizeRuler from "./size-ruler";
 import TrueSizePreview from "./true-size-preview";
 
@@ -68,6 +69,8 @@ export default function ProductDetailClient({
   const low = product.stock !== null && product.stock > 0 && product.stock <= LOW_STOCK_THRESHOLD;
   // A pack's picture is the whole wall, so "actual size" would mislead — its posters are listed instead.
   const isPack = isPosterPack(product) || packPosters.length > 0;
+  const finish = useLineFinish(product);
+  const poster = isPack || (isMiniPoster(product) && finish !== "sticker");
   const [zoom, setZoom] = useState(false);
 
   return (
@@ -191,6 +194,11 @@ export default function ProductDetailClient({
                 {product.description}
               </p>
 
+              {isMiniPoster(product) && !isPack && !out && (
+                <div className="mt-4">
+                  <FinishPicker />
+                </div>
+              )}
               {sizes.length > (isPack ? 1 : 0) && !out && (
                 <div className="mt-4">
                   <SizePicker
@@ -217,10 +225,10 @@ export default function ProductDetailClient({
 
           <ul className="mt-4 grid max-w-md grid-cols-2 gap-2 text-xs text-fog">
             <li className="flex items-center gap-2">
-              <BadgeCheck className="size-4 text-mint" /> Die-cut, peel &amp; stick
+              <BadgeCheck className="size-4 text-mint" /> {poster ? "300 GSM poster paper" : <>Die-cut, peel &amp; stick</>}
             </li>
             <li className="flex items-center gap-2">
-              {isPack ? (
+              {poster ? (
                 <>
                   <Frame className="size-4 text-mint" /> Walls, doors &amp; cupboards
                 </>
@@ -231,7 +239,15 @@ export default function ProductDetailClient({
               )}
             </li>
             <li className="flex items-center gap-2">
-              <Sparkles className="size-4 text-mint" /> Clean with a dry cloth
+              {poster ? (
+                <>
+                  <Gift className="size-4 text-mint" /> Glue dots or tape included
+                </>
+              ) : (
+                <>
+                  <Sparkles className="size-4 text-mint" /> Clean with a dry cloth
+                </>
+              )}
             </li>
             <li className="flex items-center gap-2">
               <Truck className="size-4 text-mint" /> Ships in 2–4 days

@@ -5,6 +5,7 @@
 // Same state as the seller → CGST + SGST, otherwise IGST. Shipping is a
 // separate line at the same rate.
 import { matchIndianState } from "./india";
+import { isPosterItem, posterSizeLabel } from "./sizes";
 import type { Order } from "./types";
 import type { BusinessDetails } from "./shipping";
 
@@ -56,7 +57,11 @@ export function computeInvoice(
   const lines: InvoiceLine[] = order.items.map((item) => {
     const amount = item.unitPrice * item.quantity;
     return {
-      description: item.sizeInches ? `${item.name} — ${item.sizeInches}″ sticker` : `${item.name} sticker`,
+      description: isPosterItem(item)
+        ? `${item.name}${item.sizeInches ? ` — ${posterSizeLabel(item.sizeInches)}` : ""}`
+        : item.sizeInches
+          ? `${item.name} — ${item.sizeInches}″ sticker`
+          : `${item.name} sticker`,
       hsn: business.hsn,
       quantity: item.quantity,
       unitPrice: item.unitPrice,

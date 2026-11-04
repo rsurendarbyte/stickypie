@@ -2,7 +2,7 @@
 // page styles, a random background pattern, random mini posters, toolbar,
 // brand header and sticking tips.
 import Link from "next/link";
-import { SHOP_THEME, orderCode, type DataDriver } from "@stickypie/shared";
+import { SHOP_THEME, isPosterItem, orderCode, type DataDriver, type OrderItem } from "@stickypie/shared";
 import { imageDownloadHref } from "@/lib/img";
 import PrintButton, { DownloadImageButton } from "./print-buttons";
 
@@ -124,7 +124,9 @@ export function Brand() {
   );
 }
 
-export function StickingTips() {
+export function StickingTips({ items }: { items: OrderItem[] }) {
+  const posters = items.some(isPosterItem);
+  const stickers = items.some((i) => !isPosterItem(i));
   return (
     <>
       <p className="font-display text-[5.6mm] font-bold" style={{ color: SHOP_THEME.brand }}>
@@ -132,8 +134,9 @@ export function StickingTips() {
       </p>
       <ul className="mt-[2mm] space-y-[1.2mm] text-[3.8mm] text-neutral-700">
         <li>✦ Wipe the spot clean and let it dry first</li>
-        <li>✦ Peel the backing slowly from one corner</li>
-        <li>✦ Smooth it down from the centre outwards</li>
+        {stickers && <li>✦ Peel the backing slowly from one corner</li>}
+        {stickers && <li>✦ Smooth it down from the centre outwards</li>}
+        {posters && <li>✦ Posters: glue dots or tape on the back, then press onto the wall</li>}
       </ul>
     </>
   );

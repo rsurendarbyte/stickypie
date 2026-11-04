@@ -413,6 +413,7 @@ export default function CheckoutClient() {
             ...(item.customRef ? { customRef: item.customRef } : {}),
             ...(item.customKind ? { customKind: item.customKind } : {}),
             ...(item.customSpec ? { customSpec: item.customSpec } : {}),
+            ...(item.finish ? { finish: item.finish } : {}),
           })),
         }),
       });
