@@ -156,7 +156,7 @@ export default function Hero({
         if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5)
           go(dx < 0 ? 1 : -1);
       }}
-      className="relative flex items-center overflow-x-clip lg:min-h-[70svh]"
+      className="relative flex items-center overflow-x-clip md:min-h-[70svh]"
     >
       {/* Background: the slide's sticker sheet / cutting mat fills the hero and
           fades softly into the page below (no hard edge). */}
@@ -179,10 +179,10 @@ export default function Hero({
           ) : (
             <AvatarBookWall key="book-wall" styles={settings.avatarStyles} packs={packs} />
           )}
-          {/* white wash behind the words: from below on phones, from the left on tablets and desktop */}
+          {/* white wash behind the words: from below on phones, from the left on anything wider */}
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,rgba(255,255,255,0.97)_0%,rgba(255,255,255,0.9)_42%,rgba(255,255,255,0.15)_75%,transparent_100%)] sm:max-lg:bg-[linear-gradient(to_right,rgba(255,255,255,0.95)_0%,rgba(255,255,255,0.88)_50%,rgba(255,255,255,0.4)_72%,transparent_88%)] lg:bg-[linear-gradient(to_right,rgba(255,255,255,0.96)_0%,rgba(255,255,255,0.9)_30%,rgba(255,255,255,0.35)_42%,transparent_52%)]"
+            className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_top,rgba(255,255,255,0.97)_0%,rgba(255,255,255,0.9)_42%,rgba(255,255,255,0.15)_75%,transparent_100%)] sm:max-md:bg-[linear-gradient(to_right,rgba(255,255,255,0.95)_0%,rgba(255,255,255,0.88)_50%,rgba(255,255,255,0.4)_72%,transparent_88%)] md:bg-[linear-gradient(to_right,rgba(255,255,255,0.97)_0%,rgba(255,255,255,0.92)_40%,rgba(255,255,255,0.35)_54%,transparent_66%)] lg:bg-[linear-gradient(to_right,rgba(255,255,255,0.96)_0%,rgba(255,255,255,0.9)_30%,rgba(255,255,255,0.35)_42%,transparent_52%)]"
           />
         </>
       )}
@@ -192,16 +192,16 @@ export default function Hero({
       />
 
       <div
-        className={`relative grid w-full items-center gap-3 px-4 pt-[68px] pb-5 sm:gap-8 sm:px-8 sm:pt-24 lg:grid-cols-[1fr_1.2fr] lg:gap-14 lg:px-12 lg:pt-24 lg:pb-10 2xl:px-20 ${onWall ? "pointer-events-none" : ""}`}
+        className={`relative grid w-full items-center gap-3 px-4 pt-[68px] pb-5 sm:gap-8 sm:px-8 sm:pt-24 md:grid-cols-[1fr_1.2fr] md:gap-8 lg:gap-14 lg:px-12 md:pb-10 2xl:px-20 ${onWall ? "pointer-events-none" : ""}`}
       >
         {/* Copy: every slide is laid out in the same cell, so the hero keeps the
             height of the tallest slide and never jumps as slides change. */}
         {/* z-10: on phones the sticker can reach down behind the text — it stays a backdrop */}
-        {/* Tablets / small laptop windows: on the wall slides the picture box above is empty
+        {/* Small tablets: on the wall slides the picture box above is empty
             (the wall is the backdrop), so the words slide up into it — a shift only, the
             hero keeps its height and the page below never jumps between slides. */}
         <div
-          className={`pointer-events-auto relative z-10 order-2 grid max-w-2xl lg:order-1 ${onWall ? "sm:max-lg:-translate-y-[min(42svh,28.8rem)]" : ""}`}
+          className={`pointer-events-auto relative z-10 order-2 grid max-w-2xl md:order-1 ${onWall ? "sm:max-md:-translate-y-[min(42svh,28.8rem)]" : ""}`}
         >
           {/* Phones: a soft frosted fade behind the text, so the picture above
               melts away under it instead of clashing with the badge. */}
@@ -216,9 +216,9 @@ export default function Hero({
                 key={s.kind === "product" ? s.product.id : s.kind}
                 aria-hidden={!active}
                 inert={!active}
-                // Tablets / small laptop windows: the StickyPie and avatar text sits at the top (the
+                // Small tablets: the StickyPie and avatar text sits at the top (the
                 // wall fills the hero behind it), not at the foot of the tallest slide's space.
-                className={`col-start-1 row-start-1 self-end ${s.kind !== "product" ? "sm:max-lg:self-start" : ""} ${active ? "animate-hero-in" : "pointer-events-none invisible"}`}
+                className={`col-start-1 row-start-1 self-end md:max-xl:self-center ${s.kind !== "product" ? "sm:max-md:self-start" : ""} ${active ? "animate-hero-in" : "pointer-events-none invisible"}`}
               >
                 {s.kind === "product" ? (
                   <ProductSlideCopy
@@ -246,7 +246,7 @@ export default function Hero({
           })}
 
           {slides.length > 1 && (
-            <div className="col-start-1 row-start-2 mt-4 flex items-center justify-center gap-2 sm:row-start-3 sm:mt-5 sm:justify-start lg:hidden">
+            <div className="col-start-1 row-start-2 mt-4 flex items-center justify-center gap-2 sm:row-start-3 sm:mt-5 sm:justify-start md:hidden">
               {slides.map((s, i) => (
                 <button
                   key={s.kind === "product" ? s.product.id : s.kind}
@@ -264,7 +264,7 @@ export default function Hero({
               ))}
             </div>
           )}
-          <ul className="col-start-1 row-start-2 mt-8 hidden flex-wrap gap-2 text-[11px] font-semibold tracking-wide text-fog sm:flex">
+          <ul className="col-start-1 row-start-2 mt-8 hidden flex-wrap gap-2 text-[11px] font-semibold tracking-wide text-fog sm:flex md:max-xl:hidden">
             <li className="flex items-center gap-1.5 rounded-full border border-line bg-ink2 px-3 py-1.5">
               {posterChips ? (
                 <>
@@ -306,7 +306,7 @@ export default function Hero({
 
         {/* Artwork, floating on the mat */}
         <div
-          className={`relative z-0 order-1 mx-auto w-full max-w-[360px] sm:max-w-xl lg:order-2 ${onWall ? "pointer-events-none [&_button]:pointer-events-auto" : ""} lg:mx-0 lg:max-w-none`}
+          className={`relative z-0 order-1 mx-auto w-full max-w-[360px] sm:max-w-xl md:order-2 ${onWall ? "pointer-events-none [&_button]:pointer-events-auto" : ""} md:mx-0 md:max-w-none`}
         >
           {/* product-tinted wash behind the art (not on the wall slides: it fogs the wall) */}
           {!onWall && (
@@ -321,7 +321,7 @@ export default function Hero({
 
           <div
             key={key}
-            className="animate-hero-img-in relative aspect-[5/4] max-sm:max-h-[38svh] max-sm:w-full sm:aspect-[5/4] sm:max-lg:max-h-[42svh] sm:max-lg:w-full lg:aspect-auto lg:h-[min(50vh,560px)]"
+            className="animate-hero-img-in relative aspect-[5/4] max-sm:max-h-[38svh] max-sm:w-full sm:aspect-[5/4] sm:max-md:max-h-[42svh] sm:max-md:w-full md:aspect-auto md:h-[min(50vh,560px)]"
           >
             {product ? (
               // Tapping the art opens the sticker: the swipe view on phones,
@@ -331,7 +331,7 @@ export default function Hero({
                 aria-label={`View ${product.name}`}
                 draggable={false}
                 // one fixed-size cell, so max-h-full has a height to fit tall art (posters) into
-                className="absolute inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center p-2 sm:p-4 lg:px-6 lg:pt-0 lg:pb-5"
+                className="absolute inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center p-2 sm:p-4 md:px-6 md:pt-0 md:pb-5"
               >
                 {wallSpots(product).length > 0 ? (
                   <WallStage bare product={product} src={product.displayUrl ?? product.imageUrl} alt={product.name} />
@@ -342,7 +342,7 @@ export default function Hero({
                   alt={product.name}
                   priority
                   // a wall poster set's collage stands straight with rounded corners, like its card
-                  className={`animate-float max-h-full max-w-full cursor-pointer object-contain transition-transform duration-200 hover:scale-[1.03] lg:max-h-[min(46vh,520px)] ${isPosterPack(product) ? "rounded-2xl shadow-[0_24px_50px_-20px_rgba(16,24,40,0.45)]" : "sticker-cut rotate-2"}`}
+                  className={`animate-float max-h-full max-w-full cursor-pointer object-contain transition-transform duration-200 hover:scale-[1.03] md:max-h-[min(46vh,520px)] ${isPosterPack(product) ? "rounded-2xl shadow-[0_24px_50px_-20px_rgba(16,24,40,0.45)]" : "sticker-cut rotate-2"}`}
                 />
                 )}
               </PageLink>
@@ -351,7 +351,7 @@ export default function Hero({
 
           {/* Slide indicator */}
           {slides.length > 1 && (
-            <div className="relative z-10 mt-7 hidden items-center justify-center gap-2 lg:flex">
+            <div className="relative z-10 mt-7 hidden items-center justify-center gap-2 md:flex">
               {slides.map((s, i) => (
                 <button
                   key={s.kind === "product" ? s.product.id : s.kind}
@@ -409,7 +409,7 @@ function BrandSlideCopy({ catalog }: { catalog: Product[] }) {
       <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 text-[11px] font-bold tracking-widest text-brand uppercase backdrop-blur-sm">
         <Sticker className="size-3.5" /> Stickers
       </span>
-      <h2 className="mt-2.5 font-display text-[30px] leading-[1.05] font-bold tracking-tight sm:mt-4 sm:text-6xl lg:mt-5 lg:text-[64px]">
+      <h2 className="mt-2.5 font-display text-[30px] leading-[1.05] font-bold tracking-tight sm:mt-4 sm:text-6xl md:text-5xl xl:mt-5 xl:text-[64px]">
         Stick your style.
       </h2>
       <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-fog sm:mt-4 sm:text-lg">
@@ -441,7 +441,7 @@ function PosterSlideCopy({ catalog }: { catalog: Product[] }) {
       <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 text-[11px] font-bold tracking-widest text-brand uppercase backdrop-blur-sm">
         <Frame className="size-3.5" /> Wall posters
       </span>
-      <h2 className="mt-2.5 font-display text-[30px] leading-[1.05] font-bold tracking-tight sm:mt-4 sm:text-6xl lg:mt-5 lg:text-[64px]">
+      <h2 className="mt-2.5 font-display text-[30px] leading-[1.05] font-bold tracking-tight sm:mt-4 sm:text-6xl md:text-5xl xl:mt-5 xl:text-[64px]">
         Style your wall.
       </h2>
       <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-fog sm:mt-4 sm:text-lg">
@@ -788,7 +788,7 @@ function ProductSlideCopy({
         )}
       </div>
       {/* The page's H1 is in the shop intro below; a rotating product isn't the page topic. */}
-      <h2 className="mt-2 line-clamp-2 font-display text-[24px] leading-[1.1] font-bold tracking-tight sm:mt-4 sm:text-6xl lg:mt-5 lg:text-[64px]">
+      <h2 className="mt-2 line-clamp-2 font-display text-[24px] leading-[1.1] font-bold tracking-tight sm:mt-4 sm:text-6xl md:text-4xl xl:mt-5 xl:text-[64px]">
         {pack ? posterSetName(product.name) : product.name}
       </h2>
       {pack && (
@@ -797,7 +797,7 @@ function ProductSlideCopy({
         </p>
       )}
       {!pack && (
-        <p className="mt-4 hidden max-w-lg text-base leading-relaxed text-fog sm:line-clamp-2 sm:text-lg lg:line-clamp-3">
+        <p className="mt-4 hidden max-w-lg text-base leading-relaxed text-fog sm:line-clamp-2 sm:text-lg md:hidden xl:line-clamp-3">
           {product.description}
         </p>
       )}
@@ -990,7 +990,7 @@ function AvatarSlideCopy({ book }: { book: AvatarBook }) {
           <Smile className="size-3.5" /> New · AI avatar stickers
         </span>
       </div>
-      <h2 className="mt-2.5 line-clamp-2 font-display text-[30px] leading-[1.05] font-bold tracking-tight sm:mt-4 sm:text-6xl lg:mt-5 lg:text-[64px]">
+      <h2 className="mt-2.5 line-clamp-2 font-display text-[30px] leading-[1.05] font-bold tracking-tight sm:mt-4 sm:text-6xl md:text-5xl xl:mt-5 xl:text-[64px]">
         <span className="bg-gradient-to-r from-brand to-brand2 bg-clip-text text-transparent">
           AI
         </span>{" "}

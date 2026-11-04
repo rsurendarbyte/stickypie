@@ -70,11 +70,11 @@ export default function Nav() {
     return (
       <Link
         href={href}
-        className={`rounded-full px-2.5 py-1.5 text-sm font-medium transition-all sm:px-4 ${
+        className={`shrink-0 rounded-full px-2.5 py-1.5 text-sm font-medium whitespace-nowrap transition-all lg:px-4 ${
           active
             ? "bg-snow/[0.07] text-snow shadow-[inset_0_0_0_1px_rgba(16,24,40,0.06)]"
             : "text-fog hover:bg-snow/5 hover:text-snow"
-        } ${hideOnMobile ? "hidden sm:block" : ""}`}
+        } ${hideOnMobile ? "hidden md:block" : ""}`}
       >
         {label}
       </Link>
@@ -90,7 +90,7 @@ export default function Nav() {
             : "bg-gradient-to-b from-white via-white/70 to-transparent"
         }`}
       >
-        <div className="flex h-[60px] w-full items-center gap-2 px-3 sm:h-[72px] sm:gap-6 sm:px-8 lg:px-12">
+        <div className="flex h-[60px] w-full items-center gap-2 px-3 sm:h-[72px] sm:gap-3 sm:px-8 lg:gap-6 lg:px-12">
           {backTo && (
             <span className="sm:hidden">
               <BackButton fallback={backTo} />
@@ -131,20 +131,20 @@ export default function Nav() {
             {features.customStickers && <CustomMenu />}
           </nav>
 
-          <div className="ml-auto flex items-center gap-1 sm:gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
             <button
               type="button"
               aria-label="Search stickers"
               onClick={() => setSearchOpen(true)}
-              className="group/search flex h-9 items-center gap-2 rounded-full text-fog transition-colors hover:text-snow sm:h-10 md:w-56 md:border md:border-line md:bg-ink2/60 md:pr-2 md:pl-3 md:backdrop-blur-md md:hover:border-fog/40"
+              className="group/search flex h-9 items-center gap-2 rounded-full text-fog transition-colors hover:text-snow sm:h-10 lg:w-44 lg:border lg:border-line lg:bg-ink2/60 lg:pr-2 lg:pl-3 lg:backdrop-blur-md lg:hover:border-fog/40 xl:w-56"
             >
-              <span className="grid size-9 place-items-center rounded-full group-hover/search:bg-snow/5 md:size-auto md:group-hover/search:bg-transparent">
+              <span className="grid size-9 place-items-center rounded-full group-hover/search:bg-snow/5 lg:size-auto lg:group-hover/search:bg-transparent">
                 <Search className="size-[18px]" />
               </span>
-              <span className="hidden flex-1 text-left text-sm md:block">
+              <span className="hidden flex-1 text-left text-sm whitespace-nowrap lg:block">
                 Search stickers…
               </span>
-              <kbd className="hidden rounded-md border border-line px-1.5 py-0.5 text-[10px] font-semibold md:block">
+              <kbd className="hidden rounded-md border border-line px-1.5 py-0.5 text-[10px] font-semibold xl:block">
                 ⌘K
               </kbd>
             </button>
@@ -179,7 +179,7 @@ export default function Nav() {
               <ShoppingBag
                 className={`size-[18px] ${count > 0 ? "text-white" : "text-snow"}`}
               />
-              <span className="hidden text-sm font-semibold sm:block">
+              <span className="hidden text-sm font-semibold md:block">
                 Cart
               </span>
               {count > 0 && (

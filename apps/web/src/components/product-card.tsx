@@ -7,6 +7,7 @@ import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR } from "@stickypie/shared";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
 import WallStage from "./wall-stage";
+import type { WallEffect } from "@/lib/wall-effects";
 import { isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel, wallSize } from "@/lib/poster";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { lineKey, useCart } from "./cart-context";
@@ -32,9 +33,9 @@ export function posterTitle(name: string) {
 
 const CARD_WIDTH = "w-44 shrink-0 sm:w-48 md:w-52";
 
-export default function ProductCard({ product, width = CARD_WIDTH }: { product: Product; width?: string }) {
+export default function ProductCard({ product, width = CARD_WIDTH, wallEffect }: { product: Product; width?: string; wallEffect?: WallEffect }) {
   return isPosterPack(product) ? (
-    <PackCard product={product} width={width} />
+    <PackCard product={product} width={width} wallEffect={wallEffect} />
   ) : (
     <StickerCard product={product} width={width} />
   );
@@ -239,7 +240,7 @@ function packTitle(name: string) {
  * line of name, price and size under it. An older 2:3 collage shows whole, on a
  * soft blurred copy of itself, so nothing is cropped.
  */
-function PackCard({ product, width }: { product: Product; width: string }) {
+function PackCard({ product, width, wallEffect = "sweep" }: { product: Product; width: string; wallEffect?: WallEffect }) {
   const { add, items } = useCart();
   const { size, price, compareAtPrice } = useSizeChoice(product);
   const inCart = items.find((item) => lineKey(item) === lineKey({ productId: product.id, size }));
@@ -254,18 +255,15 @@ function PackCard({ product, width }: { product: Product; width: string }) {
     <div className={`rail-card-drawn group relative snap-start ${width}`}>
       <PageLink
         href={`/sticker/${product.slug}`}
-        className="relative block aspect-square overflow-hidden rounded-2xl bg-[#ece7df] shadow-[0_10px_24px_-14px_rgba(16,24,40,0.45)]"
+        className={`relative block aspect-square overflow-hidden rounded-2xl ${wall ? "border border-line bg-white" : "bg-[#ece7df] shadow-[0_10px_24px_-14px_rgba(16,24,40,0.45)]"}`}
         tabIndex={-1}
         aria-hidden
       >
         {!wall && <img src={small} alt="" loading="lazy" decoding="async" className="absolute inset-0 size-full scale-110 object-cover opacity-60 blur-xl" />}
         {wall ? (
-          <WallStage
-            product={product}
-            src={product.displayUrl ?? small}
-            alt={product.name}
-            className={`transition-transform duration-300 group-hover:scale-[1.03] ${out ? "opacity-40 saturate-50" : ""}`}
-          />
+          <div className={`absolute inset-3 transition-transform duration-300 group-hover:scale-[1.03] ${out ? "opacity-40 saturate-50" : ""}`}>
+            <WallStage bare effect={wallEffect} product={product} src={product.displayUrl ?? small} alt={product.name} />
+          </div>
         ) : (
           <img
             src={small}

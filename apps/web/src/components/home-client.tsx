@@ -23,6 +23,7 @@ import {
 import { useFestivals, useHomeRails, useLiveCatalog, type Catalog } from "@/lib/live-catalog";
 import { savedRailScroll, useWindowScrollMemory } from "@/lib/scroll-memory";
 import { useDaySeed } from "@/lib/skin-seed";
+import { wallEffect } from "@/lib/wall-effects";
 import StickerLoader from "./sticker-loader";
 
 export default function HomeClient({
@@ -144,14 +145,14 @@ export default function HomeClient({
         {wallMix.length > 0 && (
           <LazyRail eager wide title="Wall poster sets" href={categoryPath("poster-packs")}>
             {wallMix.map((product) => (
-              <ProductCard key={product.id} product={product} width={WALL_CARD_WIDTH} />
+              <ProductCard key={product.id} product={product} width={WALL_CARD_WIDTH} wallEffect={wallEffect(0, seed)} />
             ))}
           </LazyRail>
         )}
         {wallRows.map((row, i) => (
           <LazyRail key={row.id} eager={i < 1} wide title={row.title} href={`${categoryPath("poster-packs")}?theme=${row.id}`}>
             {row.items.map((product) => (
-              <ProductCard key={product.id} product={product} width={WALL_CARD_WIDTH} />
+              <ProductCard key={product.id} product={product} width={WALL_CARD_WIDTH} wallEffect={wallEffect(i + 1, seed)} />
             ))}
           </LazyRail>
         ))}

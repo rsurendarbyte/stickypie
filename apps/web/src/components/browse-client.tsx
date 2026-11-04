@@ -19,7 +19,9 @@ import { useLiveCatalog, type Catalog } from "@/lib/live-catalog";
 import { isPosterPack } from "@/lib/poster";
 import { rememberPosters } from "@/lib/poster-images";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
+import { useDaySeed } from "@/lib/skin-seed";
 import { searchStickers } from "@/lib/sticker-search";
+import { wallEffect } from "@/lib/wall-effects";
 
 /**
  * Client-side catalog browser. The page ships as a free static asset with a
@@ -45,6 +47,7 @@ export default function BrowseClient({
     useLiveCatalog(initial);
   useWindowScrollMemory(loaded);
   rememberPosters(products);
+  const seed = useDaySeed();
   const pathname = usePathname();
   const params = useSearchParams();
   const q = params.get("q") ?? "";
@@ -270,7 +273,7 @@ export default function BrowseClient({
           <VirtualGrid
             items={visible}
             getKey={(product) => product.id}
-            render={(product) => <ProductCard product={product} width="w-full" />}
+            render={(product, i, cols) => <ProductCard product={product} width="w-full" wallEffect={wallEffect(Math.floor(i / cols), seed)} />}
             className={walls ? "mt-4 grid grid-cols-2 gap-x-3 gap-y-5 sm:mt-6 sm:gap-x-4 sm:gap-y-7 @[53rem]:grid-cols-3 @[80rem]:grid-cols-4" : "mt-4 grid grid-cols-2 gap-x-3 gap-y-5 sm:mt-8 sm:gap-y-7 sm:gap-x-4 @[40rem]:grid-cols-3 @[53rem]:grid-cols-4 @[67rem]:grid-cols-5 @[80rem]:grid-cols-6 @[107rem]:grid-cols-8"}
           />
           {moreLikeThis.length > 0 && (

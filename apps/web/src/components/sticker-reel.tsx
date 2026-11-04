@@ -187,13 +187,13 @@ function Reel({
           type="button"
           onClick={back}
           aria-label="Back"
-          className="pointer-events-auto grid size-10 shrink-0 place-items-center rounded-full bg-white/90 text-snow shadow-md ring-1 ring-black/5 backdrop-blur"
+          className="pointer-events-auto grid size-10 shrink-0 place-items-center reel-glass rounded-full text-snow"
         >
           <ArrowLeft className="size-5" />
         </button>
         {/* all four sit on one 40px line: same height, same white pill */}
         <div className="flex min-w-0 flex-1">
-          <span className="pointer-events-auto flex h-10 min-w-0 items-center gap-1 rounded-full bg-white/90 px-3.5 text-xs font-semibold text-snow shadow-md ring-1 ring-black/5 backdrop-blur">
+          <span className="pointer-events-auto flex h-10 min-w-0 items-center gap-1 reel-glass rounded-full px-3.5 text-xs font-semibold text-snow">
             {inCat && category ? (
               <>
                 {/* a long category name shortens; the count always shows */}
@@ -211,7 +211,7 @@ function Reel({
           type="button"
           onClick={() => onClassic(list[active]?.slug ?? initial.slug)}
           aria-label="Switch to page view"
-          className="pointer-events-auto flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-white/90 px-3.5 text-xs font-bold max-[359px]:w-10 max-[359px]:justify-center max-[359px]:px-0 text-snow shadow-md ring-1 ring-black/5 backdrop-blur"
+          className="pointer-events-auto flex h-10 shrink-0 items-center gap-1.5 reel-glass rounded-full px-3.5 text-xs font-bold max-[359px]:w-10 max-[359px]:justify-center max-[359px]:px-0 text-snow"
         >
           <LayoutList className="size-4" />
           {/* narrow phones: icon only, so the title keeps its room */}
@@ -221,7 +221,7 @@ function Reel({
           type="button"
           onClick={openCart}
           aria-label={`Cart, ${count} item${count === 1 ? "" : "s"}`}
-          className="pointer-events-auto relative grid size-10 shrink-0 place-items-center rounded-full bg-white/90 text-snow shadow-md ring-1 ring-black/5 backdrop-blur"
+          className="pointer-events-auto relative grid size-10 shrink-0 place-items-center reel-glass rounded-full text-snow"
         >
           <ShoppingBag className="size-5" />
           {count > 0 && (
@@ -347,7 +347,7 @@ function ReelItem({
       </div>
 
       {/* Buy bar — always on screen */}
-      <div className="rounded-t-[28px] border-t border-white bg-white/92 px-4 pt-3.5 pb-[calc(0.9rem+env(safe-area-inset-bottom,0px))] shadow-[0_-12px_30px_-18px_rgba(16,24,40,0.45)] backdrop-blur-md">
+      <div className="reel-glass-bar rounded-t-[28px] px-4 pt-3.5 pb-[calc(0.9rem+env(safe-area-inset-bottom,0px))]">
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
             {poster && (
@@ -384,7 +384,7 @@ function ReelItem({
                   aria-checked={on}
                   onClick={() => setSize(s.inches)}
                   className={`rounded-xl border px-2 py-1.5 text-center transition-colors ${
-                    on ? "border-brand bg-brand/[0.07] text-brand" : "border-line bg-white text-snow"
+                    on ? "border-brand bg-brand/[0.07] text-brand" : "border-white/70 bg-white/40 text-snow"
                   }`}
                 >
                   <span className="block font-display text-sm font-bold">{sizeChipLabel(product, s.inches)}</span>
@@ -400,7 +400,7 @@ function ReelItem({
             onClick={() => setDetails(true)}
             aria-label="Details"
             // icon only once in the cart, to make room for the stepper + Checkout
-            className={`peel-btn peel-btn--light flex h-12 shrink-0 items-center justify-center gap-1 rounded-2xl text-sm font-bold ${inCart ? "w-12" : "px-4"}`}
+            className={`reel-glass flex h-12 shrink-0 items-center justify-center gap-1 rounded-2xl text-sm font-bold ${inCart ? "w-12" : "px-4"}`}
           >
             <ChevronUp className="size-4" />
             {!inCart && "Details"}
@@ -514,8 +514,8 @@ function ReelItem({
 function RailButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
   return (
     <button type="button" onClick={onClick} className="flex flex-col items-center gap-1 text-[10px] font-bold text-snow">
-      <span className="grid size-11 place-items-center rounded-full bg-white/90 shadow-md ring-1 ring-black/5 backdrop-blur">{children}</span>
-      {label}
+      <span className="reel-glass grid size-11 place-items-center rounded-full">{children}</span>
+      <span className="reel-glass rounded-full px-1.5 py-px">{label}</span>
     </button>
   );
 }

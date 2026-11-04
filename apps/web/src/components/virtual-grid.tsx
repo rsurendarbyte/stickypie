@@ -22,7 +22,7 @@ export default function VirtualGrid<T>({
 }: {
   items: T[];
   getKey: (item: T) => string;
-  render: (item: T, index: number) => React.ReactNode;
+  render: (item: T, index: number, cols: number) => React.ReactNode;
   className: string;
 }) {
   const grid = useRef<HTMLDivElement>(null);
@@ -82,7 +82,7 @@ export default function VirtualGrid<T>({
     return (
       <div ref={grid} className={className}>
         {items.slice(0, FIRST_PAINT).map((item, i) => (
-          <div key={getKey(item)}>{render(item, i)}</div>
+          <div key={getKey(item)}>{render(item, i, cols || 2)}</div>
         ))}
       </div>
     );
@@ -102,7 +102,7 @@ export default function VirtualGrid<T>({
       }}
     >
       {items.slice(start, end).map((item, i) => (
-        <div key={getKey(item)}>{render(item, start + i)}</div>
+        <div key={getKey(item)}>{render(item, start + i, cols)}</div>
       ))}
     </div>
   );
