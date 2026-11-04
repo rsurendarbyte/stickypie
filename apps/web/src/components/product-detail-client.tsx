@@ -4,7 +4,7 @@ import SmartImg from "./smart-img";
 import PageLink from "./page-link";
 import ImageZoom from "./image-zoom";
 import { isPosterPack, sizeChipLabel } from "@/lib/poster";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { BadgeCheck, Car, ChevronsUpDown, Frame, PackageX, Ruler, Sparkles, Truck } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR, packSizeSummary, posterSizeLabel } from "@stickypie/shared";
@@ -12,6 +12,7 @@ import { cardSkinFor, rotationFor } from "@/lib/palette";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { useFeatures, useLiveProduct, useRelatedProducts } from "@/lib/live-catalog";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
+import { rememberInterest } from "@/lib/interest";
 import BackButton from "./back-button";
 import StickerStepper, { type Steps, useStepSwipe } from "./sticker-stepper";
 import ProductCard from "./product-card";
@@ -43,6 +44,8 @@ export default function ProductDetailClient({
   // Static snapshot first paint; live stock/price/availability from Supabase.
   const { product, unavailable } = useLiveProduct(initial.slug, initial);
   useWindowScrollMemory(true);
+  // Remember (in this browser only) what kind of stickers they look at, for the home hero.
+  useEffect(() => rememberInterest(initial.slug, initial.categoryIds?.length ? initial.categoryIds : [initial.categoryId]), [initial.slug]);
   // Live and on-sale only (never the build-time list).
   const { products: moreLikeThis, loaded: relatedLoaded } = useRelatedProducts(
     product.categoryId,

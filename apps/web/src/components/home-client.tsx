@@ -123,7 +123,12 @@ export default function HomeClient({
 
   return (
     <>
-      <Hero products={featured.length > 0 ? featured : [hero]} packs={packs} categories={categories} />
+      <Hero
+        products={featured.length > 0 ? featured : [hero]}
+        packs={packs}
+        categories={categories}
+        moments={festivalRails.map(({ f, items }) => ({ label: `${f.name} · ${festivalShortDate(f)}`, products: items }))}
+      />
       <div className="relative z-10 mt-2 space-y-1 pb-24 sm:space-y-8">
         {/* First row: the AI "Stickers of YOU" card, then the wall poster sets, then the
             AI styles; then any festival on now */}

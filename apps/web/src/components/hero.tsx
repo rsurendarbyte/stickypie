@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   BadgeCheck,
+  CalendarHeart,
   Frame,
   Car,
   ImageUp,
@@ -43,26 +44,39 @@ import {
   useLiveCatalog,
   useStoreSettings,
 } from "@/lib/live-catalog";
+import { readInterest, type Interest } from "@/lib/interest";
 
 /** Rotating hero: the featured sticker is staged on a big tilted product card. */
 export default function Hero({
   products,
   packs = [],
   categories,
+  moments = [],
 }: {
   products: Product[];
   /** Wall poster sets: a few of them take turns between the sticker slides. */
   packs?: Product[];
   categories: Category[];
+  /** What's on now (festivals around today, soonest/admin order first) and their stickers. */
+  moments?: { label: string; products: Product[] }[];
 }) {
-  const picks = products.filter((p) => !isPosterPack(p)).slice(0, 5);
   const features = useFeatures();
   const settings = useStoreSettings();
   const seed = useSkinSeed();
-  // Three wall poster sets, featured ones first, a different three each visit.
-  const packOrder = [...packs.filter((p) => p.featured), ...packs.filter((p) => !p.featured)];
-  const start = packOrder.length ? seed % packOrder.length : 0;
-  const packPicks = [...packOrder.slice(start), ...packOrder.slice(0, start)].slice(0, 3);
+  const { products: catalog } = useLiveCatalog({
+    categories: [],
+    products: [],
+  });
+  const interest = useInterest();
+  // A fresh mix for every shopper every day: categories take turns (the ones they
+  // look at first), featured and new likelier, a cheap sticker and a mini poster in it.
+  const { picks, packPicks, momentOf } = heroPicks(
+    (catalog.length ? catalog : products).filter((p) => !isPosterPack(p)),
+    packs,
+    interest,
+    seed,
+    moments,
+  );
   // Sticker slides with a wall poster set after every second one.
   const slides: Slide[] = [];
   const queue = [...packPicks];
@@ -76,10 +90,6 @@ export default function Hero({
   // …except the avatar sticker book, the headline product, which leads when on sale.
   const book = features.avatarStickers ? avatarBook(settings) : null;
   if (book) slides.unshift({ kind: "avatar" });
-  const { products: catalog } = useLiveCatalog({
-    categories: [],
-    products: [],
-  });
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   // Shopper picked a size → stop rotating so the slide doesn't change under them.
@@ -154,7 +164,7 @@ export default function Hero({
               )}
             />
           ) : (
-            <AvatarBookWall key="book-wall" styles={settings.avatarStyles} />
+            <AvatarBookWall key="book-wall" styles={settings.avatarStyles} packs={packs} />
           )}
           {/* white wash behind the words: from below on phones, from the left on tablets and desktop */}
           <div
@@ -200,6 +210,7 @@ export default function Hero({
                 {s.kind === "product" ? (
                   <ProductSlideCopy
                     product={s.product}
+                    moment={momentOf.get(s.product.id)}
                     categoryName={
                       categories.find((c) => c.id === s.product.categoryId)
                         ?.name
@@ -377,6 +388,79 @@ function BrandSlideCopy({ catalog }: { catalog: Product[] }) {
       </div>
     </>
   );
+}
+
+/** This shopper's viewed categories (read in the browser after the first paint). */
+function useInterest(): Interest {
+  const [interest, setInterest] = useState<Interest>({});
+  useEffect(() => setInterest(readInterest()), []);
+  return interest;
+}
+
+/**
+ * The hero's stickers and wall poster sets, new for every shopper every day (steady
+ * while they browse): stickers for what's on now (a festival around today) lead, then
+ * categories take turns so the slides show different kinds of
+ * stickers — the categories this shopper has been looking at first — featured and
+ * new ones are likelier, and there's always a cheap sticker and a mini poster in
+ * the mix. Out-of-stock ones never show.
+ */
+function heroPicks(
+  singles: Product[],
+  packs: Product[],
+  interest: Interest,
+  seed: number,
+  moments: { label: string; products: Product[] }[],
+) {
+  const day = Math.floor(Date.now() / 86_400_000);
+  const random = seededRandom(seed * 7919 + day);
+  const weight = (p: Product) => (p.featured ? 3 : 1) * (p.isNew ? 2 : 1);
+  // weighted shuffle: highest random^(1/weight) first
+  const shuffle = <T,>(list: T[], w: (x: T) => number) =>
+    list
+      .map((x) => ({ x, key: Math.pow(random(), 1 / w(x)) }))
+      .sort((a, b) => b.key - a.key)
+      .map((o) => o.x);
+  const inStock = singles.filter((p) => p.stock !== 0);
+  const groups = new Map<string, Product[]>();
+  for (const p of inStock) {
+    const key = p.categoryId ?? "none";
+    groups.set(key, [...(groups.get(key) ?? []), p]);
+  }
+  // categories they've looked at count 4× per view (capped), the rest by size of choice
+  const order = shuffle([...groups.keys()], (c) => 1 + Math.min(interest[c] ?? 0, 5) * 4);
+  const queues = order.map((c) => shuffle(groups.get(c)!, weight));
+  // What's on now first: two stickers of the soonest festival (one each when two are on).
+  const momentOf = new Map<string, string>();
+  const live = moments.filter((m) => m.products.some((p) => p.stock !== 0)).slice(0, 2);
+  for (const m of live) {
+    const take = shuffle(m.products.filter((p) => p.stock !== 0 && !isPosterPack(p) && !momentOf.has(p.id)), weight)
+      .slice(0, live.length === 1 ? 2 : 1);
+    for (const p of take) momentOf.set(p.id, m.label);
+  }
+  const picks: Product[] = [];
+  const festive = [...momentOf.keys()].map((id) => singles.find((p) => p.id === id)).filter(Boolean) as Product[];
+  for (const q of queues) for (let i = q.length - 1; i >= 0; i--) if (momentOf.has(q[i].id)) q.splice(i, 1);
+  while (picks.length < 5 - festive.length && queues.some((q) => q.length)) {
+    for (const q of queues) if (q.length && picks.length < 5 - festive.length) picks.push(q.shift()!);
+  }
+  // festival stickers first and third, so the hero opens on what's on now
+  festive.forEach((p, i) => picks.splice(Math.min(i * 2, picks.length), 0, p));
+  // a cheap sticker and a mini poster both in the mix (swap the last pick if needed)
+  const ensure = (want: (p: Product) => boolean) => {
+    if (picks.length < 2 || picks.some(want)) return;
+    const extra = shuffle(inStock.filter((p) => want(p) && !picks.includes(p)), weight)[0];
+    // swap the last pick that isn't a festival one
+    const at = picks.findLastIndex((p) => !momentOf.has(p.id));
+    if (extra && at >= 0) picks[at] = extra;
+  };
+  ensure(isMiniPoster);
+  ensure((p) => !isMiniPoster(p));
+  const packPicks = shuffle(
+    packs.filter((p) => p.stock !== 0),
+    (p) => (p.featured ? 3 : 1) * (p.isNew ? 1.5 : 1),
+  ).slice(0, 3);
+  return { picks, packPicks, momentOf };
 }
 
 /** What the banner wall shows: only mini posters when admin → Features says so
@@ -594,10 +678,13 @@ function BrandSlideArt({ stickers }: { stickers: Product[] }) {
 /** A sticker slide's text: badges, name, description, price and buy controls. */
 function ProductSlideCopy({
   product,
+  moment,
   categoryName,
   onPickSize,
 }: {
   product: Product;
+  /** Picked for what's on now ("Diwali · 8 Nov"): said on the badge. */
+  moment?: string;
   categoryName: string | undefined;
   onPickSize: () => void;
 }) {
@@ -606,13 +693,18 @@ function ProductSlideCopy({
     <>
       <div className="flex flex-wrap items-center gap-2">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-white/90 px-3 py-1 text-[10px] font-bold tracking-widest text-brand uppercase shadow-sm backdrop-blur-sm sm:px-3.5 sm:py-1.5 sm:text-[11px]">
-          {pack ? (
+          {moment ? (
+            <>
+              <CalendarHeart className="size-3.5" /> {moment}
+            </>
+          ) : pack ? (
             <>
               <Frame className="size-3.5" /> Wall poster set
             </>
           ) : (
             <>
-              <Sparkles className="size-3.5" /> Featured drop
+              <Sparkles className="size-3.5" />{" "}
+              {product.isNew ? "New drop" : product.featured ? "Featured drop" : "Today's pick"}
             </>
           )}
         </span>
@@ -660,31 +752,48 @@ function shuffled<T>(list: readonly T[]): T[] {
 /** Wall tiles show their sticker the same ways as the "Make your own" cards (A, C, D, E). */
 const WALL_DESIGNS: ArtDesign[] = ["frame", ...STYLE_DESIGNS];
 
-function AvatarBookWall({ styles }: { styles: AvatarStyle[] }) {
+type WallTile =
+  | { kind: "avatar"; label: string; url: string | null }
+  | { kind: "pack"; label: string; url: string; slug: string };
+
+function AvatarBookWall({ styles, packs }: { styles: AvatarStyle[]; packs: Product[] }) {
   const box = useRef<HTMLDivElement>(null);
   const size = useWallSize(box);
   // Shuffled in the browser only (the wall isn't drawn on the server anyway).
-  const [pool, setPool] = useState<{ label: string; url: string | null }[]>([]);
+  const [pools, setPools] = useState<{ avatars: WallTile[]; sets: WallTile[] }>({ avatars: [], sets: [] });
   useEffect(() => {
     // Every card picture, plus a drawn stand-in for each style that has none.
     const real = styles.flatMap((s) =>
-      s.covers.map((url) => ({ label: s.label, url })),
+      s.covers.map((url) => ({ kind: "avatar" as const, label: s.label, url })),
     );
     const drawn = styles
       .filter((s) => !s.covers.length)
-      .map((s) => ({ label: s.label, url: null }));
-    // phones: a dozen different pictures is plenty for the small wall
-    const all = shuffled([...real, ...drawn]);
-    setPool(window.innerWidth < 640 ? all.slice(0, 12) : all);
-  }, [styles]);
+      .map((s) => ({ kind: "avatar" as const, label: s.label, url: null }));
+    const sets = packs.map((p) => ({
+      kind: "pack" as const,
+      label: p.name.replace(/\s*—\s*\d+\s+Mini Poster Pack\s*$/i, ""),
+      url: p.thumbUrl ?? p.imageUrl,
+      slug: p.slug,
+    }));
+    // phones: a dozen different pictures of each is plenty for the small wall
+    const few = window.innerWidth < 640 ? 12 : Infinity;
+    setPools({ avatars: shuffled([...real, ...drawn]).slice(0, few), sets: shuffled(sets).slice(0, few) });
+  }, [styles, packs]);
+  // One column of AI stickers, then two columns of wall poster sets, and again
+  // (only AI stickers when there are no sets, and the other way round).
+  const kindOf = (c: number) =>
+    !pools.sets.length ? pools.avatars : !pools.avatars.length ? pools.sets : c % 3 === 0 ? pools.avatars : pools.sets;
   const columns =
-    size && pool.length
-      ? Array.from({ length: size.cols }, (_, c) =>
-          Array.from({ length: Math.ceil(size.perCol * 0.8) + 1 }, (_, k) => ({
+    size && (pools.avatars.length || pools.sets.length)
+      ? Array.from({ length: size.cols }, (_, c) => {
+          const pool = kindOf(c);
+          // set columns are taller tiles (2:3), so they need fewer per column
+          const per = Math.ceil(size.perCol * (pool === pools.sets ? 0.65 : 0.8)) + 1;
+          return Array.from({ length: per }, (_, k) => ({
             page: pool[(c * 5 + k * 3) % pool.length],
             n: c * 31 + k * 17,
-          })),
-        )
+          }));
+        })
       : [];
   return (
     <div
@@ -703,14 +812,24 @@ function AvatarBookWall({ styles }: { styles: AvatarStyle[] }) {
               {[...col, ...col].map(({ page, n }, k) => (
                 <Link
                   key={k}
-                  href="/avatar-stickers"
+                  href={page.kind === "pack" ? `/sticker/${page.slug}` : "/avatar-stickers"}
                   tabIndex={-1}
-                  aria-label="Make your avatar sticker packs"
+                  aria-label={page.kind === "pack" ? `${page.label} wall poster set` : "Make your avatar sticker packs"}
                   className={`block overflow-hidden rounded-xl bg-white shadow-[0_12px_26px_-14px_rgba(16,24,40,0.4)] ring-1 ring-black/5 transition-transform duration-200 hover:scale-[1.04] ${
                     k % 3 === 1 ? "rotate-2" : k % 3 === 2 ? "-rotate-1" : ""
                   }`}
                 >
-                  {page.url ? (
+                  {page.kind === "pack" ? (
+                    // a wall poster set: its whole 2:3 collage, edge to edge
+                    <img
+                      src={page.url}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      fetchPriority="low"
+                      className="block aspect-[2/3] w-full bg-[#f4f1ec] object-cover"
+                    />
+                  ) : page.url ? (
                     // the same picture designs as the "Make your own" cards: A, C, D, E mixed
                     <StickerArt
                       design={WALL_DESIGNS[n % WALL_DESIGNS.length]}
@@ -737,6 +856,7 @@ function AvatarBookWall({ styles }: { styles: AvatarStyle[] }) {
                   )}
                   <span className="block truncate px-2 py-1.5 text-[clamp(9px,0.9vw,12px)] font-bold text-snow">
                     {page.label}
+                    {page.kind === "pack" && <span className="font-semibold text-brand"> · wall set</span>}
                   </span>
                 </Link>
               ))}
