@@ -6,7 +6,7 @@ import type { Product } from "@stickypie/shared";
 import { POSTER_ADHESIVE, POSTER_PAPER, belowMinimum, discountPercent, formatINR, inCategory, packPosterSizes, packSizeSummary } from "@stickypie/shared";
 import { useLiveCatalog, useStoreSettings } from "@/lib/live-catalog";
 import { cardSkinFor } from "@/lib/palette";
-import { isMiniPoster, isPosterPack, sizeChipLabel } from "@/lib/poster";
+import { isMiniPoster, isPosterPack, posterSetName, sizeChipLabel } from "@/lib/poster";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { PAGE_VIEW_ONCE_KEY } from "@/lib/view-script";
 import { lineKey, useCart } from "./cart-context";
@@ -295,19 +295,20 @@ function ReelItem({
     } catch {}
   }
 
-  const name = poster ? product.name.replace(/\s*(—\s*)?Mini Poster\s*$/i, "") : product.name;
+  const name = pack ? posterSetName(product.name) : poster ? product.name.replace(/\s*(—\s*)?Mini Poster\s*$/i, "") : product.name;
   return (
     <div className="relative flex h-full flex-col" style={skin.art}>
       {/* Art */}
       <div
-        className="relative grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center px-10 pt-[calc(4.5rem+env(safe-area-inset-top,0px))] pb-4 select-none"
+        className={`relative grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center ${pack ? "px-1" : "px-10"} pt-[calc(4.5rem+env(safe-area-inset-top,0px))] pb-4 select-none`}
         onPointerUp={onArtTap}
       >
         <img
-          src={product.thumbUrl ?? product.imageUrl}
+          // a set's wall stands straight and big, at the sharper size: the posters must read
+          src={pack ? (product.displayUrl ?? product.imageUrl) : (product.thumbUrl ?? product.imageUrl)}
           alt={product.name}
           draggable={false}
-          className={`animate-float max-h-full max-w-full object-contain ${poster ? "poster-print" : "sticker-cut"} ${out ? "opacity-50 saturate-50" : ""}`}
+          className={`max-h-full max-w-full object-contain ${pack ? "rounded-xl shadow-[0_18px_40px_-18px_rgba(16,24,40,0.5)]" : `animate-float ${poster ? "poster-print" : "sticker-cut"}`} ${out ? "opacity-50 saturate-50" : ""}`}
         />
         {pops.map((p) => (
           <span key={p.id} aria-hidden className="reel-pop pointer-events-none fixed z-10" style={{ left: p.x, top: p.y }}>
@@ -484,7 +485,7 @@ function ReelItem({
         </button>
       </LabelModal>
 
-      {pack && <ImageZoom open={zoom} onClose={() => setZoom(false)} src={product.imageUrl} title={product.name} />}
+      {pack && <ImageZoom open={zoom} onClose={() => setZoom(false)} src={product.imageUrl} title={product.name} ratio={product.aspectRatio ?? undefined} />}
       {trueSize && !pack && (
         <TrueSizePreview
           open

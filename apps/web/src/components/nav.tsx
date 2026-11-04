@@ -65,7 +65,8 @@ export default function Nav() {
 
   const features = useFeatures();
   const navLink = (href: string, label: string, hideOnMobile = false) => {
-    const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+    const walls = pathname.startsWith("/stickers/poster-packs");
+    const active = href === "/" ? pathname === "/" : href === "/stickers" ? pathname.startsWith(href) && !walls : pathname.startsWith(href);
     return (
       <Link
         href={href}
@@ -125,6 +126,7 @@ export default function Nav() {
           <nav className="hidden items-center gap-1 sm:flex">
             {navLink("/", "Home", true)}
             {navLink("/stickers", "Stickers")}
+            {navLink("/stickers/poster-packs", "Wall posters")}
             {/* your design, QR code and name & text in one drop-down */}
             {features.customStickers && <CustomMenu />}
           </nav>

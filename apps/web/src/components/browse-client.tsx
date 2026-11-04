@@ -4,15 +4,19 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 import {
   ALL_STICKERS_PATH,
+  WALL_THEMES,
   categoryPath,
   categoryTitle,
   inCategory,
 } from "@stickypie/shared";
+import { Frame, Sticker } from "lucide-react";
+import PageLink from "./page-link";
 import ProductCard from "./product-card";
 import ProductCardSkeleton from "./product-card-skeleton";
 import VirtualGrid from "./virtual-grid";
 import CategoryFilter from "./category-filter";
 import { useLiveCatalog, type Catalog } from "@/lib/live-catalog";
+import { isPosterPack } from "@/lib/poster";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
 import { searchStickers } from "@/lib/sticker-search";
 
@@ -21,6 +25,7 @@ import { searchStickers } from "@/lib/sticker-search";
  * build-time snapshot, refreshes live from the Supabase API in the browser,
  * and all searching/filtering/sorting is local — zero server requests.
  */
+const WALLS = "poster-packs";
 const SORTS = [
   { value: "new", label: "Newest" },
   { value: "price-asc", label: "Price low → high" },
@@ -43,6 +48,8 @@ export default function BrowseClient({
   const q = params.get("q") ?? "";
   const category = categorySlug;
   const sort = params.get("sort") ?? "new";
+  const walls = category === WALLS;
+  const theme = walls ? (params.get("theme") ?? "") : "";
 
   /** Link to a category (or all), keeping the current search + sort. */
   function hrefFor(cat: string) {
@@ -80,14 +87,18 @@ export default function BrowseClient({
     if (category) {
       const cat = categories.find((c) => c.slug === category);
       list = cat ? list.filter((p) => inCategory(p, cat.id)) : [];
+    } else if (!q) {
+      // Wall sets have their own page: All stickers is stickers.
+      list = list.filter((p) => !isPosterPack(p));
     }
+    if (theme) list = list.filter((p) => p.tags.includes(`wall theme:${theme}`));
     if (q) list = searchStickers(list, categories, q).exact;
     if (sort === "price-asc")
       list = [...list].sort((a, b) => a.price - b.price);
     else if (sort === "price-desc")
       list = [...list].sort((a, b) => b.price - a.price);
     return list;
-  }, [products, categories, q, category, sort]);
+  }, [products, categories, q, category, sort, theme]);
 
   // A search with no exact match: the closest stickers (or popular picks)
   // from the whole shop instead of an empty page.
@@ -112,7 +123,7 @@ export default function BrowseClient({
     const used = new Set(
       products.flatMap((p) => p.categoryIds ?? [p.categoryId]),
     );
-    return categories.filter((c) => used.has(c.id) || c.slug === category);
+    return categories.filter((c) => (used.has(c.id) || c.slug === category) && c.slug !== WALLS);
   }, [categories, products, category]);
 
   // Category pop-up: every category with stickers, with its count.
@@ -128,12 +139,30 @@ export default function BrowseClient({
 
   return (
     <>
+      {/* Two shops in one: stickers, and wall posters for the room */}
+      <div role="tablist" className="mb-3 grid max-w-sm grid-cols-2 gap-1 rounded-2xl bg-snow/[0.06] p-1 sm:mb-4">
+        {[
+          { label: "Stickers", href: ALL_STICKERS_PATH, on: !walls, icon: Sticker },
+          { label: "Wall posters", href: categoryPath(WALLS), on: walls, icon: Frame },
+        ].map(({ label, href, on, icon: Icon }) => (
+          <PageLink
+            key={label}
+            href={href}
+            role="tab"
+            aria-selected={on}
+            className={`flex h-10 items-center justify-center gap-1.5 rounded-xl text-sm font-bold transition-colors ${
+              on ? "bg-white text-brand shadow-sm" : "text-fog hover:text-snow"
+            }`}
+          >
+            <Icon className="size-4" /> {label}
+          </PageLink>
+        ))}
+      </div>
+
       {/* Title and count on one line — compact on phones */}
       <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
         <h1 className="font-display text-2xl font-bold sm:text-4xl">
-          {activeCategoryName
-            ? categoryTitle(activeCategoryName)
-            : "All stickers"}
+          {walls ? "Wall posters" : activeCategoryName ? categoryTitle(activeCategoryName) : "All stickers"}
         </h1>
         <p className="text-xs text-fog sm:text-sm">
           {!loaded ? (
@@ -149,24 +178,41 @@ export default function BrowseClient({
               )}
             </>
           ) : (
-            <>{visible.length} {category === "mini-posters" ? "posters" : "stickers"}</>
+            <>{visible.length} {walls ? "wall sets" : category === "mini-posters" ? "posters" : "stickers"}</>
           )}
         </p>
       </div>
 
-      {/* One button: shows the chosen category, opens categories + sort */}
-      <div className="mt-3 sm:mt-5">
-        <CategoryFilter
-          categories={filterCategories}
-          total={products.length}
-          active={category}
-          activeName={activeCategoryName}
-          onPick={(slug) => go(hrefFor(slug))}
-          sort={sort}
-          sorts={SORTS}
-          onSort={(v) => update({ sort: v })}
-        />
-      </div>
+      {/* Walls: a chip per theme. Stickers: one button for categories + sort */}
+      {walls ? (
+        <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:mt-5 sm:px-0">
+          {[{ id: "", title: "All walls" }, ...WALL_THEMES].map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => go(t.id ? `${categoryPath(WALLS)}?theme=${t.id}` : categoryPath(WALLS))}
+              className={`h-9 shrink-0 rounded-full border px-3.5 text-sm font-semibold transition-colors ${
+                t.id === theme ? "border-brand bg-brand/[0.07] text-brand" : "border-line bg-white text-fog hover:text-snow"
+              }`}
+            >
+              {t.title.replace(/ walls$/, "")}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-3 sm:mt-5">
+          <CategoryFilter
+            categories={filterCategories}
+            total={products.filter((p) => !isPosterPack(p)).length}
+            active={category}
+            activeName={activeCategoryName}
+            onPick={(slug) => go(hrefFor(slug))}
+            sort={sort}
+            sorts={SORTS}
+            onSort={(v) => update({ sort: v })}
+          />
+        </div>
+      )}
 
       {!loaded ? (
         <div
@@ -223,7 +269,7 @@ export default function BrowseClient({
             items={visible}
             getKey={(product) => product.id}
             render={(product) => <ProductCard product={product} width="w-full" />}
-            className="mt-4 grid grid-cols-2 gap-x-3 gap-y-5 sm:mt-8 sm:gap-y-7 sm:gap-x-4 @[40rem]:grid-cols-3 @[53rem]:grid-cols-4 @[67rem]:grid-cols-5 @[80rem]:grid-cols-6 @[107rem]:grid-cols-8"
+            className={walls ? "mt-4 grid grid-cols-2 gap-x-3 gap-y-5 sm:mt-6 sm:gap-x-4 sm:gap-y-7 @[53rem]:grid-cols-3 @[80rem]:grid-cols-4" : "mt-4 grid grid-cols-2 gap-x-3 gap-y-5 sm:mt-8 sm:gap-y-7 sm:gap-x-4 @[40rem]:grid-cols-3 @[53rem]:grid-cols-4 @[67rem]:grid-cols-5 @[80rem]:grid-cols-6 @[107rem]:grid-cols-8"}
           />
           {moreLikeThis.length > 0 && (
             <section className="mt-10">

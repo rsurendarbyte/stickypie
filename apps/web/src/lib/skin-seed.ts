@@ -32,6 +32,20 @@ function pickSeed(): number {
 const clientSeed = pickSeed();
 const noop = () => () => {};
 
+/** Today's number, India time: the same for every refresh and every shopper, new at midnight. */
+function pickDaySeed(): number {
+  if (typeof window === "undefined") return 0;
+  const day = Math.floor((Date.now() + 5.5 * 3_600_000) / 86_400_000);
+  return Math.imul(day, 2654435761) >>> 0 || 1;
+}
+
+const daySeed = pickDaySeed();
+
+/** For rows of products: they change once a day, not on every refresh. */
+export function useDaySeed(): number {
+  return useSyncExternalStore(noop, () => daySeed, () => 0);
+}
+
 /** Random per visit; stays the same while the visitor browses this tab. */
 export function useSkinSeed(): number {
   return useSyncExternalStore(noop, () => clientSeed, () => 0);
