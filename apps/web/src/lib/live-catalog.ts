@@ -303,14 +303,10 @@ export function useProductReviews(productId: string): {
   return { reviews, average, loaded: Boolean(bundle) || failed || !liveCatalogEnabled };
 }
 
-/**
- * Counts one view of a sticker page for the admin's "Most viewed" list: once
- * per product per browser visit (reloads and going back don't add more). Only
- * the product id is sent — nothing about the shopper.
- */
-export function recordProductView(productId: string) {
+/** Adds 1 to a sticker's views or saves (record_product_view / _save), once per visit. */
+function countOnce(kind: "view" | "save", productId: string) {
   if (!liveCatalogEnabled || typeof window === "undefined" || navigator.webdriver) return;
-  const key = "stickypie.viewed";
+  const key = kind === "view" ? "stickypie.viewed" : "stickypie.saved";
   try {
     const seen: string[] = JSON.parse(sessionStorage.getItem(key) || "[]");
     if (seen.includes(productId)) return;
@@ -318,10 +314,48 @@ export function recordProductView(productId: string) {
   } catch {
     // storage off: still count it
   }
-  fetch(`${SUPABASE_URL}/rest/v1/rpc/record_product_view`, {
+  fetch(`${SUPABASE_URL}/rest/v1/rpc/record_product_${kind}`, {
     method: "POST",
     headers: { apikey: ANON_KEY!, Authorization: `Bearer ${ANON_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({ p_product: productId }),
     keepalive: true,
   }).catch(() => {});
+}
+
+/**
+ * Counts one view of a sticker page for the admin's "Most viewed" list: once
+ * per product per browser visit (reloads and going back don't add more). Only
+ * the product id is sent — nothing about the shopper.
+ */
+export const recordProductView = (productId: string) => countOnce("view", productId);
+
+/**
+ * While a sticker page is open, counts a "save" when the shopper right-clicks,
+ * long-presses (phones) or drags one of its pictures — the ways a picture gets
+ * downloaded without a button. It can't tell whether they then chose "Save
+ * image", and screenshots can't be seen at all, so it's "tried to save".
+ * Once per sticker per visit. Returns the cleanup.
+ */
+export function watchImageSaves(productId: string) {
+  // This sticker's pictures only: other stickers' cards on the page are links.
+  const isImg = (t: EventTarget | null) => t instanceof HTMLImageElement && !t.closest("a[href]");
+  const count = (e: Event) => isImg(e.target) && countOnce("save", productId);
+  // iPhones don't send "contextmenu" on a long-press, so time the touch.
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const touchStart = (e: TouchEvent) => {
+    clearTimeout(timer);
+    if (e.touches.length === 1 && isImg(e.target)) timer = setTimeout(() => countOnce("save", productId), 600);
+  };
+  const touchEnd = () => clearTimeout(timer);
+  document.addEventListener("contextmenu", count, true);
+  document.addEventListener("dragstart", count, true);
+  document.addEventListener("touchstart", touchStart, { capture: true, passive: true });
+  for (const ev of ["touchend", "touchmove", "touchcancel"]) document.addEventListener(ev, touchEnd, { capture: true, passive: true });
+  return () => {
+    clearTimeout(timer);
+    document.removeEventListener("contextmenu", count, true);
+    document.removeEventListener("dragstart", count, true);
+    document.removeEventListener("touchstart", touchStart, true);
+    for (const ev of ["touchend", "touchmove", "touchcancel"]) document.removeEventListener(ev, touchEnd, true);
+  };
 }

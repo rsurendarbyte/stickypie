@@ -10,7 +10,7 @@ import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR, packSizeSummary, posterSizeLabel } from "@stickypie/shared";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
 import { useSkinSeed } from "@/lib/skin-seed";
-import { recordProductView, useFeatures, useLiveProduct, useRelatedProducts } from "@/lib/live-catalog";
+import { recordProductView, useFeatures, useLiveProduct, useRelatedProducts, watchImageSaves } from "@/lib/live-catalog";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
 import { rememberInterest } from "@/lib/interest";
 import BackButton from "./back-button";
@@ -47,6 +47,7 @@ export default function ProductDetailClient({
   // Remember (in this browser only) what kind of stickers they look at, for the home hero.
   useEffect(() => rememberInterest(initial.slug, initial.categoryIds?.length ? initial.categoryIds : [initial.categoryId]), [initial.slug]);
   useEffect(() => recordProductView(initial.id), [initial.id]);
+  useEffect(() => watchImageSaves(initial.id), [initial.id]);
   // Live and on-sale only (never the build-time list).
   const { products: moreLikeThis, loaded: relatedLoaded } = useRelatedProducts(
     product.categoryId,

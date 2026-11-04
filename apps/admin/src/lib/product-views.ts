@@ -8,8 +8,8 @@ const IST_MS = 5.5 * 3600_000;
 const DAY_MS = 86_400_000;
 const PAID = ["paid", "packed", "shipped", "delivered"];
 
-export type ViewedProduct = { id: string; name: string; slug: string; thumb: string | null; views: number; sold: number };
-export type ProductViews = { total: number; products: ViewedProduct[] };
+export type ViewedProduct = { id: string; name: string; slug: string; thumb: string | null; views: number; saves: number; sold: number };
+export type ProductViews = { total: number; saves: number; products: ViewedProduct[] };
 
 export async function getProductViews(range: Range, limit = 15): Promise<ProductViews> {
   const days = range === "today" ? 1 : range === "7d" ? 7 : 30;
@@ -19,7 +19,7 @@ export async function getProductViews(range: Range, limit = 15): Promise<Product
 
   const db = await createServerSupabase();
   const [views, sales] = await Promise.all([
-    db.from("product_views").select("product_id, views").gte("day", fromDay),
+    db.from("product_views").select("product_id, views, saves").gte("day", fromDay),
     db
       .from("order_items")
       .select("product_id, quantity, orders!inner(status, created_at)")
@@ -29,7 +29,11 @@ export async function getProductViews(range: Range, limit = 15): Promise<Product
   if (views.error) throw new Error(views.error.message);
 
   const viewed = new Map<string, number>();
-  for (const r of views.data ?? []) viewed.set(r.product_id, (viewed.get(r.product_id) ?? 0) + r.views);
+  const saved = new Map<string, number>();
+  for (const r of views.data ?? []) {
+    viewed.set(r.product_id, (viewed.get(r.product_id) ?? 0) + r.views);
+    if (r.saves) saved.set(r.product_id, (saved.get(r.product_id) ?? 0) + r.saves);
+  }
   const sold = new Map<string, number>();
   for (const r of sales.data ?? []) if (r.product_id) sold.set(r.product_id, (sold.get(r.product_id) ?? 0) + (r.quantity ?? 0));
 
@@ -41,9 +45,10 @@ export async function getProductViews(range: Range, limit = 15): Promise<Product
 
   return {
     total: [...viewed.values()].reduce((a, b) => a + b, 0),
+    saves: [...saved.values()].reduce((a, b) => a + b, 0),
     products: top.map(([id, v]) => {
       const p = byId.get(id);
-      return { id, name: p?.name ?? "Removed sticker", slug: p?.slug ?? "", thumb: p?.thumb_url ?? null, views: v, sold: sold.get(id) ?? 0 };
+      return { id, name: p?.name ?? "Removed sticker", slug: p?.slug ?? "", thumb: p?.thumb_url ?? null, views: v, saves: saved.get(id) ?? 0, sold: sold.get(id) ?? 0 };
     }),
   };
 }
