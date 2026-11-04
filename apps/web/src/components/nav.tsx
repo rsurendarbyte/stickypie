@@ -125,8 +125,8 @@ export default function Nav() {
           {/* phones: these live in the bottom tab bar instead */}
           <nav className="hidden items-center gap-1 sm:flex">
             {navLink("/", "Home", true)}
-            {navLink("/stickers", "Stickers")}
             {navLink("/stickers/poster-packs", "Wall posters")}
+            {navLink("/stickers", "Stickers")}
             {/* your design, QR code and name & text in one drop-down */}
             {features.customStickers && <CustomMenu />}
           </nav>
