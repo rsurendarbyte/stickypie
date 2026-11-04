@@ -320,8 +320,9 @@ export default function ProductsTable({
       );
       return;
     }
+    const { swaps = [] } = await res.json().catch(() => ({}));
     setProducts((prev) => prev.filter((p) => p.id !== product.id));
-    toast(`Deleted "${product.name}"`);
+    toast(`Deleted "${product.name}"${swaps.length ? `, replaced in ${swaps.length} wall set${swaps.length === 1 ? "" : "s"}` : ""}`);
     router.refresh();
   }
 
