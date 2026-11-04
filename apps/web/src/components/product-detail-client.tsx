@@ -72,6 +72,8 @@ export default function ProductDetailClient({
   const finish = useLineFinish(product);
   const poster = isPack || (isMiniPoster(product) && finish !== "sticker");
   const [zoom, setZoom] = useState(false);
+  // "wall theme:cars" only sorts a set into its home row.
+  const shownTags = product.tags.filter((t) => !t.startsWith("wall theme:"));
 
   return (
     <>
@@ -269,8 +271,9 @@ export default function ProductDetailClient({
                       <SmartImg full={p.imageUrl} thumb={null} alt={p.name} className="aspect-[2/3] w-full rounded-md object-cover" />
                       <span className="mt-1 line-clamp-2 text-[11px] leading-tight text-fog">
                         {n + 1}. {p.name.replace(/ — Mini Poster$| Mini Poster$/, "")}
-                        <span className={`block font-semibold ${p.inches > 6 ? "text-brand" : "text-fog"}`}>{posterSizeLabel(p.inches)}</span>
                       </span>
+                      {/* outside the two-line name, so a long name can't hide it */}
+                      <span className={`block text-[11px] leading-tight font-semibold ${p.inches > 6 ? "text-brand" : "text-fog"}`}>{posterSizeLabel(p.inches)}</span>
                     </>
                   );
                   return (
@@ -291,9 +294,9 @@ export default function ProductDetailClient({
 
           {!unavailable && <ProductDetails size={sizes.length > 0 ? size : null} />}
 
-          {product.tags.length > 0 && (
+          {shownTags.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
-              {product.tags.slice(0, 5).map((tag) => (
+              {shownTags.slice(0, 5).map((tag) => (
                 <PageLink
                   key={tag}
                   href={`/stickers?q=${encodeURIComponent(tag)}`}
