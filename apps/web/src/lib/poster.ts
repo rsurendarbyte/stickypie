@@ -35,6 +35,16 @@ export function wallSpots(product: Product): { x: number; y: number; w: number; 
   });
 }
 
+/** How many of each size in a set, biggest first: "2 pcs 6×9 + 4 pcs 4×6 in". */
+export function wallPosterSizes(product: Product): string {
+  const sizes = packPosterSizes(product);
+  const parts = [9, 6]
+    .map((inches) => [sizes.filter((s) => s === inches).length, inches === 9 ? "6×9" : "4×6"] as const)
+    .filter(([count]) => count > 0)
+    .map(([count, size]) => `${count} ${count === 1 ? "pc" : "pcs"} ${size}`);
+  return `${parts.join(" + ")} in`;
+}
+
 /** A wall's size on the wall: "1.7 × 1.5 ft". */
 export function wallSize(product: Product): string | null {
   return tagValue(product, "size");

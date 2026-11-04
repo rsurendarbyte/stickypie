@@ -7,7 +7,7 @@ import { isInternalTag, isMiniPoster, isPosterPack, isWallSetup, posterSetName, 
 import { useEffect, useState } from "react";
 import { BadgeCheck, Car, ChevronsUpDown, Frame, Gift, PackageX, Ruler, Sparkles, Truck } from "lucide-react";
 import type { Product } from "@stickypie/shared";
-import { LOW_STOCK_THRESHOLD, discountPercent, formatINR, packSizeSummary, posterSizeLabel } from "@stickypie/shared";
+import { LOW_STOCK_THRESHOLD, discountPercent, formatINR, packPosterSizes, packSizeSummary, posterSizeLabel } from "@stickypie/shared";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { recordProductView, useFeatures, useLiveProduct, useRelatedProducts, watchImageSaves } from "@/lib/live-catalog";
@@ -242,8 +242,10 @@ export default function ProductDetailClient({
               </p>
 
               <p className="mt-2 line-clamp-3 max-w-lg text-sm leading-relaxed text-fog">
-                {wall ? `${product.packItems.length} posters · about ${wallSize(product)} on your wall` : product.description}
+                {wall ? `A ready wall of ${product.packItems.length} posters, laid out to go up together.` : product.description}
               </p>
+
+              {wall && <WallFacts product={product} />}
 
               {isMiniPoster(product) && !isPack && !out && (
                 <div className="mt-4">
@@ -305,6 +307,20 @@ export default function ProductDetailClient({
             </li>
           </ul>
 
+          {wall && (
+            <div className="mt-5 max-w-md">
+              <h2 className="font-display text-base font-semibold">How to put it up</h2>
+              <ol className="mt-2 space-y-1.5 text-sm text-fog">
+                {["Lay the posters out like the picture.", "Add glue dots or tape to the back of each poster.", "Press them onto a clean, dry wall."].map((step, n) => (
+                  <li key={step} className="flex items-start gap-2">
+                    <span className="grid size-5 shrink-0 place-items-center rounded-full bg-brand/10 text-[11px] font-bold text-brand">{n + 1}</span>
+                    {step}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
           {!wall && inside}
 
           {!unavailable && !wall && <ProductDetails size={sizes.length > 0 ? size : null} />}
@@ -355,5 +371,28 @@ export default function ProductDetailClient({
         onSizeChange={setSize}
       />
     </>
+  );
+}
+
+/** A wall set at a glance: how many posters of each size, and the wall it needs. */
+function WallFacts({ product }: { product: Product }) {
+  const sizes = packPosterSizes(product);
+  const feet = wallSize(product);
+  const facts = [
+    ...[9, 6].flatMap((inches) => {
+      const count = sizes.filter((s) => s === inches).length;
+      return count ? [{ value: `${count} ${count === 1 ? "pc" : "pcs"}`, label: posterSizeLabel(inches) }] : [];
+    }),
+    ...(feet ? [{ value: feet, label: "Wall space" }] : []),
+  ];
+  return (
+    <dl className={`mt-3 grid max-w-md gap-2 ${facts.length > 2 ? "grid-cols-3" : "grid-cols-2"}`}>
+      {facts.map((fact) => (
+        <div key={fact.label} className="rounded-xl border border-line bg-white px-3 py-2">
+          <dt className="text-[11px] text-fog">{fact.label}</dt>
+          <dd className="font-display text-lg leading-tight font-bold text-snow">{fact.value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
