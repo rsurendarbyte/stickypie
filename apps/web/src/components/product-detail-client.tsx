@@ -21,7 +21,7 @@ import ProductDetails from "./product-details";
 import ProductReviews, { RatingSummary } from "./product-reviews";
 import ProductPurchase from "./product-purchase";
 import Row from "./row";
-import { rememberPosters } from "@/lib/poster-images";
+import { rememberPackPosters } from "@/lib/poster-images";
 import FinishPicker from "./finish-picker";
 import WallStage from "./wall-stage";
 import SizePicker, { useLineFinish, useSizeChoice } from "./size-picker";
@@ -47,7 +47,7 @@ export default function ProductDetailClient({
   // Static snapshot first paint; live stock/price/availability from Supabase.
   const { product, unavailable } = useLiveProduct(initial.slug, initial);
   useWindowScrollMemory(true);
-  rememberPosters(packPosters.map((p) => ({ id: p.id, thumbUrl: p.imageUrl, imageUrl: p.imageUrl })));
+  rememberPackPosters(packPosters);
   // Remember (in this browser only) what kind of stickers they look at, for the home hero.
   useEffect(() => rememberInterest(initial.slug, initial.categoryIds?.length ? initial.categoryIds : [initial.categoryId]), [initial.slug]);
   useEffect(() => recordProductView(initial.id), [initial.id]);
