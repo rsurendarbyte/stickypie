@@ -1637,6 +1637,16 @@ html[data-no-save] img:not(a[href] img) {
     transform: none;
   }
 }
+/* Lite mode has no animations, so a wall goes straight to finished. */
+html[data-lite]:not([data-lite="net"]) .wall-fx {
+  transform: none;
+}
+html[data-lite]:not([data-lite="net"]) .wall-print.is-up {
+  opacity: 1;
+}
+html[data-lite]:not([data-lite="net"]) .wall-slot.is-up {
+  opacity: 0;
+}
 @keyframes wall-hang {
   from {
     opacity: 0;
