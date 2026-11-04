@@ -305,7 +305,7 @@ function ReelItem({
       >
         <img
           // a set's wall stands straight and big, at the sharper size: the posters must read
-          src={pack ? (product.displayUrl ?? product.imageUrl) : (product.thumbUrl ?? product.imageUrl)}
+          src={pack ? product.imageUrl : (product.thumbUrl ?? product.imageUrl)}
           alt={product.name}
           draggable={false}
           className={`max-h-full max-w-full object-contain ${pack ? "rounded-xl shadow-[0_18px_40px_-18px_rgba(16,24,40,0.5)]" : `animate-float ${poster ? "poster-print" : "sticker-cut"}`} ${out ? "opacity-50 saturate-50" : ""}`}

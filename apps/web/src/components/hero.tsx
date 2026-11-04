@@ -454,7 +454,7 @@ function PosterFan({ posters }: { posters: Product[] }) {
         return (
           <img
             key={p.id}
-            src={p.displayUrl ?? p.imageUrl}
+            src={p.thumbUrl ?? p.imageUrl}
             alt=""
             draggable={false}
             className="absolute top-1/2 aspect-[2/3] rounded-md object-cover shadow-[0_18px_34px_-14px_rgba(16,24,40,0.55)] transition-transform duration-300 hover:scale-[1.03]"

@@ -246,7 +246,6 @@ function PackCard({ product, width }: { product: Product; width: string }) {
   const off = discountPercent(price, compareAtPrice);
   const wall = isWallSetup(product);
   const small = product.thumbUrl ?? product.imageUrl;
-  const srcSet = product.thumbUrl && product.displayUrl ? `${product.thumbUrl} 320w, ${product.displayUrl} 683w` : undefined;
   const feet = wallSize(product);
 
   return (
@@ -260,8 +259,6 @@ function PackCard({ product, width }: { product: Product; width: string }) {
         {!wall && <img src={small} alt="" loading="lazy" decoding="async" className="absolute inset-0 size-full scale-110 object-cover opacity-60 blur-xl" />}
         <img
           src={small}
-          srcSet={srcSet}
-          sizes="320px"
           alt={product.name}
           loading="lazy"
           decoding="async"
