@@ -14,8 +14,12 @@ const NOT_FOR_WALLS = /festival|diwali|tvk/i;
 const isCandidate = (p: Product) =>
   p.isActive && p.slug.endsWith("-mini-poster") && p.packItems.length === 0 && !p.tags.some((t) => NOT_FOR_WALLS.test(t));
 
-const shared = (a: Product, b: Product, general: Set<string>) =>
-  a.categoryIds.filter((id) => !general.has(id) && b.categoryIds.includes(id)).length;
+const words = (p: Product) => p.slug.split("-").filter((w) => !["mini", "poster"].includes(w));
+
+/** How alike two posters are: shared categories, and a shared word in the name (a Porsche for a Porsche) counts double. */
+const likeness = (a: Product, b: Product, general: Set<string>) =>
+  a.categoryIds.filter((id) => !general.has(id) && b.categoryIds.includes(id)).length +
+  2 * words(a).filter((w) => words(b).includes(w)).length;
 
 /** Most alike first, then the poster in the fewest sets, so walls stay varied. */
 export function pickReplacement(removed: Product, wall: Product, all: Product[], uses: Map<string, number>, general: Set<string>) {
@@ -23,7 +27,7 @@ export function pickReplacement(removed: Product, wall: Product, all: Product[],
     .filter((p) => isCandidate(p) && p.id !== removed.id && !wall.packItems.includes(p.id))
     .sort(
       (a, b) =>
-        shared(b, removed, general) - shared(a, removed, general) ||
+        likeness(b, removed, general) - likeness(a, removed, general) ||
         (uses.get(a.id) ?? 0) - (uses.get(b.id) ?? 0) ||
         a.slug.localeCompare(b.slug)
     )[0];
@@ -33,7 +37,8 @@ export function pickReplacement(removed: Product, wall: Product, all: Product[],
 async function repaint(wall: Product, index: number, poster: Product) {
   const spots = wall.tags.find((t) => t.startsWith("wall spots:"))?.slice(11).split(";");
   const r2 = r2Config();
-  if (!r2 || !wall.tags.includes("wall setup") || !spots?.[index]) return null;
+  // An older pack's picture is a collage: its spots don't line up with what's drawn on it.
+  if (!r2 || !wall.tags.includes("wall setup") || wall.tags.includes("wall collage") || !spots?.[index]) return null;
   const [x, y, w, h] = spots[index].split(",").map(Number);
   const download = async (url: string) => {
     const res = await fetch(imageSrc(url), { cache: "no-store" });

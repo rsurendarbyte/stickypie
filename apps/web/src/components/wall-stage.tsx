@@ -219,8 +219,7 @@ export default function WallStage({
                   }
             }
           >
-            {/* a touch larger than its spot: square paper, past the art's rounded corners */}
-            {urls[i] && <img src={urls[i]!} alt="" draggable={false} className="size-full scale-[1.07] object-cover" />}
+            {urls[i] && <img src={urls[i]!} alt="" draggable={false} className="size-full object-cover" />}
           </span>
         </span>
       ))}

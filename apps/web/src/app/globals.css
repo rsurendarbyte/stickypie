@@ -1519,8 +1519,9 @@ html[data-no-save] img:not(a[href] img) {
 .wall-slot.is-up {
   animation: wall-slot-off 0.3s ease forwards;
 }
+/* The whole poster, uncropped: the corners follow the art's own rounded corners. */
 .wall-print {
-  border-radius: 3px;
+  border-radius: 3.27% / 2.18%;
   opacity: 0;
   box-shadow: 0 5px 12px -5px rgba(25, 18, 12, 0.55);
 }
