@@ -19,14 +19,30 @@ export function isWallSetup(product: Product) {
 const tagValue = (product: Product, name: string) =>
   product.tags.find((t) => t.startsWith(`wall ${name}:`))?.slice(name.length + 6) ?? null;
 
+/** A wall's paint: "#c3cbbc,#b2bbaa" → CSS background. */
+export function wallBackground(product: Product): { background: string } | null {
+  const paint = tagValue(product, "paint");
+  return paint ? { background: `linear-gradient(135deg, ${paint.split(",").join(", ")})` } : null;
+}
+
+/** Where each poster sits on a wall picture, in % of it. */
+export function wallSpots(product: Product): { x: number; y: number; w: number; h: number }[] {
+  const spots = tagValue(product, "spots");
+  if (!spots) return [];
+  return spots.split(";").map((spot) => {
+    const [x, y, w, h] = spot.split(",").map(Number);
+    return { x, y, w, h };
+  });
+}
+
 /** A wall's size on the wall: "1.7 × 1.5 ft". */
 export function wallSize(product: Product): string | null {
   return tagValue(product, "size");
 }
 
-/** Tags that only drive the shop (row, size), never shown to shoppers. */
+/** Tags that only drive the shop (row, size, paint, spots), never shown to shoppers. */
 export function isInternalTag(tag: string) {
-  return /^wall (theme|size):/.test(tag);
+  return /^wall (theme|size|paint|spots):/.test(tag);
 }
 
 /** "Red Line — 6 Mini Poster Pack" → "Red Line": a set's name for shoppers. */

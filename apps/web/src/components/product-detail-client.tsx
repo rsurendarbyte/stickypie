@@ -3,7 +3,7 @@
 import SmartImg from "./smart-img";
 import PageLink from "./page-link";
 import ImageZoom from "./image-zoom";
-import { isInternalTag, isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel } from "@/lib/poster";
+import { isInternalTag, isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel, wallSize } from "@/lib/poster";
 import { useEffect, useState } from "react";
 import { BadgeCheck, Car, ChevronsUpDown, Frame, Gift, PackageX, Ruler, Sparkles, Truck } from "lucide-react";
 import type { Product } from "@stickypie/shared";
@@ -21,13 +21,15 @@ import ProductDetails from "./product-details";
 import ProductReviews, { RatingSummary } from "./product-reviews";
 import ProductPurchase from "./product-purchase";
 import Row from "./row";
+import { rememberPosters } from "@/lib/poster-images";
 import FinishPicker from "./finish-picker";
+import WallStage from "./wall-stage";
 import SizePicker, { useLineFinish, useSizeChoice } from "./size-picker";
 import SizeRuler from "./size-ruler";
 import TrueSizePreview from "./true-size-preview";
 
 /** A poster in a poster pack, as shown under "What's inside". */
-export type PackPosterLink = { slug: string; name: string; imageUrl: string; active: boolean; /** printed size, longest side */ inches: number };
+export type PackPosterLink = { id: string; slug: string; name: string; imageUrl: string; active: boolean; /** printed size, longest side */ inches: number };
 
 export default function ProductDetailClient({
   initial,
@@ -45,6 +47,7 @@ export default function ProductDetailClient({
   // Static snapshot first paint; live stock/price/availability from Supabase.
   const { product, unavailable } = useLiveProduct(initial.slug, initial);
   useWindowScrollMemory(true);
+  rememberPosters(packPosters.map((p) => ({ id: p.id, thumbUrl: p.imageUrl, imageUrl: p.imageUrl })));
   // Remember (in this browser only) what kind of stickers they look at, for the home hero.
   useEffect(() => rememberInterest(initial.slug, initial.categoryIds?.length ? initial.categoryIds : [initial.categoryId]), [initial.slug]);
   useEffect(() => recordProductView(initial.id), [initial.id]);
@@ -74,6 +77,42 @@ export default function ProductDetailClient({
   const [zoom, setZoom] = useState(false);
   const shownTags = product.tags.filter((t) => !isInternalTag(t));
   const wall = isWallSetup(product);
+
+  const inside = isPack && (
+      <div className={wall ? "mt-8" : "mt-5"}>
+        <h2 className="font-display text-lg font-semibold">
+          What&apos;s inside · {packPosters.length} posters
+        </h2>
+        <p className="text-xs text-fog">
+          {packSizeSummary(packPosters.map((p) => p.inches))}. Lay them out like the picture.
+        </p>
+        <ol className={`mt-2 grid gap-2 ${wall ? "grid-cols-4 sm:grid-cols-6 lg:grid-cols-8" : "max-w-md grid-cols-3 sm:grid-cols-4"}`}>
+          {packPosters.map((p, n) => {
+            const tile = (
+              <>
+                <SmartImg full={p.imageUrl} thumb={null} alt={p.name} className="aspect-[2/3] w-full rounded-md object-cover" />
+                <span className="mt-1 line-clamp-2 text-[11px] leading-tight text-fog">
+                  {n + 1}. {p.name.replace(/ — Mini Poster$| Mini Poster$/, "")}
+                </span>
+                {/* outside the two-line name, so a long name can't hide it */}
+                <span className={`block text-[11px] leading-tight font-semibold ${p.inches > 6 ? "text-brand" : "text-fog"}`}>{posterSizeLabel(p.inches)}</span>
+              </>
+            );
+            return (
+              <li key={p.slug}>
+                {p.active ? (
+                  <PageLink href={`/sticker/${p.slug}`} className="block transition-opacity hover:opacity-80">
+                    {tile}
+                  </PageLink>
+                ) : (
+                  tile
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+  );
 
   return (
     <>
@@ -112,29 +151,39 @@ export default function ProductDetailClient({
         </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-10">
+      <div className={`mt-3 grid grid-cols-[minmax(0,1fr)] gap-5 lg:gap-10 ${wall ? "lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]" : "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]"}`}>
         {/* Art — stays in view on wide screens while the details (e.g. a pack's posters) scroll */}
         <div className="lg:sticky lg:top-24 lg:self-start">
-        <div className={`relative w-full ${wall ? "aspect-square max-h-[620px]" : isPack ? "aspect-[4/5] max-h-[620px]" : "aspect-[5/4] max-h-[440px] sm:aspect-square"}`} {...swipe}>
+        <div className={`relative w-full ${wall ? "aspect-square" : isPack ? "aspect-[4/5] max-h-[620px]" : "aspect-[5/4] max-h-[440px] sm:aspect-square"}`} {...swipe}>
           <button
             type="button"
             // A pack's picture is a collage of all its posters — no "actual size" for it.
             onClick={() => (isPack ? setZoom(true) : setTrueSize(true))}
             aria-label={isPack ? `Zoom into ${product.name}` : "See actual size"}
             // one fixed-size cell, so max-h-full has a height to fit tall art (posters) into
-            className={`absolute inset-0 grid cursor-zoom-in grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center ${isPack ? "p-2" : "p-6 sm:p-10"}`}
+            className={`absolute inset-0 grid cursor-zoom-in grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center ${wall ? "" : isPack ? "p-2" : "p-6 sm:p-10"}`}
             style={{ transform: isPack ? undefined : `rotate(${rotate / 2}deg)` }}
           >
-            <SmartImg
-              full={product.imageUrl}
-              thumb={product.thumbUrl}
-              alt={product.name}
-              priority
-              imgRef={setArtEl}
-              className={`${wall ? "rounded-2xl shadow-[0_18px_40px_-18px_rgba(16,24,40,0.5)]" : "sticker-cut"} max-h-full max-w-full object-contain ${
-                out || unavailable ? "opacity-50 saturate-50" : ""
-              }`}
-            />
+            {wall ? (
+              <WallStage
+                bare
+                product={product}
+                src={product.imageUrl}
+                alt={product.name}
+                className={out || unavailable ? "opacity-50 saturate-50" : ""}
+              />
+            ) : (
+              <SmartImg
+                full={product.imageUrl}
+                thumb={product.thumbUrl}
+                alt={product.name}
+                priority
+                imgRef={setArtEl}
+                className={`sticker-cut max-h-full max-w-full object-contain ${
+                  out || unavailable ? "opacity-50 saturate-50" : ""
+                }`}
+              />
+            )}
             {features.sizeRuler && !isPack && <SizeRuler img={artEl} inches={sizes.length > 0 ? size : null} aspectRatio={product.aspectRatio} />}
           </button>
           {off !== null && !unavailable && (
@@ -193,7 +242,7 @@ export default function ProductDetailClient({
               </p>
 
               <p className="mt-2 line-clamp-3 max-w-lg text-sm leading-relaxed text-fog">
-                {product.description}
+                {wall ? `${product.packItems.length} posters · about ${wallSize(product)} on your wall` : product.description}
               </p>
 
               {isMiniPoster(product) && !isPack && !out && (
@@ -256,45 +305,11 @@ export default function ProductDetailClient({
             </li>
           </ul>
 
-          {isPack && (
-            <div className="mt-5">
-              <h2 className="font-display text-lg font-semibold">
-                What&apos;s inside · {packPosters.length} posters
-              </h2>
-              <p className="text-xs text-fog">
-                {packSizeSummary(packPosters.map((p) => p.inches))}. Lay them out like the picture.
-              </p>
-              <ol className="mt-2 grid max-w-md grid-cols-3 gap-2 sm:grid-cols-4">
-                {packPosters.map((p, n) => {
-                  const tile = (
-                    <>
-                      <SmartImg full={p.imageUrl} thumb={null} alt={p.name} className="aspect-[2/3] w-full rounded-md object-cover" />
-                      <span className="mt-1 line-clamp-2 text-[11px] leading-tight text-fog">
-                        {n + 1}. {p.name.replace(/ — Mini Poster$| Mini Poster$/, "")}
-                      </span>
-                      {/* outside the two-line name, so a long name can't hide it */}
-                      <span className={`block text-[11px] leading-tight font-semibold ${p.inches > 6 ? "text-brand" : "text-fog"}`}>{posterSizeLabel(p.inches)}</span>
-                    </>
-                  );
-                  return (
-                    <li key={p.slug}>
-                      {p.active ? (
-                        <PageLink href={`/sticker/${p.slug}`} className="block transition-opacity hover:opacity-80">
-                          {tile}
-                        </PageLink>
-                      ) : (
-                        tile
-                      )}
-                    </li>
-                  );
-                })}
-              </ol>
-            </div>
-          )}
+          {!wall && inside}
 
-          {!unavailable && <ProductDetails size={sizes.length > 0 ? size : null} />}
+          {!unavailable && !wall && <ProductDetails size={sizes.length > 0 ? size : null} />}
 
-          {shownTags.length > 0 && (
+          {shownTags.length > 0 && !wall && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {shownTags.slice(0, 5).map((tag) => (
                 <PageLink
@@ -309,6 +324,8 @@ export default function ProductDetailClient({
           )}
         </div>
       </div>
+
+      {wall && inside}
 
       {(!relatedLoaded || moreLikeThis.length > 0) && (
         <div className="mt-6 -mx-4 sm:-mx-8">

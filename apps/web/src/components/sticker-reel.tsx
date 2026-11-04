@@ -5,8 +5,9 @@ import { ArrowLeft, ArrowRight, ChevronUp, LayoutList, Ruler, Share2, ShoppingBa
 import type { Product } from "@stickypie/shared";
 import { POSTER_ADHESIVE, POSTER_PAPER, belowMinimum, discountPercent, formatINR, inCategory, packPosterSizes, packSizeSummary } from "@stickypie/shared";
 import { useLiveCatalog, useStoreSettings } from "@/lib/live-catalog";
+import { rememberPosters } from "@/lib/poster-images";
 import { cardSkinFor } from "@/lib/palette";
-import { isMiniPoster, isPosterPack, posterSetName, sizeChipLabel } from "@/lib/poster";
+import { isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel } from "@/lib/poster";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { PAGE_VIEW_ONCE_KEY } from "@/lib/view-script";
 import { lineKey, useCart } from "./cart-context";
@@ -14,6 +15,7 @@ import CartStepper from "./cart-stepper";
 import PageLink from "./page-link";
 import LabelModal from "./label-modal";
 import FinishPicker from "./finish-picker";
+import WallStage from "./wall-stage";
 import { toCartProduct, useLineFinish, useSizeChoice } from "./size-picker";
 import ImageZoom from "./image-zoom";
 import TrueSizePreview from "./true-size-preview";
@@ -97,6 +99,7 @@ function Reel({
   onClassic: (slug: string) => void;
 }) {
   const { products } = useLiveCatalog({ categories: [], products: [initial] });
+  rememberPosters(products);
   const { count, openCart } = useCart();
 
   // This sticker first, then the rest of its category, then everything else.
@@ -303,6 +306,11 @@ function ReelItem({
         className={`relative grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center ${pack ? "px-1" : "px-10"} pt-[calc(4.5rem+env(safe-area-inset-top,0px))] pb-4 select-none`}
         onPointerUp={onArtTap}
       >
+        {isWallSetup(product) ? (
+          <div className="size-full">
+            <WallStage bare product={product} src={product.imageUrl} alt={product.name} className={out ? "opacity-50 saturate-50" : ""} />
+          </div>
+        ) : (
         <img
           // a set's wall stands straight and big, at the sharper size: the posters must read
           src={pack ? product.imageUrl : (product.thumbUrl ?? product.imageUrl)}
@@ -310,6 +318,7 @@ function ReelItem({
           draggable={false}
           className={`max-h-full max-w-full object-contain ${pack ? "rounded-xl shadow-[0_18px_40px_-18px_rgba(16,24,40,0.5)]" : `animate-float ${poster ? "poster-print" : "sticker-cut"}`} ${out ? "opacity-50 saturate-50" : ""}`}
         />
+        )}
         {pops.map((p) => (
           <span key={p.id} aria-hidden className="reel-pop pointer-events-none fixed z-10" style={{ left: p.x, top: p.y }}>
             <span className="block -translate-x-1/2 -translate-y-1/2 rounded-2xl border-[3px] border-white bg-brand px-3 py-1.5 font-display text-sm font-bold text-white shadow-lg">

@@ -4,6 +4,7 @@
 //
 //   node scripts/make-wall-setups.mjs            → previews, posters from the dev database
 //   node scripts/make-wall-setups.mjs --prod     → previews, posters from production
+//   --older gives the older poster packs a wall of their real posters (no picture drawn)
 //   add --save to also save them as wall sets (poster packs) in that database,
 //   and --prices to reset the prices of sets already saved
 //   --themes makes the rows of about 10 sets per theme instead (--only=cars,travel for some)
@@ -192,7 +193,12 @@ async function draw(setup, posters) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const feet = `${(width / 12).toFixed(1)} × ${(height / 12).toFixed(1)} ft`;
   await sharp(await plaster(setup.paint)).composite(layers).jpeg({ quality: 90 }).toFile(file);
-  return { file, sizes: spots.map((s) => s.h), feet };
+  // Where each poster sits, as % of the picture: the shop animates them onto the wall.
+  const percent = (n) => Math.round((n / W) * 10000) / 100;
+  const places = spots
+    .map((s) => [ox + Math.round(s.x * scale), oy + Math.round(s.y * scale), Math.round(s.w * scale), Math.round(s.h * scale)].map(percent).join(","))
+    .join(";");
+  return { file, sizes: spots.map((s) => s.h), feet, paint: setup.paint, places };
 }
 
 const { url, key, args } = loadTargetEnv();
@@ -243,7 +249,7 @@ async function saveSetup(setup, tags, rows, done) {
     category_id: category.id,
     pack_items: rows.map((r) => r.id),
     pack_sizes: done.sizes,
-    tags: ["poster pack", "wall setup", `wall size:${done.feet}`, ...(setup.theme ? [`wall theme:${setup.theme}`] : []), ...tags],
+    tags: ["poster pack", "wall setup", `wall size:${done.feet}`, `wall paint:${done.paint.join(",")}`, `wall spots:${done.places}`, ...(setup.theme ? [`wall theme:${setup.theme}`] : []), ...tags],
   };
   for (const [column, maxPx, quality, prefix] of [["thumb_url", 480, 80, "thumbs"], ["display_url", 1024, 82, "display"]]) {
     const webp = await sharp(master).resize(maxPx, maxPx, { fit: "inside" }).webp({ quality }).toBuffer();
@@ -268,7 +274,7 @@ const packs = JSON.parse(fs.readFileSync(path.join(root, "prod_stickers/poster-p
 fs.mkdirSync(OUT, { recursive: true });
 
 const results = [];
-for (const setup of args.includes("--themes") ? [] : SETUPS) {
+for (const setup of args.includes("--themes") || args.includes("--older") ? [] : SETUPS) {
   const pack = packs.find((p) => p.id === setup.pack);
   if (!pack) {
     console.log(`✘ no pack "${setup.pack}" (ids: ${packs.map((p) => p.id).join(", ")})`);
@@ -351,6 +357,68 @@ if (args.includes("--themes")) {
     }
     console.log(`✓ ${theme.id}: ${saved} sets from ${pool.length} posters`);
   }
+}
+
+/**
+ * Older packs keep their posters and sizes: this only works out a real wall for
+ * them (small posters in rows, big ones in the first row) and tags it on. No
+ * picture is drawn or changed. Spots follow the pack's poster order.
+ */
+function packSpots(sizes) {
+  const bigs = sizes.filter((s) => s === 9).length;
+  const smalls = sizes.length - bigs;
+  const perRow = Math.max(3, Math.ceil(Math.sqrt(sizes.length)));
+  const colW = SMALL.w + GAP;
+  const rowH = SMALL.h + GAP;
+  const beside = Math.min(smalls, Math.max(0, bigs ? perRow - bigs : 0));
+  const first = [];
+  let x = 0;
+  const left = Math.floor(beside / 2);
+  const topH = bigs ? BIG.h : SMALL.h;
+  for (let i = 0; i < left; i++, x += colW) first.push({ x, y: (topH - SMALL.h) / 2, ...SMALL });
+  for (let i = 0; i < bigs; i++, x += BIG.w + GAP) first.push({ x, y: 0, ...BIG });
+  for (let i = left; i < beside; i++, x += colW) first.push({ x, y: (topH - SMALL.h) / 2, ...SMALL });
+  const width = Math.max(x - GAP, perRow * colW - GAP);
+  const inset = (width - (x - GAP)) / 2;
+  for (const s of first) s.x += inset;
+  const rest = [];
+  const left2 = smalls - beside;
+  const rows = Math.ceil(left2 / perRow);
+  for (let r = 0; r < rows; r++) {
+    const count = Math.min(perRow, left2 - r * perRow);
+    const pad = (width - (count * colW - GAP)) / 2;
+    for (let i = 0; i < count; i++) rest.push({ x: pad + i * colW, y: (first.length ? topH + GAP : 0) + r * rowH, ...SMALL });
+  }
+  const all = [...first, ...rest];
+  const big = all.filter((s) => s.h === 9);
+  const small = all.filter((s) => s.h === 6);
+  return sizes.map((size) => (size === 9 ? big.shift() : small.shift()));
+}
+
+if (args.includes("--older")) {
+  const packs = await rest("products?slug=like.*-poster-pack&select=id,slug,tags,pack_sizes,pack_items&limit=100");
+  let done = 0;
+  for (const [n, pack] of packs.entries()) {
+    const spots = packSpots(pack.pack_sizes.length ? pack.pack_sizes : pack.pack_items.map(() => 6));
+    const width = Math.max(...spots.map((s) => s.x + s.w));
+    const height = Math.max(...spots.map((s) => s.y + s.h));
+    const scale = 92 / Math.max(width, height);
+    const ox = (100 - width * scale) / 2;
+    const oy = (100 - height * scale) / 2;
+    const round = (v) => Math.round(v * 100) / 100;
+    const places = spots.map((s) => [ox + s.x * scale, oy + s.y * scale, s.w * scale, s.h * scale].map(round).join(",")).join(";");
+    const { paint } = paintFor(THEMES[n % THEMES.length].id, n);
+    const tags = [
+      ...pack.tags.filter((t) => !/^wall (setup$|size:|paint:|spots:)/.test(t)),
+      "wall setup",
+      `wall size:${(width / 12).toFixed(1)} × ${(height / 12).toFixed(1)} ft`,
+      `wall paint:${paint.join(",")}`,
+      `wall spots:${places}`,
+    ];
+    await rest(`products?id=eq.${pack.id}`, { method: "PATCH", body: JSON.stringify({ tags }) });
+    done++;
+  }
+  console.log(`✓ ${done} older packs now show as walls (pictures unchanged)`);
 }
 
 // One sheet of all of them, to compare.

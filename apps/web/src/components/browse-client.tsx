@@ -17,6 +17,7 @@ import VirtualGrid from "./virtual-grid";
 import CategoryFilter from "./category-filter";
 import { useLiveCatalog, type Catalog } from "@/lib/live-catalog";
 import { isPosterPack } from "@/lib/poster";
+import { rememberPosters } from "@/lib/poster-images";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
 import { searchStickers } from "@/lib/sticker-search";
 
@@ -43,6 +44,7 @@ export default function BrowseClient({
   const { categories, products, loaded, failed, retry } =
     useLiveCatalog(initial);
   useWindowScrollMemory(loaded);
+  rememberPosters(products);
   const pathname = usePathname();
   const params = useSearchParams();
   const q = params.get("q") ?? "";

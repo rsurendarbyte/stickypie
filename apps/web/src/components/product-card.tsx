@@ -6,6 +6,7 @@ import { Check, Frame, Ruler, ShoppingBag } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR } from "@stickypie/shared";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
+import WallStage from "./wall-stage";
 import { isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel, wallSize } from "@/lib/poster";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { lineKey, useCart } from "./cart-context";
@@ -257,13 +258,22 @@ function PackCard({ product, width }: { product: Product; width: string }) {
         aria-hidden
       >
         {!wall && <img src={small} alt="" loading="lazy" decoding="async" className="absolute inset-0 size-full scale-110 object-cover opacity-60 blur-xl" />}
-        <img
-          src={small}
-          alt={product.name}
-          loading="lazy"
-          decoding="async"
-          className={`relative size-full ${wall ? "object-cover" : "object-contain"} transition-transform duration-300 group-hover:scale-[1.03] ${out ? "opacity-40 saturate-50" : ""}`}
-        />
+        {wall ? (
+          <WallStage
+            product={product}
+            src={small}
+            alt={product.name}
+            className={`transition-transform duration-300 group-hover:scale-[1.03] ${out ? "opacity-40 saturate-50" : ""}`}
+          />
+        ) : (
+          <img
+            src={small}
+            alt={product.name}
+            loading="lazy"
+            decoding="async"
+            className={`relative size-full object-contain transition-transform duration-300 group-hover:scale-[1.03] ${out ? "opacity-40 saturate-50" : ""}`}
+          />
+        )}
         {off !== null && !out && (
           <span className="absolute top-2 left-2 rounded-md bg-white/92 px-1.5 py-0.5 text-[10px] font-bold text-mint shadow-sm">{off}% off</span>
         )}
