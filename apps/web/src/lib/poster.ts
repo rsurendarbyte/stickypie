@@ -11,11 +11,6 @@ export function isPosterPack(product: Product) {
   return (product.packItems?.length ?? 0) > 0;
 }
 
-/** A wall setup: a poster pack shown on a wall, led by a big picture. */
-export function isWallSetup(product: Product) {
-  return isPosterPack(product) && product.tags.some((t) => t.toLowerCase() === "wall setup");
-}
-
 /** Anything printed on poster paper: a mini poster or a poster pack. */
 export function isPoster(product: Product) {
   return isMiniPoster(product) || isPosterPack(product);

@@ -7,7 +7,7 @@ import ProductCard from "./product-card";
 import ProductCardSkeleton from "./product-card-skeleton";
 import Row from "./row";
 import CustomRail from "./custom-rail";
-import { isPosterPack, isWallSetup } from "@/lib/poster";
+import { isPosterPack } from "@/lib/poster";
 import {
   WALL_THEMES,
   categoryPath,
@@ -16,6 +16,7 @@ import {
   festivalShortDate,
   resolveHomeRails,
   type Festival,
+  type Product,
   type HomeRail,
 } from "@stickypie/shared";
 import { useFestivals, useHomeRails, useLiveCatalog, type Catalog } from "@/lib/live-catalog";
@@ -42,17 +43,17 @@ export default function HomeClient({
   useWindowScrollMemory(loaded);
 
   // Poster packs get the first row, wall setups leading; every other row is single stickers.
-  const packs = products.filter(isPosterPack).sort((a, b) => Number(isWallSetup(b)) - Number(isWallSetup(a)));
-  // A row per wall theme, then the other sets.
+  const packs = products.filter(isPosterPack);
+  // A row per wall theme, after the mix of every set.
   const inTheme = (id: string) => packs.filter((p) => p.tags.includes(`wall theme:${id}`));
   const wallRows = WALL_THEMES.map((t) => ({ ...t, items: inTheme(t.id) })).filter((t) => t.items.length > 0);
-  const otherPacks = packs.filter((p) => !p.tags.some((t) => t.startsWith("wall theme:")));
   const singles = products.filter((p) => !isPosterPack(p));
   const featured = singles.filter((p) => p.featured);
   const hero = featured[0] ?? singles[0] ?? products[0];
   // Rails and their order come from the admin (Home page); what each rail
   // shows is shuffled once per visit in the browser, so the page feels fresh.
   const seed = useSkinSeed();
+  const wallMix = mixWalls(packs, seed);
   const homeRails = resolveHomeRails(rails, singles, categories, seed);
   // Festivals around today (admin → Festivals) come right after Make your own: from a few days
   // before the date to a few days after, then they step aside by themselves.
@@ -136,22 +137,22 @@ export default function HomeClient({
         moments={festivalRails.map(({ f, items }) => ({ label: `${f.name} · ${festivalShortDate(f)}`, products: items }))}
       />
       <div className="relative z-10 mt-2 space-y-1 pb-24 sm:space-y-8">
-        {/* First row: the wall poster sets; then the AI "Stickers of YOU" card and the
-            AI styles; then any festival on now */}
+        {/* First row: a mix of every wall set; then a row per wall theme; then the AI
+            "Stickers of YOU" card and the AI styles; then any festival on now */}
+        {wallMix.length > 0 && (
+          <LazyRail eager title="Wall poster sets" href={categoryPath("poster-packs")}>
+            {wallMix.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </LazyRail>
+        )}
         {wallRows.map((row, i) => (
-          <LazyRail key={row.id} eager={i < 2} title={row.title} href={categoryPath("poster-packs")}>
+          <LazyRail key={row.id} eager={i < 1} title={row.title} href={categoryPath("poster-packs")}>
             {row.items.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </LazyRail>
         ))}
-        {otherPacks.length > 0 && (
-          <LazyRail eager={wallRows.length === 0} title="Wall poster sets" href={categoryPath("poster-packs")}>
-            {otherPacks.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </LazyRail>
-        )}
         <CustomRail />
         {festivalRails.map(({ f, items }) => (
           <LazyRail
@@ -179,6 +180,25 @@ export default function HomeClient({
       </div>
     </>
   );
+}
+
+/** The 4x4 Garage set runs in the reel ad: it always opens the mix. */
+const WALL_MIX_LEAD = "4x4-garage-poster-pack";
+
+/** Every wall set, one theme after another so none fills the row; a new order per visit. */
+function mixWalls(packs: Product[], seed: number): Product[] {
+  const spin = (slug: string) => [...slug].reduce((n, c) => Math.imul(n ^ c.charCodeAt(0), 16777619) >>> 0, seed >>> 0);
+  const themeOf = (p: Product) => p.tags.find((t) => t.startsWith("wall theme:")) ?? "";
+  const groups = new Map<string, Product[]>();
+  for (const p of [...packs].sort((a, b) => spin(a.slug) - spin(b.slug))) {
+    if (p.slug !== WALL_MIX_LEAD) groups.set(themeOf(p), [...(groups.get(themeOf(p)) ?? []), p]);
+  }
+  const queues = [...groups.values()];
+  const mix = packs.filter((p) => p.slug === WALL_MIX_LEAD);
+  while (queues.some((q) => q.length)) {
+    for (const q of queues) if (q.length) mix.push(q.shift()!);
+  }
+  return mix;
 }
 
 /**
