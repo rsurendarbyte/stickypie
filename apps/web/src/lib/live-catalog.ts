@@ -302,3 +302,26 @@ export function useProductReviews(productId: string): {
   const average = reviews.length ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
   return { reviews, average, loaded: Boolean(bundle) || failed || !liveCatalogEnabled };
 }
+
+/**
+ * Counts one view of a sticker page for the admin's "Most viewed" list: once
+ * per product per browser visit (reloads and going back don't add more). Only
+ * the product id is sent — nothing about the shopper.
+ */
+export function recordProductView(productId: string) {
+  if (!liveCatalogEnabled || typeof window === "undefined" || navigator.webdriver) return;
+  const key = "stickypie.viewed";
+  try {
+    const seen: string[] = JSON.parse(sessionStorage.getItem(key) || "[]");
+    if (seen.includes(productId)) return;
+    sessionStorage.setItem(key, JSON.stringify([...seen, productId].slice(-200)));
+  } catch {
+    // storage off: still count it
+  }
+  fetch(`${SUPABASE_URL}/rest/v1/rpc/record_product_view`, {
+    method: "POST",
+    headers: { apikey: ANON_KEY!, Authorization: `Bearer ${ANON_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ p_product: productId }),
+    keepalive: true,
+  }).catch(() => {});
+}
