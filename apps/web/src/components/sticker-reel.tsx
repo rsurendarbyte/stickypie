@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, ChevronUp, LayoutList, Ruler, Share2, ShoppingBa
 import type { Product } from "@stickypie/shared";
 import { POSTER_ADHESIVE, POSTER_PAPER, belowMinimum, discountPercent, formatINR, inCategory, packPosterSizes, packSizeSummary } from "@stickypie/shared";
 import { useLiveCatalog, useStoreSettings } from "@/lib/live-catalog";
-import { rememberPosters } from "@/lib/poster-images";
+import { rememberPackPosters, rememberPosters } from "@/lib/poster-images";
 import { cardSkinFor } from "@/lib/palette";
 import { isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel } from "@/lib/poster";
 import { useSkinSeed } from "@/lib/skin-seed";
@@ -43,10 +43,14 @@ type View = "reel" | "classic";
 export default function StickerReel({
   initial,
   category,
+  packPosters = [],
 }: {
   initial: Product;
   category: { id: string; name: string; slug: string } | null;
+  /** A wall set's posters. This draws first on the page, so it can't wait for the page below to supply them. */
+  packPosters?: { id: string; imageUrl: string }[];
 }) {
+  rememberPackPosters(packPosters);
   // Swipe view, always (also what the static HTML shows on phones) — except the
   // one load that opens the page view of a sticker swiped to (lib/view-script).
   const [view, setView] = useState<View>("reel");
