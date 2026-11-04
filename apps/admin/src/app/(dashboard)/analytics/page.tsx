@@ -227,7 +227,7 @@ function MostViewed({ viewed, error }: { viewed: ProductViews | null; error: str
         )}
       </div>
       <p className="mt-1 text-xs text-fog">
-        Each shopper counts once per sticker per visit. Lots of views but no sales? Check its price, photos or sizes. &ldquo;Saved&rdquo; means they right-clicked, long-pressed or dragged its picture — the ways to download it (screenshots can&apos;t be seen).
+        Each shopper counts once per sticker per visit. Lots of views but no sales? Check its price, photos or sizes. &ldquo;Saved&rdquo; means they tried to save its picture (right-click, long-press or drag) — the shop blocks those, but screenshots can&apos;t be stopped or seen.
       </p>
       {error ? (
         <p className="mt-3 text-sm text-red-400">{error}</p>

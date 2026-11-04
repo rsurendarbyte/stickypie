@@ -330,16 +330,21 @@ function countOnce(kind: "view" | "save", productId: string) {
 export const recordProductView = (productId: string) => countOnce("view", productId);
 
 /**
- * While a sticker page is open, counts a "save" when the shopper right-clicks,
- * long-presses (phones) or drags one of its pictures — the ways a picture gets
- * downloaded without a button. It can't tell whether they then chose "Save
- * image", and screenshots can't be seen at all, so it's "tried to save".
- * Once per sticker per visit. Returns the cleanup.
+ * While a sticker page is open, stops the easy ways to download its pictures —
+ * right-click menu, long-press "Save image" (phones) and dragging — and counts
+ * each try as a "save" (once per sticker per visit). Screenshots can't be
+ * stopped or seen. Phones' long-press menu is turned off in CSS
+ * (html[data-no-save], globals.css); Android also sends "contextmenu".
+ * Returns the cleanup.
  */
 export function watchImageSaves(productId: string) {
   // This sticker's pictures only: other stickers' cards on the page are links.
   const isImg = (t: EventTarget | null) => t instanceof HTMLImageElement && !t.closest("a[href]");
-  const count = (e: Event) => isImg(e.target) && countOnce("save", productId);
+  const count = (e: Event) => {
+    if (!isImg(e.target)) return;
+    e.preventDefault();
+    countOnce("save", productId);
+  };
   // iPhones don't send "contextmenu" on a long-press, so time the touch.
   let timer: ReturnType<typeof setTimeout> | undefined;
   const touchStart = (e: TouchEvent) => {
@@ -347,12 +352,14 @@ export function watchImageSaves(productId: string) {
     if (e.touches.length === 1 && isImg(e.target)) timer = setTimeout(() => countOnce("save", productId), 600);
   };
   const touchEnd = () => clearTimeout(timer);
+  document.documentElement.dataset.noSave = "";
   document.addEventListener("contextmenu", count, true);
   document.addEventListener("dragstart", count, true);
   document.addEventListener("touchstart", touchStart, { capture: true, passive: true });
   for (const ev of ["touchend", "touchmove", "touchcancel"]) document.addEventListener(ev, touchEnd, { capture: true, passive: true });
   return () => {
     clearTimeout(timer);
+    delete document.documentElement.dataset.noSave;
     document.removeEventListener("contextmenu", count, true);
     document.removeEventListener("dragstart", count, true);
     document.removeEventListener("touchstart", touchStart, true);
