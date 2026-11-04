@@ -8,7 +8,7 @@ import { LOW_STOCK_THRESHOLD, discountPercent, formatINR } from "@stickypie/shar
 import { cardSkinFor, rotationFor } from "@/lib/palette";
 import WallStage from "./wall-stage";
 import type { WallEffect } from "@/lib/wall-effects";
-import { isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel, wallSize } from "@/lib/poster";
+import { isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel, wallPosterSizes } from "@/lib/poster";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
@@ -248,7 +248,6 @@ function PackCard({ product, width, wallEffect = "sweep" }: { product: Product; 
   const off = discountPercent(price, compareAtPrice);
   const wall = isWallSetup(product);
   const small = product.thumbUrl ?? product.imageUrl;
-  const feet = wallSize(product);
 
   return (
     <div className={`rail-card-drawn group relative snap-start ${width}`}>
@@ -277,47 +276,44 @@ function PackCard({ product, width, wallEffect = "sweep" }: { product: Product; 
         )}
       </PageLink>
 
-      <div className="mt-2 flex items-start justify-between gap-2 px-0.5">
-        <div className="min-w-0">
-          <PageLink href={`/sticker/${product.slug}`} className="block">
-            <p className="truncate font-display text-[15px] leading-tight font-bold text-snow">{packTitle(product.name)}</p>
-          </PageLink>
-          <p className="mt-0.5 truncate text-[11px] text-fog">
-            {product.packItems.length} posters{feet ? ` · ${feet}` : ""}
-          </p>
-        </div>
-        <p className="shrink-0 text-right">
-          <span className="block font-display text-base leading-tight font-bold text-snow">{formatINR(price)}</span>
-          {compareAtPrice !== null && compareAtPrice > price && (
-            <span className="block text-[10px] leading-tight text-fog line-through">{formatINR(compareAtPrice)}</span>
-          )}
-        </p>
+      <div className="mt-2 px-0.5">
+        <PageLink href={`/sticker/${product.slug}`} className="block">
+          <p className="truncate font-display text-[15px] leading-tight font-bold text-snow">{packTitle(product.name)}</p>
+        </PageLink>
+        <p className="mt-0.5 truncate text-[11px] text-fog">{product.packItems.length} posters</p>
+        <p className="truncate text-[11px] font-semibold text-fog">{wallPosterSizes(product)}</p>
       </div>
 
-      <div className="mt-1.5">
-        {inCart ? (
-          <div className="flex h-9 items-center">
-            <CartStepper item={inCart} size="sm" sticker />
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => !out && add(toCartProduct(product, size, price))}
-            disabled={out}
-            aria-label={out ? "Out of stock" : `Add ${product.name} to cart for ${formatINR(price)}`}
-            className={`flex h-9 w-full items-center justify-center gap-1.5 rounded-xl text-sm font-bold ${
-              out ? "cursor-not-allowed bg-panel text-xs text-fog/60" : "peel-btn"
-            }`}
-          >
-            {out ? (
-              "Out of stock"
-            ) : (
-              <>
-                <ShoppingBag className="peel-icon size-4 shrink-0" /> Add to cart
-              </>
-            )}
-          </button>
-        )}
+      <div className="mt-1.5 flex items-center justify-between gap-1.5">
+        <p className="min-w-0 pl-0.5">
+          <span className="block font-display text-lg leading-tight font-bold text-gold sm:text-[22px]">{formatINR(price)}</span>
+          {compareAtPrice !== null && compareAtPrice > price && (
+            <span className="block text-[11px] leading-tight text-fog line-through sm:text-xs">{formatINR(compareAtPrice)}</span>
+          )}
+        </p>
+        <div className="w-24 shrink-0 sm:w-28">
+          {inCart ? (
+            <CartStepper item={inCart} size="sm" sticker className="w-full justify-between" />
+          ) : (
+            <button
+              type="button"
+              onClick={() => !out && add(toCartProduct(product, size, price))}
+              disabled={out}
+              aria-label={out ? "Out of stock" : `Add ${product.name} to cart for ${formatINR(price)}`}
+              className={`flex h-10 w-full items-center justify-center gap-1 rounded-full text-[13px] font-bold whitespace-nowrap sm:gap-1.5 sm:text-sm ${
+                out ? "cursor-not-allowed bg-panel text-xs text-fog/60" : "peel-btn"
+              }`}
+            >
+              {out ? (
+                "Out of stock"
+              ) : (
+                <>
+                  <ShoppingBag className="peel-icon size-4 shrink-0 max-sm:hidden" /> Add to cart
+                </>
+              )}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
