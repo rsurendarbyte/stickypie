@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { Product } from "@stickypie/shared";
 import { wallBackground, wallSpots } from "@/lib/poster";
 import { posterImage } from "@/lib/poster-images";
+import type { WallEffect } from "@/lib/wall-effects";
 
 /**
  * When each wall started going up on this page load. The page can rebuild a wall
@@ -12,7 +13,38 @@ import { posterImage } from "@/lib/poster-images";
  * finished wall, and it never plays twice.
  */
 const hungAt = new Map<string, number>();
-const HANG_MS = 2000;
+const HANG_MS = 4000;
+
+/**
+ * Walls that have gone up on each page, for this browser tab. Shop links are full
+ * page loads, so Back builds the page afresh and the clock above starts empty; this
+ * list is how a page knows its walls are already up. A refresh plays them again.
+ */
+const SEEN_KEY = "stickypie.walls";
+const seenKey = (id: string) => `${window.location.pathname} ${id}`;
+const noop = () => () => {};
+
+function readSeen(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
+    if (nav?.type === "reload") sessionStorage.removeItem(SEEN_KEY);
+    return JSON.parse(sessionStorage.getItem(SEEN_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+const seenOnLoad = new Set(readSeen());
+
+function markSeen(id: string) {
+  try {
+    const seen: string[] = JSON.parse(sessionStorage.getItem(SEEN_KEY) || "[]");
+    sessionStorage.setItem(SEEN_KEY, JSON.stringify([...new Set([...seen, seenKey(id)])].slice(-300)));
+  } catch {
+    // storage unavailable: the wall just plays again next time
+  }
+}
 
 /**
  * A wall set being hung: the painted wall with an outline for every poster,
@@ -20,6 +52,7 @@ const HANG_MS = 2000;
  * it comes into view. A page without the poster list (a related row) cuts each
  * poster from the set's picture instead. No saved positions → just the picture.
  * `bare`: no wall, just the formation of posters, as large as the space allows.
+ * `effect`: how the posters arrive on a card (see .wall-fx in globals.css).
  */
 export default function WallStage({
   product,
@@ -28,6 +61,7 @@ export default function WallStage({
   sizes,
   srcSet,
   bare = false,
+  effect,
   className = "",
 }: {
   product: Product;
@@ -36,11 +70,16 @@ export default function WallStage({
   srcSet?: string;
   sizes?: string;
   bare?: boolean;
+  effect?: WallEffect;
   className?: string;
 }) {
   const spots = wallSpots(product);
   const urls = spots.map((_, i) => posterImage(product.packItems[i]));
   const box = useRef<HTMLDivElement>(null);
+  // Measured instead of the wall itself, which an effect may have scaled up or turned.
+  const frame = useRef<HTMLDivElement>(null);
+  // Server and first pass say no, so the page's first paint matches the server's.
+  const seen = useSyncExternalStore(noop, () => seenOnLoad.has(seenKey(product.id)), () => false);
   // How long ago this wall started going up; null = not yet.
   const [age, setAge] = useState<number | null>(() => {
     const at = hungAt.get(product.id);
@@ -48,11 +87,14 @@ export default function WallStage({
   });
 
   useEffect(() => {
-    const el = box.current;
-    if (!el || !spots.length || age !== null) return;
+    const el = frame.current ?? box.current;
+    if (!el || !spots.length || age !== null || seen) return;
     let live = true;
     const go = () => {
-      if (!hungAt.has(product.id)) hungAt.set(product.id, performance.now());
+      if (!hungAt.has(product.id)) {
+        hungAt.set(product.id, performance.now());
+        markSeen(product.id);
+      }
       setAge(performance.now() - hungAt.get(product.id)!);
     };
     const start = () => {
@@ -96,7 +138,7 @@ export default function WallStage({
       watch.disconnect();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [src, spots.length]);
+  }, [src, spots.length, seen]);
 
   // An older pack's picture is a collage, so posters can't be cut from it.
   const noCut = product.tags.includes("wall collage") && urls.some((url) => !url);
@@ -107,7 +149,7 @@ export default function WallStage({
     return <img src={src} srcSet={srcSet} sizes={sizes} alt={alt} loading="lazy" decoding="async" className={`size-full object-cover ${className}`} />;
   }
 
-  const state = age === null ? "" : age > HANG_MS ? "is-done" : "is-up";
+  const state = seen ? "is-done" : age === null ? "" : age > HANG_MS ? "is-done" : "is-up";
   const delay = (ms: number) => `${ms - (age ?? 0)}ms`;
   // The formation's own box, so without a wall it fills the space it's given.
   const left = bare ? Math.min(...spots.map((s) => s.x)) : 0;
@@ -115,13 +157,41 @@ export default function WallStage({
   const width = bare ? Math.max(...spots.map((s) => s.x + s.w)) - left : 100;
   const height = bare ? Math.max(...spots.map((s) => s.y + s.h)) - top : 100;
 
+  // What the effects need: each poster's centre, left-to-right turn, and the biggest one.
+  const centres = spots.map((s) => [(s.x + s.w / 2 - left) / width, (s.y + s.h / 2 - top) / height]);
+  const turns = spots.map((_, i) => i).sort((a, b) => centres[a][0] - centres[b][0] || centres[a][1] - centres[b][1]);
+  const big = spots.reduce((best, s, i) => (s.w * s.h > spots[best].w * spots[best].h ? i : best), 0);
+  const away = centres.map((c) => Math.hypot(c[0] - centres[big][0], c[1] - centres[big][1]));
+  const stagger = (i: number) => {
+    if (effect === "pull") return (away[i] / (Math.max(...away) || 1)) * 420 + 120;
+    const order = turns.indexOf(i);
+    return order * (effect === "sweep" ? 60 : effect === "doors" ? 80 : effect === "deal" ? 70 : 90);
+  };
+  const fxVars = (s: (typeof spots)[number], i: number) =>
+    effect === "deal"
+      ? ({
+          "--cx": `${((0.5 - centres[i][0]) * width * 100) / s.w}%`,
+          "--cy": `${((0.5 - centres[i][1]) * height * 100) / s.h}%`,
+          "--tilt": `${(i % 2 ? 1 : -1) * (4 + (i % 4) * 3)}deg`,
+        } as React.CSSProperties)
+      : undefined;
+
   const wall = (
     <div
       ref={box}
       role="img"
       aria-label={alt}
-      style={bare ? { width: `min(100cqw, calc(100cqh * ${width / height}))`, aspectRatio: `${width} / ${height}` } : (wallBackground(product) ?? undefined)}
-      className={`relative ${bare ? "" : "size-full overflow-hidden"} ${className}`}
+      style={
+        bare
+          ? {
+              width: `min(100cqw, calc(100cqh * ${width / height}))`,
+              aspectRatio: `${width} / ${height}`,
+              animationDelay: effect ? delay(0) : undefined,
+              transformOrigin: effect === "pull" ? `${centres[big][0] * 100}% ${centres[big][1] * 100}%` : undefined,
+            }
+          : (wallBackground(product) ?? undefined)
+      }
+      className={`relative ${bare ? "" : "size-full overflow-hidden"} ${effect ? `wall-fx wall-fx-${effect} ${state}` : ""} ${className}`}
     >
       {spots.map((s, i) => (
         <span
@@ -134,17 +204,18 @@ export default function WallStage({
             height: `${(s.h / height) * 100}%`,
           }}
         >
-          <span className={`wall-slot absolute inset-0 ${bare ? "wall-slot--bare" : ""} ${state}`} style={{ animationDelay: delay(i * 90 + 260) }} />
+          <span className={`wall-slot absolute inset-0 ${bare ? "wall-slot--bare" : ""} ${i === big ? "wall-slot--first" : ""} ${state}`} style={{ animationDelay: delay(stagger(i) + 260) }} />
           <span
-            className={`wall-print absolute inset-0 overflow-hidden ${state}`}
+            className={`wall-print absolute inset-0 overflow-hidden ${effect === "pull" && i === big ? "wall-print--first" : ""} ${state}`}
             style={
               urls[i]
-                ? { animationDelay: delay(i * 90) }
+                ? { ...fxVars(s, i), animationDelay: delay(stagger(i)) }
                 : {
+                    ...fxVars(s, i),
                     backgroundImage: `url("${src}")`,
                     backgroundSize: `${10000 / s.w}% ${10000 / s.h}%`,
                     backgroundPosition: `${(s.x / (100 - s.w)) * 100}% ${(s.y / (100 - s.h)) * 100}%`,
-                    animationDelay: delay(i * 90),
+                    animationDelay: delay(stagger(i)),
                   }
             }
           >
@@ -156,7 +227,7 @@ export default function WallStage({
     </div>
   );
   return bare ? (
-    <div className="grid size-full place-items-center" style={{ containerType: "size" }}>
+    <div ref={frame} className="grid size-full place-items-center" style={{ containerType: "size" }}>
       {wall}
     </div>
   ) : (

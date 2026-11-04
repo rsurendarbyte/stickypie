@@ -87,7 +87,7 @@ export default function CustomMenu() {
         // a mouse already opened it on hover, so a click keeps it open
         onPointerDown={(e) => (pointer.current = e.pointerType)}
         onClick={() => setOpen((o) => (pointer.current === "mouse" ? true : !o))}
-        className={`flex items-center gap-1 rounded-full px-2.5 py-1.5 text-sm font-medium transition-all sm:px-4 ${
+        className={`flex items-center gap-1 rounded-full px-2.5 py-1.5 text-sm font-medium whitespace-nowrap transition-all lg:px-4 ${
           active || open
             ? "bg-snow/[0.07] text-snow shadow-[inset_0_0_0_1px_rgba(16,24,40,0.06)]"
             : "text-fog hover:bg-snow/5 hover:text-snow"
