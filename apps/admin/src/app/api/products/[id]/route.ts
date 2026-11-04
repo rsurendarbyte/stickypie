@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { productInputSchema } from "@stickypie/shared";
 import { requireAdminApi } from "@/lib/data";
 import { prepareProductInput } from "@/lib/product-input";
+import { swapOutOfWalls } from "@/lib/wall-reshuffle";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -40,8 +41,10 @@ export async function DELETE(_req: Request, ctx: Ctx) {
   if (!auth.ok) return auth.res;
   const { id } = await ctx.params;
   try {
+    const product = await auth.driver.getProductById(id);
+    const swaps = product ? await swapOutOfWalls(auth.driver, product) : [];
     await auth.driver.deleteProduct(id);
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, swaps });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Could not delete product" },

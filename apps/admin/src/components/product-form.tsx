@@ -245,7 +245,8 @@ export default function ProductForm({
       toast(typeof data.error === "string" ? data.error : "Delete failed", "error");
       return;
     }
-    toast("Product deleted");
+    const { swaps = [] } = await res.json().catch(() => ({}));
+    toast(`Product deleted${swaps.length ? `, replaced in ${swaps.length} wall set${swaps.length === 1 ? "" : "s"}` : ""}`);
     router.push("/products");
     router.refresh();
   }
