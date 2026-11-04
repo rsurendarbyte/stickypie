@@ -1472,3 +1472,12 @@ html[data-view="classic"] .swipe-view-root {
     animation: none;
   }
 }
+
+/* Sticker pages: no long-press "Save image" menu or dragging on the sticker's
+   own pictures (other stickers' cards are links and keep theirs). See
+   watchImageSaves in lib/live-catalog.ts. */
+html[data-no-save] img:not(a[href] img) {
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
