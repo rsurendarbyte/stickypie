@@ -344,7 +344,7 @@ if (args.includes("--themes")) {
       const start = Math.floor((i * ordered.length) / theme.names.length);
       const rows = Array.from({ length: count }, (_, k) => ordered[(start + k) % ordered.length]);
       const room = ROOMS[(i + THEMES.indexOf(theme)) % ROOMS.length];
-      const setup = { file: `${theme.id}/${kebab(name)}`, theme: theme.id, title: `${name} Wall Setup`, layout, ...room };
+      const setup = { file: `${theme.id}/${kebab(name)}`, theme: theme.id, title: `${name.replace(/ Wall$/, "")} Wall Setup`, layout, ...room };
       const done = await draw(setup, rows.map((r) => pictures.get(r.id).buffer));
       if (save) await saveSetup(setup, [theme.id], rows.slice(0, done.sizes.length), done);
       saved++;
