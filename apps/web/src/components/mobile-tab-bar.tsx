@@ -3,7 +3,7 @@
 import Link from "@/components/page-link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { ChevronRight, Home, LayoutGrid, Menu, Search, Sparkles, UserRound, X } from "lucide-react";
+import { ChevronRight, Frame, Home, LayoutGrid, Menu, Search, Sparkles, UserRound, X } from "lucide-react";
 import { DEFAULT_FEATURES, formatINR } from "@stickypie/shared";
 import { useFeatures, useStoreSettings } from "@/lib/live-catalog";
 import { useShopper } from "@/lib/shopper-auth";
@@ -27,6 +27,8 @@ function ownBottomBar(pathname: string) {
 }
 
 const MORE_LINKS = [
+  { label: "Wall posters", href: "/stickers/poster-packs" },
+  { label: "Build your wall", href: "/wall-builder" },
   { label: "New drops", href: "/stickers?sort=new" },
   ...SURFACES.map((s) => ({ label: s.name, href: `/${s.slug}` })),
 ];
@@ -78,7 +80,8 @@ export default function MobileTabBar() {
   // and back, which looked like a shake).
   const tabs: Array<{ key: string; label: string; icon: typeof Home; href?: string; active: boolean; open?: boolean; onClick?: () => void }> = [
     { key: "home", label: "Home", icon: Home, href: "/", active: pathname === "/" },
-    { key: "stickers", label: "Stickers", icon: LayoutGrid, href: "/stickers", active: pathname.startsWith("/stickers") },
+    { key: "walls", label: "Walls", icon: Frame, href: "/stickers/poster-packs", active: pathname.startsWith("/stickers/poster-packs") },
+    { key: "stickers", label: "Stickers", icon: LayoutGrid, href: "/stickers", active: pathname.startsWith("/stickers") && !pathname.startsWith("/stickers/poster-packs") },
     ...(customOn
       ? [{ key: "custom", label: "Custom", icon: Sparkles, active: CUSTOM_PATHS.some((p) => pathname.startsWith(p)), open: sheet === "custom", onClick: () => setSheet("custom") }]
       : []),

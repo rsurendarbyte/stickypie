@@ -144,8 +144,8 @@ export default function BrowseClient({
       {/* Two shops in one: stickers, and wall posters for the room */}
       <div role="tablist" className="mb-3 grid max-w-sm grid-cols-2 gap-1 rounded-2xl bg-snow/[0.06] p-1 sm:mb-4">
         {[
-          { label: "Stickers", href: ALL_STICKERS_PATH, on: !walls, icon: Sticker },
           { label: "Wall posters", href: categoryPath(WALLS), on: walls, icon: Frame },
+          { label: "Stickers", href: ALL_STICKERS_PATH, on: !walls, icon: Sticker },
         ].map(({ label, href, on, icon: Icon }) => (
           <PageLink
             key={label}
