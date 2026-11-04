@@ -425,7 +425,7 @@ export function productStructuredData(
     ...(mainCategory
       ? { category: `${isPoster(product) ? "Posters" : "Stickers"} > ${mainCategory.name}` }
       : { category: isPoster(product) ? "Posters" : "Stickers" }),
-    ...(product.tags.length ? { keywords: product.tags.join(", ") } : {}),
+    ...(product.tags.length ? { keywords: product.tags.filter((t) => !t.startsWith("wall theme:")).join(", ") } : {}),
     ...(sizes[0].inches
       ? {
           additionalProperty: {
