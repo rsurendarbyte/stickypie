@@ -345,6 +345,13 @@ export async function POST(req: Request) {
   const total = subtotal - discountAmount + shippingFee + gst.amount;
   // Gateway picked in admin → Settings (falls back to whichever has keys).
   const provider = checkoutGateway(settings.paymentGateway) ?? "simulator";
+  // For the admin's Carts page: a failed link must never stop a checkout.
+  const linkCart = async (orderId: string) => {
+    if (!parsed.data.cartToken) return;
+    await driver
+      .linkCartToOrder(parsed.data.cartToken, orderId, userId)
+      .catch((err) => console.error("[checkout] could not link cart", err));
+  };
 
   // Same cart submitted again while an earlier attempt is still payable
   // (double click, back from the gateway, second tab): reuse that order and
@@ -355,7 +362,10 @@ export async function POST(req: Request) {
     for (const existing of earlier) {
       try {
         const session = await reopenPayment(existing);
-        if (session) return NextResponse.json(session);
+        if (session) {
+          await linkCart(existing.id);
+          return NextResponse.json(session);
+        }
       } catch (err) {
         console.error("[checkout] could not reuse order", existing.id, err);
       }
@@ -375,6 +385,7 @@ export async function POST(req: Request) {
     paymentProvider: provider,
     userId,
   });
+  await linkCart(order.id);
 
   if (provider === "simulator") {
     return NextResponse.json({ mode: "simulator", url: `/pay/simulator?order=${order.id}` });

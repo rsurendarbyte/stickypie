@@ -54,6 +54,7 @@ import {
 import AddressTypePicker, { AddressTypeBadge } from "./address-type-picker";
 import CartThumb, { WallPicksNote } from "./cart-thumb";
 import { lineKey, useCart } from "./cart-context";
+import { cartToken } from "@/lib/cart-sync";
 import CartStepper from "./cart-stepper";
 import { useMyOffer } from "./my-offer";
 import { CheckField, PasswordField, SelectField, TextField } from "./field";
@@ -408,6 +409,7 @@ export default function CheckoutClient() {
         },
         body: JSON.stringify({
           customer: parsed.data,
+          cartToken: cartToken(),
           items: items.map((item) => ({
             productId: item.productId,
             quantity: item.qty,

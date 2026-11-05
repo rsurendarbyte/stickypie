@@ -1,10 +1,32 @@
-// Browser-only: lays wall posters out on 13 × 19 in (A3+) sheets and makes the
-// two files of each sheet, the print PDF and the Cricut cut SVG. Both are drawn
-// from the same layout, so the cuts land on the posters. Everything in mm.
-import { packTight, slugify, type PackSheet, type Packed } from "@stickypie/shared";
+// Browser-only: lays posters out on sheets of any paper size and makes the two
+// files of each sheet, the print PDF and the Cricut cut SVG. Both are drawn from
+// the same layout, so the cuts land on the posters. Everything in mm.
+import { packTight, type PackSheet, type Packed } from "./sheet-pack";
+import { slugify } from "./utils";
 
 export const MM_PER_IN = 25.4;
-export const SHEET = { w: 13 * MM_PER_IN, h: 19 * MM_PER_IN };
+
+/** A sheet in portrait. `name` goes on the sheet and in the steps, `label` in the paper list. */
+export type Paper = { id: string; name: string; label: string; w: number; h: number };
+
+const inches = (w: number, h: number) => ({ w: w * MM_PER_IN, h: h * MM_PER_IN });
+export const PAPERS: Paper[] = [
+  { id: "a4", name: "A4", label: "A4 · 210 × 297 mm", w: 210, h: 297 },
+  { id: "a3", name: "A3", label: "A3 · 297 × 420 mm", w: 297, h: 420 },
+  { id: "a3-plus", name: "13 × 19 in", label: "A3+ · 13 × 19 in", ...inches(13, 19) },
+  { id: "12x18", name: "12 × 18 in", label: "12 × 18 in", ...inches(12, 18) },
+  { id: "sra3", name: "SRA3", label: "SRA3 · 320 × 450 mm", w: 320, h: 450 },
+  { id: "letter", name: "Letter", label: "Letter · 8.5 × 11 in", ...inches(8.5, 11) },
+  { id: "legal", name: "Legal", label: "Legal · 8.5 × 14 in", ...inches(8.5, 14) },
+  { id: "tabloid", name: "11 × 17 in", label: "Tabloid · 11 × 17 in", ...inches(11, 17) },
+];
+export const SHEET = PAPERS[2];
+
+/** A size typed in by hand, in inches. */
+export function customPaper(w: number, h: number): Paper {
+  return { id: "custom", name: `${w} × ${h} in`, label: "Custom size", ...inches(w, h) };
+}
+
 export const PRINT_DPI = 300;
 /** Optional extra printed past the cut, so a cut a little off shows no white edge. */
 export const BLEED = 2;
@@ -28,12 +50,12 @@ const MIN_GAP = 2;
 const MARK_CLEAR = 2;
 
 /** The cut area in mm. The marks' box is also the size to type into Design Space. */
-export function cutBox(area: CutArea) {
+export function cutBox(paper: Paper, area: CutArea) {
   return {
     x: area.left * MM_PER_IN,
     y: area.top * MM_PER_IN,
-    w: SHEET.w - (area.left + area.right) * MM_PER_IN,
-    h: SHEET.h - (area.top + area.bottom) * MM_PER_IN,
+    w: paper.w - (area.left + area.right) * MM_PER_IN,
+    h: paper.h - (area.top + area.bottom) * MM_PER_IN,
   };
 }
 
@@ -90,8 +112,8 @@ function fillWithStock(sheet: Piece[], job: Piece[], size: PackSheet, next: { tu
  * Lays pieces on as few sheets as possible, inside the cut area. `bleed` needs
  * room between posters. With `stock`, leftover space takes extra posters.
  */
-export function layOut(pieces: Piece[], area: CutArea, bleed = 0, stock = false): Placed[][] {
-  const cut = cutBox(area);
+export function layOut(pieces: Piece[], paper: Paper, area: CutArea, bleed = 0, stock = false): Placed[][] {
+  const cut = cutBox(paper, area);
   const size = { w: cut.w, h: cut.h, margin: MARK_CLEAR, gap: Math.max(MIN_GAP, bleed * 2) };
   const sheets = packTight(pieces, size);
   if (sheets.flat().length < pieces.length) throw new Error("A poster doesn't fit inside the cut area. Make the margins smaller.");
@@ -112,8 +134,8 @@ function radius(p: Placed) {
 }
 
 /** The four corner marks as thin L shapes. They're printed and cut, so the two can be checked against each other. */
-function markShapes(area: CutArea): [number, number][][] {
-  const m = cutBox(area);
+function markShapes(paper: Paper, area: CutArea): [number, number][][] {
+  const m = cutBox(paper, area);
   const ARM = 6;
   const THICK = 0.5;
   return [
@@ -167,11 +189,11 @@ function drawBleed(ctx: CanvasRenderingContext2D, src: HTMLImageElement, w: numb
 }
 
 /** Draws one sheet at `dpi`. `showCut` adds the cut lines, for the preview only. */
-export function drawSheet(placed: Placed[], area: CutArea, dpi: number, label: string, bleed = 0, showCut = false): HTMLCanvasElement {
+export function drawSheet(placed: Placed[], paper: Paper, area: CutArea, dpi: number, label: string, bleed = 0, showCut = false): HTMLCanvasElement {
   const k = dpi / MM_PER_IN;
   const canvas = document.createElement("canvas");
-  canvas.width = Math.round(SHEET.w * k);
-  canvas.height = Math.round(SHEET.h * k);
+  canvas.width = Math.round(paper.w * k);
+  canvas.height = Math.round(paper.h * k);
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("This browser couldn't draw the sheet");
   ctx.fillStyle = "#fff";
@@ -193,7 +215,7 @@ export function drawSheet(placed: Placed[], area: CutArea, dpi: number, label: s
   }
 
   ctx.fillStyle = "#000";
-  for (const shape of markShapes(area)) {
+  for (const shape of markShapes(paper, area)) {
     ctx.beginPath();
     shape.forEach(([x, y]) => ctx.lineTo(x * k, y * k));
     ctx.closePath();
@@ -233,15 +255,15 @@ function roundedPath({ x, y, w, h }: { x: number; y: number; w: number; h: numbe
  * The Cricut cut file, drawn in sheet position. Shapes are filled: Design Space
  * cuts round a filled shape, and can drop stroke-only ones.
  */
-export function cutSvg(placed: Placed[], area: CutArea): string {
+export function cutSvg(placed: Placed[], paper: Paper, area: CutArea): string {
   const posters = placed.map(
     (p, i) => `    <path id="${i + 1}-${slugify(p.name).slice(0, 40)}" d="${roundedPath(box(p), radius(p))}"/>`
   );
-  const marks = markShapes(area).map(
+  const marks = markShapes(paper, area).map(
     (shape, i) => `    <path id="mark-${i + 1}" d="M${shape.map(([x, y]) => `${x.toFixed(3)} ${y.toFixed(3)}`).join("L")}Z"/>`
   );
   return [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${SHEET.w}mm" height="${SHEET.h}mm" viewBox="0 0 ${SHEET.w} ${SHEET.h}">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${paper.w}mm" height="${paper.h}mm" viewBox="0 0 ${paper.w} ${paper.h}">`,
     `  <g id="corner-marks" fill="#000000">`,
     ...marks,
     `  </g>`,
@@ -254,8 +276,8 @@ export function cutSvg(placed: Placed[], area: CutArea): string {
 }
 
 /** A one-page PDF of exactly the sheet's size holding one JPEG, so nobody has to set a scale. */
-export function sheetPdf(jpeg: Uint8Array, pixels: { w: number; h: number }): Blob {
-  const page = { w: (SHEET.w / MM_PER_IN) * 72, h: (SHEET.h / MM_PER_IN) * 72 };
+function sheetPdf(jpeg: Uint8Array, pixels: { w: number; h: number }, paper: Paper): Blob {
+  const page = { w: (paper.w / MM_PER_IN) * 72, h: (paper.h / MM_PER_IN) * 72 };
   const encoder = new TextEncoder();
   const parts: Uint8Array<ArrayBuffer>[] = [];
   const offsets: number[] = [];
@@ -288,4 +310,25 @@ export function sheetPdf(jpeg: Uint8Array, pixels: { w: number; h: number }): Bl
   for (let n = 1; n <= 5; n++) text(`${String(offsets[n]).padStart(10, "0")} 00000 n \n`);
   text(`trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
   return new Blob(parts, { type: "application/pdf" });
+}
+
+/** The print PDF of a drawn sheet, or null if the canvas is too big for this device. */
+export async function canvasPdf(canvas: HTMLCanvasElement, paper: Paper): Promise<Blob | null> {
+  const jpeg = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.95));
+  if (!jpeg) return null;
+  return sheetPdf(new Uint8Array(await jpeg.arrayBuffer()), { w: canvas.width, h: canvas.height }, paper);
+}
+
+/** The steps for the cutting shop. */
+export function cutSteps(paper: Paper, area: CutArea): string[] {
+  const cut = cutBox(paper, area);
+  const paperSize = `${(paper.w / MM_PER_IN).toFixed(2).replace(/\.?0+$/, "")} × ${(paper.h / MM_PER_IN).toFixed(2).replace(/\.?0+$/, "")} in`;
+  return [
+    `Print the PDF at 100% (actual size) on the ${paper.name} sheet. No fit to page.`,
+    `In Design Space upload the SVG, select all, then set the size with the lock on: ${(cut.w / MM_PER_IN).toFixed(2)} × ${(cut.h / MM_PER_IN).toFixed(2)} in. Big files get shrunk on upload.`,
+    "Select all and click Attach, so the whole sheet stays together as one.",
+    `Click Make, choose Without Mat and set the material size to ${paperSize}. Use a plain cut, not Print Then Cut.`,
+    `On Review artwork the top left mark must sit ${area.left} in from the left and ${area.top} in from the top.`,
+    "Test on plain paper first. The cut corner marks must land on the printed marks. A cut that is off leaves a thin white edge on the poster.",
+  ];
 }

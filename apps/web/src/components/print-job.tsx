@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Download, Loader2, Printer } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AlertTriangle, Download, Loader2, Printer } from "lucide-react";
 import { TEXT_STICKER_FONTS, pack, posterSizeLabel, type QrStickerSpec, type TextStickerSpec } from "@stickypie/shared";
 import { drawSticker } from "@stickypie/shared/qr-art";
 import { drawTextSticker, loadStickerFont } from "@stickypie/shared/text-art";
+import { MM_PER_IN, PAPERS } from "@stickypie/shared/wall-sheets";
 import { STICKER_FONTS } from "@/lib/sticker-fonts";
+import PosterSheets, { PaperPicker, usePaper } from "@/components/print-job-posters";
 
 export type JobItem = {
   id: string;
@@ -26,18 +28,17 @@ export type JobItem = {
 };
 
 // Portrait, everything in mm. Pieces sit at their real size with room to cut between them.
-// Vinyl goes on A3. Posters go on A4 card: tight edges, so three 4 × 6 in fit on a sheet.
-type SheetSize = { key: "vinyl" | "paper"; name: string; stock: string; w: number; h: number; margin: number; gap: number };
-const VINYL: SheetSize = { key: "vinyl", name: "A3", stock: "sticker vinyl", w: 297, h: 420, margin: 10, gap: 5 };
-const PAPER: SheetSize = { key: "paper", name: "A4", stock: "300 GSM poster paper", w: 210, h: 297, margin: 2, gap: 2 };
+// Vinyl sheets are PNGs, on A3 unless the page says otherwise. Posters have their own sheets (print-job-posters).
+const VINYL_STOCK = "sticker vinyl";
+const VINYL_EDGE = { margin: 10, gap: 5 };
+type SheetSize = { name: string; w: number; h: number; margin: number; gap: number };
 const DPI = 300;
 /** Phones cap canvas size (~16.7 MP); a 300 DPI A3 is 17.4 MP, so they fall back to this. */
 const FALLBACK_DPI = 250;
-const MM_PER_IN = 25.4;
 
 type Piece = { name: string; w: number; h: number; src: CanvasImageSource };
 type Placed = Piece & { x: number; y: number; rotated: boolean };
-type Sheet = { url: string; dpi: number; size: SheetSize; n: number; of: number };
+type Sheet = { url: string; dpi: number; n: number; of: number };
 
 function fileUrl(token: string, item: string, n: number, download = false) {
   return `/api/print-job/${token}/file?item=${encodeURIComponent(item)}&n=${n}${download ? "&dl=1" : ""}`;
@@ -104,14 +105,18 @@ export default function PrintJob({
 }) {
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [sheets, setSheets] = useState<Sheet[] | null>(null);
+  const [shrunk, setShrunk] = useState(0);
+  const images = useRef(new Map<string, Promise<HTMLImageElement>>());
   const [error, setError] = useState<string | null>(null);
+  const [vinylPaper, setVinylPaper] = usePaper("vinyl", PAPERS[1]);
+  const vinyl: SheetSize = { name: vinylPaper.name, w: vinylPaper.w, h: vinylPaper.h, ...VINYL_EDGE };
   const onSheets = items.filter((i) => i.avatarPacks == null && (i.posters || (i.sizeInches && (i.files > 0 || i.drawn))));
   const count = (list: JobItem[]) => list.reduce((n, i) => n + i.quantity * (i.posters?.length ?? 1), 0);
-  const totalStickers = count(onSheets.filter((i) => !i.paper));
-  const totalPosters = count(onSheets.filter((i) => i.paper));
+  const stickers = onSheets.filter((i) => !i.paper || i.drawn);
+  const posters = onSheets.filter((i) => i.paper && !i.drawn);
   const groups = [
-    { size: VINYL, title: "Stickers", items: items.filter((i) => !i.paper) },
-    { size: PAPER, title: "Wall posters", items: items.filter((i) => i.paper) },
+    { key: "vinyl", stock: VINYL_STOCK, title: "Stickers", items: items.filter((i) => !i.paper) },
+    { key: "paper", stock: "300 GSM poster paper", title: "Wall posters", items: items.filter((i) => i.paper) },
   ].filter((g) => g.items.length > 0);
 
   useEffect(() => {
@@ -119,10 +124,11 @@ export default function PrintJob({
     const urls: string[] = [];
     (async () => {
       try {
-        const pieces: Record<SheetSize["key"], Piece[]> = { vinyl: [], paper: [] };
-        for (const item of onSheets) {
-          const size = item.paper ? PAPER : VINYL;
-          const fit = { w: size.w - size.margin * 2, h: size.h - size.margin * 2 };
+        setSheets(null);
+        const pieces: Piece[] = [];
+        let tooBig = 0;
+        const fit = { w: vinyl.w - vinyl.margin * 2, h: vinyl.h - vinyl.margin * 2 };
+        for (const item of stickers) {
           const longest = (item.sizeInches ?? 0) * MM_PER_IN;
           let src: CanvasImageSource;
           let w: number;
@@ -135,32 +141,40 @@ export default function PrintJob({
             // A poster pack puts every poster on the sheets at its own size; anything else has one file.
             for (const [f, poster] of (item.posters ?? [{ name: item.name, inches: item.sizeInches! }]).entries()) {
               const name = poster.name;
-              const img = await loadImage(fileUrl(token, item.id, f));
-              const scale = Math.min((poster.inches * MM_PER_IN) / Math.max(img.naturalWidth, img.naturalHeight), fit.w / img.naturalWidth, fit.h / img.naturalHeight);
+              const url = fileUrl(token, item.id, f);
+              if (!images.current.has(url)) images.current.set(url, loadImage(url));
+              const img = await images.current.get(url)!;
+              const real = (poster.inches * MM_PER_IN) / Math.max(img.naturalWidth, img.naturalHeight);
+              const scale = Math.min(real, fit.w / img.naturalWidth, fit.h / img.naturalHeight);
+              if (scale < real) tooBig += item.quantity;
               for (let n = 0; n < item.quantity; n++) {
-                pieces[size.key].push({ name, w: img.naturalWidth * scale, h: img.naturalHeight * scale, src: img });
+                pieces.push({ name, w: img.naturalWidth * scale, h: img.naturalHeight * scale, src: img });
               }
             }
             continue;
           }
-          const scale = Math.min(longest / Math.max(w, h), fit.w / w, fit.h / h);
-          for (let n = 0; n < item.quantity; n++) pieces[size.key].push({ name: item.name, w: w * scale, h: h * scale, src });
+          const real = longest / Math.max(w, h);
+          const scale = Math.min(real, fit.w / w, fit.h / h);
+          if (scale < real) tooBig += item.quantity;
+          for (let n = 0; n < item.quantity; n++) pieces.push({ name: item.name, w: w * scale, h: h * scale, src });
         }
         const out: Sheet[] = [];
-        for (const size of [VINYL, PAPER]) {
-          const layout = pack(pieces[size.key], size);
-          for (const [n, sheet] of layout.entries()) {
-            const label = `${code} · ${size.name} ${size.stock} ${n + 1} of ${layout.length}`;
-            let dpi = DPI;
-            let blob = await render(sheet, dpi, label, size);
-            if (!blob) blob = await render(sheet, (dpi = FALLBACK_DPI), label, size);
-            if (!blob) throw new Error("This device couldn't make the sheets — open the link on a computer.");
-            const url = URL.createObjectURL(blob);
-            urls.push(url);
-            out.push({ url, dpi, size, n, of: layout.length });
-          }
+        const layout = pack(pieces, vinyl);
+        for (const [n, sheet] of layout.entries()) {
+          if (!live) return;
+          const label = `${code} · ${vinyl.name} ${VINYL_STOCK} ${n + 1} of ${layout.length}`;
+          let dpi = DPI;
+          let blob = await render(sheet, dpi, label, vinyl);
+          if (!blob) blob = await render(sheet, (dpi = FALLBACK_DPI), label, vinyl);
+          if (!blob) throw new Error("This device couldn't make the sheets — open the link on a computer.");
+          const url = URL.createObjectURL(blob);
+          urls.push(url);
+          out.push({ url, dpi, n, of: layout.length });
         }
-        if (live) setSheets(out);
+        if (live) {
+          setSheets(out);
+          setShrunk(tooBig);
+        }
       } catch (err) {
         if (live) setError(err instanceof Error ? err.message : "Couldn't make the sheets");
       }
@@ -170,9 +184,10 @@ export default function PrintJob({
       urls.forEach((u) => URL.revokeObjectURL(u));
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]);
+  }, [token, vinyl.w, vinyl.h, vinyl.name]);
 
-  const sheetFile = (s: Sheet) => `${code}-${s.size.name.toLowerCase()}-${s.size.key}-${s.n + 1}.png`;
+  const list = sheets ?? [];
+  const sheetFile = (s: Sheet) => `${code}-${vinyl.name.toLowerCase().replace(/[^a-z0-9]+/g, "")}-vinyl-${s.n + 1}.png`;
 
   function downloadAll(list: Sheet[]) {
     list.forEach((s, n) => {
@@ -195,8 +210,8 @@ export default function PrintJob({
       </div>
       <p className="mt-1 text-sm text-fog">
         {[
-          totalStickers > 0 && `${totalStickers} sticker${totalStickers === 1 ? "" : "s"} on A3 vinyl`,
-          totalPosters > 0 && `${totalPosters} poster${totalPosters === 1 ? "" : "s"} on A4 300 GSM paper`,
+          count(stickers) > 0 && `${count(stickers)} sticker${count(stickers) === 1 ? "" : "s"} on vinyl`,
+          count(posters) > 0 && `${count(posters)} poster${count(posters) === 1 ? "" : "s"} on 300 GSM paper`,
         ]
           .filter(Boolean)
           .join(" · ")}
@@ -204,9 +219,9 @@ export default function PrintJob({
       </p>
 
       {groups.map((group) => (
-      <section key={group.size.key} className="mt-6 rounded-2xl border border-line bg-ink2 p-4 sm:p-5">
+      <section key={group.key} className="mt-6 rounded-2xl border border-line bg-ink2 p-4 sm:p-5">
         <h2 className="font-display text-lg font-semibold">
-          {group.title} <span className="ml-1 rounded-lg bg-brand/10 px-2 py-0.5 text-xs font-bold text-brand">{group.size.stock}</span>
+          {group.title} <span className="ml-1 rounded-lg bg-brand/10 px-2 py-0.5 text-xs font-bold text-brand">{group.stock}</span>
         </h2>
         <ul className="mt-3 divide-y divide-line">
           {group.items.map((item) =>
@@ -289,16 +304,13 @@ export default function PrintJob({
       </section>
       ))}
 
-      {groups.map(({ size }) => {
-        const list = sheets?.filter((s) => s.size.key === size.key) ?? [];
-        if (!onSheets.some((i) => i.paper === (size.key === "paper"))) return null;
-        return (
-        <section key={size.key} className="mt-5 rounded-2xl border border-line bg-ink2 p-4 sm:p-5">
+      {stickers.length > 0 && (
+        <section className="mt-5 rounded-2xl border border-line bg-ink2 p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="font-display text-lg font-semibold">{size.name} sheets · {size.stock}</h2>
+              <h2 className="font-display text-lg font-semibold">{vinyl.name} sheets · {VINYL_STOCK}</h2>
               <p className="text-xs text-fog">
-                {size.w} × {size.h} mm PNG, {list[0]?.dpi ?? DPI} DPI, transparent background. Print at 100% (actual size).
+                {Math.round(vinyl.w)} × {Math.round(vinyl.h)} mm PNG, {list[0]?.dpi ?? DPI} DPI, transparent background. Print at 100% (actual size).
               </p>
             </div>
             {list.length > 1 && (
@@ -311,6 +323,15 @@ export default function PrintJob({
               </button>
             )}
           </div>
+          <div className="mt-3">
+            <PaperPicker paper={vinylPaper} onChange={setVinylPaper} />
+          </div>
+          {shrunk > 0 && sheets && (
+            <p className="mt-3 flex items-start gap-2 text-xs text-gold">
+              <AlertTriangle className="mt-px size-3.5 shrink-0" />
+              {shrunk} sticker{shrunk === 1 ? " is" : "s are"} bigger than this paper and got shrunk. Pick a larger paper to print at the real size.
+            </p>
+          )}
           {error ? (
             <p className="mt-4 rounded-xl bg-brand/10 px-3 py-2 text-sm text-brand">{error}</p>
           ) : !sheets ? (
@@ -323,8 +344,8 @@ export default function PrintJob({
                 <figure key={s.url} className="rounded-xl border border-line bg-white p-2">
                   <img
                     src={s.url}
-                    alt={`${size.name} sheet ${s.n + 1}`}
-                    style={{ aspectRatio: `${size.w} / ${size.h}` }}
+                    alt={`${vinyl.name} sheet ${s.n + 1}`}
+                    style={{ aspectRatio: `${vinyl.w} / ${vinyl.h}` }}
                     className="w-full object-contain bg-[repeating-conic-gradient(#f3f4f6_0_25%,#fff_0_50%)] bg-[length:16px_16px]"
                   />
                   <figcaption className="mt-2 flex items-center justify-between gap-2">
@@ -344,8 +365,9 @@ export default function PrintJob({
             </div>
           )}
         </section>
-        );
-      })}
+      )}
+
+      {posters.length > 0 && <PosterSheets token={token} code={code} items={posters} />}
     </div>
   );
 }
