@@ -121,14 +121,21 @@ export function gstOnTop(settings: StoreSettings, subtotal: number, shippingFee:
 
 /**
  * ₹ still needed to reach the minimum order (0 once reached). A cart with an
- * avatar sticker book has no minimum — a book can be ordered on its own.
+ * avatar sticker book or a wall set has no minimum — either can be ordered on its own.
  */
 export function belowMinimum(
   settings: StoreSettings,
   subtotal: number,
-  items: { customKind?: string | null; customSpec?: { kind: string } | null }[] = []
+  items: {
+    customKind?: string | null;
+    customSpec?: { kind: string } | null;
+    slug?: string;
+    packPosters?: unknown[] | null;
+  }[] = []
 ): number {
-  if (items.some((i) => i.customKind === "avatar" || i.customSpec?.kind === "avatar")) return 0;
+  const ownOrder = (kind?: string | null) => kind === "avatar" || kind === "wall";
+  const wallSet = (i: (typeof items)[number]) => Boolean(i.packPosters?.length) || /-(wall-setup|poster-pack)$/.test(i.slug ?? "");
+  if (items.some((i) => ownOrder(i.customKind) || ownOrder(i.customSpec?.kind) || wallSet(i))) return 0;
   return Math.max(settings.minOrder - subtotal, 0);
 }
 
