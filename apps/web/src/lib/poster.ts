@@ -1,5 +1,5 @@
 import type { Product } from "@stickypie/shared";
-import { packPosterSizes, posterSizeLabel } from "@stickypie/shared";
+import { packPosterSizes } from "@stickypie/shared";
 
 /** Mini posters are tagged "mini poster" (and their slugs end in -mini-poster). */
 export function isMiniPoster(product: Product) {
@@ -45,9 +45,29 @@ export function wallPosterSizes(product: Product): string {
   return `${parts.join(" + ")} in`;
 }
 
-/** A wall's size on the wall: "1.7 × 1.5 ft". */
+/** How much wall a set covers, from where its posters sit: "15 × 18 in". */
 export function wallSize(product: Product): string | null {
-  return tagValue(product, "size");
+  const spots = wallSpots(product);
+  if (!spots.length) return null;
+  const big = packPosterSizes(product)[0] > 6;
+  const wide = Math.max(...spots.map((s) => s.x + s.w)) - Math.min(...spots.map((s) => s.x));
+  const tall = Math.max(...spots.map((s) => s.y + s.h)) - Math.min(...spots.map((s) => s.y));
+  return `${Math.round((wide * (big ? 6 : 4)) / spots[0].w)} × ${Math.round((tall * (big ? 9 : 6)) / spots[0].h)} in`;
+}
+
+const STATE_WORDS =
+  /\b(kannada|karnataka|rajyotsava|tamil|pongal|telugu|telangana|andhra|kerala|malayalam|malayalee|onam|piravi|marathi|maharashtra|gujarat|gujarati|punjab|punjabi|bengal|bengali|odisha|odia|assam|assamese|bihu|rajasthan|puducherry|pondicherry|goa|bihar|jharkhand|manipur|mizoram|nagaland|sikkim|tripura|meghalaya|uttarakhand|himachal|haryana|namma)\b/i;
+
+/** A name tied to one state, like a state's own festival. */
+export function isRegionalName(name: string) {
+  return STATE_WORDS.test(name);
+}
+
+/** Tied to one state or city (the Cities & States category, an India wall, a state's name): the hero leaves these out. */
+export function isRegional(product: Product, regionCategoryId: string | undefined) {
+  if (regionCategoryId && product.categoryIds.includes(regionCategoryId)) return true;
+  if (product.tags.includes("wall theme:india")) return true;
+  return isRegionalName(`${product.slug} ${product.name}`);
 }
 
 /** Tags that only drive the shop (row, size, paint, spots), never shown to shoppers. */
@@ -70,13 +90,4 @@ export function sizeChipLabel(product: Product, inches: number): string {
   if (!isPoster(product)) return `${Math.round(inches * 10) / 10}″`;
   const short = Math.round(((inches * 2) / 3) * 10) / 10;
   return `${short}×${inches}`;
-}
-
-/** What's in a poster pack, in a line: "1 big 6 × 9 in + 5 small 4 × 6 in" or "4 mini posters · each 4 × 6 in". */
-export function packSizeLine(product: Product): string {
-  const count = product.packItems.length;
-  const big = packPosterSizes(product).filter((s) => s > 6).length;
-  return big > 0
-    ? `${big} big ${posterSizeLabel(9)} + ${count - big} small ${posterSizeLabel(6)}`
-    : `${count} mini posters · each ${posterSizeLabel(6)}`;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import PageLink from "./page-link";
+import ShopLinks from "./shop-links";
 import { useEffect, useState } from "react";
 import { CheckCircle2, ShoppingBag, Trash2, Truck, X } from "lucide-react";
 import { belowMinimum, formatINR } from "@stickypie/shared";
@@ -120,13 +121,9 @@ export default function CartDrawer() {
                   Your cart is empty. Let&apos;s fix that.
                 </p>
               </div>
-              <PageLink
-                href="/stickers"
-                onClick={closeCart}
-                className="peel-btn peel-btn--brand rounded-xl px-6 py-2.5 text-sm font-semibold"
-              >
-                Browse stickers
-              </PageLink>
+              <div className="flex flex-wrap justify-center gap-2">
+                <ShopLinks onClick={closeCart} />
+              </div>
             </div>
           ) : (
             <>

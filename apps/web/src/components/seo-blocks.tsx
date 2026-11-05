@@ -67,7 +67,7 @@ export function StoreAbout({ faq }: { faq: Faq[] }) {
   return (
     <section className="mx-auto mt-16 w-full max-w-5xl px-4 pb-8 sm:px-8">
       <h1 className="font-display text-2xl font-bold sm:text-3xl">
-        Vinyl stickers, made for India
+        Stickers and wall posters, made for India
       </h1>
       <p className="mt-3 max-w-3xl text-[15px] leading-relaxed text-fog">
         StickyPie is an online sticker shop for{" "}

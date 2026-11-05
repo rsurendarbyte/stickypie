@@ -11,6 +11,7 @@ import {
 } from "@stickypie/shared";
 import { Frame, Sticker } from "lucide-react";
 import PageLink from "./page-link";
+import ShopLinks from "./shop-links";
 import ProductCard from "./product-card";
 import ProductCardSkeleton from "./product-card-skeleton";
 import VirtualGrid from "./virtual-grid";
@@ -258,11 +259,14 @@ export default function BrowseClient({
       ) : visible.length === 0 ? (
         <div className="mt-20 flex flex-col items-center gap-2 text-center">
           <p className="font-display text-xl font-semibold">
-            No stickers found
+            Nothing found
           </p>
           <p className="text-sm text-fog">
             Try a different search or category.
           </p>
+          <div className="mt-2 flex flex-wrap justify-center gap-2">
+            <ShopLinks />
+          </div>
         </div>
       ) : (
         // Only the rows near the screen are rendered — smooth with hundreds of stickers.

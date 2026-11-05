@@ -3,7 +3,7 @@
 import Link from "@/components/page-link";
 import SmartImg from "./smart-img";
 import PageLink from "./page-link";
-import { isMiniPoster, isPosterPack, packSizeLine, posterSetName, sizeChipLabel, wallSize, wallSpots } from "@/lib/poster";
+import { isMiniPoster, isPosterPack, isRegional, isRegionalName, posterSetName, sizeChipLabel, wallPosterSizes, wallSize, wallSpots } from "@/lib/poster";
 import { rememberPosters } from "@/lib/poster-images";
 import WallStage from "./wall-stage";
 import { useEffect, useRef, useState } from "react";
@@ -74,12 +74,17 @@ export default function Hero({
   // A fresh mix for every shopper every day: categories take turns (the ones they
   // look at first), featured and new likelier, a cheap sticker and a mini poster in it.
   rememberPosters(catalog.length ? catalog : products);
+  // The hero speaks to all of India: nothing tied to one state or city (those keep their own rows).
+  const regionId = categories.find((c) => c.slug === "cities-states")?.id;
+  const national = (p: Product) => !isRegional(p, regionId);
+  const shop = (catalog.length ? catalog : products).filter(national);
+  const wallSets = packs.filter(national);
   const { picks, packPicks, momentOf } = heroPicks(
-    (catalog.length ? catalog : products).filter((p) => !isPosterPack(p)),
-    packs,
+    shop.filter((p) => !isPosterPack(p)),
+    wallSets,
     interest,
     seed,
-    moments,
+    moments.filter((m) => !isRegionalName(m.label)).map((m) => ({ ...m, products: m.products.filter(national) })),
   );
   // Sticker slides with a wall poster set after every second one.
   const slides: Slide[] = [];
@@ -91,7 +96,7 @@ export default function Hero({
   for (const p of queue) slides.push({ kind: "product", product: p });
   // StickyPie itself opens the hero: a slide for stickers, then one for wall posters…
   if (picks.length > 0) {
-    const posters = (catalog.length ? catalog : products).some(isMiniPoster);
+    const posters = shop.some(isMiniPoster);
     slides.unshift({ kind: "brand" }, ...(posters ? [{ kind: "posters" } as const] : []));
   }
   // …except the avatar sticker book, the headline product, which leads when on sale.
@@ -124,6 +129,27 @@ export default function Hero({
   // The words sit on a moving wall on these slides.
   const onWall = slide.kind !== "product";
   const posterChips = slide.kind === "posters" || (product !== null && isPosterPack(product));
+  const chips =
+    slide.kind === "avatar"
+      ? [
+          { icon: Sticker, label: "Vinyl stickers" },
+          { icon: Frame, label: "300 GSM posters" },
+          { icon: Gift, label: "Glue dots included" },
+          { icon: Truck, label: "Ships across India" },
+        ]
+      : posterChips
+        ? [
+            { icon: BadgeCheck, label: "300 GSM paper" },
+            { icon: Gift, label: "Glue dots included" },
+            { icon: Frame, label: "Walls & doors" },
+            { icon: Truck, label: "Ships across India" },
+          ]
+        : [
+            { icon: Sticker, label: "Peel & stick" },
+            { icon: BadgeCheck, label: "Die-cut edges" },
+            { icon: Car, label: "Car, bike & laptop" },
+            { icon: Truck, label: "Ships across India" },
+          ];
   const skinSlug = product
     ? product.slug
     : slide.kind === "avatar"
@@ -170,13 +196,13 @@ export default function Hero({
             <BrandSlideArt
               key={slide.kind}
               stickers={wallItems(
-                catalog.length ? catalog : products,
+                shop,
                 slide.kind === "posters",
                 daySeed,
               )}
             />
           ) : (
-            <AvatarBookWall key="book-wall" styles={settings.avatarStyles} packs={packs} />
+            <AvatarBookWall key="book-wall" styles={settings.avatarStyles} packs={wallSets} />
           )}
           {/* white wash behind the words: from below on phones, from the left on anything wider */}
           <div
@@ -238,7 +264,7 @@ export default function Hero({
                     catalog={catalog.length ? catalog : products}
                   />
                 ) : (
-                  <AvatarSlideCopy book={book!} />
+                  <AvatarSlideCopy book={book!} catalog={catalog.length ? catalog : products} />
                 )}
               </div>
             );
@@ -264,42 +290,11 @@ export default function Hero({
             </div>
           )}
           <ul className="col-start-1 row-start-2 mt-8 hidden flex-wrap gap-2 text-[11px] font-semibold tracking-wide text-fog sm:flex md:max-xl:hidden">
-            <li className="flex items-center gap-1.5 rounded-full border border-line bg-ink2 px-3 py-1.5">
-              {posterChips ? (
-                <>
-                  <BadgeCheck className="size-3.5 text-mint" /> 300 GSM paper
-                </>
-              ) : (
-                <>
-                  <Sticker className="size-3.5 text-mint" /> Peel &amp; stick
-                </>
-              )}
-            </li>
-            <li className="flex items-center gap-1.5 rounded-full border border-line bg-ink2 px-3 py-1.5">
-              {posterChips ? (
-                <>
-                  <Gift className="size-3.5 text-mint" /> Glue dots included
-                </>
-              ) : (
-                <>
-                  <BadgeCheck className="size-3.5 text-mint" /> Die-cut edges
-                </>
-              )}
-            </li>
-            <li className="flex items-center gap-1.5 rounded-full border border-line bg-ink2 px-3 py-1.5">
-              {posterChips ? (
-                <>
-                  <Frame className="size-3.5 text-mint" /> Walls &amp; doors
-                </>
-              ) : (
-                <>
-                  <Car className="size-3.5 text-mint" /> Car, bike &amp; laptop
-                </>
-              )}
-            </li>
-            <li className="flex items-center gap-1.5 rounded-full border border-line bg-ink2 px-3 py-1.5">
-              <Truck className="size-3.5 text-mint" /> Ships across India
-            </li>
+            {chips.map(({ icon: Icon, label }) => (
+              <li key={label} className="flex items-center gap-1.5 rounded-full border border-line bg-ink2 px-3 py-1.5">
+                <Icon className="size-3.5 text-mint" /> {label}
+              </li>
+            ))}
           </ul>
         </div>
 
@@ -786,7 +781,8 @@ function ProductSlideCopy({
       </h2>
       {pack && (
         <p className="mt-2 text-sm font-semibold text-snow sm:mt-3 sm:text-base">
-          {`${product.packItems.length} posters · ${wallSize(product) ? `about ${wallSize(product)} on your wall` : packSizeLine(product)}`}
+          {wallPosterSizes(product)}
+          {wallSize(product) && ` · about ${wallSize(product)} on your wall`}
         </p>
       )}
       {!pack && (
@@ -837,7 +833,7 @@ function AvatarBookWall({ styles, packs }: { styles: AvatarStyle[]; packs: Produ
       .map((s) => ({ kind: "avatar" as const, label: s.label, url: null }));
     const sets = packs.map((p) => ({
       kind: "pack" as const,
-      label: p.name.replace(/\s*—\s*\d+\s+Mini Poster Pack\s*$/i, ""),
+      label: posterSetName(p.name).replace(/\s+Wall Setup$/i, ""),
       url: p.thumbUrl ?? p.imageUrl,
       slug: p.slug,
     }));
@@ -853,8 +849,7 @@ function AvatarBookWall({ styles, packs }: { styles: AvatarStyle[]; packs: Produ
     size && (pools.avatars.length || pools.sets.length)
       ? Array.from({ length: size.cols }, (_, c) => {
           const pool = kindOf(c);
-          // set columns are taller tiles (2:3), so they need fewer per column
-          const per = Math.ceil(size.perCol * (pool === pools.sets ? 0.65 : 0.8)) + 1;
+          const per = Math.ceil(size.perCol * 0.8) + 1;
           return Array.from({ length: per }, (_, k) => ({
             page: pool[(c * 5 + k * 3) % pool.length],
             n: c * 31 + k * 17,
@@ -886,14 +881,14 @@ function AvatarBookWall({ styles, packs }: { styles: AvatarStyle[]; packs: Produ
                   }`}
                 >
                   {page.kind === "pack" ? (
-                    // a wall poster set: its whole 2:3 collage, edge to edge
+                    // a wall poster set: the whole picture, nothing cut off
                     <img
                       src={page.url}
                       alt=""
                       loading="lazy"
                       decoding="async"
                       fetchPriority="low"
-                      className="block aspect-[2/3] w-full bg-[#f4f1ec] object-cover"
+                      className="block aspect-square w-full bg-[#f4f1ec] object-contain"
                     />
                   ) : page.url ? (
                     // the same picture designs as the "Make your own" cards: A, C, D, E mixed
@@ -962,8 +957,10 @@ function warmAvatarPage() {
   }
 }
 
-function AvatarSlideCopy({ book }: { book: AvatarBook }) {
+/** First slide: the shop's two big things, side by side, each with its price and its way in. */
+function AvatarSlideCopy({ book, catalog }: { book: AvatarBook; catalog: Product[] }) {
   const { loaded: pricesReady } = useStoreSettings();
+  const walls = catalog.filter(isPosterPack);
   // Tapped: show progress at once while the next page loads.
   const [going, setGoing] = useState(false);
   // Back button from the avatar page restores this page from cache: drop the spinner.
@@ -983,44 +980,71 @@ function AvatarSlideCopy({ book }: { book: AvatarBook }) {
           <Smile className="size-3.5" /> New · AI avatar stickers
         </span>
       </div>
-      <h2 className="mt-2.5 line-clamp-2 font-display text-[30px] leading-[1.05] font-bold tracking-tight sm:mt-4 sm:text-6xl md:text-5xl xl:mt-5 xl:text-[64px]">
+      <h2 className="mt-2.5 font-display text-[30px] leading-[1.05] font-bold tracking-tight sm:mt-4 sm:text-6xl md:text-5xl xl:mt-5 xl:text-[64px]">
         <span className="bg-gradient-to-r from-brand to-brand2 bg-clip-text text-transparent">
           AI
         </span>{" "}
-        stickers of you
+        stickers
+        <br />
+        &amp; wall posters
       </h2>
-      <p className="mt-4 hidden max-w-lg text-base leading-relaxed text-fog sm:line-clamp-2 sm:text-lg lg:line-clamp-3">
-        Send a selfie and pick trending styles — 90s retro, anime, action
-        figure, 3D cartoon. We make AI sticker packs of you, one in each style
-        you pick ({book.pages} or more), on vinyl.
-      </p>
-      <div className="mt-2 flex items-baseline gap-2 sm:mt-6">
-        <span className="font-display text-3xl font-bold text-gold sm:text-4xl">
-          {pricesReady ? formatINR(book.price) : <PriceWait className="w-24" />}
-        </span>
-        <span className="text-sm text-fog">per pack</span>
-      </div>
-      <div className="mt-3 flex flex-wrap items-center gap-2.5 sm:mt-6 sm:gap-3">
-        <PageLink
-          href="/avatar-stickers"
-          onPointerEnter={warmAvatarPage}
-          onPointerDown={warmAvatarPage}
-          onTouchStart={warmAvatarPage}
-          onFocus={warmAvatarPage}
-          onClick={(e) => {
-            if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0)
-              setGoing(true);
-          }}
-          aria-busy={going || undefined}
-          className="peel-btn inline-flex h-12 items-center gap-2 rounded-xl px-6 text-base font-bold"
-        >
-          Make my stickers{" "}
-          {going ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : (
-            <ArrowRight className="size-4" />
-          )}
-        </PageLink>
+      <div className="mt-3 grid max-w-xl grid-cols-2 gap-2.5 sm:mt-6 sm:gap-3">
+        <div className="flex flex-col rounded-2xl border border-line bg-white/85 p-3 backdrop-blur-sm sm:p-4">
+          <p className="flex items-center gap-1.5 text-sm font-bold text-snow sm:text-base">
+            <Smile className="size-4 shrink-0 text-brand" /> Stickers of you
+          </p>
+          <p className="mt-1 flex-1 text-xs leading-snug text-fog sm:text-sm">
+            Send a selfie, pick trending styles. {book.pages}+ styles on vinyl.
+          </p>
+          <p className="mt-2 flex items-baseline gap-1.5">
+            <span className="font-display text-xl font-bold text-gold sm:text-2xl">
+              {pricesReady ? formatINR(book.price) : <PriceWait className="w-14" />}
+            </span>
+            <span className="text-xs text-fog">per pack</span>
+          </p>
+          <PageLink
+            href="/avatar-stickers"
+            onPointerEnter={warmAvatarPage}
+            onPointerDown={warmAvatarPage}
+            onTouchStart={warmAvatarPage}
+            onFocus={warmAvatarPage}
+            onClick={(e) => {
+              if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0)
+                setGoing(true);
+            }}
+            aria-busy={going || undefined}
+            className="peel-btn mt-2 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl px-2 text-[13px] font-bold sm:mt-3 sm:h-11 sm:text-sm"
+          >
+            Make my stickers{" "}
+            {going && <Loader2 className="size-4 animate-spin" />}
+          </PageLink>
+        </div>
+        <div className="flex flex-col rounded-2xl border border-line bg-white/85 p-3 backdrop-blur-sm sm:p-4">
+          <p className="flex items-center gap-1.5 text-sm font-bold text-snow sm:text-base">
+            <Frame className="size-4 shrink-0 text-brand" /> Wall posters
+          </p>
+          <p className="mt-1 flex-1 text-xs leading-snug text-fog sm:text-sm">
+            Ready wall sets on 300 GSM paper. Glue dots included.
+          </p>
+          <p className="mt-2 flex items-baseline gap-1.5">
+            {walls.length > 0 ? (
+              <>
+                <span className="text-xs text-fog">from</span>
+                <span className="font-display text-xl font-bold text-gold sm:text-2xl">
+                  {formatINR(Math.min(...walls.map((p) => p.price)))}
+                </span>
+              </>
+            ) : (
+              <PriceWait className="w-14" />
+            )}
+          </p>
+          <PageLink
+            href="/stickers/poster-packs"
+            className="peel-btn mt-2 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl px-2 text-[13px] font-bold sm:mt-3 sm:h-11 sm:text-sm"
+          >
+            Shop wall posters
+          </PageLink>
+        </div>
       </div>
     </>
   );

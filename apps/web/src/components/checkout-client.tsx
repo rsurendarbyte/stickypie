@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "@/components/page-link";
+import ShopLinks from "@/components/shop-links";
 import { trackMeta } from "@/lib/meta-pixel";
 import BackButton from "./back-button";
 import { useRouter } from "next/navigation";
@@ -477,14 +478,11 @@ export default function CheckoutClient() {
           Your cart is empty
         </p>
         <p className="text-sm text-fog">
-          Add a few stickers before checking out.
+          Add stickers or wall posters before checking out.
         </p>
-        <Link
-          href="/stickers"
-          className="peel-btn peel-btn--brand rounded-xl px-6 py-2.5 text-sm font-semibold"
-        >
-          Browse stickers
-        </Link>
+        <div className="flex flex-wrap justify-center gap-2">
+          <ShopLinks />
+        </div>
       </div>
     );
   }
