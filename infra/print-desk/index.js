@@ -58,7 +58,8 @@ export default {
     for (let n = 0; n < FILE_TRIES; n++) {
       const size = Number(upstream.headers.get("x-file-size"));
       const bytes = await upstream.arrayBuffer().catch(() => null);
-      if (bytes && size && bytes.byteLength === size) return new Response(bytes, { status: 200, headers });
+      // No stated size (a shop not yet updated): nothing to check it against, so it passes.
+      if (bytes && (!size || bytes.byteLength === size)) return new Response(bytes, { status: 200, headers });
       upstream = await ask(shop);
       if (!upstream.ok) break;
     }
