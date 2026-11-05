@@ -30,10 +30,10 @@ const RENDITIONS = [
 ];
 /** One price per pack (by number of posters): [price, compare-at]. Change in the admin any time. */
 const PRICES = {
-  4: [299, 600],
-  6: [449, 1000],
-  9: [549, 1350],
-  20: [1199, 3600],
+  4: [199, 299],
+  6: [199, 449],
+  9: [279, 549],
+  20: [459, 1199],
 };
 
 const { url, key, args } = loadTargetEnv();

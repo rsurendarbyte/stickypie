@@ -1,14 +1,24 @@
 """
 Makes a 9:16 Instagram reel (1080 × 1920, 30 fps, ~12 s, no sound) for a wall
-poster pack from the live shop: "Blank wall?" → the posters stick on one by one
-in the pack's layout → what's inside → price and stickypie.in.
+set or poster pack from the live shop: "Blank wall?" → the posters go up on the
+set's painted wall, each at its saved place and true 4 × 6 or 6 × 9 size → what's
+inside → price and stickypie.in.
 
-  python3 scripts/pack-reel/reel.py 4x4-garage-poster-pack [more slugs…]
-  python3 scripts/pack-reel/reel.py --all          → every active pack
+  python3 scripts/pack-reel/reel.py night-garage-wall-setup 4x4-garage-poster-pack [more slugs…]
+  python3 scripts/pack-reel/reel.py --all          → every active wall set and pack
   add --dev to read the dev database instead of prod
   add --caption-only to only (re)write the Instagram caption, without making the video
+  --design=NAME picks the look, with any style (default wall):
+    wall         the set's painted wall, name on top, price card at the end
+    shop         the shop's wall page: cream page, no wall, size chips, then the buy panel slides up
+    sizemap      goes to the shop's Size map: posters fade back, sizes on tags, measured in cm
+    bold         dark, the wall up top with a huge name under it
   --theme=NAME picks the style (default classic):
     classic      "Blank wall?" → posters stick on one by one
+    sweep        the whole wall glides round from the side, posters landing as it turns
+    doors        each poster swings open on its left edge, in a wave
+    pull         close on the biggest poster, pulls back as the rest fade in
+    deal         a stack in the middle deals out to each poster's place
     night        dark garage, posters light up like spotlights
     beforeafter  plain wall → a swipe bar wipes across to the wall
     onebyone     every poster full screen with a 1/9 counter, then the wall
@@ -19,11 +29,12 @@ in the pack's layout → what's inside → price and stickypie.in.
     flip         orange StickyPie cards flip over in a wave to show the posters
     rows         rows of posters slide in from alternating sides
 
-Reels land in prod_stickers/poster-packs/reels/<slug>.mp4 (classic) or
-<slug>-<theme>.mp4, plus a matching -cover.jpg to use as the reel cover and -caption.txt to paste in Instagram. Add trending audio in Instagram.
+Reels land in prod_stickers/poster-packs/reels/<slug>.mp4 (classic on wall) or
+<slug>-<theme>-<design>.mp4 (leaving out classic and wall), plus a matching -cover.jpg to use as the reel cover and -caption.txt to paste in Instagram. Add trending audio in Instagram.
 """
 import io, json, math, os, random, re, shutil, subprocess, sys, tempfile, urllib.request
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+import numpy as np
+from PIL import Image, ImageChops, ImageColor, ImageDraw, ImageFilter, ImageFont
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "../.."))
@@ -53,7 +64,7 @@ def rounded_font(size, weight=800):
 DISPLAY = lambda s: font("LuckiestGuy.woff2", s)
 HEAD = lambda s: font("Fredoka.woff2", s)
 
-# Same collage layouts as scripts/create-poster-packs.mjs (a 3 × 4.5 board).
+# Same collage layouts as scripts/create-poster-packs.mjs (a 3 × 4.5 board), for a pack with no saved wall spots.
 def grid(cols):
     return [[(i % cols) * (3 / cols), (i // cols) * (4.5 / cols), 3 / cols, 4.5 / cols] for i in range(cols * cols)]
 
@@ -87,25 +98,47 @@ def get(url, raw=False):
         data = r.read()
     return data if raw else json.loads(data)
 
+def tag_value(tags, name):
+    return next((t[len(name) + 6:] for t in tags if t.startswith(f"wall {name}:")), None)
+
 def load_pack(slug, images=True):
-    [p] = get(f"{URL}/rest/v1/products?slug=eq.{slug}&select=slug,name,price,compare_at_price,pack_items,pack_sizes,tags")
+    [p] = get(f"{URL}/rest/v1/products?slug=eq.{slug}&select=slug,name,price,compare_at_price,image_url,pack_items,pack_sizes,tags")
     rows = get(f"{URL}/rest/v1/products?id=in.({','.join(p['pack_items'])})&select=id,name,display_url,image_url")
     by_id = {r["id"]: r for r in rows}
     posters, names = [], []
-    for pid in p["pack_items"]:
-        r = by_id[pid]
-        names.append(re.sub(r"\s*[—-]?\s*Mini Poster$", "", r["name"]).strip())
-        if images:
+    tags = p.get("tags") or []
+    spots = [[float(v) for v in spot.split(",")] for spot in (tag_value(tags, "spots") or "").split(";") if spot]
+    cuts = None  # a poster taken off sale isn't readable any more, so it's cut from the set's picture, like the shop does
+    for i, pid in enumerate(p["pack_items"]):
+        r = by_id.get(pid)
+        if r:
+            names.append(re.sub(r"\s*[—-]?\s*Mini Poster$", "", r["name"]).strip())
+        if not images:
+            continue
+        if r:
             posters.append(Image.open(io.BytesIO(get(r["display_url"] or r["image_url"], raw=True))).convert("RGBA"))
+        else:
+            cuts = cuts or Image.open(io.BytesIO(get(p["image_url"], raw=True))).convert("RGBA")
+            x, y, w, h = spots[i]
+            if "wall collage" in tags:  # an older pack's picture is its 3 × 4.5 collage
+                x, y, w, h = [v * 100 / d for v, d in zip(LAYOUTS[len(p["pack_items"])][i], (3, 4.5, 3, 4.5))]
+            box = [v * cuts.width / 100 for v in (x, x + w)], [v * cuts.height / 100 for v in (y, y + h)]
+            posters.append(cuts.crop((round(box[0][0]), round(box[1][0]), round(box[0][1]), round(box[1][1]))))
     title = re.sub(r"\s+[—-]\s+\d+\s+Mini Poster Pack$", "", p["name"])
+    title = re.sub(r"\s+Wall Setup$", "", title)
     count = len(p["pack_items"])
     sizes = [(p["pack_sizes"] or [])[i] if i < len(p["pack_sizes"] or []) else 6 for i in range(count)]
     return dict(slug=slug, title=title, price=p["price"], compare=p["compare_at_price"], posters=posters,
-                sizes=sizes, names=names, tags=p.get("tags") or [], count=count)
+                sizes=sizes, names=names, tags=tags, count=count, spots=spots,
+                paint=tag_value(tags, "paint"), feet=tag_value(tags, "size"))
 
 # ---------- caption ----------
 HOOKS = {
     "classic": "Blank wall? Fixed. 🖼️",
+    "sweep": "Wall goals, coming in. ✨",
+    "doors": "Open the wall. 🚪",
+    "pull": "Step back and look at that. 👀",
+    "deal": "Deal me in. 🃏",
     "night": "Lights on. 🔦",
     "beforeafter": "Before → After. Same wall, whole new vibe. ✨",
     "onebyone": "Every poster in the {title} set 👇",
@@ -131,14 +164,15 @@ def caption(pack, theme):
     own = []
     for tg in pack["tags"]:
         tag = re.sub(r"[^a-z0-9]", "", tg.lower())
-        if tag and tag not in ("posterpack", "wallcollage") and tag not in own:
+        if ":" not in tg and tag and tag not in ("posterpack", "wallcollage", "wallsetup") and tag not in own:
             own.append(tag)
     tags = " ".join("#" + x for x in (own[:6] + [b for b in BASE_TAGS if b not in own]))
     return "\n".join([
         hook,
         "",
-        f"{pack['title']}: {n} mini posters for your wall, {size_text(pack['sizes'])}.",
+        f"{pack['title']}: {n} wall posters, {size_text(pack['sizes'])}" + (f", {pack['feet']} on the wall." if pack["feet"] else "."),
         f"Inside: {inside}.",
+        "300 GSM poster paper, glue dots or double-sided tape included.",
         f"One set, one price: {price}.",
         "",
         "Ships across India 🇮🇳 Shop at stickypie.in (link in bio)",
@@ -146,9 +180,11 @@ def caption(pack, theme):
         tags,
     ]) + "\n"
 
-def write_caption(pack, theme):
-    name = pack["slug"] if theme == "classic" else f"{pack['slug']}-{theme}"
-    path = os.path.join(OUT, f"{name}-caption.txt")
+def reel_name(slug, theme, design):
+    return "-".join([slug] + ([theme] if theme != "classic" else []) + ([design] if design != "wall" else []))
+
+def write_caption(pack, theme, design="wall"):
+    path = os.path.join(OUT, f"{reel_name(pack['slug'], theme, design)}-caption.txt")
     os.makedirs(OUT, exist_ok=True)
     with open(path, "w") as f:
         f.write(caption(pack, theme))
@@ -162,11 +198,24 @@ def ease_out_back(t, s=1.6):
 def ease_out(t):
     return 1 - (1 - t) ** 3
 
+def ease_out_long(t):
+    return 1 - (1 - t) ** 4
+
 def ease_in_out(t):
     return 3 * t * t - 2 * t * t * t
 
 def clamp(t):
     return max(0.0, min(1.0, t))
+
+def paint_bg(paint):
+    """The set's wall: its paint from corner to corner, fine grain, one soft light from the top left."""
+    a, b = [ImageColor.getrgb(c) for c in paint.split(",")]
+    across = ImageChops.add(Image.linear_gradient("L").resize((W, H)), Image.linear_gradient("L").rotate(90).resize((W, H)), scale=2)
+    wall = Image.composite(Image.new("RGB", (W, H), b), Image.new("RGB", (W, H), a), across)
+    light = Image.new("L", (W, H), 0)
+    ImageDraw.Draw(light).ellipse([-300, -300, 700, 900], fill=60)
+    wall = Image.composite(Image.new("RGB", (W, H), (255, 255, 255)), wall, light.filter(ImageFilter.GaussianBlur(220)))
+    return ImageChops.soft_light(wall, Image.merge("RGB", [Image.effect_noise((W, H), 6)] * 3))
 
 def background():
     bg = Image.new("RGB", (W, H), BG)
@@ -175,6 +224,10 @@ def background():
         for x in range(18, W, 36):
             d.ellipse([x - 2, y - 2, x + 2, y + 2], fill=DOT)
     return bg
+
+def corner(w):
+    """Posters show whole, so the frame follows the art's own rounded corners (same as the shop)."""
+    return max(4, round(w * 0.0327))
 
 def round_mask(w, h, r):
     m = Image.new("L", (w, h), 0)
@@ -189,7 +242,7 @@ def poster_tile(img, w, h):
     tile = img.resize((max(w, round(sw * scale)), max(h, round(sh * scale))), Image.LANCZOS)
     left, top = (tile.width - w) // 2, (tile.height - h) // 2
     tile = tile.crop((left, top, left + w, top + h))
-    r = max(6, round(w * 0.035))
+    r = corner(w)
     tile.putalpha(round_mask(w, h, r))
     pad = 40
     out = Image.new("RGBA", (w + pad * 2, h + pad * 2), (0, 0, 0, 0))
@@ -242,10 +295,9 @@ def pill(s, f, fill, ink, padx=34, pady=20):
     return l
 
 def size_text(sizes):
-    big = sum(1 for s in sizes if s == 9)
-    small = len(sizes) - big
-    return f"1 big 6 × 9 in + {small} small 4 × 6 in" if big == 1 else (
-        f"{big} big 6 × 9 in + {small} small 4 × 6 in" if big else f"each 4 × 6 in")
+    """How many of each size, as the shop says it: "2 pcs 6×9 + 4 pcs 4×6 in"."""
+    parts = [(sum(1 for s in sizes if s == inches), label) for inches, label in ((9, "6×9"), (6, "4×6"))]
+    return " + ".join(f"{c} {'pc' if c == 1 else 'pcs'} {label}" for c, label in parts if c) + " in"
 
 def inr(n):
     s = str(int(n))
@@ -255,162 +307,46 @@ def inr(n):
         s = f"{head},{tail}"
     return f"₹{s}"
 
-# ---------- the reel ----------
-def render(pack, frames_dir):
-    n = len(pack["posters"])
-    layout = LAYOUTS.get(n) or grid(math.ceil(math.sqrt(n)))
-    CW = 700                      # collage width on screen; 2:3 board
-    CH = round(CW * 1.5)
-    CX, CY = (W - CW) // 2, 370   # collage top-left while building (text stays clear of Instagram's top and caption areas)
-    k = CW / 3
-    gap = 7
-
-    # each poster's final rect and ready-made tile
-    tiles = []
-    for i, img in enumerate(pack["posters"]):
-        x, y, w, h = layout[i]
-        left, top = round(x * k + gap), round(y * k + gap)
-        tw, th = round((x + w) * k - gap) - left, round((y + h) * k - gap) - top
-        tile, pad = poster_tile(img, tw, th)
-        tiles.append(dict(tile=tile, pad=pad, left=left, top=top, w=tw, h=th))
-
-    bg = background()
-    # empty slots on the "blank wall"
-    slots = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    sd = ImageDraw.Draw(slots)
-    for t in tiles:
-        x0, y0 = CX + t["left"], CY + t["top"]
-        sd.rounded_rectangle([x0, y0, x0 + t["w"], y0 + t["h"]], max(6, round(t["w"] * 0.035)), outline=(214, 196, 188, 255), width=3)
-
-    hook = text_layer("BLANK WALL?", DISPLAY(118), INK)
-    title_font = fit_font(DISPLAY, pack["title"].upper(), W - 120, 110)
-    title = text_layer(pack["title"].upper(), title_font, INK)
-    kicker = pill("WALL POSTER SET", HEAD(34), ORANGE, (255, 255, 255), padx=26, pady=12)
-    count = pill(f"{n} mini posters", HEAD(44), (255, 255, 255), INK)
-    sizes = text_layer(size_text(pack["sizes"]), HEAD(40), MUTED)
-
-    # timeline (seconds)
-    t_place = 1.0                                   # first poster
-    step = min(0.42, 3.4 / n)
-    t_built = t_place + step * (n - 1) + 0.5
-    t_info = t_built + 0.2
-    t_end = t_info + 2.6
-    total = t_end + 3.4
-    nframes = round(total * FPS)
-
-    price_f = rounded_font(150, 900)
-    price = text_layer(inr(pack["price"]), price_f, INK)
-    compare = None
-    if pack["compare"] and pack["compare"] > pack["price"]:
-        c = text_layer(inr(pack["compare"]), rounded_font(64, 600), MUTED)
-        d = ImageDraw.Draw(c)
-        d.line([8, c.height // 2 + 4, c.width - 8, c.height // 2 + 4], fill=MUTED, width=6)
-        compare = c
-        save = round((1 - pack["price"] / pack["compare"]) * 100)
-        badge = pill(f"SAVE {save}%", HEAD(40), ORANGE, (255, 255, 255), padx=26, pady=12)
-    cta = pill("Shop at stickypie.in", HEAD(56), YELLOW, INK, padx=48, pady=26)
-    logo = Image.open(os.path.join(ROOT, "apps/web/public/icons/icon-192.png")).convert("RGBA").resize((96, 96), Image.LANCZOS)
-    brand = text_layer("StickyPie", HEAD(56), ORANGE)
-
-    for fi in range(nframes):
-        t = fi / FPS
-        frame = bg.copy().convert("RGBA")
-
-        # collage transform: build at full size → gentle push-in → shrink up for the end card
-        if t < t_end:
-            zoom = 1 + 0.05 * ease_in_out(clamp((t - t_info) / (t_end - t_info))) if t > t_info else 1
-            sx, ox, oy = zoom, CX - CW * (zoom - 1) / 2, CY - CH * (zoom - 1) / 2
-        else:
-            e = ease_in_out(clamp((t - t_end) / 0.7))
-            z0, z1 = 1.05, 0.62
-            sx = z0 + (z1 - z0) * e
-            ox0, oy0 = CX - CW * (z0 - 1) / 2, CY - CH * (z0 - 1) / 2
-            ox1, oy1 = (W - CW * z1) / 2, 250
-            ox, oy = ox0 + (ox1 - ox0) * e, oy0 + (oy1 - oy0) * e
-
-        # empty slots fade out as the wall fills
-        if t < t_built + 0.4:
-            a = 1 - clamp((t - t_place) / (t_built - t_place + 0.4))
-            if a > 0:
-                s = slots.copy()
-                s.putalpha(s.getchannel("A").point(lambda v: round(v * a)))
-                frame.alpha_composite(s)
-
-        layer = Image.new("RGBA", (CW + 200, CH + 200), (0, 0, 0, 0))
-        for i, tl in enumerate(tiles):
-            p = (t - (t_place + i * step)) / 0.45
-            if p <= 0:
-                continue
-            p = clamp(p)
-            e = ease_out_back(p, 1.3)
-            scale = 1.35 - 0.35 * e
-            rot = (8 if i % 2 else -8) * (1 - ease_out(p))
-            dy = -70 * (1 - ease_out(p))
-            img = tl["tile"]
-            if scale != 1 or rot:
-                img = img.resize((round(img.width * scale), round(img.height * scale)), Image.BILINEAR)
-                if rot:
-                    img = img.rotate(rot, resample=Image.BICUBIC, expand=True)
-            if p < 1:
-                img.putalpha(img.getchannel("A").point(lambda v: round(v * clamp(p * 3))))
-            cx = 100 + tl["left"] + tl["w"] / 2
-            cy = 100 + tl["top"] + tl["h"] / 2 + dy
-            layer.alpha_composite(img, (round(cx - img.width / 2), round(cy - img.height / 2)))
-        if sx != 1:
-            layer = layer.resize((round(layer.width * sx), round(layer.height * sx)), Image.LANCZOS)
-        frame.alpha_composite(layer, (round(ox - 100 * sx), round(oy - 100 * sx)))
-
-        # headline: "BLANK WALL?" → pack name
-        if t < t_place:
-            pop(frame, hook, W / 2, 270, t / 0.4)
-        elif t < t_end:
-            pop(frame, kicker, W / 2, 200, (t - t_place) / 0.4)
-            pop(frame, title, W / 2, 295, (t - t_place - 0.1) / 0.45)
-
-        # what's inside (under the collage)
-        if t_info <= t < t_end:
-            pop(frame, count, W / 2, CY + CH + 80, (t - t_info) / 0.45)
-            pop(frame, sizes, W / 2, CY + CH + 150, (t - t_info - 0.25) / 0.45)
-
-        # end card
-        if t >= t_end:
-            te = t - t_end
-            base = 250 + CH * 0.62 + 60
-            pop(frame, title, W / 2, 180, 1)
-            pop(frame, price, W / 2 - (compare.width / 2 + 10 if compare else 0), base + 90, (te - 0.45) / 0.45)
-            if compare:
-                pop(frame, compare, W / 2 + price.width / 2 - 10, base + 110, (te - 0.55) / 0.45)
-                pop(frame, badge, W / 2, base + 225, (te - 0.7) / 0.45)
-            pop(frame, cta, W / 2, base + 360, (te - 0.9) / 0.45)
-            if te > 1.1:
-                lb = Image.new("RGBA", (logo.width + 18 + brand.width, max(logo.height, brand.height)), (0, 0, 0, 0))
-                lb.alpha_composite(logo, (0, (lb.height - logo.height) // 2))
-                lb.alpha_composite(brand, (logo.width + 18, (lb.height - brand.height) // 2))
-                pop(frame, lb, W / 2, base + 500, (te - 1.1) / 0.45)
-
-        frame.convert("RGB").save(os.path.join(frames_dir, f"frame-{fi:05d}.jpg"), quality=93)
-        if fi == round((t_end + 2.6) * FPS):
-            cover = frame.convert("RGB")
-    return nframes, cover
-
 # ---------- themes (all share the same ending: what's inside → price → stickypie.in) ----------
-CW = 700                  # collage width on screen (2:3 board)
-CH = round(CW * 1.5)
+CW, CH = 700, 1050        # the formation on screen; set for each pack by set_board
 CX, CY = (W - CW) // 2, 370
+BOARD_W = 900
+END_H = 651               # the formation's height on the price card
+DESIGNS = ["wall", "shop", "sizemap", "bold"]
+# Where each design puts things: the formation's top and height, then the y of the hook,
+# kicker, name and what's inside (None: just under the formation).
+PLACES = {
+    "wall": dict(top=370, height=1050, hook=250, kicker=200, title=295, info=None),
+    "shop": dict(top=340, height=960, hook=250, kicker=190, title=272, info=None),
+    "sizemap": dict(top=420, height=950, hook=250, kicker=200, title=295, info=None),
+    "bold": dict(top=200, height=880, hook=1240, kicker=1140, title=1250, info=1375),
+}
+PLACE = PLACES["wall"]
 DARK_BG = (17, 17, 19)
 NIGHT_INK = (250, 248, 244)
 NIGHT_MUTED = (170, 166, 160)
 
+def set_board(spots):
+    """Fits the formation on screen (text stays clear of Instagram's top and caption areas); gives each spot in px from its top left."""
+    global CW, CH, CX, CY
+    left, top = min(s[0] for s in spots), min(s[1] for s in spots)
+    width = max(s[0] + s[2] for s in spots) - left
+    height = max(s[1] + s[3] for s in spots) - top
+    k = min(BOARD_W / width, PLACE["height"] / height)
+    CW, CH = round(width * k), round(height * k)
+    CX, CY = (W - CW) // 2, PLACE["top"] + (PLACE["height"] - CH) // 2
+    return [[(x - left) * k, (y - top) * k, w * k, h * k] for x, y, w, h in spots]
+
 def setup(pack):
-    """Each poster's tile at its place in the collage (screen px, collage top-left = 0, 0)."""
+    """Each poster's tile at its place in the formation (screen px, formation top-left = 0, 0)."""
     n = len(pack["posters"])
     layout = LAYOUTS.get(n) or grid(math.ceil(math.sqrt(n)))
-    k, gap = CW / 3, 7
+    spots = set_board(pack["spots"][:n] if len(pack["spots"]) >= n else [[x + 0.03, y + 0.03, w - 0.06, h - 0.06] for x, y, w, h in layout[:n]])
     tiles = []
     for i, img in enumerate(pack["posters"]):
-        x, y, w, h = layout[i]
-        left, top = round(x * k + gap), round(y * k + gap)
-        tw, th = round((x + w) * k - gap) - left, round((y + h) * k - gap) - top
+        x, y, w, h = spots[i]
+        left, top = round(x), round(y)
+        tw, th = round(x + w) - left, round(y + h) - top
         tile, pad = poster_tile(img, tw, th)
         tiles.append(dict(tile=tile, pad=pad, left=left, top=top, w=tw, h=th, src=img))
     return tiles
@@ -458,18 +394,100 @@ def draw_tile(frame, tl, cx, cy, scale=1.0, rot=0.0, alpha=1.0, flash=0.0):
         img.putalpha(img.getchannel("A").point(lambda v: round(v * alpha)))
     frame.alpha_composite(img, (round(cx - img.width / 2), round(cy - img.height / 2)))
 
+def warp(frame, img, quad):
+    """Draw img with its corners (top left, top right, bottom right, bottom left) on these screen points."""
+    x0, y0 = max(0, math.floor(min(p[0] for p in quad))), max(0, math.floor(min(p[1] for p in quad)))
+    x1, y1 = min(W, math.ceil(max(p[0] for p in quad))), min(H, math.ceil(max(p[1] for p in quad)))
+    if x1 - x0 < 2 or y1 - y0 < 2:
+        return
+    iw, ih = img.size
+    rows, ends = [], []
+    for (sx, sy), (dx, dy) in zip([(0, 0), (iw, 0), (iw, ih), (0, ih)], quad):
+        dx, dy = dx - x0, dy - y0
+        rows += [[dx, dy, 1, 0, 0, 0, -sx * dx, -sx * dy], [0, 0, 0, dx, dy, 1, -sy * dx, -sy * dy]]
+        ends += [sx, sy]
+    coeffs = np.linalg.solve(np.array(rows, float), np.array(ends, float))
+    frame.alpha_composite(img.transform((x1 - x0, y1 - y0), Image.PERSPECTIVE, tuple(coeffs), Image.BICUBIC), (x0, y0))
+
+def turned(x, y, ry, rx, far):
+    """A point on a flat wall (from its turning point) after the shop's rotateY + rotateX, seen from `far` px away."""
+    ry, rx = math.radians(ry), math.radians(rx)
+    ty, tz = y * math.cos(rx), y * math.sin(rx)
+    tx, z = x * math.cos(ry) + tz * math.sin(ry), -x * math.sin(ry) + tz * math.cos(ry)
+    k = far / (far - z)
+    return tx * k, ty * k
+
 def home(tl):
     """A tile's centre on screen when the collage sits at rest."""
     return CX + tl["left"] + tl["w"] / 2, CY + tl["top"] + tl["h"] / 2
 
-def assets(pack, dark=False):
-    ink, muted = (NIGHT_INK, NIGHT_MUTED) if dark else (INK, MUTED)
+def wall_chips(pack, ink, line):
+    """The size boxes from the shop's wall page: 6 × 9 in / 2 pcs, 4 × 6 in / 4 pcs, Wall space / 1.2 × 1.5 ft."""
+    big = sum(1 for s in pack["sizes"] if s == 9)
+    small = len(pack["sizes"]) - big
+    boxes = [(label, f"{c} {'pc' if c == 1 else 'pcs'}") for label, c in (("6 × 9 in", big), ("4 × 6 in", small)) if c]
+    if pack["feet"]:
+        boxes.append(("Wall space", pack["feet"]))
+    bw, bh, gap = 300 if len(boxes) == 3 else 340, 132, 18
+    out = Image.new("RGBA", (bw * len(boxes) + gap * (len(boxes) - 1), bh + 8), (0, 0, 0, 0))
+    d = ImageDraw.Draw(out)
+    for i, (label, value) in enumerate(boxes):
+        x = i * (bw + gap)
+        d.rounded_rectangle([x, 4, x + bw - 1, bh], 30, fill=(255, 255, 255, 255), outline=line, width=3)
+        d.text((x + 28, 26), label, font=rounded_font(30, 500), fill=MUTED)
+        d.text((x + 28, 66), value, font=fit_font(lambda z: rounded_font(z, 800), value, bw - 50, 44), fill=ink)
+    return out
+
+def buy_panel(pack, a):
+    """The shop's buy panel: name, price, size boxes, button, what you get. White, rounded on top."""
+    m, pw = 60, W - 120
+    panel = Image.new("RGBA", (W, 1140), (0, 0, 0, 0))
+    glow = Image.new("L", panel.size, 0)
+    ImageDraw.Draw(glow).rounded_rectangle([0, 30, W, 1300], 56, fill=70)
+    panel.putalpha(glow.filter(ImageFilter.GaussianBlur(16)))
+    d = ImageDraw.Draw(panel)
+    d.rounded_rectangle([0, 30, W, 1300], 56, fill=(255, 255, 255, 255))
+    name = pack["title"] + " Wall" if not pack["title"].endswith("Wall") else pack["title"]
+    d.text((m, 72), name, font=fit_font(lambda z: rounded_font(z, 800), name, pw, 78), fill=INK)
+    price = text_layer(inr(pack["price"]), rounded_font(104, 900), ORANGE, pad=0)
+    panel.alpha_composite(price, (m, 176))
+    x = m + price.width + 26
+    if pack["compare"] and pack["compare"] > pack["price"]:
+        c = text_layer(inr(pack["compare"]), rounded_font(54, 600), MUTED, pad=4)
+        ImageDraw.Draw(c).line([2, c.height // 2 + 2, c.width - 2, c.height // 2 + 2], fill=MUTED, width=5)
+        panel.alpha_composite(c, (x, 212))
+        panel.alpha_composite(a["badge"], (x + c.width + 24, 208))
+    panel.alpha_composite(a["chips"], ((W - a["chips"].width) // 2, 322))
+    d.rounded_rectangle([m, 494, m + pw, 610], 34, fill=YELLOW)
+    d.text((W / 2, 552), "Shop at stickypie.in", font=rounded_font(52, 800), fill=INK, anchor="mm")
+    perks = ["300 GSM poster paper", "Glue dots or tape included", "Walls, doors & cupboards", "Ships in 2–4 days"]
+    for i, perk in enumerate(perks):
+        px, py = m + 6 + (i % 2) * 490, 648 + (i // 2) * 54
+        d.ellipse([px, py + 8, px + 20, py + 28], fill=(18, 161, 80))
+        d.text((px + 34, py), perk, font=rounded_font(32, 500), fill=MUTED)
+    return panel
+
+def shop_bg():
+    """The shop's page: cream dots with a warm yellow glow from the top left."""
+    bg = background()
+    glow = Image.new("L", (W, H), 0)
+    ImageDraw.Draw(glow).ellipse([-500, -500, 800, 800], fill=120)
+    return Image.composite(Image.new("RGB", (W, H), (255, 232, 160)), bg, glow.filter(ImageFilter.GaussianBlur(200)))
+
+def assets(pack, dark=False, design="wall"):
+    # plain ink reads better than the muted brown on a painted wall
+    painted = design == "wall" and pack["paint"]
+    ink, muted = (NIGHT_INK, NIGHT_MUTED) if dark else (INK, INK if painted else MUTED)
     n = len(pack["posters"])
-    a = dict(ink=ink, muted=muted)
-    a["title"] = text_layer(pack["title"].upper(), fit_font(DISPLAY, pack["title"].upper(), W - 120, 110), ink)
+    a = dict(ink=ink, muted=muted, slot=(120, 114, 108, 255) if dark else (255, 255, 255, 215) if painted else (214, 196, 188, 255))
+    if design == "bold":
+        a["title"] = text_layer(pack["title"].upper(), fit_font(DISPLAY, pack["title"].upper(), W - 90, 170), YELLOW)
+    else:
+        a["title"] = text_layer(pack["title"].upper(), fit_font(DISPLAY, pack["title"].upper(), W - 120, 110), ink)
     a["kicker"] = pill("WALL POSTER SET", HEAD(34), YELLOW if dark else ORANGE, INK if dark else (255, 255, 255), padx=26, pady=12)
-    a["count"] = pill(f"{n} mini posters", HEAD(44), (40, 40, 44) if dark else (255, 255, 255), ink)
-    a["sizes"] = text_layer(size_text(pack["sizes"]), HEAD(40), muted)
+    a["count"] = pill(f"{n} wall posters", HEAD(44), (40, 40, 44) if dark else (255, 255, 255), ink)
+    line = size_text(pack["sizes"]) + (f"  ·  {pack['feet']}" if pack["feet"] else "")
+    a["sizes"] = text_layer(line, fit_font(HEAD, line, W - 120, 40), muted)
     a["price"] = text_layer(inr(pack["price"]), rounded_font(150, 900), ink)
     a["compare"] = a["badge"] = None
     if pack["compare"] and pack["compare"] > pack["price"]:
@@ -484,12 +502,55 @@ def assets(pack, dark=False):
     lb.alpha_composite(logo, (0, (lb.height - logo.height) // 2))
     lb.alpha_composite(brand, (logo.width + 18, (lb.height - brand.height) // 2))
     a["brand"] = lb
+    if design == "shop":
+        a["chips"] = wall_chips(pack, INK, (234, 223, 215, 255))
+        if a["badge"] is None:
+            a["badge"] = pill("WALL SET", HEAD(40), ORANGE, (255, 255, 255), padx=26, pady=12)
+        a["panel"] = buy_panel(pack, a)
     return a
 
 def show_title(frame, a, t):
     """Kicker + pack name at the top (t: seconds since they started popping in)."""
-    pop(frame, a["kicker"], W / 2, 200, t / 0.4)
-    pop(frame, a["title"], W / 2, 295, (t - 0.1) / 0.45)
+    pop(frame, a["kicker"], W / 2, PLACE["kicker"], t / 0.4)
+    pop(frame, a["title"], W / 2, PLACE["title"], (t - 0.1) / 0.45)
+
+def size_map(pack, tiles, a):
+    """The shop's Size map at the formation's place: each poster faded back with its size on a tag, measured in cm."""
+    out = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    ink = a["ink"]
+    for i, tl in enumerate(tiles):
+        art = Image.blend(Image.new("L", tl["src"].size, 255), tl["src"].convert("L"), 0.38).convert("RGBA")
+        tile, pad = poster_tile(art, tl["w"], tl["h"])
+        out.alpha_composite(tile, (CX + tl["left"] - pad, CY + tl["top"] - pad))
+        big = pack["sizes"][i] == 9
+        tag = pill("6×9 in" if big else "4×6 in", HEAD(max(24, min(46, round(tl["w"] * 0.15)))), INK if big else (255, 255, 255), (255, 255, 255) if big else INK, padx=18, pady=10)
+        out.alpha_composite(tag, (round(CX + tl["left"] + tl["w"] / 2 - tag.width / 2), round(CY + tl["top"] + tl["h"] / 2 - tag.height / 2)))
+    spots = pack["spots"]
+    # a poster's real size gives the scale, across and down (same sums as the shop)
+    across = (6 if pack["sizes"][0] == 9 else 4) / spots[0][2]
+    down = (9 if pack["sizes"][0] == 9 else 6) / spots[0][3]
+    wide = round((max(s[0] + s[2] for s in spots) - min(s[0] for s in spots)) * across * 2.54)
+    tall = round((max(s[1] + s[3] for s in spots) - min(s[1] for s in spots)) * down * 2.54)
+    def ruler(length, label):
+        """A dimension line with its length in the middle, drawn across."""
+        tag = text_layer(label, HEAD(38), ink, pad=8)
+        l = Image.new("RGBA", (length, tag.height), (0, 0, 0, 0))
+        d = ImageDraw.Draw(l)
+        mid = l.height // 2
+        d.line([(0, mid), (length, mid)], fill=ink, width=4)
+        d.line([(1, mid - 12), (1, mid + 12)], fill=ink, width=4)
+        d.line([(length - 2, mid - 12), (length - 2, mid + 12)], fill=ink, width=4)
+        d.rectangle([(length - tag.width) // 2 - 10, 0, (length + tag.width) // 2 + 10, l.height], fill=(0, 0, 0, 0))
+        l.alpha_composite(tag, ((length - tag.width) // 2, 0))
+        return l
+    top = ruler(CW, f"{wide} cm")
+    out.alpha_composite(top, (CX, CY - top.height - 12))
+    side = ruler(CH, f"{tall} cm").rotate(90, expand=True)
+    out.alpha_composite(side, (max(0, CX - side.width - 10), CY))
+    words = f"To scale · {size_text(pack['sizes'])} · covers about {wide} × {tall} cm"
+    note = text_layer(words, fit_font(HEAD, words, W - 90, 40), ink)
+    out.alpha_composite(note, ((W - note.width) // 2, CY + CH + 40))
+    return out
 
 def night_bg():
     bg = Image.new("RGB", (W, H), DARK_BG)
@@ -500,17 +561,189 @@ def night_bg():
     return Image.composite(warm, bg, glow)
 
 def slot_outlines(tiles, color):
+    """A dashed outline where each poster will go."""
     l = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(l)
     for tl in tiles:
         x0, y0 = CX + tl["left"], CY + tl["top"]
-        d.rounded_rectangle([x0, y0, x0 + tl["w"], y0 + tl["h"]], max(6, round(tl["w"] * 0.035)), outline=color, width=3)
+        x1, y1 = x0 + tl["w"], y0 + tl["h"]
+        d.rectangle([x0, y0, x1, y1], fill=color[:3] + (28,))
+        for x in range(x0, x1, 22):
+            d.line([(x, y0), (min(x + 12, x1), y0)], fill=color, width=3)
+            d.line([(x, y1), (min(x + 12, x1), y1)], fill=color, width=3)
+        for y in range(y0, y1, 22):
+            d.line([(x0, y), (x0, min(y + 12, y1))], fill=color, width=3)
+            d.line([(x1, y), (x1, min(y + 12, y1))], fill=color, width=3)
     return l
 
 def faded(layer, a):
     l = layer.copy()
     l.putalpha(l.getchannel("A").point(lambda v: round(v * a)))
     return l
+
+def left_to_right(tiles):
+    return sorted(range(len(tiles)), key=lambda i: (tiles[i]["left"] + tiles[i]["w"] / 2, tiles[i]["top"]))
+
+def intro_classic(pack, tiles, a):
+    n = len(tiles)
+    hook = text_layer("BLANK WALL?", DISPLAY(118), a["ink"])
+    slots = slot_outlines(tiles, a["slot"])
+    t0 = 1.0
+    step = min(0.42, 3.4 / n)
+    t_built = t0 + step * (n - 1) + 0.5
+    def draw(frame, t):
+        if t < t_built + 0.4:
+            frame.alpha_composite(faded(slots, 1 - clamp((t - t0) / (t_built - t0 + 0.4))))
+        for i, tl in enumerate(tiles):
+            p = clamp((t - (t0 + i * step)) / 0.45)
+            if p <= 0:
+                continue
+            hx, hy = home(tl)
+            draw_tile(frame, tl, hx, hy - 70 * (1 - ease_out(p)), scale=1.35 - 0.35 * ease_out_back(p, 1.3),
+                      rot=(8 if i % 2 else -8) * (1 - ease_out(p)), alpha=clamp(p * 3))
+        if t < t0:
+            pop(frame, hook, W / 2, PLACE["hook"], t / 0.4)
+        else:
+            show_title(frame, a, t - t0)
+    return t_built + 0.2, draw
+
+def intro_sweep(pack, tiles, a):
+    """The whole wall glides round from the side, posters landing as it turns."""
+    n = len(tiles)
+    hook = text_layer("WALL GOALS.", DISPLAY(118), a["ink"])
+    outlines = slot_outlines(tiles, a["slot"]).crop((CX - 100, CY - 100, CX + CW + 100, CY + CH + 100))
+    order = left_to_right(tiles)
+    t0, swing = 0.7, 2.5
+    step = min(0.16, 1.7 / n)
+    t_title = t0 + 1.5
+    far = CW * 1.8
+    cx, cy = CX + CW / 2, CY + CH / 2
+    def draw(frame, t):
+        e = ease_out_long(clamp((t - t0) / swing))
+        wall = faded(outlines, 1 - clamp((t - t0) / (step * n + 0.6)))
+        for k, i in enumerate(order):
+            p = clamp((t - t0 - 0.1 - k * step) / 0.55)
+            if p <= 0:
+                continue
+            tl = tiles[i]
+            spot = (100 + tl["left"] - tl["pad"] + round(30 * (1 - ease_out(p))), 100 + tl["top"] - tl["pad"])
+            wall.alpha_composite(tl["tile"] if p >= 1 else faded(tl["tile"], p), spot)
+        scale = 0.82 + 0.18 * e
+        ry, rx = -34 * (1 - e), 4 * (1 - e)
+        hw, hh = wall.width / 2 * scale, wall.height / 2 * scale
+        corners = [turned(x, y, ry, rx, far) for x, y in ((-hw, -hh), (hw, -hh), (hw, hh), (-hw, hh))]
+        warp(frame, wall, [(cx + x, cy + y) for x, y in corners])
+        if t < t_title:
+            pop(frame, hook, W / 2, PLACE["hook"], t / 0.4)
+        else:
+            show_title(frame, a, t - t_title)
+    return t0 + swing + 0.4, draw
+
+def intro_doors(pack, tiles, a):
+    """Each poster swings open on its left edge, in a wave."""
+    n = len(tiles)
+    hook = text_layer("OPEN THE WALL.", DISPLAY(104), a["ink"])
+    slots = slot_outlines(tiles, a["slot"])
+    order = left_to_right(tiles)
+    t0, swing = 1.0, 1.0
+    step = min(0.24, 2.6 / n)
+    t_done = t0 + step * (n - 1) + swing
+    def draw(frame, t):
+        if t < t_done:
+            frame.alpha_composite(faded(slots, 1 - clamp((t - t0) / (t_done - t0))))
+        for k, i in enumerate(order):
+            p = clamp((t - t0 - k * step) / swing)
+            if p <= 0:
+                continue
+            tl = tiles[i]
+            if p >= 1:
+                draw_tile(frame, tl, *home(tl))
+                continue
+            ang = -82 * (1 - ease_out_long(p))
+            far = tl["w"] * 3.5
+            pad, img = tl["pad"], tl["tile"]
+            hinge, cy = CX + tl["left"], CY + tl["top"] + tl["h"] / 2
+            corners = [turned(x, y, ang, 0, far) for x, y in ((-pad, -img.height / 2), (img.width - pad, -img.height / 2), (img.width - pad, img.height / 2), (-pad, img.height / 2))]
+            warp(frame, faded(img, clamp(p / 0.15)), [(hinge + x, cy + y) for x, y in corners])
+        if t < t_done - 0.4:
+            pop(frame, hook, W / 2, PLACE["hook"], t / 0.4)
+        else:
+            show_title(frame, a, t - t_done + 0.4)
+    return t_done + 0.7, draw
+
+def intro_pull(pack, tiles, a):
+    """Starts close on the biggest poster, then pulls back to the whole wall as the rest fade in."""
+    hs = 2.4
+    hook = text_layer("STEP BACK.", DISPLAY(112), (255, 255, 255), stroke=10, stroke_fill=INK)
+    big = max(range(len(tiles)), key=lambda i: tiles[i]["w"] * tiles[i]["h"])
+    bx, by = tiles[big]["left"] + tiles[big]["w"] / 2, tiles[big]["top"] + tiles[big]["h"] / 2
+    away = [math.hypot(tl["left"] + tl["w"] / 2 - bx, tl["top"] + tl["h"] / 2 - by) for tl in tiles]
+    far = max(away) or 1
+    z0 = min(2.3, 880 / tiles[big]["w"], 1200 / tiles[big]["h"])
+    t0, pull = 0.9, 2.9
+    starts = [t0 + 0.2 + d / far * 1.5 for d in away]
+    hi = []
+    for tl in tiles:
+        img, pad = poster_tile(tl["src"], round(tl["w"] * hs), round(tl["h"] * hs))
+        hi.append((img, (round((100 + tl["left"]) * hs) - pad, round((100 + tl["top"]) * hs) - pad)))
+    wall = Image.new("RGBA", (round(CW * hs) + 2 * round(100 * hs), round(CH * hs) + 2 * round(100 * hs)), (0, 0, 0, 0))
+    wall.alpha_composite(*hi[big])
+    placed = {big}
+    t_title = t0 + 1.7
+    def draw(frame, t):
+        e = ease_in_out(clamp((t - t0) / pull))
+        s = z0 + (1 - z0) * e
+        now = wall.copy() if len(placed) < len(tiles) else wall
+        for i, (img, spot) in enumerate(hi):
+            if i in placed:
+                continue
+            p = clamp((t - starts[i]) / 0.6)
+            if p >= 1:
+                wall.alpha_composite(img, spot)
+                placed.add(i)
+            if p > 0:
+                now.alpha_composite(faded(img, p), spot)
+        cx, cy = bx + (CW / 2 - bx) * e, by + (CH / 2 - by) * e
+        paste_collage(frame, now, hs, W / 2 - cx * s, CY + CH / 2 - cy * s, s)
+        if t < t_title:
+            pop(frame, hook, W / 2, 230, t / 0.4)
+        else:
+            show_title(frame, a, t - t_title)
+    return t0 + pull + 0.5, draw
+
+def intro_deal(pack, tiles, a):
+    """A stack in the middle deals out to each poster's place."""
+    n = len(tiles)
+    hook = text_layer("DEAL ME IN.", DISPLAY(118), a["ink"])
+    order = left_to_right(tiles)
+    tilt = [(1 if i % 2 else -1) * (4 + (i % 4) * 3) for i in range(n)]
+    cx, cy = CX + CW / 2, CY + CH / 2
+    t0, fly = 1.1, 0.85
+    step = min(0.2, 2.4 / n)
+    t_done = t0 + step * (n - 1) + fly
+    def draw(frame, t):
+        stack, moving = [], []
+        for k, i in enumerate(order):
+            p = clamp((t - t0 - k * step) / fly)
+            tl = tiles[i]
+            if p <= 0:
+                stack.append((k, i))
+            elif p >= 1:
+                draw_tile(frame, tl, *home(tl))
+            else:
+                moving.append((i, ease_out_long(p)))
+        # the next poster to go is on top of the stack
+        for k, i in reversed(stack):
+            drop = -120 * (1 - ease_out(clamp(t / 0.4 - k * 0.04)))
+            draw_tile(frame, tiles[i], cx, cy + drop, scale=0.72, rot=tilt[i], alpha=clamp(t / 0.25 - k * 0.04))
+        for i, e in moving:
+            hx, hy = home(tiles[i])
+            draw_tile(frame, tiles[i], cx + (hx - cx) * e, cy + (hy - cy) * e, scale=0.72 + 0.28 * e, rot=tilt[i] * (1 - e))
+        if t < t_done - 0.4:
+            pop(frame, hook, W / 2, PLACE["hook"], t / 0.4)
+        else:
+            show_title(frame, a, t - t_done + 0.4)
+    return t_done + 0.7, draw
 
 def intro_night(pack, tiles, a):
     n = len(tiles)
@@ -530,25 +763,21 @@ def intro_night(pack, tiles, a):
             flick = 0.35 if 0.25 < p < 0.4 else 1.0
             draw_tile(frame, tl, *home(tl), alpha=clamp(p * 2.2) * flick, flash=max(0.0, 1 - clamp(p)) * 0.9)
         if t < t0:
-            pop(frame, hook, W / 2, 270, t / 0.4)
+            pop(frame, hook, W / 2, PLACE["hook"], t / 0.4)
         else:
             show_title(frame, a, t - (t0 + step * (n - 1) + 0.2))
     return dur, draw
 
 def intro_beforeafter(pack, tiles, a, collage_full):
-    before = text_layer("BEFORE", DISPLAY(130), INK)
+    before = text_layer("BEFORE", DISPLAY(130), a["ink"])
     tag_b = pill("BEFORE", HEAD(36), (255, 255, 255), INK, padx=24, pady=12)
     tag_a = pill("AFTER", HEAD(36), ORANGE, (255, 255, 255), padx=24, pady=12)
-    wall = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    ImageDraw.Draw(wall).rounded_rectangle([CX - 20, CY - 20, CX + CW + 20, CY + CH + 20], 26, fill=(244, 236, 228, 255), outline=(226, 214, 204, 255), width=3)
     t_wipe, wipe = 1.4, 1.6
     dur = t_wipe + wipe + 1.0
     x_from, x_to = CX - 60, CX + CW + 60
     def draw(frame, t):
         p = ease_in_out(clamp((t - t_wipe) / wipe))
         bx = round(x_from + (x_to - x_from) * p)
-        if p < 1:
-            frame.alpha_composite(wall.crop((bx, 0, W, H)), (bx, 0))
         if p > 0:
             frame.alpha_composite(collage_full.crop((0, 0, max(1, bx), H)), (0, 0))
         if 0 < p < 1:
@@ -560,7 +789,7 @@ def intro_beforeafter(pack, tiles, a, collage_full):
             frame.alpha_composite(tag_a, (bx - tag_a.width - 30, CY + 30))
             frame.alpha_composite(tag_b, (bx + 30, CY + 30))
         if t < t_wipe + 0.2:
-            pop(frame, before, W / 2, 270, t / 0.4)
+            pop(frame, before, W / 2, PLACE["hook"], t / 0.4)
             if t < t_wipe:
                 frame.alpha_composite(tag_b, (round(W / 2 - tag_b.width / 2), round(CY + CH / 2 - tag_b.height / 2)))
         else:
@@ -571,7 +800,7 @@ def intro_onebyone(pack, tiles, a):
     n = len(tiles)
     BW, BH = 680, 1020
     bigs = [poster_tile(img, BW, BH) for img in pack["posters"]]
-    head = text_layer("WHAT'S INSIDE?", DISPLAY(96), INK)
+    head = text_layer("WHAT'S INSIDE?", DISPLAY(96), a["ink"])
     step = min(0.7, 6.0 / n)
     t_all = n * step
     t_done = t_all + 0.75
@@ -592,7 +821,7 @@ def intro_onebyone(pack, tiles, a):
                 draw_tile(frame, tl, x, BY, rot=rot)
             cur = min(n, int(t / step) + 1)
             pop(frame, head, W / 2, 230, t / 0.4)
-            counter = pill(f"{cur} / {n}", HEAD(46), INK, (255, 255, 255), padx=30, pady=14)
+            counter = pill(f"{cur} / {n}", HEAD(46), ORANGE, (255, 255, 255), padx=30, pady=14)
             frame.alpha_composite(counter, (round(W / 2 - counter.width / 2), round(BY + BH / 2 + 34)))
         else:
             e = ease_in_out(clamp((t - t_all) / 0.75))
@@ -629,7 +858,7 @@ def intro_scatter(pack, tiles, a):
     n = len(tiles)
     rnd = random.Random(pack["slug"])
     pile = [(W / 2 + rnd.uniform(-230, 230), 900 + rnd.uniform(-300, 300), rnd.uniform(-28, 28)) for _ in tiles]
-    hook1 = text_layer("FROM A PILE…", DISPLAY(104), INK)
+    hook1 = text_layer("FROM A PILE…", DISPLAY(104), a["ink"])
     hook2 = text_layer("…TO A WALL.", DISPLAY(104), ORANGE)
     t_drop, t_go = 0.1, 1.9
     s2 = min(0.18, 1.8 / n)
@@ -698,7 +927,7 @@ def intro_polaroid(pack, tiles, a, collage_full):
         y = top + r * h_avail + 30
         sag = 22 * (1 - ((x - W / 2) / (W / 2)) ** 2)
         pins.append((x, y + sag))
-    hook = text_layer("HANG IT UP.", DISPLAY(110), INK)
+    hook = text_layer("HANG IT UP.", DISPLAY(110), a["ink"])
     t0, step = 0.9, min(0.33, 3.0 / n)
     t_hung = t0 + step * (n - 1) + 1.1
     dur = t_hung + 0.7 + 0.8
@@ -746,9 +975,8 @@ def intro_quickcuts(pack, tiles, a, hi):
     def draw(frame, t):
         if t < t_wall:
             i = int(max(0, t - 0.5) / slot) if t >= 0.5 else -1
-            col = colors[(i + 4) % len(colors)] if i >= 0 else BG
-            frame.paste(Image.new("RGBA", (W, H), col + (255,)), (0, 0))
             if i >= 0:
+                frame.paste(Image.new("RGBA", (W, H), colors[(i + 4) % len(colors)] + (255,)), (0, 0))
                 p = ((t - 0.5) - i * slot) / slot
                 s = 1.12 - 0.12 * ease_out(clamp(p * 2))
                 draw_tile(frame, dict(tile=bigs[min(i, n - 1)]), W / 2, 960, scale=s, rot=(3 if i % 2 else -3))
@@ -778,7 +1006,7 @@ def intro_flip(pack, tiles, a):
         s = int(min(tl["w"], tl["h"]) * 0.42)
         back.alpha_composite(logo.resize((s, s), Image.LANCZOS), ((tl["w"] - s) // 2, (tl["h"] - s) // 2))
         backs.append(dict(tile=poster_tile(back, tl["w"], tl["h"])[0]))
-    hook = text_layer("FLIP IT.", DISPLAY(118), INK)
+    hook = text_layer("FLIP IT.", DISPLAY(118), a["ink"])
     rows = sorted({tl["top"] for tl in tiles})
     colsx = sorted({tl["left"] for tl in tiles})
     delays = [0.13 * (rows.index(tl["top"]) + colsx.index(tl["left"])) for tl in tiles]
@@ -800,7 +1028,7 @@ def intro_flip(pack, tiles, a):
                 sx = -math.cos(p * math.pi)
                 draw_tile(frame, squash(tl, max(0.02, sx)), hx, hy)
         if t < t_done - 0.3:
-            pop(frame, hook, W / 2, 250, t / 0.4)
+            pop(frame, hook, W / 2, PLACE["hook"], t / 0.4)
         else:
             show_title(frame, a, t - t_done + 0.3)
     return dur, draw
@@ -808,7 +1036,7 @@ def intro_flip(pack, tiles, a):
 def intro_rows(pack, tiles, a):
     """Rows of posters slide in from alternating sides."""
     rows = sorted({tl["top"] for tl in tiles})
-    hook = text_layer("ROW BY ROW.", DISPLAY(110), INK)
+    hook = text_layer("ROW BY ROW.", DISPLAY(110), a["ink"])
     t0, gap = 0.9, 0.5
     starts = []
     for i, tl in enumerate(tiles):
@@ -826,20 +1054,42 @@ def intro_rows(pack, tiles, a):
             off = (1 - ease_out_back(p, 1.2)) * (W * 0.9) * side
             draw_tile(frame, tl, hx + off, hy, rot=-6 * side * (1 - p))
         if t < t_done - 0.3:
-            pop(frame, hook, W / 2, 230, t / 0.4)
+            pop(frame, hook, W / 2, PLACE["hook"], t / 0.4)
         else:
             show_title(frame, a, t - t_done + 0.3)
     return dur, draw
 
-def render_theme(pack, frames_dir, theme):
+def design_bg(pack, theme, design):
+    if theme == "night":
+        return night_bg()
+    if design == "bold":
+        return Image.new("RGB", (W, H), INK)
+    if design == "shop":
+        return shop_bg()
+    return paint_bg(pack["paint"]) if design == "wall" and pack["paint"] else background()
+
+def render_theme(pack, frames_dir, theme, design="wall"):
+    global PLACE
+    PLACE = PLACES[design]
     tiles = setup(pack)
-    dark = theme == "night"
-    a = assets(pack, dark)
-    bg = night_bg() if dark else background()
+    dark = theme == "night" or design == "bold"
+    a = assets(pack, dark, design)
+    bg = design_bg(pack, theme, design)
+    size_layer = size_map(pack, tiles, a) if design == "sizemap" and len(pack["spots"]) >= len(tiles) else None
     hi = collage_image(tiles)
     collage_full = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     paste_collage(collage_full, hi, 1, CX, CY, 1)
-    if theme == "night":
+    if theme == "classic":
+        dur, intro = intro_classic(pack, tiles, a)
+    elif theme == "sweep":
+        dur, intro = intro_sweep(pack, tiles, a)
+    elif theme == "doors":
+        dur, intro = intro_doors(pack, tiles, a)
+    elif theme == "pull":
+        dur, intro = intro_pull(pack, tiles, a)
+    elif theme == "deal":
+        dur, intro = intro_deal(pack, tiles, a)
+    elif theme == "night":
         dur, intro = intro_night(pack, tiles, a)
     elif theme == "beforeafter":
         dur, intro = intro_beforeafter(pack, tiles, a, collage_full)
@@ -861,7 +1111,7 @@ def render_theme(pack, frames_dir, theme):
     else:
         raise SystemExit(f"unknown theme {theme}")
 
-    t_info, t_end = dur, dur + 2.4
+    t_info, t_end = dur, dur + (3.6 if size_layer else 2.4)
     total = t_end + 3.4
     nframes = round(total * FPS)
     cover = None
@@ -873,21 +1123,38 @@ def render_theme(pack, frames_dir, theme):
         else:
             # what's inside, then the price card (same for every theme)
             if t < t_end:
-                z = 1 + 0.05 * ease_in_out(clamp((t - t_info) / (t_end - t_info)))
+                z = 1 if size_layer else 1 + 0.05 * ease_in_out(clamp((t - t_info) / (t_end - t_info)))
                 paste_collage(frame, hi, 1, CX - CW * (z - 1) / 2, CY - CH * (z - 1) / 2, z)
                 show_title(frame, a, 9)
-                pop(frame, a["count"], W / 2, CY + CH + 80, (t - t_info) / 0.45)
-                pop(frame, a["sizes"], W / 2, CY + CH + 150, (t - t_info - 0.25) / 0.45)
+                if size_layer:
+                    frame.alpha_composite(faded(size_layer, min(clamp((t - t_info - 0.3) / 0.5), clamp((t_end - t) / 0.35))))
+                elif design == "shop":
+                    pop(frame, a["chips"], W / 2, CY + CH + 110, (t - t_info) / 0.45)
+                    pop(frame, a["badge"], max(CX, 150), CY + 30, (t - t_info - 0.3) / 0.45)
+                else:
+                    y = PLACE["info"] or CY + CH + 80
+                    pop(frame, a["count"], W / 2, y, (t - t_info) / 0.45)
+                    pop(frame, a["sizes"], W / 2, y + 70, (t - t_info - 0.25) / 0.45)
+            elif design == "shop":
+                # the formation moves up and the buy panel slides in under it
+                te = t - t_end
+                e = ease_in_out(clamp(te / 0.7))
+                z1 = min(0.9, 560 / CH, 960 / CW)
+                s = 1.05 + (z1 - 1.05) * e
+                ox0, oy0 = CX - CW * 0.025, CY - CH * 0.025
+                ox1, oy1 = (W - CW * z1) / 2, 200 + (560 - CH * z1) / 2
+                paste_collage(frame, hi, 1, ox0 + (ox1 - ox0) * e, oy0 + (oy1 - oy0) * e, s)
+                frame.alpha_composite(a["panel"], (0, round(H - 1140 * ease_out(clamp((te - 0.1) / 0.6)))))
             else:
                 te = t - t_end
                 e = ease_in_out(clamp(te / 0.7))
-                z0, z1 = 1.05, 0.62
+                z0, z1 = 1.05, min(0.9, END_H / CH)
                 s = z0 + (z1 - z0) * e
                 ox0, oy0 = CX - CW * (z0 - 1) / 2, CY - CH * (z0 - 1) / 2
-                ox1, oy1 = (W - CW * z1) / 2, 250
+                ox1, oy1 = (W - CW * z1) / 2, 250 + (END_H - CH * z1) / 2
                 paste_collage(frame, hi, 1, ox0 + (ox1 - ox0) * e, oy0 + (oy1 - oy0) * e, s)
                 pop(frame, a["title"], W / 2, 180, 1)
-                base = 250 + CH * 0.62 + 60
+                base = 250 + END_H + 60
                 c = a["compare"]
                 pop(frame, a["price"], W / 2 - (c.width / 2 + 10 if c else 0), base + 90, (te - 0.45) / 0.45)
                 if c:
@@ -900,27 +1167,27 @@ def render_theme(pack, frames_dir, theme):
             cover = frame.convert("RGB")
     return nframes, cover
 
-THEMES = ["classic", "night", "beforeafter", "onebyone", "zoom", "scatter", "polaroid", "quickcuts", "flip", "rows"]
+THEMES = ["classic", "sweep", "doors", "pull", "deal", "night", "beforeafter", "onebyone", "zoom", "scatter", "polaroid", "quickcuts", "flip", "rows"]
 
-def make(slug, theme="classic"):
+def make(slug, theme="classic", design="wall"):
     pack = load_pack(slug)
     os.makedirs(OUT, exist_ok=True)
     frames_dir = tempfile.mkdtemp(prefix="reel-")
-    name = slug if theme == "classic" else f"{slug}-{theme}"
+    name = reel_name(slug, theme, design)
     try:
-        nframes, cover = render(pack, frames_dir) if theme == "classic" else render_theme(pack, frames_dir, theme)
+        nframes, cover = render_theme(pack, frames_dir, theme, design)
         out = os.path.join(OUT, f"{name}.mp4")
         subprocess.run(["swift", os.path.join(HERE, "encode.swift"), frames_dir, out, str(FPS)], check=True)
         cover.save(os.path.join(OUT, f"{name}-cover.jpg"), quality=90)
-        write_caption(pack, theme)
-        print(f"  ✔ {pack['title']} ({theme}): {out} ({nframes / FPS:.1f} s)")
+        write_caption(pack, theme, design)
+        print(f"  ✔ {pack['title']} ({theme}, {design}): {out} ({nframes / FPS:.1f} s)")
     finally:
         shutil.rmtree(frames_dir, ignore_errors=True)
 
 if __name__ == "__main__":
     slugs = [a for a in sys.argv[1:] if not a.startswith("--")]
     if "--all" in sys.argv:
-        slugs = [p["slug"] for p in get(f"{URL}/rest/v1/products?slug=like.*-poster-pack&is_active=eq.true&select=slug&order=slug")]
+        slugs = [p["slug"] for p in get(f"{URL}/rest/v1/products?or=(slug.like.*-poster-pack,slug.like.*-wall-setup)&is_active=eq.true&select=slug&order=slug")]
     if not slugs:
         print(__doc__)
         sys.exit(1)
@@ -928,8 +1195,12 @@ if __name__ == "__main__":
     if theme not in THEMES:
         print(f"unknown theme {theme}; pick one of {', '.join(THEMES)}")
         sys.exit(1)
+    design = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--design=")), "wall")
+    if design not in DESIGNS:
+        print(f"unknown design {design}; pick one of {', '.join(DESIGNS)}")
+        sys.exit(1)
     for s in slugs:
         if "--caption-only" in sys.argv:
-            print(f"  ✔ caption: {write_caption(load_pack(s, images=False), theme)}")
+            print(f"  ✔ caption: {write_caption(load_pack(s, images=False), theme, design)}")
         else:
-            make(s, theme)
+            make(s, theme, design)
