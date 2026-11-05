@@ -24,16 +24,21 @@ import {
 import type { JobItem } from "@/components/print-job";
 
 const PREVIEW_DPI = 60;
+/** Poster files fetched at once: more than this can run the shop past its limits. */
+const AT_ONCE = 4;
 /** Phones cap canvas size (~16.7 MP); a 300 DPI 13 × 19 in is 22 MP, so they fall back to this. */
 const FALLBACK_DPI = 250;
 
 type Layout = { sheets: Placed[][]; previews: string[]; trimmed: number };
 
-function loadImage(src: string): Promise<HTMLImageElement> {
+function loadImage(src: string, tries = 3): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("Couldn't load a poster file. Check the connection and reload."));
+    img.onerror = () => {
+      if (tries > 1) setTimeout(() => loadImage(src, tries - 1).then(resolve, reject), 1500);
+      else reject(new Error("Couldn't load a poster file. Check the connection and reload."));
+    };
     img.src = src;
   });
 }
@@ -140,7 +145,8 @@ export default function PosterSheets({ token, code, items }: { token: string; co
       try {
         const posters = (item: JobItem) => [...(item.posters ?? [{ name: item.name, inches: item.sizeInches! }]).entries()];
         const file = (item: JobItem, n: number) => image(`/api/print-job/${token}/file?item=${encodeURIComponent(item.id)}&n=${n}`);
-        await Promise.all(items.flatMap((item) => posters(item).map(([f]) => file(item, f))));
+        const all = items.flatMap((item) => posters(item).map(([f]) => () => file(item, f)));
+        for (let i = 0; i < all.length; i += AT_ONCE) await Promise.all(all.slice(i, i + AT_ONCE).map((load) => load()));
         const pieces: Piece[] = [];
         let trimmed = 0;
         for (const item of items) {
