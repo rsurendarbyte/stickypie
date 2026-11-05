@@ -10,6 +10,15 @@ import { useEffect, useRef } from "react";
 const stack: string[] = [];
 /** A step left by a pop-up that unmounted a moment ago (React may remount it at once). */
 let orphan: string | null = null;
+/** A new page is loading: going back now would cancel it. */
+let leaving = false;
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", () => {
+    leaving = true;
+    // a download or a cancelled load keeps this page, so don't stay stuck
+    setTimeout(() => (leaving = false), 1000);
+  });
+}
 
 // The browser's own history methods: Next.js wraps window.history.pushState and
 // re-renders the page on it, which would close the pop-up straight away. Its
@@ -49,7 +58,7 @@ export function useBackToClose(open: boolean, close: () => void) {
       setTimeout(() => {
         if (orphan !== id) return;
         orphan = null;
-        if (window.history.state?.overlay === id) window.history.back();
+        if (!leaving && window.history.state?.overlay === id) window.history.back();
       }, 0);
     };
   }, [open]);
