@@ -5,7 +5,7 @@ import PageLink from "./page-link";
 import ImageZoom from "./image-zoom";
 import { isInternalTag, isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel, wallSize } from "@/lib/poster";
 import { useEffect, useState } from "react";
-import { BadgeCheck, Car, ChevronsUpDown, Frame, Gift, PackageX, RotateCcw, Ruler, Sparkles, Truck } from "lucide-react";
+import { BadgeCheck, Car, ChevronsUpDown, Frame, Gift, PackageX, Ruler, Sparkles, Truck } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR, packPosterSizes, packSizeSummary, posterSizeLabel } from "@stickypie/shared";
 import { pickPoster, useWallLine } from "@/lib/wall-picks";
@@ -24,7 +24,7 @@ import ProductPurchase from "./product-purchase";
 import Row from "./row";
 import { rememberPackPosters } from "@/lib/poster-images";
 import FinishPicker from "./finish-picker";
-import WallSizeMap, { WallPosterSheet, WallReset, WallViewSwitch, usePosterCatalog, type WallView } from "./wall-size-map";
+import WallSizeMap, { WallPosterSheet, WallViewSwitch, usePosterCatalog, type WallView } from "./wall-size-map";
 import WallStage from "./wall-stage";
 import SizePicker, { useLineFinish, useSizeChoice } from "./size-picker";
 import SizeRuler from "./size-ruler";
@@ -221,11 +221,6 @@ export default function ProductDetailClient({
         {wall && (
           <div className="mt-2 flex justify-center">
             <WallViewSwitch view={wallView} onChange={setWallView} />
-            {picks && (
-              <WallReset product={product} price={price} className="peel-btn peel-btn--light ml-2 inline-flex h-9 items-center gap-1.5 self-center rounded-full px-3.5 text-xs font-bold">
-                <RotateCcw className="size-3.5" strokeWidth={2.5} /> Reset wall
-              </WallReset>
-            )}
             <WallPosterSheet product={product} posters={picks} spot={spot} onClose={() => setSpot(null)} />
           </div>
         )}

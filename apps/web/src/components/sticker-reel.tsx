@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, ChevronUp, LayoutList, RotateCcw, Ruler, Share2, ShoppingBag, Truck, ZoomIn } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronUp, Info, LayoutList, RotateCcw, Ruler, Share2, ShoppingBag, Truck, ZoomIn } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { POSTER_ADHESIVE, POSTER_PAPER, belowMinimum, discountPercent, formatINR, inCategory, packPosterSizes, packSizeSummary } from "@stickypie/shared";
 import { useLiveCatalog, useStoreSettings } from "@/lib/live-catalog";
@@ -307,6 +307,38 @@ function ReelItem({
     } catch {}
   }
 
+  const wall = isWallSetup(product);
+  const actions = (
+    <>
+      {/* first: the row sits to the right, so the others stay put when it comes and goes */}
+      {picks && (
+        <WallReset product={product} price={price} className="flex flex-col items-center gap-1 text-[10px] font-bold text-snow">
+          <span className="reel-glass reel-glass--warn grid size-11 place-items-center rounded-full">
+            <RotateCcw className="size-5" />
+          </span>
+          <span className="reel-glass reel-glass--warn rounded-full px-1.5 py-px">Reset</span>
+        </WallReset>
+      )}
+      <RailButton label="Details" onClick={() => setDetails(true)}>
+        <Info className="size-5" />
+      </RailButton>
+      {pack ? (
+        <RailButton label="Zoom" onClick={() => setZoom(true)}>
+          <ZoomIn className="size-5" />
+        </RailButton>
+      ) : (
+        sizes.length > 0 && (
+          <RailButton label="Size" onClick={() => setTrueSize(true)}>
+            <Ruler className="size-5" />
+          </RailButton>
+        )
+      )}
+      <RailButton label="Share" onClick={share}>
+        <Share2 className="size-5" />
+      </RailButton>
+    </>
+  );
+
   const name = pack ? posterSetName(product.name) : poster ? product.name.replace(/\s*(—\s*)?Mini Poster\s*$/i, "") : product.name;
   return (
     <div className="relative flex h-full flex-col" style={skin.art}>
@@ -315,23 +347,22 @@ function ReelItem({
         className={`relative grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center ${pack ? "px-1" : "px-10"} pt-[calc(4.5rem+env(safe-area-inset-top,0px))] pb-4 select-none`}
         onPointerUp={onArtTap}
       >
-        {isWallSetup(product) ? (
-          <div className="relative size-full">
+        {wall ? (
+          <div className="flex size-full flex-col gap-1.5">
+            <div className="relative min-h-0 flex-1">
             {wallView !== "wall" && (
-              <div className="absolute inset-0 z-[1] pb-11">
+              <div className="absolute inset-0 z-[1]">
                 <WallSizeMap product={product} posters={picks} />
               </div>
             )}
             <div className={`size-full ${wallView !== "wall" ? "invisible" : ""}`}>
             <WallStage bare product={product} posters={picks} onRemove={(i) => pickPoster(product, i, "")} onAdd={setSpot} src={product.imageUrl} alt={product.name} className={out ? "opacity-50 saturate-50" : ""} />
             </div>
-            <div className="absolute inset-x-0 bottom-1 z-[2] flex justify-center">
+            </div>
+            {/* below the wall, so nothing sits on a poster or its close button */}
+            <div className="flex shrink-0 items-start justify-between gap-1 px-1.5 pb-1" onPointerUp={(e) => e.stopPropagation()}>
               <WallViewSwitch view={wallView} onChange={setWallView} glass />
-              {picks && (
-                <WallReset product={product} price={price} className="ml-2 inline-flex items-center gap-1 self-center rounded-full bg-snow px-3 py-1.5 text-xs font-bold text-white shadow-md">
-                  <RotateCcw className="size-3.5" strokeWidth={2.5} /> Reset
-                </WallReset>
-              )}
+              <div className="flex shrink-0 gap-1.5">{actions}</div>
             </div>
           </div>
         ) : (
@@ -355,22 +386,7 @@ function ReelItem({
       {pack && <WallPosterSheet product={product} posters={picks} spot={spot} onClose={() => setSpot(null)} />}
 
       {/* Side rail */}
-      <div className="absolute right-3 bottom-[248px] flex flex-col items-center gap-3">
-        {pack ? (
-          <RailButton label="Zoom" onClick={() => setZoom(true)}>
-            <ZoomIn className="size-5" />
-          </RailButton>
-        ) : (
-          sizes.length > 0 && (
-            <RailButton label="Size" onClick={() => setTrueSize(true)}>
-              <Ruler className="size-5" />
-            </RailButton>
-          )
-        )}
-        <RailButton label="Share" onClick={share}>
-          <Share2 className="size-5" />
-        </RailButton>
-      </div>
+      {!wall && <div className="absolute right-3 bottom-[248px] flex flex-col items-center gap-3">{actions}</div>}
 
       {/* Buy bar — always on screen */}
       <div className="reel-glass-bar rounded-t-[28px] px-4 pt-3.5 pb-[calc(0.9rem+env(safe-area-inset-bottom,0px))]">
@@ -421,16 +437,6 @@ function ReelItem({
           </div>
         )}
         <div className="mt-3 flex gap-2">
-          <button
-            type="button"
-            onClick={() => setDetails(true)}
-            aria-label="Details"
-            // icon only once in the cart, to make room for the stepper + Checkout
-            className={`reel-glass flex h-12 shrink-0 items-center justify-center gap-1 rounded-2xl text-sm font-bold ${inCart ? "w-12" : "px-4"}`}
-          >
-            <ChevronUp className="size-4" />
-            {!inCart && "Details"}
-          </button>
           {inCart ? (
             <>
               {!settings.loaded ? (
