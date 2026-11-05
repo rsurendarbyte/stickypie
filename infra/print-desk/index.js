@@ -6,7 +6,9 @@
 // through; everything else is a plain 404.
 const CLOSED = "This print job is closed";
 const BUSY_PAGE = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="5"><title>Print job</title><body style="font:16px system-ui;text-align:center;padding:20vh 16px">The print job is busy. Trying again in a moment…</body>`;
-const ALLOWED = [/^\/print-job\/[a-f0-9]{32}$/, /^\/api\/print-job\/[a-f0-9]{32}\/file$/, /^\/_next\/static\//, /^\/_next\/image/];
+const FILE_TRIES = 3;
+const FILE = /^\/api\/print-job\/[a-f0-9]{32}\/file$/;
+const ALLOWED = [/^\/print-job\/[a-f0-9]{32}$/, FILE, /^\/_next\/static\//, /^\/_next\/image/];
 
 export default {
   async fetch(request, env) {
@@ -32,11 +34,12 @@ export default {
     };
     // The print page answers 200 with a "closed" message for keys it doesn't know.
     const isClosed = async (res) => res.status === 404 || (short && (await res.clone().text()).includes(CLOSED));
-    let upstream = await ask(env.SHOP_URL);
+    let shop = env.SHOP_URL;
+    let upstream = await ask(shop);
     const failed = upstream.status >= 500;
     if ((failed || (await isClosed(upstream))) && env.DEV_SHOP_URL) {
       const dev = await ask(env.DEV_SHOP_URL);
-      if (dev.ok && !(await isClosed(dev))) upstream = dev;
+      if (dev.ok && !(await isClosed(dev))) [upstream, shop] = [dev, env.DEV_SHOP_URL];
       // A shop that failed can't say the job is closed: never show "closed" on a guess.
       else if (failed || dev.status >= 500) {
         if (short) return new Response(BUSY_PAGE, { status: 503, headers: { "Content-Type": "text/html; charset=utf-8", "Retry-After": "5", "X-Robots-Tag": "noindex, nofollow" } });
@@ -47,6 +50,18 @@ export default {
     headers.delete("set-cookie");
     headers.set("X-Robots-Tag", "noindex, nofollow");
     headers.set("Referrer-Policy", "no-referrer");
-    return new Response(upstream.body, { status: upstream.status, headers });
+    if (!upstream.ok || !FILE.test(path)) return new Response(upstream.body, { status: upstream.status, headers });
+
+    // A shop's answer can stop part way and still look like a success, which
+    // would print half a poster. Only a file of the stated size goes through.
+    headers.delete("x-file-size");
+    for (let n = 0; n < FILE_TRIES; n++) {
+      const size = Number(upstream.headers.get("x-file-size"));
+      const bytes = await upstream.arrayBuffer().catch(() => null);
+      if (bytes && size && bytes.byteLength === size) return new Response(bytes, { status: 200, headers });
+      upstream = await ask(shop);
+      if (!upstream.ok) break;
+    }
+    return new Response("Busy, try again", { status: 503, headers: { "Retry-After": "5" } });
   },
 };

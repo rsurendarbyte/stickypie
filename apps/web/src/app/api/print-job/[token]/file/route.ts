@@ -38,7 +38,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ token: string }
   const { bytes, type } = file;
   if (!type.startsWith("image/")) return new Response("Not an image", { status: 502 });
 
-  const headers: Record<string, string> = { "Content-Type": type, "Cache-Control": "private, max-age=3600", "Content-Length": String(bytes.byteLength) };
+  const headers: Record<string, string> = { "Content-Type": type, "Cache-Control": "private, max-age=3600", "Content-Length": String(bytes.byteLength), "X-File-Size": String(bytes.byteLength) };
   if (params.get("dl")) {
     const files = itemFiles(item).length;
     const name = slugify(
