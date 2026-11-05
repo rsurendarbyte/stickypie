@@ -4,6 +4,8 @@
 // live shop first and the dev shop if the live one doesn't know the key (the
 // same for the page's own files). Only what the print page needs passes
 // through; everything else is a plain 404.
+const CLOSED = "This print job is closed";
+const BUSY_PAGE = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="5"><title>Print job</title><body style="font:16px system-ui;text-align:center;padding:20vh 16px">The print job is busy. Trying again in a moment…</body>`;
 const ALLOWED = [/^\/print-job\/[a-f0-9]{32}$/, /^\/api\/print-job\/[a-f0-9]{32}\/file$/, /^\/_next\/static\//, /^\/_next\/image/];
 
 export default {
@@ -14,17 +16,32 @@ export default {
     const path = short ? `/print-job/${short[1]}` : url.pathname;
     if (!ALLOWED.some((re) => re.test(path))) return new Response("Not found", { status: 404 });
 
-    const ask = (shop) =>
+    const once = (shop) =>
       fetch(new URL(path + url.search, shop), {
         headers: { Accept: request.headers.get("Accept") ?? "*/*", "User-Agent": request.headers.get("User-Agent") ?? "" },
         redirect: "manual",
       });
-    let upstream = await ask(env.SHOP_URL);
+    // A shop can fail for a moment (Cloudflare error 1102), so it gets a few tries.
+    const ask = async (shop) => {
+      let res = await once(shop);
+      for (let n = 0; n < 2 && res.status >= 500; n++) {
+        await new Promise((r) => setTimeout(r, 400));
+        res = await once(shop);
+      }
+      return res;
+    };
     // The print page answers 200 with a "closed" message for keys it doesn't know.
-    const unknown = upstream.status === 404 || (short && (await upstream.clone().text()).includes("This print job is closed"));
-    if (unknown && env.DEV_SHOP_URL) {
+    const isClosed = async (res) => res.status === 404 || (short && (await res.clone().text()).includes(CLOSED));
+    let upstream = await ask(env.SHOP_URL);
+    const failed = upstream.status >= 500;
+    if ((failed || (await isClosed(upstream))) && env.DEV_SHOP_URL) {
       const dev = await ask(env.DEV_SHOP_URL);
-      if (dev.ok && !(short && (await dev.clone().text()).includes("This print job is closed"))) upstream = dev;
+      if (dev.ok && !(await isClosed(dev))) upstream = dev;
+      // A shop that failed can't say the job is closed: never show "closed" on a guess.
+      else if (failed || dev.status >= 500) {
+        if (short) return new Response(BUSY_PAGE, { status: 503, headers: { "Content-Type": "text/html; charset=utf-8", "Retry-After": "5", "X-Robots-Tag": "noindex, nofollow" } });
+        return new Response("Busy, try again", { status: 503, headers: { "Retry-After": "5" } });
+      }
     }
     const headers = new Headers(upstream.headers);
     headers.delete("set-cookie");

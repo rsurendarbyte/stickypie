@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { PackageCheck } from "lucide-react";
 import { formatDateTime, orderCode } from "@stickypie/shared";
-import PrintJob, { type JobItem } from "@/components/print-job";
+import type { JobItem } from "@/components/print-job";
+import PrintJob from "@/components/print-job-client";
 import { itemFiles, openPrintJob } from "@/lib/print-job";
 import { PRIVATE_PAGE_ROBOTS } from "@/lib/site";
 

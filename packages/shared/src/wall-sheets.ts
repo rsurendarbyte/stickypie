@@ -253,17 +253,20 @@ function roundedPath({ x, y, w, h }: { x: number; y: number; w: number; h: numbe
 
 /**
  * The Cricut cut file, drawn in sheet position. Shapes are filled: Design Space
- * cuts round a filled shape, and can drop stroke-only ones.
+ * cuts round a filled shape, and can drop stroke-only ones. Numbers are in
+ * points, because Design Space ignores the size and reads one unit as 1/72 in.
  */
 export function cutSvg(placed: Placed[], paper: Paper, area: CutArea): string {
-  const posters = placed.map(
-    (p, i) => `    <path id="${i + 1}-${slugify(p.name).slice(0, 40)}" d="${roundedPath(box(p), radius(p))}"/>`
-  );
+  const PT = 72 / MM_PER_IN;
+  const posters = placed.map((p, i) => {
+    const b = box(p);
+    return `    <path id="${i + 1}-${slugify(p.name).slice(0, 40)}" d="${roundedPath({ x: b.x * PT, y: b.y * PT, w: b.w * PT, h: b.h * PT }, radius(p) * PT)}"/>`;
+  });
   const marks = markShapes(paper, area).map(
-    (shape, i) => `    <path id="mark-${i + 1}" d="M${shape.map(([x, y]) => `${x.toFixed(3)} ${y.toFixed(3)}`).join("L")}Z"/>`
+    (shape, i) => `    <path id="mark-${i + 1}" d="M${shape.map(([x, y]) => `${(x * PT).toFixed(3)} ${(y * PT).toFixed(3)}`).join("L")}Z"/>`
   );
   return [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${paper.w}mm" height="${paper.h}mm" viewBox="0 0 ${paper.w} ${paper.h}">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${(paper.w * PT).toFixed(3)}pt" height="${(paper.h * PT).toFixed(3)}pt" viewBox="0 0 ${(paper.w * PT).toFixed(3)} ${(paper.h * PT).toFixed(3)}">`,
     `  <g id="corner-marks" fill="#000000">`,
     ...marks,
     `  </g>`,
@@ -325,7 +328,7 @@ export function cutSteps(paper: Paper, area: CutArea): string[] {
   const paperSize = `${(paper.w / MM_PER_IN).toFixed(2).replace(/\.?0+$/, "")} × ${(paper.h / MM_PER_IN).toFixed(2).replace(/\.?0+$/, "")} in`;
   return [
     `Print the PDF at 100% (actual size) on the ${paper.name} sheet. No fit to page.`,
-    `In Design Space upload the SVG, select all, then set the size with the lock on: ${(cut.w / MM_PER_IN).toFixed(2)} × ${(cut.h / MM_PER_IN).toFixed(2)} in. Big files get shrunk on upload.`,
+    `In Design Space upload the SVG and select all. The size must read ${(cut.w / MM_PER_IN).toFixed(2)} × ${(cut.h / MM_PER_IN).toFixed(2)} in. If not, type it in with the lock on.`,
     "Select all and click Attach, so the whole sheet stays together as one.",
     `Click Make, choose Without Mat and set the material size to ${paperSize}. Use a plain cut, not Print Then Cut.`,
     `On Review artwork the top left mark must sit ${area.left} in from the left and ${area.top} in from the top.`,
