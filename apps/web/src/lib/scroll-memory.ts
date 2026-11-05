@@ -124,6 +124,24 @@ export function savedRailScroll(name: string): number | null {
   return backActive() ? read(`${pageKey()}|${name}`) : null;
 }
 
+/** A choice on the page (a wall theme chip): kept like the scroll spot, read back only on a back visit. */
+export function rememberChoice(name: string, value: string) {
+  try {
+    sessionStorage.setItem(`${PREFIX}${pageKey()}|${name}|choice`, value);
+  } catch {
+    // storage unavailable
+  }
+}
+
+export function savedChoice(name: string): string | null {
+  if (!backActive()) return null;
+  try {
+    return sessionStorage.getItem(`${PREFIX}${pageKey()}|${name}|choice`);
+  } catch {
+    return null;
+  }
+}
+
 /** Saves a sideways rail's position; restores it on back (again whenever
  *  `size` changes, as a rail's cards arrive). */
 export function useRailScrollMemory(ref: RefObject<HTMLElement | null>, name: string, size = 0) {

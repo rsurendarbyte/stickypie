@@ -15,6 +15,7 @@ import ShopLinks from "./shop-links";
 import ProductCard from "./product-card";
 import ProductCardSkeleton from "./product-card-skeleton";
 import VirtualGrid from "./virtual-grid";
+import { WallsPageFeed, usePhone, wallChipColours } from "./wall-feed";
 import CategoryFilter from "./category-filter";
 import { useLiveCatalog, type Catalog } from "@/lib/live-catalog";
 import { isPosterPack } from "@/lib/poster";
@@ -55,6 +56,7 @@ export default function BrowseClient({
   const category = categorySlug;
   const sort = params.get("sort") ?? "new";
   const walls = category === WALLS;
+  const phone = usePhone();
   const theme = walls ? (params.get("theme") ?? "") : "";
 
   /** Link to a category (or all), keeping the current search + sort. */
@@ -197,9 +199,7 @@ export default function BrowseClient({
               key={t.id}
               type="button"
               onClick={() => go(t.id ? `${categoryPath(WALLS)}?theme=${t.id}` : categoryPath(WALLS))}
-              className={`h-9 shrink-0 rounded-full border px-3.5 text-sm font-semibold transition-colors ${
-                t.id === theme ? "border-brand bg-brand/[0.07] text-brand" : "border-line bg-white text-fog hover:text-snow"
-              }`}
+              className={`h-9 shrink-0 rounded-full border px-3.5 text-sm font-semibold transition-colors ${wallChipColours(t.id === theme)}`}
             >
               {t.title.replace(/ walls$/, "")}
             </button>
@@ -268,6 +268,8 @@ export default function BrowseClient({
             <ShopLinks />
           </div>
         </div>
+      ) : walls && phone ? (
+        <WallsPageFeed walls={visible} products={products} categories={categories} seed={seed} plain={Boolean(q)} />
       ) : (
         // Only the rows near the screen are rendered — smooth with hundreds of stickers.
         // Columns follow the grid's own width (container queries), not the
@@ -278,7 +280,7 @@ export default function BrowseClient({
             items={visible}
             getKey={(product) => product.id}
             render={(product, i, cols) => <ProductCard product={product} width="w-full" wallEffect={wallEffect(Math.floor(i / cols), seed)} />}
-            className={walls ? "mt-4 grid grid-cols-2 gap-x-3 gap-y-5 sm:mt-6 sm:gap-x-4 sm:gap-y-7 @[53rem]:grid-cols-3 @[80rem]:grid-cols-4" : "mt-4 grid grid-cols-2 gap-x-3 gap-y-5 sm:mt-8 sm:gap-y-7 sm:gap-x-4 @[40rem]:grid-cols-3 @[53rem]:grid-cols-4 @[67rem]:grid-cols-5 @[80rem]:grid-cols-6 @[107rem]:grid-cols-8"}
+            className={walls ? "mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-5 sm:mt-6 sm:gap-x-4 sm:gap-y-7 @[53rem]:grid-cols-3 @[80rem]:grid-cols-4" : "mt-4 grid grid-cols-2 gap-x-3 gap-y-5 sm:mt-8 sm:gap-y-7 sm:gap-x-4 @[40rem]:grid-cols-3 @[53rem]:grid-cols-4 @[67rem]:grid-cols-5 @[80rem]:grid-cols-6 @[107rem]:grid-cols-8"}
           />
           {moreLikeThis.length > 0 && (
             <section className="mt-10">

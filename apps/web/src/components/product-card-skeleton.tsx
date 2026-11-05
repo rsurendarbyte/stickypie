@@ -5,7 +5,7 @@ import StickerLoader from "./sticker-loader";
  * list loads: a blank sticker peeling its corner, shimmering text lines.
  */
 export default function ProductCardSkeleton({
-  width = "w-44 shrink-0 sm:w-48 md:w-52",
+  width = "w-[min(60vw,15rem)] shrink-0 sm:w-48 md:w-52",
   index = 0,
 }: {
   width?: string;

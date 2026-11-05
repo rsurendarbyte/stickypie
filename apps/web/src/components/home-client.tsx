@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "@/components/page-link";
-import { Children, Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Children, Fragment } from "react";
 import Hero from "./hero";
 import ProductCard from "./product-card";
 import ProductCardSkeleton from "./product-card-skeleton";
 import Row from "./row";
 import CustomRail from "./custom-rail";
+import LazyRail, { WALL_CARD_WIDTH } from "./lazy-rail";
+import WallFeed, { feedBreaks, usePhone } from "./wall-feed";
 import { isPosterPack } from "@/lib/poster";
 import { rememberPosters } from "@/lib/poster-images";
 import {
@@ -23,7 +25,7 @@ import {
   type HomeRail,
 } from "@stickypie/shared";
 import { useFestivals, useHomePage, useHomeRails, useLiveCatalog, type Catalog } from "@/lib/live-catalog";
-import { savedRailScroll, useWindowScrollMemory } from "@/lib/scroll-memory";
+import { useWindowScrollMemory } from "@/lib/scroll-memory";
 import { useDaySeed } from "@/lib/skin-seed";
 import { wallEffect } from "@/lib/wall-effects";
 import StickerLoader from "./sticker-loader";
@@ -64,6 +66,10 @@ export default function HomeClient({
   const seed = useDaySeed();
   const wallMix = arrangeWallRow(home.wallRows[WALL_MIX_ROW], mixWalls(packs, seed), packs);
   const homeRails = resolveHomeRails(rails, singles, categories, seed);
+  // Phones get one wall feed in place of the wall rows, with the sections after it woven in.
+  const phone = usePhone();
+  const sectionOn = (id: HomeSectionId) => home.sections.some((s) => s.id === id && s.visible);
+  const feedAt = !phone || wallMix.length === 0 ? null : sectionOn("walls") ? "walls" : sectionOn("themes") ? "themes" : null;
   // Festivals around today (admin → Festivals) come right after Make your own: from a few days
   // before the date to a few days after, then they step aside by themselves.
   const festivalRails = activeFestivals(festivals)
@@ -138,21 +144,8 @@ export default function HomeClient({
   }
 
   // The page's sections, in the order set in the admin (Home page).
-  const sections: Record<HomeSectionId, React.ReactNode> = {
-    walls: wallMix.length > 0 && (
-      <LazyRail eager wide title={home.wallsTitle} href={categoryPath("poster-packs")}>
-        {wallMix.map((product) => (
-          <ProductCard key={product.id} product={product} width={WALL_CARD_WIDTH} wallEffect={wallEffect(0, seed)} />
-        ))}
-      </LazyRail>
-    ),
-    themes: wallRows.map((row, i) => (
-      <LazyRail key={row.id} eager={i < 1} wide title={row.title} href={`${categoryPath("poster-packs")}?theme=${row.id}`}>
-        {row.items.map((product) => (
-          <ProductCard key={product.id} product={product} width={WALL_CARD_WIDTH} wallEffect={wallEffect(i + 1, seed)} />
-        ))}
-      </LazyRail>
-    )),
+  const order = home.sections.filter((section) => section.visible).map((section) => section.id);
+  const rows = {
     custom: <CustomRail />,
     festivals: festivalRails.map(({ f, items }) => (
       <LazyRail
@@ -166,15 +159,43 @@ export default function HomeClient({
         ))}
       </LazyRail>
     )),
+    // The first two rails render straight away; the rest only when the shopper
+    // scrolls near them.
     rails: homeRails.map((rail, i) => (
-      // The first two rails render straight away; the rest only when the
-      // shopper scrolls near them.
-      <LazyRail key={rail.key} eager={i < 2} title={rail.title} href={rail.href}>
+      <LazyRail key={rail.key} eager={Boolean(feedAt) || i < 2} title={rail.title} href={rail.href}>
         {rail.items.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
       </LazyRail>
     )),
+  };
+  const isRow = (id: HomeSectionId): id is "festivals" | "rails" => id === "festivals" || id === "rails";
+  const feed = (
+    <WallFeed
+      title={home.wallsTitle}
+      walls={wallMix}
+      themes={sectionOn("themes") ? wallRows : []}
+      breaks={feedAt ? feedBreaks(order.slice(order.indexOf(feedAt) + 1).filter(isRow).flatMap((id) => Children.toArray(rows[id])), sectionOn("custom") && rows.custom) : []}
+      seed={seed}
+    />
+  );
+
+  const sections: Record<HomeSectionId, React.ReactNode> = {
+    walls: feedAt ? feedAt === "walls" && feed : wallMix.length > 0 && (
+      <LazyRail eager wide title={home.wallsTitle} href={categoryPath("poster-packs")}>
+        {wallMix.map((product) => (
+          <ProductCard key={product.id} product={product} width={WALL_CARD_WIDTH} wallEffect={wallEffect(0, seed)} />
+        ))}
+      </LazyRail>
+    ),
+    themes: feedAt ? feedAt === "themes" && feed : wallRows.map((row, i) => (
+      <LazyRail key={row.id} eager={i < 1} wide title={row.title} href={`${categoryPath("poster-packs")}?theme=${row.id}`}>
+        {row.items.map((product) => (
+          <ProductCard key={product.id} product={product} width={WALL_CARD_WIDTH} wallEffect={wallEffect(i + 1, seed)} />
+        ))}
+      </LazyRail>
+    )),
+    ...rows,
   };
 
   return (
@@ -186,18 +207,15 @@ export default function HomeClient({
         moments={festivalRails.map(({ f, items }) => ({ label: `${f.name} · ${festivalShortDate(f)}`, products: items }))}
       />
       <div className="relative z-10 mt-2 space-y-1 pb-24 sm:space-y-8">
-        {home.sections
-          .filter((section) => section.visible)
-          .map((section) => (
-            <Fragment key={section.id}>{sections[section.id]}</Fragment>
+        {order
+          .filter((id) => !feedAt || order.indexOf(id) <= order.indexOf(feedAt))
+          .map((id) => (
+            <Fragment key={id}>{sections[id]}</Fragment>
           ))}
       </div>
     </>
   );
 }
-
-/** Wall set cards are wider than sticker cards: a wall has many posters to see. */
-const WALL_CARD_WIDTH = "w-64 shrink-0 sm:w-72 md:w-80";
 
 /** Every wall set, one theme after another so none fills the row; a new order each day. */
 function mixWalls(packs: Product[], seed: number): Product[] {
@@ -213,120 +231,4 @@ function mixWalls(packs: Product[], seed: number): Product[] {
     for (const q of queues) if (q.length) mix.push(q.shift()!);
   }
   return mix;
-}
-
-/**
- * A home rail that renders its cards only once it's near the screen; until
- * then it shows its title and a few plain card-sized blocks (no animation).
- * Once drawn, it holds only the cards that fit plus a few more, and adds more
- * as the shopper swipes along it — a rail of 30 isn't 30 cards in the page.
- */
-const RAIL_STEP = 6;
-
-function LazyRail({
-  eager,
-  wide = false,
-  title,
-  href,
-  children,
-}: {
-  eager: boolean;
-  /** Wall sets: bigger cards, so the posters on the wall can be seen. */
-  wide?: boolean;
-  title: string;
-  href?: string;
-  children: React.ReactNode;
-}) {
-  const box = useRef<HTMLDivElement>(null);
-  const [near, setNear] = useState(eager);
-  const cards = Children.toArray(children);
-  const [shown, setShown] = useState(RAIL_STEP + 2);
-  // While put away: the rail's height (held, so nothing below it moves — iOS
-  // has no scroll anchoring) and how far it had been swiped.
-  const away = useRef<{ height: number; left: number } | null>(null);
-  useEffect(() => {
-    const el = box.current;
-    if (!el) return;
-    // Drawn when within SHOW of the screen; put back to plain blocks when
-    // further than HIDE — so only the rails around the screen hold cards.
-    const SHOW = 700;
-    const HIDE = 1600;
-    const set = (next: boolean) =>
-      setNear((was) => {
-        if (was && !next) {
-          const scroller = el.querySelector<HTMLElement>(".rail-scroller");
-          away.current = { height: el.offsetHeight, left: scroller?.scrollLeft ?? 0 };
-        }
-        return next;
-      });
-    const show = new IntersectionObserver((e) => e.some((x) => x.isIntersecting) && set(true), {
-      rootMargin: `${SHOW}px 0px`,
-    });
-    const hide = new IntersectionObserver((e) => e.every((x) => !x.isIntersecting) && set(false), {
-      rootMargin: `${HIDE}px 0px`,
-    });
-    show.observe(el);
-    hide.observe(el);
-    // Backup for in-app browsers (e.g. Instagram) that hold observers back.
-    let raf = 0;
-    const onScroll = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
-        const r = el.getBoundingClientRect();
-        const off = Math.max(r.top - window.innerHeight, -r.bottom, 0);
-        if (off < SHOW) set(true);
-        else if (off > HIDE) set(false);
-      });
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      show.disconnect();
-      hide.disconnect();
-      cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", onScroll);
-    };
-  }, []);
-
-  // Back near the screen: put the swipe back where it was.
-  useLayoutEffect(() => {
-    if (!near || !away.current) return;
-    const scroller = box.current?.querySelector<HTMLElement>(".rail-scroller");
-    if (scroller) scroller.scrollLeft = away.current.left;
-    away.current = null;
-  }, [near]);
-
-  // Wide screens see more cards at once: start with a screenful plus a few —
-  // and on a back visit, enough to reach where the shopper had swiped to.
-  useEffect(() => {
-    const back = savedRailScroll(title) ?? 0;
-    setShown((n) => Math.max(n, Math.ceil((back + window.innerWidth) / 170) + 3));
-  }, [title]);
-
-  // Swiped near the end of what's drawn: draw the next few.
-  useEffect(() => {
-    const el = box.current;
-    if (!near || !el || shown >= cards.length) return;
-    const onScroll = (e: Event) => {
-      const s = e.target as HTMLElement;
-      if (!s.classList?.contains("rail-scroller")) return;
-      if (s.scrollLeft + s.clientWidth * 2 > s.scrollWidth) setShown((n) => n + RAIL_STEP);
-    };
-    el.addEventListener("scroll", onScroll, { capture: true, passive: true });
-    return () => el.removeEventListener("scroll", onScroll, { capture: true });
-  }, [near, shown, cards.length]);
-
-  return (
-    <div ref={box} style={{ minHeight: !near && away.current ? away.current.height : undefined }}>
-      <Row title={title} href={href}>
-        {near
-          ? cards.slice(0, shown)
-          : Array.from({ length: 4 }, (_, i) => (
-              <div key={i} aria-hidden className={`${wide ? WALL_CARD_WIDTH : "w-44 shrink-0 sm:w-48 md:w-52"} overflow-hidden rounded-2xl border border-line bg-ink`}>
-                <div className={`${wide ? "aspect-square" : "aspect-[4/5]"} bg-ink2`} />
-                <div className={wide ? "h-[84px]" : "h-[100px]"} />
-              </div>
-            ))}
-      </Row>
-    </div>
-  );
 }
