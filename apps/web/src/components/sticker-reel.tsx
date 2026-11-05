@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, ChevronUp, Info, LayoutList, RotateCcw, Ruler, Share2, ShoppingBag, Truck, ZoomIn } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { POSTER_ADHESIVE, POSTER_PAPER, belowMinimum, discountPercent, formatINR, inCategory, packPosterSizes, packSizeSummary } from "@stickypie/shared";
-import { useLiveCatalog, useStoreSettings } from "@/lib/live-catalog";
+import { useCatalogChecked, useLiveCatalog, useStoreSettings } from "@/lib/live-catalog";
 import { rememberPackPosters, rememberPosters } from "@/lib/poster-images";
 import { pickPoster, useWallLine } from "@/lib/wall-picks";
 import { cardSkinFor } from "@/lib/palette";
@@ -256,6 +256,7 @@ function ReelItem({
   product: Product;
   onPageView: () => void;
 }) {
+  const checked = useCatalogChecked();
   const { add, items, subtotal } = useCart();
   const settings = useStoreSettings();
   // Below the minimum order: no Checkout yet, just how much more to add.
@@ -356,9 +357,9 @@ function ReelItem({
                 <WallSizeMap product={product} posters={picks} />
               </div>
             )}
-            {wallView === "wall" && <WallTip />}
+            {checked && wallView === "wall" && <WallTip />}
             <div className={`size-full ${wallView !== "wall" ? "invisible" : ""}`}>
-            <WallStage bare product={product} posters={picks} onRemove={(i) => pickPoster(product, i, "")} onAdd={setSpot} src={product.imageUrl} alt={product.name} className={out ? "opacity-50 saturate-50" : ""} />
+            {!checked ? <span className="block size-full animate-pulse rounded-2xl bg-panel" /> : <WallStage bare product={product} posters={picks} onRemove={(i) => pickPoster(product, i, "")} onAdd={setSpot} src={product.imageUrl} alt={product.name} className={out ? "opacity-50 saturate-50" : ""} />}
             </div>
             </div>
             {/* below the wall, so nothing sits on a poster or its close button */}
