@@ -249,14 +249,14 @@ export default function HomeRailsEditor({
 
       {/* Sticky save bar */}
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-ink/95 backdrop-blur lg:left-60">
-        <div className="mx-auto flex w-full max-w-[1000px] flex-wrap items-center gap-3 px-4 py-3 sm:px-8">
+        <div className="mx-auto flex w-full max-w-[1200px] flex-wrap items-center gap-3 px-4 py-3 sm:px-8">
           <button
             type="button"
             onClick={save}
             disabled={saving || !dirty}
             className="pie-gradient inline-flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand/25 transition-all hover:brightness-110 disabled:opacity-50"
           >
-            {saving && <Loader2 className="size-4 animate-spin" />} Save home page
+            {saving && <Loader2 className="size-4 animate-spin" />} Save rails
           </button>
           <button
             type="button"

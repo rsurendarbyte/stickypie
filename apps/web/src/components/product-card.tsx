@@ -8,7 +8,8 @@ import { LOW_STOCK_THRESHOLD, discountPercent, formatINR } from "@stickypie/shar
 import { cardSkinFor, rotationFor } from "@/lib/palette";
 import WallStage from "./wall-stage";
 import type { WallEffect } from "@/lib/wall-effects";
-import { isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel, wallPosterSizes } from "@/lib/poster";
+import { isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel, wallBackground, wallPosterSizes } from "@/lib/poster";
+import { useHomePage } from "@/lib/live-catalog";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
@@ -236,9 +237,9 @@ function packTitle(name: string) {
 }
 
 /**
- * A wall set: no sticker-style box, just the wall filling a square and a tight
- * line of name, price and size under it. An older 2:3 collage shows whole, on a
- * soft blurred copy of itself, so nothing is cropped.
+ * A wall set: one white card holding the wall on a light tint of its own paint,
+ * then name, sizes, price and cart. An older 2:3 collage shows whole, on a soft
+ * blurred copy of itself, so nothing is cropped.
  */
 function PackCard({ product, width, wallEffect = "sweep" }: { product: Product; width: string; wallEffect?: WallEffect }) {
   const { add, items } = useCart();
@@ -247,19 +248,28 @@ function PackCard({ product, width, wallEffect = "sweep" }: { product: Product; 
   const out = product.stock === 0;
   const off = discountPercent(price, compareAtPrice);
   const wall = isWallSetup(product);
+  const { wallCard: design } = useHomePage();
   const small = product.thumbUrl ?? product.imageUrl;
 
   return (
-    <div className={`rail-card-drawn group relative snap-start ${width}`}>
+    <div
+      className={`rail-card-drawn group relative snap-start bg-white p-1.5 transition-shadow duration-300 sm:p-2 ${design.shadow ? "shadow-[0_1px_3px_rgba(16,24,40,0.06),0_12px_24px_-16px_rgba(16,24,40,0.28)] hover:shadow-[0_2px_6px_rgba(16,24,40,0.08),0_18px_32px_-16px_rgba(16,24,40,0.36)]" : ""} ${design.outline ? "ring-1 ring-black/5" : ""} ${width}`}
+      style={{ borderRadius: design.radius }}
+    >
       <PageLink
         href={`/sticker/${product.slug}`}
-        className={`relative block aspect-square overflow-hidden rounded-2xl ${wall ? "border border-line bg-white" : "bg-[#ece7df] shadow-[0_10px_24px_-14px_rgba(16,24,40,0.45)]"}`}
+        className={`relative block aspect-square overflow-hidden ${wall ? "bg-[#faf9f7]" : "bg-[#ece7df]"} ${design.sizeLabels ? "" : "wall-no-labels"}`}
+        style={{ borderRadius: Math.max(design.radius - 6, 0) }}
         tabIndex={-1}
         aria-hidden
       >
         {!wall && <img src={small} alt="" loading="lazy" decoding="async" className="absolute inset-0 size-full scale-110 object-cover opacity-60 blur-xl" />}
+        {wall && <span className="absolute inset-0" style={{ ...wallBackground(product), opacity: design.tint / 100 }} />}
         {wall ? (
-          <div className={`absolute inset-3 transition-transform duration-300 group-hover:scale-[1.03] ${out ? "opacity-40 saturate-50" : ""}`}>
+          <div
+            className={`absolute transition-transform duration-300 group-hover:scale-[1.03] ${out ? "opacity-40 saturate-50" : ""}`}
+            style={{ inset: `${design.space}%` }}
+          >
             <WallStage bare effect={wallEffect} product={product} src={small} alt={product.name} />
           </div>
         ) : (
@@ -271,22 +281,22 @@ function PackCard({ product, width, wallEffect = "sweep" }: { product: Product; 
             className={`relative size-full object-contain transition-transform duration-300 group-hover:scale-[1.03] ${out ? "opacity-40 saturate-50" : ""}`}
           />
         )}
-        {off !== null && !out && (
+        {design.discount && off !== null && !out && (
           <span className="absolute top-2 left-2 rounded-md bg-white/92 px-1.5 py-0.5 text-[10px] font-bold text-mint shadow-sm">{off}% off</span>
         )}
       </PageLink>
 
-      <div className="mt-2 px-0.5">
+      <div className="mt-2.5 px-1.5">
         {/* its tap area covers the whole card; only the cart buttons sit above it */}
         <PageLink href={`/sticker/${product.slug}`} className="block after:absolute after:inset-0">
           <p className="truncate font-display text-[15px] leading-tight font-bold text-snow">{packTitle(product.name)}</p>
         </PageLink>
-        <p className="mt-0.5 truncate text-[11px] text-fog">{product.packItems.length} posters</p>
-        <p className="truncate text-[11px] font-semibold text-fog">{wallPosterSizes(product)}</p>
+        {design.posterCount && <p className="mt-0.5 truncate text-[11px] text-fog">{product.packItems.length} posters</p>}
+        {design.posterSizes && <p className="truncate text-[11px] font-semibold text-fog">{wallPosterSizes(product)}</p>}
       </div>
 
-      <div className="mt-1.5 flex items-center justify-between gap-1.5 pr-1 pb-3">
-        <p className="min-w-0 pl-0.5">
+      <div className="mt-2 flex items-center justify-between gap-1.5 px-1.5 pb-1.5">
+        <p className="min-w-0">
           <span className="block font-display text-lg leading-tight font-bold text-gold sm:text-[22px]">{formatINR(price)}</span>
           {compareAtPrice !== null && compareAtPrice > price && (
             <span className="block text-[11px] leading-tight text-fog line-through sm:text-xs">{formatINR(compareAtPrice)}</span>
@@ -309,7 +319,7 @@ function PackCard({ product, width, wallEffect = "sweep" }: { product: Product; 
                 "Out of stock"
               ) : (
                 <>
-                  <ShoppingBag className="peel-icon size-4 shrink-0 max-sm:hidden" /> Add to cart
+                  <ShoppingBag className="peel-icon size-4 shrink-0 max-sm:hidden" /> {design.button}
                 </>
               )}
             </button>

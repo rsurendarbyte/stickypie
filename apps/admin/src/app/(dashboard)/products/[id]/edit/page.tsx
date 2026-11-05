@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
+import { orderCode } from "@stickypie/shared";
 import ProductForm from "@/components/product-form";
+import WallPosterEditor from "@/components/wall-poster-editor";
 import { getAdminDriver } from "@/lib/data";
+import { isCandidate, openWallOrders } from "@/lib/wall-reshuffle";
 
 export const dynamic = "force-dynamic";
 
@@ -18,11 +21,25 @@ export default async function EditProductPage({
     driver.listCategories(),
   ]);
   if (!product) notFound();
+  const isWall = product.packItems.length > 0;
+  const [all, open] = isWall ? await Promise.all([driver.listProducts(), openWallOrders(driver, id)]) : [[], []];
 
   return (
     <div className="mx-auto w-full max-w-[1400px]">
       <h1 className="font-display text-2xl font-bold sm:text-3xl">Edit product</h1>
       <p className="mt-1 text-sm text-fog">/{product.slug}</p>
+      {isWall && (
+        <div className="mt-6">
+          <WallPosterEditor
+            wall={product}
+            posters={all
+              .filter((p) => isCandidate(p) || product.packItems.includes(p.id))
+              .map((p) => ({ id: p.id, name: p.name, image: p.thumbUrl ?? p.imageUrl, categoryIds: p.categoryIds }))}
+            categories={categories}
+            openOrders={open.map((o) => ({ id: o.id, code: orderCode(o.id) }))}
+          />
+        </div>
+      )}
       <div className="mt-7">
         <ProductForm categories={categories} product={product} />
       </div>

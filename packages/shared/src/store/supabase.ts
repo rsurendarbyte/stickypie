@@ -16,6 +16,7 @@ import {
 } from "./mappers";
 import { rowToSettings, settingsToRow, type StoreSettings } from "../shipping";
 import { rowToFeatures, type FeatureFlags } from "../features";
+import { rowToHomePage, type HomePage } from "../home-page";
 import { rowToHomeRails, type HomeRail } from "../home-rails";
 import { rowToFestivals, type Festival } from "../festivals";
 import {
@@ -42,6 +43,13 @@ function friendly(error: { code?: string; message: string }): Error {
  *  - admin app: the signed-in admin's client (RLS enforces admin-only writes).
  */
 export function createSupabaseDriver(client: SupabaseClient): DataDriver {
+  /** The features column also holds the home page, so a save must keep what it isn't changing. */
+  async function savedFeatures() {
+    const { data, error } = await client.from("store_settings").select("features").eq("id", 1).single();
+    if (error) throw friendly(error);
+    return (data?.features ?? {}) as Record<string, unknown>;
+  }
+
   /**
    * Deletes a review's photo from storage (no-op without one). A whole-order
    * review shares one photo across several reviews — the file is only removed
@@ -465,12 +473,29 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
     async updateFeatures(flags: FeatureFlags) {
       const { data, error } = await client
         .from("store_settings")
-        .update({ features: flags })
+        .update({ features: { ...(await savedFeatures()), ...flags } })
         .eq("id", 1)
         .select("features")
         .single();
       if (error) throw friendly(error);
       return rowToFeatures(data.features);
+    },
+
+    async getHomePage() {
+      const { data, error } = await client.from("store_settings").select("features").eq("id", 1).maybeSingle();
+      if (error) return rowToHomePage(null);
+      return rowToHomePage(data?.features?.homePage);
+    },
+
+    async updateHomePage(page: HomePage) {
+      const { data, error } = await client
+        .from("store_settings")
+        .update({ features: { ...(await savedFeatures()), homePage: page } })
+        .eq("id", 1)
+        .select("features")
+        .single();
+      if (error) throw friendly(error);
+      return rowToHomePage(data.features?.homePage);
     },
 
     async createContactMessage(input: ContactInput) {

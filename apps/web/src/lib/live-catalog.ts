@@ -21,14 +21,16 @@
 // RLS only exposes is_active products, so items taken off sale never reach the
 // browser. Demo mode (no Supabase env) keeps the server-rendered data.
 import { useEffect, useState, useSyncExternalStore } from "react";
-import type { Category, FeatureFlags, Festival, HomeRail, Product, PublicReview, StoreSettings } from "@stickypie/shared";
+import type { Category, FeatureFlags, Festival, HomePage, HomeRail, Product, PublicReview, StoreSettings } from "@stickypie/shared";
 import {
   DEFAULT_FEATURES,
+  DEFAULT_HOME_PAGE,
   DEFAULT_STORE_SETTINGS,
   inCategory,
   rowToCategory,
   rowToFeatures,
   rowToFestivals,
+  rowToHomePage,
   rowToHomeRails,
   rowToProduct,
   rowToPublicReview,
@@ -65,6 +67,7 @@ type Bundle = Catalog & {
   rails: HomeRail[];
   festivals: Festival[];
   features: FeatureFlags;
+  homePage: HomePage;
   reviews: PublicReview[];
   /** Settings checked with the database on this page load (not just the saved copy). */
   fresh: boolean;
@@ -132,6 +135,7 @@ function publish(meta: any, catalog: CachedCatalog, fresh = true): Bundle {
     rails: rowToHomeRails(meta?.home_rails),
     festivals: rowToFestivals(meta?.festivals),
     features: rowToFeatures(meta?.features),
+    homePage: rowToHomePage(meta?.features?.homePage),
   };
   memory = { bundle, at: Date.now() };
   listeners.forEach((notify) => notify());
@@ -278,6 +282,11 @@ export function useFeatures(): FeatureFlags {
 }
 
 /** Home page layout from the admin (Home page). */
+export function useHomePage(): HomePage {
+  const { bundle } = useBundle();
+  return bundle?.homePage ?? DEFAULT_HOME_PAGE;
+}
+
 export function useHomeRails(initial: HomeRail[]): { rails: HomeRail[]; loaded: boolean } {
   const { bundle, failed } = useBundle();
   if (!liveCatalogEnabled) return { rails: initial, loaded: true };

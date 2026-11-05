@@ -18,6 +18,7 @@ import LabelModal from "./label-modal";
 import FinishPicker from "./finish-picker";
 import WallSizeMap, { WallPosterSheet, WallReset, WallViewSwitch, type WallView } from "./wall-size-map";
 import WallStage from "./wall-stage";
+import WallTip from "./wall-tip";
 import { toCartProduct, useLineFinish, useSizeChoice } from "./size-picker";
 import ImageZoom from "./image-zoom";
 import TrueSizePreview from "./true-size-preview";
@@ -355,6 +356,7 @@ function ReelItem({
                 <WallSizeMap product={product} posters={picks} />
               </div>
             )}
+            {wallView === "wall" && <WallTip />}
             <div className={`size-full ${wallView !== "wall" ? "invisible" : ""}`}>
             <WallStage bare product={product} posters={picks} onRemove={(i) => pickPoster(product, i, "")} onAdd={setSpot} src={product.imageUrl} alt={product.name} className={out ? "opacity-50 saturate-50" : ""} />
             </div>

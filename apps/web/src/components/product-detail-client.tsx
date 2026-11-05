@@ -26,6 +26,7 @@ import { rememberPackPosters } from "@/lib/poster-images";
 import FinishPicker from "./finish-picker";
 import WallSizeMap, { WallPosterSheet, WallViewSwitch, usePosterCatalog, type WallView } from "./wall-size-map";
 import WallStage from "./wall-stage";
+import WallTip from "./wall-tip";
 import SizePicker, { useLineFinish, useSizeChoice } from "./size-picker";
 import SizeRuler from "./size-ruler";
 import TrueSizePreview from "./true-size-preview";
@@ -212,6 +213,7 @@ export default function ProductDetailClient({
               <WallSizeMap product={product} posters={picks} />
             </div>
           )}
+          {wall && !out && !unavailable && wallView === "wall" && <WallTip />}
           {off !== null && !unavailable && wallView === "wall" && (
             <span className="pie-gradient absolute top-4 left-4 rounded-full px-3 py-1 text-xs font-bold text-white">
               SAVE {off}%
