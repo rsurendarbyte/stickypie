@@ -7,7 +7,6 @@ const COLUMNS: Array<{ title: string; links: Array<{ label: string; href: string
     title: "Shop",
     links: [
       { label: "Wall posters", href: "/stickers/poster-packs" },
-      { label: "Build your wall", href: "/wall-builder" },
       { label: "All stickers", href: "/stickers" },
       { label: "New drops", href: "/stickers?sort=new" },
       { label: "Custom stickers", href: "/custom-stickers" },

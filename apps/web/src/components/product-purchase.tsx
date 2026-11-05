@@ -7,6 +7,7 @@ import AddToCartButton from "./add-to-cart-button";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
 import { toCartProduct, useLineFinish } from "./size-picker";
+import { useWallLine } from "@/lib/wall-picks";
 
 export default function ProductPurchase({
   product,
@@ -21,13 +22,14 @@ export default function ProductPurchase({
   const { add, count, items } = useCart();
   const out = product.stock === 0;
   const finish = useLineFinish(product);
+  const { gaps, line } = useWallLine(product, price);
   const inCart = items.find(
-    (item) => lineKey(item) === lineKey({ productId: product.id, size: stickerSize, finish })
+    (item) => lineKey(item) === lineKey(line ?? { productId: product.id, size: stickerSize, finish })
   );
 
   function addNow() {
-    if (out) return;
-    add(toCartProduct(product, stickerSize, price), 1);
+    if (out || gaps) return;
+    add(line ?? toCartProduct(product, stickerSize, price), 1);
   }
 
   return (
@@ -59,16 +61,18 @@ export default function ProductPurchase({
             <button
               type="button"
               onClick={addNow}
-              disabled={out}
+              disabled={out || gaps > 0}
               aria-label={out ? "Out of stock" : "Add to cart"}
               className={`flex h-11 flex-1 items-center justify-center gap-2 rounded-xl text-sm font-bold transition-all ${
-                out
+                out || gaps
                   ? "cursor-not-allowed bg-panel text-fog/60"
                   : "peel-btn"
               }`}
             >
               {out ? (
                 "Out of stock"
+              ) : gaps ? (
+                `Fill ${gaps} empty ${gaps === 1 ? "spot" : "spots"}`
               ) : (
                 <>
                   <ShoppingBag className="peel-icon size-4" /> Add to cart ·{" "}

@@ -10,7 +10,7 @@ import {
   useRef,
   useState,
 } from "react";
-import type { CartCustomSpec, CustomKind, PosterFinish } from "@stickypie/shared";
+import { CUSTOM_PRODUCT_PREFIX, type CartCustomSpec, type CustomKind, type PosterFinish } from "@stickypie/shared";
 
 export type CartItem = {
   productId: string;
@@ -37,6 +37,8 @@ export type CartItem = {
   customSpec?: CartCustomSpec;
   /** Mini posters: "sticker" when bought as one (else a wall poster). */
   finish?: PosterFinish;
+  /** A customized wall: the shopper's posters in their places (% of the picture). */
+  wallPreview?: { src: string; x: number; y: number; w: number; h: number }[];
 };
 
 export type CartProduct = Omit<CartItem, "qty">;
@@ -53,6 +55,8 @@ type CartContextValue = {
   /** Lines are keyed by product + size — see lineKey(). */
   setQty: (key: string, qty: number) => void;
   remove: (key: string) => void;
+  /** Replaces a line already in the cart (`from`, or the product's own), keeping its quantity. */
+  setLine: (product: CartProduct, from?: string) => void;
   clear: () => void;
 };
 
@@ -66,13 +70,30 @@ export function itemHref(item: { slug: string; custom?: boolean; customKind?: Cu
   if (item.customKind === "qr") return "/qr-code-stickers";
   if (item.customKind === "text") return "/name-stickers";
   if (item.customKind === "avatar") return "/avatar-stickers";
-  if (item.customKind === "wall") return "/wall-builder";
+  if (item.customKind === "wall") return item.slug === "wall-builder" ? "/stickers/poster-packs" : `/sticker/${item.slug}`;
   return "/custom-stickers/design";
 }
 
 /** One cart line per sticker per size (a mini poster's sticker is its own line). */
 export function lineKey(item: { productId: string; size?: number | null; finish?: PosterFinish }): string {
   return `${item.productId}:${item.size ?? ""}${item.finish === "sticker" ? ":sticker" : ""}`;
+}
+
+/** A set has one customized line: carts saved with several keep the latest. */
+function oneLinePerWall(items: CartItem[]): CartItem[] {
+  const last = new Map<string, CartItem>();
+  for (const item of items) {
+    const set = item.customSpec?.kind === "wall" ? item.customSpec.set : undefined;
+    if (set) last.set(set, { ...item, productId: `${CUSTOM_PRODUCT_PREFIX}wall-${set}` });
+  }
+  const seen = new Set<string>();
+  return items.flatMap((item) => {
+    const set = item.customSpec?.kind === "wall" ? item.customSpec.set : undefined;
+    if (!set) return [item];
+    if (seen.has(set)) return [];
+    seen.add(set);
+    return [last.get(set)!];
+  });
 }
 
 function clampQty(qty: number, stock: number | null): number {
@@ -93,7 +114,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         // Carts saved before sizes existed have no size fields.
         const saved = JSON.parse(raw) as Array<Partial<CartItem> & { productId: string }>;
         setItems(
-          saved.map((item) => ({ ...item, size: item.size ?? null, sizeLabel: item.sizeLabel ?? null }) as CartItem)
+          oneLinePerWall(saved.map((item) => ({ ...item, size: item.size ?? null, sizeLabel: item.sizeLabel ?? null }) as CartItem))
         );
       }
     } catch {
@@ -116,7 +137,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [items]);
 
   const put = useCallback((product: CartProduct, qty: number) => {
-    setItems((prev) => {
+    setItems((all) => {
+      // A customized wall takes the place of the plain set: one wall, one line.
+      const set = product.customSpec?.kind === "wall" ? product.customSpec.set : undefined;
+      const prev = set ? all.filter((item) => item.productId !== set) : all;
       const key = lineKey(product);
       // Stock is shared by every size of a sticker.
       const otherSizes = prev
@@ -171,6 +195,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems((prev) => prev.filter((item) => lineKey(item) !== key));
   }, []);
 
+  const setLine = useCallback((product: CartProduct, from?: string) => {
+    setItems((prev) => prev.map((item) => (lineKey(item) === (from ?? lineKey(product)) ? { ...item, ...product } : item)));
+  }, []);
+
   const clear = useCallback(() => setItems([]), []);
   const openCart = useCallback(() => setIsOpen(true), []);
   const closeCart = useCallback(() => setIsOpen(false), []);
@@ -187,10 +215,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       closeCart,
       add,
       setQty,
+      setLine,
       remove,
       clear,
     };
-  }, [items, isOpen, openCart, closeCart, add, setQty, remove, clear]);
+  }, [items, isOpen, openCart, closeCart, add, setQty, setLine, remove, clear]);
 
   return (
     <CartContext.Provider value={value}>

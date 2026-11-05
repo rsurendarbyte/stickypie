@@ -6,6 +6,7 @@ import { CheckCircle2, ShoppingBag, Trash2, Truck, X } from "lucide-react";
 import { belowMinimum, formatINR } from "@stickypie/shared";
 import PriceWait from "./price-wait";
 import { useStoreSettings } from "@/lib/live-catalog";
+import CartThumb, { WallPicksNote } from "./cart-thumb";
 import { lineKey, useCart, itemHref } from "./cart-context";
 import QtyStepper from "./qty-stepper";
 import { useBackToClose } from "@/lib/back-close";
@@ -138,13 +139,7 @@ export default function CartDrawer() {
                         onClick={closeCart}
                         className="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] size-16 shrink-0 place-items-center rounded-xl bg-panel p-1.5 ring-1 ring-line"
                       >
-                        <img
-                          src={item.thumbUrl ?? item.imageUrl}
-                          loading="lazy"
-                          decoding="async"
-                          alt={item.name}
-                          className="sticker-cut-sm size-full object-contain"
-                        />
+                        <CartThumb item={item} alt={item.name} lazy className="sticker-cut-sm size-full object-contain" />
                       </PageLink>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
@@ -176,6 +171,7 @@ export default function CartDrawer() {
                           )}
                           {formatINR(item.price)} {item.customKind === "avatar" ? "per set" : "each"}
                         </p>
+                        <WallPicksNote item={item} />
                         <div className="mt-2 flex items-center justify-between">
                           <QtyStepper
                             compact

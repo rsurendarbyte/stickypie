@@ -51,6 +51,7 @@ import {
   type SavedAddress,
 } from "@/lib/addresses";
 import AddressTypePicker, { AddressTypeBadge } from "./address-type-picker";
+import CartThumb, { WallPicksNote } from "./cart-thumb";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
 import { useMyOffer } from "./my-offer";
@@ -958,11 +959,7 @@ export default function CheckoutClient() {
                   key={lineKey(item)}
                   className="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] size-9 place-items-center rounded-lg bg-panel p-0.5 ring-2 ring-ink2"
                 >
-                  <img
-                    src={item.thumbUrl ?? item.imageUrl}
-                    alt=""
-                    className="size-full object-contain"
-                  />
+                  <CartThumb item={item} className="size-full object-contain" />
                 </span>
               ))}
             </span>
@@ -995,13 +992,7 @@ export default function CheckoutClient() {
               {visibleItems.map((item) => (
                 <li key={lineKey(item)} className="flex gap-3 py-3">
                   <span className="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] size-14 shrink-0 place-items-center rounded-xl bg-panel p-1.5 ring-1 ring-line">
-                    <img
-                      src={item.thumbUrl ?? item.imageUrl}
-                      loading="lazy"
-                      decoding="async"
-                      alt=""
-                      className="sticker-cut-sm size-full object-contain"
-                    />
+                    <CartThumb item={item} lazy className="sticker-cut-sm size-full object-contain" />
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-2">
@@ -1013,7 +1004,7 @@ export default function CheckoutClient() {
                       </span>
                     </div>
                     <p className="mt-0.5 text-[11px] text-fog">
-                      {item.customKind === "avatar" ? (
+                      {item.customKind === "avatar" || item.customKind === "wall" ? (
 
                         <span className="font-semibold text-snow/80">{item.sizeLabel} · </span>
 
@@ -1024,6 +1015,7 @@ export default function CheckoutClient() {
                       )}
                       {formatINR(item.price)} {item.customKind === "avatar" ? "per set" : "each"}
                     </p>
+                    <WallPicksNote item={item} />
                     <CartStepper item={item} size="sm" className="mt-1.5" />
                   </div>
                 </li>

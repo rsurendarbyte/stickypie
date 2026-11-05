@@ -13,7 +13,6 @@ import {
   CalendarHeart,
   Frame,
   Gift,
-  LayoutGrid,
   Car,
   ImageUp,
   Loader2,
@@ -454,12 +453,6 @@ function PosterSlideCopy({ catalog }: { catalog: Product[] }) {
           className="peel-btn inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-bold sm:h-12 sm:px-6 sm:text-base"
         >
           Shop posters <ArrowRight className="size-4" />
-        </PageLink>
-        <PageLink
-          href="/wall-builder"
-          className="peel-btn peel-btn--light inline-flex h-11 items-center gap-2 rounded-xl px-4 text-sm font-bold sm:h-12 sm:px-5"
-        >
-          <LayoutGrid className="size-4" /> Build your wall
         </PageLink>
       </div>
     </>
