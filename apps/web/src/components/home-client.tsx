@@ -10,17 +10,19 @@ import CustomRail from "./custom-rail";
 import { isPosterPack } from "@/lib/poster";
 import { rememberPosters } from "@/lib/poster-images";
 import {
-  WALL_THEMES,
+  WALL_MIX_ROW,
+  arrangeWallRow,
   categoryPath,
   activeFestivals,
   festivalProducts,
   festivalShortDate,
   resolveHomeRails,
   type Festival,
+  type HomeSectionId,
   type Product,
   type HomeRail,
 } from "@stickypie/shared";
-import { useFestivals, useHomeRails, useLiveCatalog, type Catalog } from "@/lib/live-catalog";
+import { useFestivals, useHomePage, useHomeRails, useLiveCatalog, type Catalog } from "@/lib/live-catalog";
 import { savedRailScroll, useWindowScrollMemory } from "@/lib/scroll-memory";
 import { useDaySeed } from "@/lib/skin-seed";
 import { wallEffect } from "@/lib/wall-effects";
@@ -40,6 +42,7 @@ export default function HomeClient({
   const catalog = useLiveCatalog(initial);
   const { rails, loaded: railsLoaded } = useHomeRails(initialRails);
   const { festivals } = useFestivals(initialFestivals);
+  const home = useHomePage();
   const { categories, products, failed, retry } = catalog;
   const loaded = catalog.loaded && railsLoaded;
   useWindowScrollMemory(loaded);
@@ -49,14 +52,17 @@ export default function HomeClient({
   const packs = products.filter(isPosterPack);
   // A row per wall theme, after the mix of every set.
   const inTheme = (id: string) => packs.filter((p) => p.tags.includes(`wall theme:${id}`));
-  const wallRows = WALL_THEMES.map((t) => ({ ...t, items: inTheme(t.id) })).filter((t) => t.items.length > 0);
+  const wallRows = home.themes
+    .filter((t) => t.visible)
+    .map((t) => ({ ...t, items: arrangeWallRow(home.wallRows[t.id], inTheme(t.id), packs) }))
+    .filter((t) => t.items.length > 0);
   const singles = products.filter((p) => !isPosterPack(p));
   const featured = singles.filter((p) => p.featured);
   const hero = featured[0] ?? singles[0] ?? products[0];
   // Rails and their order come from the admin (Home page); what each rail
   // shows changes once a day, not on every refresh.
   const seed = useDaySeed();
-  const wallMix = mixWalls(packs, seed);
+  const wallMix = arrangeWallRow(home.wallRows[WALL_MIX_ROW], mixWalls(packs, seed), packs);
   const homeRails = resolveHomeRails(rails, singles, categories, seed);
   // Festivals around today (admin → Festivals) come right after Make your own: from a few days
   // before the date to a few days after, then they step aside by themselves.
@@ -131,6 +137,46 @@ export default function HomeClient({
     );
   }
 
+  // The page's sections, in the order set in the admin (Home page).
+  const sections: Record<HomeSectionId, React.ReactNode> = {
+    walls: wallMix.length > 0 && (
+      <LazyRail eager wide title={home.wallsTitle} href={categoryPath("poster-packs")}>
+        {wallMix.map((product) => (
+          <ProductCard key={product.id} product={product} width={WALL_CARD_WIDTH} wallEffect={wallEffect(0, seed)} />
+        ))}
+      </LazyRail>
+    ),
+    themes: wallRows.map((row, i) => (
+      <LazyRail key={row.id} eager={i < 1} wide title={row.title} href={`${categoryPath("poster-packs")}?theme=${row.id}`}>
+        {row.items.map((product) => (
+          <ProductCard key={product.id} product={product} width={WALL_CARD_WIDTH} wallEffect={wallEffect(i + 1, seed)} />
+        ))}
+      </LazyRail>
+    )),
+    custom: <CustomRail />,
+    festivals: festivalRails.map(({ f, items }) => (
+      <LazyRail
+        key={`festival-${f.id}`}
+        eager
+        title={`${f.name} · ${festivalShortDate(f)}`}
+        href={festivalPages.includes(f.slug) ? `/${f.slug}` : `/stickers?q=${encodeURIComponent(f.tags[0] ?? f.name)}`}
+      >
+        {items.map((product) => (
+          <ProductCard key={product.id} product={product} />
+        ))}
+      </LazyRail>
+    )),
+    rails: homeRails.map((rail, i) => (
+      // The first two rails render straight away; the rest only when the
+      // shopper scrolls near them.
+      <LazyRail key={rail.key} eager={i < 2} title={rail.title} href={rail.href}>
+        {rail.items.map((product) => (
+          <ProductCard key={product.id} product={product} />
+        ))}
+      </LazyRail>
+    )),
+  };
+
   return (
     <>
       <Hero
@@ -140,46 +186,11 @@ export default function HomeClient({
         moments={festivalRails.map(({ f, items }) => ({ label: `${f.name} · ${festivalShortDate(f)}`, products: items }))}
       />
       <div className="relative z-10 mt-2 space-y-1 pb-24 sm:space-y-8">
-        {/* First row: a mix of every wall set; then a row per wall theme; then the AI
-            "Stickers of YOU" card and the AI styles; then any festival on now */}
-        {wallMix.length > 0 && (
-          <LazyRail eager wide title="Wall poster sets" href={categoryPath("poster-packs")}>
-            {wallMix.map((product) => (
-              <ProductCard key={product.id} product={product} width={WALL_CARD_WIDTH} wallEffect={wallEffect(0, seed)} />
-            ))}
-          </LazyRail>
-        )}
-        {wallRows.map((row, i) => (
-          <LazyRail key={row.id} eager={i < 1} wide title={row.title} href={`${categoryPath("poster-packs")}?theme=${row.id}`}>
-            {row.items.map((product) => (
-              <ProductCard key={product.id} product={product} width={WALL_CARD_WIDTH} wallEffect={wallEffect(i + 1, seed)} />
-            ))}
-          </LazyRail>
-        ))}
-        <CustomRail />
-        {festivalRails.map(({ f, items }) => (
-          <LazyRail
-            key={`festival-${f.id}`}
-            eager
-            title={`${f.name} · ${festivalShortDate(f)}`}
-            href={festivalPages.includes(f.slug) ? `/${f.slug}` : `/stickers?q=${encodeURIComponent(f.tags[0] ?? f.name)}`}
-          >
-            {items.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </LazyRail>
-        ))}
-        {homeRails.map((rail, i) => (
-          // The first two rails render straight away; the rest only when the
-          // shopper scrolls near them.
-          <Fragment key={rail.key}>
-            <LazyRail eager={i < 2} title={rail.title} href={rail.href}>
-              {rail.items.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </LazyRail>
-          </Fragment>
-        ))}
+        {home.sections
+          .filter((section) => section.visible)
+          .map((section) => (
+            <Fragment key={section.id}>{sections[section.id]}</Fragment>
+          ))}
       </div>
     </>
   );
@@ -188,19 +199,16 @@ export default function HomeClient({
 /** Wall set cards are wider than sticker cards: a wall has many posters to see. */
 const WALL_CARD_WIDTH = "w-64 shrink-0 sm:w-72 md:w-80";
 
-/** The 4x4 Garage set runs in the reel ad: it always opens the mix. */
-const WALL_MIX_LEAD = "4x4-garage-poster-pack";
-
 /** Every wall set, one theme after another so none fills the row; a new order each day. */
 function mixWalls(packs: Product[], seed: number): Product[] {
   const spin = (slug: string) => [...slug].reduce((n, c) => Math.imul(n ^ c.charCodeAt(0), 16777619) >>> 0, seed >>> 0);
   const themeOf = (p: Product) => p.tags.find((t) => t.startsWith("wall theme:")) ?? "";
   const groups = new Map<string, Product[]>();
   for (const p of [...packs].sort((a, b) => spin(a.slug) - spin(b.slug))) {
-    if (p.slug !== WALL_MIX_LEAD) groups.set(themeOf(p), [...(groups.get(themeOf(p)) ?? []), p]);
+    groups.set(themeOf(p), [...(groups.get(themeOf(p)) ?? []), p]);
   }
   const queues = [...groups.values()];
-  const mix = packs.filter((p) => p.slug === WALL_MIX_LEAD);
+  const mix: Product[] = [];
   while (queues.some((q) => q.length)) {
     for (const q of queues) if (q.length) mix.push(q.shift()!);
   }

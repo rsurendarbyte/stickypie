@@ -1708,6 +1708,158 @@ html[data-no-save] img:not(a[href] img) {
     padding: 0.25em 0.4em;
   }
 }
+/* Size labels switched off in admin → Home page. */
+.wall-no-labels .wall-tags .wall-print::after {
+  display: none;
+}
+/* The tip that flashes on a wall when its page opens: a pane of liquid glass that
+   springs out of a small capsule and shrinks back into it. The posters show through.
+   It reads fine without its animation, so lite mode still shows it. */
+.wall-tip {
+  --spring: linear(0, 0.19 7%, 0.62 16%, 0.98 25%, 1.13 33%, 1.1 42%, 1.02 52%, 0.985 63%, 1.003 80%, 1);
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  max-width: calc(100% - 1.5rem);
+  padding: 0.625rem 1rem 0.625rem 0.625rem;
+  color: #101828;
+}
+.wall-tip-glass {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.38));
+  -webkit-backdrop-filter: blur(16px) saturate(190%) brightness(1.08);
+  backdrop-filter: blur(16px) saturate(190%) brightness(1.08);
+  box-shadow:
+    0 14px 34px -12px rgba(16, 24, 40, 0.5),
+    0 2px 6px rgba(16, 24, 40, 0.14),
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.45),
+    inset 0 -10px 16px -12px rgba(16, 24, 40, 0.16);
+  animation:
+    wall-tip-grow 0.85s var(--spring) 0.12s both,
+    wall-tip-appear 0.28s ease-out both;
+}
+/* the bright rim, stronger at two corners, as curved glass catches light */
+.wall-tip-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.2px;
+  background: linear-gradient(135deg, #fff, rgba(255, 255, 255, 0.15) 38%, rgba(255, 255, 255, 0.1) 62%, rgba(255, 255, 255, 0.85));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+/* one soft gleam travelling across as it settles */
+.wall-tip-glass::after {
+  content: "";
+  position: absolute;
+  inset: -20% auto -20% 0;
+  width: 42%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.75), transparent);
+  filter: blur(6px);
+  opacity: 0;
+  animation: wall-tip-gleam 1.1s ease-in-out 0.55s both;
+}
+.wall-tip-dot {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  color: #fff;
+  background: rgba(16, 24, 40, 0.78);
+  animation: wall-tip-appear 0.3s ease-out 0.08s both;
+}
+.wall-tip-text {
+  position: relative;
+  animation: wall-tip-text-in 0.42s ease-out 0.34s both;
+}
+.wall-tip--out .wall-tip-text {
+  animation: wall-tip-text-out 0.16s ease-in both;
+}
+.wall-tip--out .wall-tip-glass {
+  animation:
+    wall-tip-shrink 0.34s cubic-bezier(0.5, 0, 0.75, 0.3) both,
+    wall-tip-vanish 0.2s ease-in 0.26s both;
+}
+.wall-tip--out .wall-tip-dot {
+  animation: wall-tip-vanish 0.2s ease-in 0.24s both;
+}
+@keyframes wall-tip-grow {
+  from {
+    right: calc(100% - 3rem);
+  }
+}
+@keyframes wall-tip-shrink {
+  to {
+    right: calc(100% - 3rem);
+  }
+}
+@keyframes wall-tip-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.62);
+  }
+}
+@keyframes wall-tip-vanish {
+  to {
+    opacity: 0;
+    transform: scale(0.62);
+  }
+}
+@keyframes wall-tip-gleam {
+  0% {
+    opacity: 0;
+    transform: translateX(-120%) skewX(-16deg);
+  }
+  30%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(300%) skewX(-16deg);
+  }
+}
+@keyframes wall-tip-text-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+    filter: blur(4px);
+  }
+}
+@keyframes wall-tip-text-out {
+  to {
+    opacity: 0;
+    filter: blur(3px);
+  }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .wall-tip-glass {
+    background: rgba(255, 255, 255, 0.94);
+  }
+}
+html[data-lite]:not([data-lite="net"]) .wall-tip-glass {
+  background: rgba(255, 255, 255, 0.94);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+html[data-lite]:not([data-lite="net"]) :is(.wall-tip-glass, .wall-tip-glass::after, .wall-tip-dot, .wall-tip-text) {
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.wall-tip-glass, .wall-tip-glass::after, .wall-tip-dot, .wall-tip-text) {
+    animation: none;
+  }
+}
 /* Lite mode has no animations, so a wall goes straight to finished. */
 html[data-lite]:not([data-lite="net"]) .wall-fx {
   transform: none;

@@ -26,6 +26,8 @@ import type {
   AvatarBook,
   AvatarStyle,
   Category,
+  HomeHeroCopy,
+  HomePage,
   Product,
 } from "@stickypie/shared";
 import {
@@ -43,6 +45,7 @@ import { useSizeChoice } from "./size-picker";
 import TrueSizePreview from "./true-size-preview";
 import {
   useFeatures,
+  useHomePage,
   useLiveCatalog,
   useStoreSettings,
 } from "@/lib/live-catalog";
@@ -74,9 +77,10 @@ export default function Hero({
   // A fresh mix for every shopper every day: categories take turns (the ones they
   // look at first), featured and new likelier, a cheap sticker and a mini poster in it.
   rememberPosters(catalog.length ? catalog : products);
+  const home = useHomePage();
   // The hero speaks to all of India: nothing tied to one state or city (those keep their own rows).
   const regionId = categories.find((c) => c.slug === "cities-states")?.id;
-  const national = (p: Product) => !isRegional(p, regionId);
+  const national = (p: Product) => !home.hideRegional || !isRegional(p, regionId);
   const shop = (catalog.length ? catalog : products).filter(national);
   const wallSets = packs.filter(national);
   const { picks, packPicks, momentOf } = heroPicks(
@@ -84,24 +88,31 @@ export default function Hero({
     wallSets,
     interest,
     seed,
-    moments.filter((m) => !isRegionalName(m.label)).map((m) => ({ ...m, products: m.products.filter(national) })),
+    home.festivals
+      ? moments.filter((m) => !home.hideRegional || !isRegionalName(m.label)).map((m) => ({ ...m, products: m.products.filter(national) }))
+      : [],
+    home.productSlides,
+    home.wallSlides,
   );
   // Sticker slides with a wall poster set after every second one.
-  const slides: Slide[] = [];
+  const productSlides: Slide[] = [];
   const queue = [...packPicks];
   picks.forEach((p, i) => {
-    slides.push({ kind: "product", product: p });
-    if (i % 2 === 1 && queue.length) slides.push({ kind: "product", product: queue.shift()! });
+    productSlides.push({ kind: "product", product: p });
+    if (i % 2 === 1 && queue.length) productSlides.push({ kind: "product", product: queue.shift()! });
   });
-  for (const p of queue) slides.push({ kind: "product", product: p });
-  // StickyPie itself opens the hero: a slide for stickers, then one for wall posters…
-  if (picks.length > 0) {
-    const posters = shop.some(isMiniPoster);
-    slides.unshift({ kind: "brand" }, ...(posters ? [{ kind: "posters" } as const] : []));
-  }
-  // …except the avatar sticker book, the headline product, which leads when on sale.
+  for (const p of queue) productSlides.push({ kind: "product", product: p });
+  // The slides and their order come from the admin (Home page).
   const book = features.avatarStickers ? avatarBook(settings) : null;
-  if (book) slides.unshift({ kind: "avatar" });
+  const slides: Slide[] = home.slides
+    .filter((s) => s.visible)
+    .flatMap((s): Slide[] => {
+      if (s.id === "avatar") return book ? [{ kind: "avatar" }] : [];
+      if (s.id === "stickers") return shop.length ? [{ kind: "brand" }] : [];
+      if (s.id === "posters") return shop.some(isMiniPoster) ? [{ kind: "posters" }] : [];
+      return productSlides;
+    });
+  if (!slides.length) slides.push(...(productSlides.length ? productSlides : [{ kind: "brand" } as const]));
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   // Shopper picked a size → stop rotating so the slide doesn't change under them.
@@ -112,11 +123,11 @@ export default function Hero({
     if (slides.length < 2 || paused || engaged) return;
     const timer = setInterval(
       () => setIndex((i) => (i + 1) % slides.length),
-      6500,
+      home.seconds * 1000,
     );
     return () => clearInterval(timer);
     // index: a swipe or dot tap restarts the wait for the next slide.
-  }, [slides.length, paused, engaged, index]);
+  }, [slides.length, paused, engaged, index, home.seconds]);
 
   // Swipe left / right on phones to change slide.
   const touch = useRef<{ x: number; y: number } | null>(null);
@@ -129,27 +140,19 @@ export default function Hero({
   // The words sit on a moving wall on these slides.
   const onWall = slide.kind !== "product";
   const posterChips = slide.kind === "posters" || (product !== null && isPosterPack(product));
-  const chips =
+  const chipIcons =
+    slide.kind === "avatar" ? [Sticker, Frame, Gift, Truck] : posterChips ? [BadgeCheck, Gift, Frame, Truck] : [Sticker, BadgeCheck, Car, Truck];
+  const chipLabels =
     slide.kind === "avatar"
-      ? [
-          { icon: Sticker, label: "Vinyl stickers" },
-          { icon: Frame, label: "300 GSM posters" },
-          { icon: Gift, label: "Glue dots included" },
-          { icon: Truck, label: "Ships across India" },
-        ]
-      : posterChips
-        ? [
-            { icon: BadgeCheck, label: "300 GSM paper" },
-            { icon: Gift, label: "Glue dots included" },
-            { icon: Frame, label: "Walls & doors" },
-            { icon: Truck, label: "Ships across India" },
-          ]
-        : [
-            { icon: Sticker, label: "Peel & stick" },
-            { icon: BadgeCheck, label: "Die-cut edges" },
-            { icon: Car, label: "Car, bike & laptop" },
-            { icon: Truck, label: "Ships across India" },
-          ];
+      ? home.avatar.chips
+      : slide.kind === "posters"
+        ? home.posters.chips
+        : slide.kind === "brand"
+          ? home.stickers.chips
+          : posterChips
+            ? home.posterChips
+            : home.stickerChips;
+  const chips = chipLabels.flatMap((label, i) => (label ? [{ icon: chipIcons[i], label }] : []));
   const skinSlug = product
     ? product.slug
     : slide.kind === "avatar"
@@ -258,13 +261,15 @@ export default function Hero({
                 ) : s.kind === "brand" ? (
                   <BrandSlideCopy
                     catalog={catalog.length ? catalog : products}
+                    copy={home.stickers}
                   />
                 ) : s.kind === "posters" ? (
                   <PosterSlideCopy
                     catalog={catalog.length ? catalog : products}
+                    copy={home.posters}
                   />
                 ) : (
-                  <AvatarSlideCopy book={book!} catalog={catalog.length ? catalog : products} />
+                  <AvatarSlideCopy book={book!} catalog={catalog.length ? catalog : products} copy={home.avatar} />
                 )}
               </div>
             );
@@ -397,17 +402,17 @@ function SlideFacts({ items }: { items: Product[] }) {
 }
 
 /** First slide: stickers in one line, a few quick facts, and two ways to order. */
-function BrandSlideCopy({ catalog }: { catalog: Product[] }) {
+function BrandSlideCopy({ catalog, copy }: { catalog: Product[]; copy: HomeHeroCopy }) {
   return (
     <>
       <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 text-[11px] font-bold tracking-widest text-brand uppercase backdrop-blur-sm">
-        <Sticker className="size-3.5" /> Stickers
+        <Sticker className="size-3.5" /> {copy.badge}
       </span>
       <h2 className="mt-2.5 font-display text-[30px] leading-[1.05] font-bold tracking-tight sm:mt-4 sm:text-6xl md:text-5xl xl:mt-5 xl:text-[64px]">
-        Stick your style.
+        {copy.title}
       </h2>
       <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-fog sm:mt-4 sm:text-lg">
-        Die-cut vinyl stickers for your car, bike, laptop and bottle.
+        {copy.text}
       </p>
       <SlideFacts items={catalog.filter((p) => !isMiniPoster(p) && !isPosterPack(p))} />
       <div className="mt-3 flex flex-wrap items-center gap-2.5 sm:mt-6 sm:gap-3">
@@ -415,7 +420,7 @@ function BrandSlideCopy({ catalog }: { catalog: Product[] }) {
           href="/stickers"
           className="peel-btn inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-bold sm:h-12 sm:px-6 sm:text-base"
         >
-          Shop stickers <ArrowRight className="size-4" />
+          {copy.button} <ArrowRight className="size-4" />
         </PageLink>
         <PageLink
           href="/custom-stickers"
@@ -429,17 +434,17 @@ function BrandSlideCopy({ catalog }: { catalog: Product[] }) {
 }
 
 /** Second slide: wall posters, kept apart from the stickers. */
-function PosterSlideCopy({ catalog }: { catalog: Product[] }) {
+function PosterSlideCopy({ catalog, copy }: { catalog: Product[]; copy: HomeHeroCopy }) {
   return (
     <>
       <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 text-[11px] font-bold tracking-widest text-brand uppercase backdrop-blur-sm">
-        <Frame className="size-3.5" /> Wall posters
+        <Frame className="size-3.5" /> {copy.badge}
       </span>
       <h2 className="mt-2.5 font-display text-[30px] leading-[1.05] font-bold tracking-tight sm:mt-4 sm:text-6xl md:text-5xl xl:mt-5 xl:text-[64px]">
-        Style your wall.
+        {copy.title}
       </h2>
       <p className="mt-3 max-w-lg text-[15px] leading-relaxed text-fog sm:mt-4 sm:text-lg">
-        300 GSM posters for your room, with glue dots or tape included.
+        {copy.text}
       </p>
       <SlideFacts items={catalog.filter((p) => isMiniPoster(p) && !isPosterPack(p))} />
       <div className="mt-3 flex flex-wrap items-center gap-2.5 sm:mt-6 sm:gap-3">
@@ -447,7 +452,7 @@ function PosterSlideCopy({ catalog }: { catalog: Product[] }) {
           href="/stickers/mini-posters"
           className="peel-btn inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-bold sm:h-12 sm:px-6 sm:text-base"
         >
-          Shop posters <ArrowRight className="size-4" />
+          {copy.button} <ArrowRight className="size-4" />
         </PageLink>
       </div>
     </>
@@ -475,6 +480,8 @@ function heroPicks(
   interest: Interest,
   seed: number,
   moments: { label: string; products: Product[] }[],
+  productCount: number,
+  wallCount: number,
 ) {
   const day = Math.floor(Date.now() / 86_400_000);
   const random = seededRandom(seed * 7919 + day);
@@ -505,8 +512,8 @@ function heroPicks(
   const picks: Product[] = [];
   const festive = [...momentOf.keys()].map((id) => singles.find((p) => p.id === id)).filter(Boolean) as Product[];
   for (const q of queues) for (let i = q.length - 1; i >= 0; i--) if (momentOf.has(q[i].id)) q.splice(i, 1);
-  while (picks.length < 5 - festive.length && queues.some((q) => q.length)) {
-    for (const q of queues) if (q.length && picks.length < 5 - festive.length) picks.push(q.shift()!);
+  while (picks.length < productCount - festive.length && queues.some((q) => q.length)) {
+    for (const q of queues) if (q.length && picks.length < productCount - festive.length) picks.push(q.shift()!);
   }
   // festival stickers first and third, so the hero opens on what's on now
   festive.forEach((p, i) => picks.splice(Math.min(i * 2, picks.length), 0, p));
@@ -523,7 +530,7 @@ function heroPicks(
   const packPicks = shuffle(
     packs.filter((p) => p.stock !== 0),
     (p) => (p.featured ? 3 : 1) * (p.isNew ? 1.5 : 1),
-  ).slice(0, 3);
+  ).slice(0, wallCount);
   return { picks, packPicks, momentOf };
 }
 
@@ -958,9 +965,11 @@ function warmAvatarPage() {
 }
 
 /** First slide: the shop's two big things, side by side, each with its price and its way in. */
-function AvatarSlideCopy({ book, catalog }: { book: AvatarBook; catalog: Product[] }) {
+function AvatarSlideCopy({ book, catalog, copy }: { book: AvatarBook; catalog: Product[]; copy: HomePage["avatar"] }) {
   const { loaded: pricesReady } = useStoreSettings();
   const walls = catalog.filter(isPosterPack);
+  // The first word of the title carries the brand colour.
+  const [lead, ...restOfTitle] = copy.titleTop.split(" ");
   // Tapped: show progress at once while the next page loads.
   const [going, setGoing] = useState(false);
   // Back button from the avatar page restores this page from cache: drop the spinner.
@@ -977,24 +986,24 @@ function AvatarSlideCopy({ book, catalog }: { book: AvatarBook; catalog: Product
           <Sparkles className="size-3.5" /> AI
         </span>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 text-[11px] font-bold tracking-widest text-brand uppercase backdrop-blur-sm">
-          <Smile className="size-3.5" /> New · AI avatar stickers
+          <Smile className="size-3.5" /> {copy.badge}
         </span>
       </div>
       <h2 className="mt-2.5 font-display text-[30px] leading-[1.05] font-bold tracking-tight sm:mt-4 sm:text-6xl md:text-5xl xl:mt-5 xl:text-[64px]">
         <span className="bg-gradient-to-r from-brand to-brand2 bg-clip-text text-transparent">
-          AI
+          {lead}
         </span>{" "}
-        stickers
+        {restOfTitle.join(" ")}
         <br />
-        &amp; wall posters
+        {copy.titleBottom}
       </h2>
       <div className="mt-3 grid max-w-xl grid-cols-2 gap-2.5 sm:mt-6 sm:gap-3">
         <div className="flex flex-col rounded-2xl border border-line bg-white/85 p-3 backdrop-blur-sm sm:p-4">
           <p className="flex items-center gap-1.5 text-sm font-bold text-snow sm:text-base">
-            <Smile className="size-4 shrink-0 text-brand" /> Stickers of you
+            <Smile className="size-4 shrink-0 text-brand" /> {copy.stickerTitle}
           </p>
           <p className="mt-1 flex-1 text-xs leading-snug text-fog sm:text-sm">
-            Send a selfie, pick trending styles. {book.pages}+ styles on vinyl.
+            {copy.stickerText.replace("{styles}", String(book.pages))}
           </p>
           <p className="mt-2 flex items-baseline gap-1.5">
             <span className="font-display text-xl font-bold text-gold sm:text-2xl">
@@ -1015,16 +1024,16 @@ function AvatarSlideCopy({ book, catalog }: { book: AvatarBook; catalog: Product
             aria-busy={going || undefined}
             className="peel-btn mt-2 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl px-2 text-[13px] font-bold sm:mt-3 sm:h-11 sm:text-sm"
           >
-            Make my stickers{" "}
+            {copy.stickerButton}{" "}
             {going && <Loader2 className="size-4 animate-spin" />}
           </PageLink>
         </div>
         <div className="flex flex-col rounded-2xl border border-line bg-white/85 p-3 backdrop-blur-sm sm:p-4">
           <p className="flex items-center gap-1.5 text-sm font-bold text-snow sm:text-base">
-            <Frame className="size-4 shrink-0 text-brand" /> Wall posters
+            <Frame className="size-4 shrink-0 text-brand" /> {copy.wallTitle}
           </p>
           <p className="mt-1 flex-1 text-xs leading-snug text-fog sm:text-sm">
-            Ready wall sets on 300 GSM paper. Glue dots included.
+            {copy.wallText}
           </p>
           <p className="mt-2 flex items-baseline gap-1.5">
             {walls.length > 0 ? (
@@ -1042,7 +1051,7 @@ function AvatarSlideCopy({ book, catalog }: { book: AvatarBook; catalog: Product
             href="/stickers/poster-packs"
             className="peel-btn mt-2 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl px-2 text-[13px] font-bold sm:mt-3 sm:h-11 sm:text-sm"
           >
-            Shop wall posters
+            {copy.wallButton}
           </PageLink>
         </div>
       </div>

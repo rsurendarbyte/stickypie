@@ -240,6 +240,7 @@ export type ListProductsOpts = {
 import type { StoreSettings } from "./shipping";
 import type { FeatureFlags } from "./features";
 import type { HomeRail } from "./home-rails";
+import type { HomePage } from "./home-page";
 import type { Festival } from "./festivals";
 import type { ContactInput, ContactMessage, NewReviewInput, Review, ReviewStatus } from "./feedback";
 import type { Coupon, NewCouponInput } from "./thanks";
@@ -309,6 +310,9 @@ export interface DataDriver {
   /** Home page layout (DEFAULT_HOME_RAILS until edited). */
   getHomeRails(): Promise<HomeRail[]>;
   updateHomeRails(rails: HomeRail[]): Promise<HomeRail[]>;
+  /** The hero and the page's sections (DEFAULT_HOME_PAGE until edited). */
+  getHomePage(): Promise<HomePage>;
+  updateHomePage(page: HomePage): Promise<HomePage>;
   /** Festivals & special days (DEFAULT_FESTIVALS until edited). */
   getFestivals(): Promise<Festival[]>;
   updateFestivals(festivals: Festival[]): Promise<Festival[]>;

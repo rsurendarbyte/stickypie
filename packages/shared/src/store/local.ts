@@ -16,6 +16,7 @@ import type {
 } from "../types";
 import { DEFAULT_STORE_SETTINGS, type StoreSettings } from "../shipping";
 import { rowToFeatures, type FeatureFlags } from "../features";
+import { rowToHomePage, type HomePage } from "../home-page";
 import { DEFAULT_HOME_RAILS, type HomeRail } from "../home-rails";
 import { DEFAULT_FESTIVALS, type Festival } from "../festivals";
 import { inCategory } from "../utils";
@@ -28,6 +29,7 @@ type StoreShape = {
   orders: Order[];
   settings?: StoreSettings;
   features?: FeatureFlags;
+  homePage?: HomePage;
   homeRails?: HomeRail[];
   festivals?: Festival[];
   contactMessages?: ContactMessage[];
@@ -528,6 +530,17 @@ export function createLocalDriver(filePath: string): DataDriver {
       store.features = flags;
       persist(store);
       return flags;
+    },
+
+    async getHomePage() {
+      return rowToHomePage(load().homePage);
+    },
+
+    async updateHomePage(page: HomePage) {
+      const store = load();
+      store.homePage = page;
+      persist(store);
+      return rowToHomePage(page);
     },
 
     async createContactMessage(input: ContactInput) {
