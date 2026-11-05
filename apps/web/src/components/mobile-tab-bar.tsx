@@ -20,7 +20,6 @@ function ownBottomBar(pathname: string) {
     pathname.startsWith("/custom-stickers/design") ||
     pathname.startsWith("/qr-code-stickers") ||
     pathname.startsWith("/name-stickers") ||
-    pathname.startsWith("/wall-builder") ||
     pathname.startsWith("/avatar-stickers") ||
     cartUiHidden(pathname)
   );
@@ -28,7 +27,6 @@ function ownBottomBar(pathname: string) {
 
 const MORE_LINKS = [
   { label: "Wall posters", href: "/stickers/poster-packs" },
-  { label: "Build your wall", href: "/wall-builder" },
   { label: "New drops", href: "/stickers?sort=new" },
   ...SURFACES.map((s) => ({ label: s.name, href: `/${s.slug}` })),
 ];

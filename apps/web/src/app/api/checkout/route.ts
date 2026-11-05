@@ -260,10 +260,12 @@ export async function POST(req: Request) {
   // by poster from the catalogue. Always on poster paper.
   for (const item of wallItems) {
     const spec = item.customSpec?.kind === "wall" ? item.customSpec : null;
-    const layout = spec ? wallLayout(spec.layout) : null;
-    if (!spec || !layout || spec.posters.length !== layout.tiles.length) {
+    const set = spec?.set ? ((await driver.getProductsByIds([spec.set]))[0] ?? null) : null;
+    const layout = spec && !spec.set ? wallLayout(spec.layout) : null;
+    const spots = set ? packPosterSizes(set) : layout?.tiles.map((tile) => tile.inches);
+    if (!spec || !spots || spec.posters.length !== spots.length || (spec.set && (!set?.isActive || set.stock === 0))) {
       return NextResponse.json(
-        { error: "This wall layout has changed. Please build your wall again.", code: "wall_changed" },
+        { error: "This wall has changed. Please remove it from your cart and pick it again.", code: "wall_changed" },
         { status: 409 }
       );
     }
@@ -271,7 +273,7 @@ export async function POST(req: Request) {
     const posters: { name: string; imageUrl: string; inches: number }[] = [];
     let price = 0;
     for (const [i, id] of spec.posters.entries()) {
-      const inches = layout.tiles[i].inches;
+      const inches = spots[i];
       const poster = found.get(id);
       const priced = poster?.isActive && poster.stock !== 0 && isMiniPosterProduct(poster) ? priceForSize(poster, inches) : null;
       if (!poster || !priced) {
@@ -287,10 +289,11 @@ export async function POST(req: Request) {
       price += priced.price;
     }
     orderItems.push({
-      productId: null,
-      name: `Your wall · ${layout.name}`,
-      unitPrice: price,
-      quantity: 1,
+      productId: set?.id ?? null,
+      name: set ? `${set.name} · Your picks` : `Your wall · ${layout!.name}`,
+      // A wall set keeps its one price, whichever posters are on it.
+      unitPrice: set ? set.price : price,
+      quantity: set ? item.quantity : 1,
       imageUrl: posters[0].imageUrl,
       sizeInches: null,
       sizeLabel: packSizeSummary(posters.map((p) => p.inches)),

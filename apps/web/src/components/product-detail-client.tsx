@@ -5,9 +5,10 @@ import PageLink from "./page-link";
 import ImageZoom from "./image-zoom";
 import { isInternalTag, isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel, wallSize } from "@/lib/poster";
 import { useEffect, useState } from "react";
-import { BadgeCheck, Car, ChevronsUpDown, Frame, Gift, PackageX, Ruler, Sparkles, Truck } from "lucide-react";
+import { BadgeCheck, Car, ChevronsUpDown, Frame, Gift, PackageX, RotateCcw, Ruler, Sparkles, Truck } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR, packPosterSizes, packSizeSummary, posterSizeLabel } from "@stickypie/shared";
+import { pickPoster, useWallLine } from "@/lib/wall-picks";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { recordProductView, useFeatures, useLiveProduct, useRelatedProducts, watchImageSaves } from "@/lib/live-catalog";
@@ -23,6 +24,7 @@ import ProductPurchase from "./product-purchase";
 import Row from "./row";
 import { rememberPackPosters } from "@/lib/poster-images";
 import FinishPicker from "./finish-picker";
+import WallSizeMap, { WallPosterSheet, WallReset, WallViewSwitch, usePosterCatalog, type WallView } from "./wall-size-map";
 import WallStage from "./wall-stage";
 import SizePicker, { useLineFinish, useSizeChoice } from "./size-picker";
 import SizeRuler from "./size-ruler";
@@ -75,19 +77,35 @@ export default function ProductDetailClient({
   const finish = useLineFinish(product);
   const poster = isPack || (isMiniPoster(product) && finish !== "sticker");
   const [zoom, setZoom] = useState(false);
+  const [wallView, setWallView] = useState<WallView>("wall");
+  const [spot, setSpot] = useState<number | null>(null);
+  const { posters: picks } = useWallLine(product, price);
+  const posterCatalog = usePosterCatalog();
+  // What's inside follows the shopper's picks.
+  const shownPosters = picks
+    ? picks.flatMap((id, i) => {
+        const own = packPosters.find((p) => p.id === id);
+        const p = posterCatalog.find((c) => c.id === id);
+        const inches = packPosterSizes(product)[i] ?? 6;
+        if (own) return [{ ...own, inches }];
+        return p ? [{ id: p.id, slug: p.slug, name: p.name, imageUrl: p.thumbUrl ?? p.imageUrl, active: true, inches }] : [];
+      })
+    : packPosters;
   const shownTags = product.tags.filter((t) => !isInternalTag(t));
   const wall = isWallSetup(product);
+  // A wall's posters have their own buttons, so the picture around them can't be one.
+  const ArtBlock = wall ? "div" : "button";
 
   const inside = isPack && (
       <div className={wall ? "mt-8" : "mt-5"}>
         <h2 className="font-display text-lg font-semibold">
-          What&apos;s inside · {packPosters.length} posters
+          What&apos;s inside · {shownPosters.length} posters
         </h2>
         <p className="text-xs text-fog">
-          {packSizeSummary(packPosters.map((p) => p.inches))}. Lay them out like the picture.
+          {packSizeSummary(shownPosters.map((p) => p.inches))}. Lay them out like the picture.
         </p>
         <ol className={`mt-2 grid gap-2 ${wall ? "grid-cols-4 sm:grid-cols-6 lg:grid-cols-8" : "max-w-md grid-cols-3 sm:grid-cols-4"}`}>
-          {packPosters.map((p, n) => {
+          {shownPosters.map((p, n) => {
             const tile = (
               <>
                 <SmartImg full={p.imageUrl} thumb={null} alt={p.name} className="aspect-[2/3] w-full rounded-md object-cover" />
@@ -155,19 +173,22 @@ export default function ProductDetailClient({
         {/* Art — stays in view on wide screens while the details (e.g. a pack's posters) scroll */}
         <div className="lg:sticky lg:top-24 lg:self-start">
         <div className={`relative w-full ${wall ? "aspect-square" : isPack ? "aspect-[4/5] max-h-[620px]" : "aspect-[5/4] max-h-[440px] sm:aspect-square"}`} {...swipe}>
-          <button
-            type="button"
+          <ArtBlock
+            {...(wall ? {} : { type: "button" as const })}
             // A pack's picture is a collage of all its posters — no "actual size" for it.
             onClick={() => (isPack ? setZoom(true) : setTrueSize(true))}
             aria-label={isPack ? `Zoom into ${product.name}` : "See actual size"}
             // one fixed-size cell, so max-h-full has a height to fit tall art (posters) into
-            className={`absolute inset-0 grid cursor-zoom-in grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center ${wall ? "" : isPack ? "p-2" : "p-6 sm:p-10"}`}
+            className={`absolute inset-0 grid cursor-zoom-in grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center ${wall && wallView !== "wall" ? "invisible" : ""} ${wall ? "" : isPack ? "p-2" : "p-6 sm:p-10"}`}
             style={{ transform: isPack ? undefined : `rotate(${rotate / 2}deg)` }}
           >
             {wall ? (
               <WallStage
                 bare
                 product={product}
+                posters={picks}
+                onRemove={(i) => pickPoster(product, i, "")}
+                onAdd={setSpot}
                 src={product.displayUrl ?? product.imageUrl}
                 alt={product.name}
                 className={out || unavailable ? "opacity-50 saturate-50" : ""}
@@ -185,13 +206,29 @@ export default function ProductDetailClient({
               />
             )}
             {features.sizeRuler && !isPack && <SizeRuler img={artEl} inches={sizes.length > 0 ? size : null} aspectRatio={product.aspectRatio} />}
-          </button>
-          {off !== null && !unavailable && (
+          </ArtBlock>
+          {wall && wallView !== "wall" && (
+            <div className="absolute inset-0">
+              <WallSizeMap product={product} posters={picks} />
+            </div>
+          )}
+          {off !== null && !unavailable && wallView === "wall" && (
             <span className="pie-gradient absolute top-4 left-4 rounded-full px-3 py-1 text-xs font-bold text-white">
               SAVE {off}%
             </span>
           )}
         </div>
+        {wall && (
+          <div className="mt-2 flex justify-center">
+            <WallViewSwitch view={wallView} onChange={setWallView} />
+            {picks && (
+              <WallReset product={product} price={price} className="peel-btn peel-btn--light ml-2 inline-flex h-9 items-center gap-1.5 self-center rounded-full px-3.5 text-xs font-bold">
+                <RotateCcw className="size-3.5" strokeWidth={2.5} /> Reset wall
+              </WallReset>
+            )}
+            <WallPosterSheet product={product} posters={picks} spot={spot} onClose={() => setSpot(null)} />
+          </div>
+        )}
         {/* Below the art, so it never covers it or the size ruler. Phones skip it to keep
             the price in the first screen — the "see it at actual size" link under the
             size picker does the same there. */}

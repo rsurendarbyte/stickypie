@@ -35,6 +35,7 @@ export const customSpecSchema = z.discriminatedUnion("kind", [
     kind: z.literal("wall"),
     layout: z.string().min(1).max(30),
     posters: z.array(z.string().uuid()).min(1).max(40),
+    set: z.string().uuid().optional(),
   }),
   // One style per page — checkout also checks them against the book on sale.
   z.object({

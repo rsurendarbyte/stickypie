@@ -916,6 +916,19 @@ html[data-lite] .card-shine {
   backdrop-filter: none !important;
 }
 
+/* Size map tiles: the real poster, faded back so the size tags are what you read. */
+.wall-tile {
+  border-radius: 3.27% / 2.18%;
+  background: #ffffff;
+  box-shadow:
+    0 0 0 1px rgba(16, 24, 40, 0.14),
+    0 4px 10px -6px rgba(16, 24, 40, 0.3);
+}
+.wall-tile-art {
+  filter: grayscale(1);
+  opacity: 0.38;
+}
+
 /* Glass controls in the swipe view; solid when there's no blur behind them. */
 .reel-glass {
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.2));
@@ -1534,6 +1547,11 @@ html[data-no-save] img:not(a[href] img) {
 .wall-slot.is-done {
   opacity: 0;
 }
+/* a spot the shopper emptied stays outlined until it's filled */
+.wall-slot.wall-slot--empty {
+  opacity: 1;
+  animation: none;
+}
 /* Wall cards: each row brings its posters in one of four ways. */
 @media (prefers-reduced-motion: no-preference) {
   /* sweep: the whole wall glides round from the side, posters landing as it turns */
@@ -1636,6 +1654,35 @@ html[data-no-save] img:not(a[href] img) {
   to {
     opacity: 1;
     transform: none;
+  }
+}
+/* Wall cards keep each poster's size on it: a small tag drawn on the poster's own element. */
+.wall-tags .wall-print {
+  container-type: inline-size;
+}
+.wall-tags .wall-print::after {
+  content: attr(data-size) " in";
+  position: absolute;
+  z-index: 1;
+  bottom: 5%;
+  left: 50%;
+  translate: -50%;
+  padding: 0.32em 0.6em;
+  border-radius: 999px;
+  background: rgba(16, 24, 40, 0.74);
+  color: #ffffff;
+  font-family: var(--font-display);
+  font-size: clamp(7px, 12cqw, 12px);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  pointer-events: none;
+}
+/* the smallest posters on a phone card: just the size */
+@container (max-width: 44px) {
+  .wall-tags .wall-print::after {
+    content: attr(data-size);
+    padding: 0.25em 0.4em;
   }
 }
 /* Lite mode has no animations, so a wall goes straight to finished. */

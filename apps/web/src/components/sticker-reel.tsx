@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, ChevronUp, LayoutList, Ruler, Share2, ShoppingBag, Truck, ZoomIn } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronUp, LayoutList, RotateCcw, Ruler, Share2, ShoppingBag, Truck, ZoomIn } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { POSTER_ADHESIVE, POSTER_PAPER, belowMinimum, discountPercent, formatINR, inCategory, packPosterSizes, packSizeSummary } from "@stickypie/shared";
 import { useLiveCatalog, useStoreSettings } from "@/lib/live-catalog";
 import { rememberPackPosters, rememberPosters } from "@/lib/poster-images";
+import { pickPoster, useWallLine } from "@/lib/wall-picks";
 import { cardSkinFor } from "@/lib/palette";
 import { isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel } from "@/lib/poster";
 import { useSkinSeed } from "@/lib/skin-seed";
@@ -15,6 +16,7 @@ import CartStepper from "./cart-stepper";
 import PageLink from "./page-link";
 import LabelModal from "./label-modal";
 import FinishPicker from "./finish-picker";
+import WallSizeMap, { WallPosterSheet, WallReset, WallViewSwitch, type WallView } from "./wall-size-map";
 import WallStage from "./wall-stage";
 import { toCartProduct, useLineFinish, useSizeChoice } from "./size-picker";
 import ImageZoom from "./image-zoom";
@@ -266,16 +268,19 @@ function ReelItem({
   // This size already in the cart: a quantity stepper and Checkout instead of Add to cart.
   const finish = useLineFinish(product);
   const paper = pack || (poster && finish !== "sticker");
-  const inCart = items.find((item) => lineKey(item) === lineKey({ productId: product.id, size, finish }));
+  const { posters: picks, gaps, line } = useWallLine(product, price);
+  const inCart = items.find((item) => lineKey(item) === lineKey(line ?? { productId: product.id, size, finish }));
   const [details, setDetails] = useState(false);
   const [trueSize, setTrueSize] = useState(false);
   const [zoom, setZoom] = useState(false);
+  const [wallView, setWallView] = useState<WallView>("wall");
+  const [spot, setSpot] = useState<number | null>(null);
   const [pops, setPops] = useState<{ id: number; x: number; y: number }[]>([]);
   const lastTap = useRef<{ t: number; x: number; y: number } | null>(null);
 
   function addToCart(at?: { x: number; y: number }) {
-    if (out) return;
-    add(toCartProduct(product, size, price));
+    if (out || gaps) return;
+    add(line ?? toCartProduct(product, size, price));
     const id = Date.now();
     const spot = at ?? { x: window.innerWidth / 2, y: window.innerHeight * 0.4 };
     setPops((p) => [...p, { id, ...spot }]);
@@ -311,8 +316,23 @@ function ReelItem({
         onPointerUp={onArtTap}
       >
         {isWallSetup(product) ? (
-          <div className="size-full">
-            <WallStage bare product={product} src={product.displayUrl ?? product.imageUrl} alt={product.name} className={out ? "opacity-50 saturate-50" : ""} />
+          <div className="relative size-full">
+            {wallView !== "wall" && (
+              <div className="absolute inset-0 z-[1] pb-11">
+                <WallSizeMap product={product} posters={picks} />
+              </div>
+            )}
+            <div className={`size-full ${wallView !== "wall" ? "invisible" : ""}`}>
+            <WallStage bare product={product} posters={picks} onRemove={(i) => pickPoster(product, i, "")} onAdd={setSpot} src={product.displayUrl ?? product.imageUrl} alt={product.name} className={out ? "opacity-50 saturate-50" : ""} />
+            </div>
+            <div className="absolute inset-x-0 bottom-1 z-[2] flex justify-center">
+              <WallViewSwitch view={wallView} onChange={setWallView} glass />
+              {picks && (
+                <WallReset product={product} price={price} className="ml-2 inline-flex items-center gap-1 self-center rounded-full bg-snow px-3 py-1.5 text-xs font-bold text-white shadow-md">
+                  <RotateCcw className="size-3.5" strokeWidth={2.5} /> Reset
+                </WallReset>
+              )}
+            </div>
           </div>
         ) : (
         <img
@@ -331,6 +351,8 @@ function ReelItem({
           </span>
         ))}
       </div>
+
+      {pack && <WallPosterSheet product={product} posters={picks} spot={spot} onClose={() => setSpot(null)} />}
 
       {/* Side rail */}
       <div className="absolute right-3 bottom-[248px] flex flex-col items-center gap-3">
@@ -451,14 +473,16 @@ function ReelItem({
           ) : (
             <button
               type="button"
-              disabled={out}
+              disabled={out || gaps > 0}
               onClick={() => addToCart()}
               className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-2xl text-base font-bold ${
-                out ? "cursor-not-allowed bg-panel text-fog" : "peel-btn"
+                out || gaps ? "cursor-not-allowed bg-panel text-fog" : "peel-btn"
               }`}
             >
               {out ? (
                 "Out of stock"
+              ) : gaps ? (
+                `Fill ${gaps} empty ${gaps === 1 ? "spot" : "spots"}`
               ) : (
                 <>
                   <ShoppingBag className="peel-icon size-5" /> Add to cart · {formatINR(price)}

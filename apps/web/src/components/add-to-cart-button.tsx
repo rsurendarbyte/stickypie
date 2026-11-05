@@ -6,6 +6,7 @@ import { formatINR, priceForSize } from "@stickypie/shared";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
 import { defaultSize, toCartProduct, useLineFinish } from "./size-picker";
+import { useWallLine } from "@/lib/wall-picks";
 
 export default function AddToCartButton({
   product,
@@ -32,7 +33,8 @@ export default function AddToCartButton({
   const finish = useLineFinish(product);
   const chosen = stickerSize === undefined ? defaultSize(product) : stickerSize;
   const price = priceForSize(product, chosen)?.price ?? product.price;
-  const inCart = items.find((item) => lineKey(item) === lineKey({ productId: product.id, size: chosen, finish }));
+  const { gaps, line } = useWallLine(product, price);
+  const inCart = items.find((item) => lineKey(item) === lineKey(line ?? { productId: product.id, size: chosen, finish }));
 
   // Already in the cart → the button becomes the synced quantity stepper.
   if (inCart && !out) {
@@ -52,8 +54,8 @@ export default function AddToCartButton({
   }
 
   function onClick() {
-    if (out) return;
-    add(toCartProduct(product, chosen, price), qty);
+    if (out || gaps) return;
+    add(line ?? toCartProduct(product, chosen, price), qty);
   }
 
   const sizing =
@@ -63,9 +65,9 @@ export default function AddToCartButton({
     <button
       type="button"
       onClick={onClick}
-      disabled={out}
+      disabled={out || gaps > 0}
       className={`inline-flex items-center justify-center gap-2 transition-all duration-200 ${
-        out
+        out || gaps
           ? "cursor-not-allowed bg-panel font-semibold text-fog"
           : sticker
             ? "peel-btn font-bold"
@@ -74,6 +76,8 @@ export default function AddToCartButton({
     >
       {out ? (
         "Out of stock"
+      ) : gaps ? (
+        `Fill ${gaps} empty ${gaps === 1 ? "spot" : "spots"}`
       ) : (
         <>
           <ShoppingBag className={`size-5 ${sticker ? "peel-icon" : ""}`} /> Add to cart

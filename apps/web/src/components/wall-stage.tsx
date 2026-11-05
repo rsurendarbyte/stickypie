@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Plus, X } from "lucide-react";
 import type { Product } from "@stickypie/shared";
+import { packPosterSizes } from "@stickypie/shared";
 import { wallBackground, wallSpots } from "@/lib/poster";
 import { posterImage } from "@/lib/poster-images";
 import type { WallEffect } from "@/lib/wall-effects";
@@ -53,6 +55,8 @@ function markSeen(id: string) {
  * poster from the set's picture instead. No saved positions → just the picture.
  * `bare`: no wall, just the formation of posters, as large as the space allows.
  * `effect`: how the posters arrive on a card (see .wall-fx in globals.css).
+ * `posters`: the shopper's picks, in place of the set's own posters ("" = an emptied spot).
+ * `onRemove` / `onAdd`: a close button on each poster, and an add button on an emptied spot.
  */
 export default function WallStage({
   product,
@@ -62,6 +66,9 @@ export default function WallStage({
   srcSet,
   bare = false,
   effect,
+  posters,
+  onRemove,
+  onAdd,
   className = "",
 }: {
   product: Product;
@@ -71,10 +78,14 @@ export default function WallStage({
   sizes?: string;
   bare?: boolean;
   effect?: WallEffect;
+  posters?: string[] | null;
+  onRemove?: (spot: number) => void;
+  onAdd?: (spot: number) => void;
   className?: string;
 }) {
   const spots = wallSpots(product);
-  const urls = spots.map((_, i) => posterImage(product.packItems[i]));
+  const ids = posters ?? product.packItems;
+  const urls = spots.map((_, i) => posterImage(ids[i]));
   const box = useRef<HTMLDivElement>(null);
   // Measured instead of the wall itself, which an effect may have scaled up or turned.
   const frame = useRef<HTMLDivElement>(null);
@@ -141,7 +152,7 @@ export default function WallStage({
   }, [src, spots.length, seen]);
 
   // An older pack's picture is a collage, so posters can't be cut from it.
-  const noCut = product.tags.includes("wall collage") && urls.some((url) => !url);
+  const noCut = product.tags.includes("wall collage") && urls.some((url, i) => ids[i] && !url);
   if (noCut) {
     return <img src={src} alt={alt} loading="lazy" decoding="async" className={`size-full object-contain ${className}`} />;
   }
@@ -167,6 +178,7 @@ export default function WallStage({
     const order = turns.indexOf(i);
     return order * (effect === "sweep" ? 60 : effect === "doors" ? 80 : effect === "deal" ? 70 : 90);
   };
+  const posterSizes = packPosterSizes(product);
   const fxVars = (s: (typeof spots)[number], i: number) =>
     effect === "deal"
       ? ({
@@ -191,7 +203,7 @@ export default function WallStage({
             }
           : (wallBackground(product) ?? undefined)
       }
-      className={`relative ${bare ? "" : "size-full overflow-hidden"} ${effect ? `wall-fx wall-fx-${effect} ${state}` : ""} ${className}`}
+      className={`relative ${bare ? "" : "size-full overflow-hidden"} ${effect ? `wall-fx wall-fx-${effect} wall-tags ${state}` : ""} ${className}`}
     >
       {spots.map((s, i) => (
         <span
@@ -204,9 +216,27 @@ export default function WallStage({
             height: `${(s.h / height) * 100}%`,
           }}
         >
-          <span className={`wall-slot absolute inset-0 ${bare ? "wall-slot--bare" : ""} ${i === big ? "wall-slot--first" : ""} ${state}`} style={{ animationDelay: delay(stagger(i) + 260) }} />
+          <span className={`wall-slot absolute inset-0 ${bare ? "wall-slot--bare" : ""} ${i === big ? "wall-slot--first" : ""} ${ids[i] ? "" : "wall-slot--empty"} ${state}`} style={{ animationDelay: delay(stagger(i) + 260) }} />
+          {!ids[i] && onAdd && (
+            <button
+              type="button"
+              aria-label={`Add a poster to spot ${i + 1}`}
+              onPointerUp={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAdd(i);
+              }}
+              className="absolute inset-0 grid place-items-center"
+            >
+              <span className="grid size-8 place-items-center rounded-full bg-snow text-white shadow-md">
+                <Plus className="size-4" strokeWidth={3} />
+              </span>
+            </button>
+          )}
+          {ids[i] && (
           <span
             className={`wall-print absolute inset-0 overflow-hidden ${effect === "pull" && i === big ? "wall-print--first" : ""} ${state}`}
+            data-size={effect ? (posterSizes[i] === 9 ? "6×9" : "4×6") : undefined}
             style={
               urls[i]
                 ? { ...fxVars(s, i), animationDelay: delay(stagger(i)) }
@@ -220,7 +250,24 @@ export default function WallStage({
             }
           >
             {urls[i] && <img src={urls[i]!} alt="" draggable={false} className="size-full object-cover" />}
+            {onRemove && (
+              <button
+                type="button"
+                aria-label={`Remove poster ${i + 1}`}
+                onPointerUp={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove(i);
+                }}
+                className="absolute top-0.5 right-0.5 z-[2] grid size-6 place-items-center"
+              >
+                <span className="grid size-[18px] place-items-center rounded-full bg-[rgba(16,24,40,0.74)] text-white">
+                  <X className="size-3" strokeWidth={3} />
+                </span>
+              </button>
+            )}
           </span>
+          )}
         </span>
       ))}
     </div>

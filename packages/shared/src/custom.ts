@@ -67,8 +67,11 @@ export type AvatarStickerSpec = {
   /** A couple photo: both people in every sticker. Absent = just one person. */
   couple?: boolean;
 };
-/** A wall the shopper built: a layout and the poster picked for each spot, in order. */
-export type WallSpec = { kind: "wall"; layout: string; posters: string[] };
+/**
+ * A wall the shopper picked: a layout and the poster for each spot, in order. With
+ * `set` it is that wall set with some posters replaced: same spots, sizes and price.
+ */
+export type WallSpec = { kind: "wall"; layout: string; posters: string[]; set?: string };
 export type CustomSpec = QrStickerSpec | TextStickerSpec | AvatarStickerSpec;
 /** What a cart line can carry: a wall becomes its posters at checkout, so orders never hold one. */
 export type CartCustomSpec = CustomSpec | WallSpec;

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { belowMinimum, formatINR } from "@stickypie/shared";
 import { useStoreSettings } from "@/lib/live-catalog";
+import CartThumb from "./cart-thumb";
 import { useCart } from "./cart-context";
 
 /** Routes where the persistent cart UI would be noise. */
@@ -70,11 +71,7 @@ export default function CartStrip() {
                     zIndex: stack.length - i,
                   }}
                 >
-                  <img
-                    src={item.thumbUrl ?? item.imageUrl}
-                    alt=""
-                    className="size-full object-contain"
-                  />
+                  <CartThumb item={item} className="size-full object-contain" />
                 </span>
               ))}
               <span className="absolute -top-1.5 -right-1 z-10 grid min-w-[20px] place-items-center rounded-full border-2 border-white bg-snow px-1 text-[10px] leading-[16px] font-bold text-white">

@@ -287,14 +287,14 @@ function PackCard({ product, width, wallEffect = "sweep" }: { product: Product; 
         <p className="truncate text-[11px] font-semibold text-fog">{wallPosterSizes(product)}</p>
       </div>
 
-      <div className="mt-1.5 flex items-center justify-between gap-1.5">
+      <div className="mt-1.5 flex items-center justify-between gap-1.5 pr-1 pb-3">
         <p className="min-w-0 pl-0.5">
           <span className="block font-display text-lg leading-tight font-bold text-gold sm:text-[22px]">{formatINR(price)}</span>
           {compareAtPrice !== null && compareAtPrice > price && (
             <span className="block text-[11px] leading-tight text-fog line-through sm:text-xs">{formatINR(compareAtPrice)}</span>
           )}
         </p>
-        <div className="w-24 shrink-0 sm:w-28">
+        <div className="w-24 shrink-0 sm:w-32">
           {inCart ? (
             <CartStepper item={inCart} size="sm" sticker className="w-full justify-between" />
           ) : (
