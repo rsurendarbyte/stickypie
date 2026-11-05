@@ -111,7 +111,7 @@ export function WallViewSwitch({ view, onChange, glass = false }: { view: WallVi
     { id: "map", label: "Size map" },
   ];
   return (
-    <div role="tablist" aria-label="Wall view" className={`inline-flex rounded-full p-0.5 ${glass ? "reel-glass" : "border border-line bg-white"}`}>
+    <div role="tablist" aria-label="Wall view" className={`inline-flex shrink-0 rounded-full p-0.5 ${glass ? "reel-glass" : "border border-line bg-white"}`}>
       {views.map(({ id, label }) => (
         <button
           key={id}
@@ -123,7 +123,7 @@ export function WallViewSwitch({ view, onChange, glass = false }: { view: WallVi
             e.stopPropagation();
             onChange(id);
           }}
-          className={`rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${view === id ? "bg-snow text-white" : "text-snow"}`}
+          className={`rounded-full px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-colors max-[359px]:px-2 ${view === id ? "bg-snow text-white" : "text-snow"}`}
         >
           {label}
         </button>

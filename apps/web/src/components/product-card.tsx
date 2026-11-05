@@ -280,7 +280,8 @@ function PackCard({ product, width, wallEffect = "sweep" }: { product: Product; 
       </PageLink>
 
       <div className="mt-2 px-0.5">
-        <PageLink href={`/sticker/${product.slug}`} className="block">
+        {/* its tap area covers the whole card; only the cart buttons sit above it */}
+        <PageLink href={`/sticker/${product.slug}`} className="block after:absolute after:inset-0">
           <p className="truncate font-display text-[15px] leading-tight font-bold text-snow">{packTitle(product.name)}</p>
         </PageLink>
         <p className="mt-0.5 truncate text-[11px] text-fog">{product.packItems.length} posters</p>
@@ -294,7 +295,7 @@ function PackCard({ product, width, wallEffect = "sweep" }: { product: Product; 
             <span className="block text-[11px] leading-tight text-fog line-through sm:text-xs">{formatINR(compareAtPrice)}</span>
           )}
         </p>
-        <div className="w-24 shrink-0 sm:w-32">
+        <div className="relative z-10 w-24 shrink-0 sm:w-32">
           {inCart ? (
             <CartStepper item={inCart} size="sm" sticker className="w-full justify-between" />
           ) : (

@@ -506,6 +506,14 @@ select option {
     0 0 0 1px rgba(16, 24, 40, 0.07),
     0 6px 14px -6px rgba(16, 24, 40, 0.25);
 }
+/* the same sticker in a warm tone: Reset, beside "Add to cart" */
+.peel-btn--warn {
+  background: color-mix(in srgb, var(--color-brand) 16%, white);
+  color: color-mix(in srgb, var(--color-brand) 85%, black);
+  box-shadow:
+    0 0 0 1px rgba(16, 24, 40, 0.07),
+    0 6px 14px -6px color-mix(in srgb, var(--color-brand) 45%, transparent);
+}
 @media (hover: hover) {
   .group:hover .peel-btn,
   .peel-btn:hover {
@@ -938,6 +946,18 @@ html[data-lite] .card-shine {
   -webkit-backdrop-filter: blur(12px) saturate(1.5);
   backdrop-filter: blur(12px) saturate(1.5);
 }
+/* the same glass, tinted: Reset undoes the shopper's work, so it stands apart */
+.reel-glass.reel-glass--warn {
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--color-brand) 34%, transparent),
+    color-mix(in srgb, var(--color-brand) 16%, transparent)
+  );
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-brand) 45%, white),
+    0 6px 16px -6px color-mix(in srgb, var(--color-brand) 55%, transparent);
+  color: color-mix(in srgb, var(--color-brand) 85%, black);
+}
 .reel-glass-bar {
   background: linear-gradient(to bottom, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.72));
   box-shadow:
@@ -951,6 +971,9 @@ html[data-lite]:not([data-lite="net"]) .reel-glass-bar {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   background: rgba(255, 255, 255, 0.92);
+}
+html[data-lite]:not([data-lite="net"]) .reel-glass.reel-glass--warn {
+  background: color-mix(in srgb, var(--color-brand) 16%, white);
 }
 
 /* Arrowheads for the size ruler on the sticker page */

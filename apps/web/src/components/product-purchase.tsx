@@ -1,12 +1,13 @@
 "use client";
 
-import { Check, ShoppingBag } from "lucide-react";
+import { Check, RotateCcw, ShoppingBag } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { formatINR } from "@stickypie/shared";
 import AddToCartButton from "./add-to-cart-button";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
 import { toCartProduct, useLineFinish } from "./size-picker";
+import { WallReset } from "./wall-size-map";
 import { useWallLine } from "@/lib/wall-picks";
 
 export default function ProductPurchase({
@@ -22,7 +23,7 @@ export default function ProductPurchase({
   const { add, count, items } = useCart();
   const out = product.stock === 0;
   const finish = useLineFinish(product);
-  const { gaps, line } = useWallLine(product, price);
+  const { posters: picks, gaps, line } = useWallLine(product, price);
   const inCart = items.find(
     (item) => lineKey(item) === lineKey(line ?? { productId: product.id, size: stickerSize, finish })
   );
@@ -32,12 +33,21 @@ export default function ProductPurchase({
     add(line ?? toCartProduct(product, stickerSize, price), 1);
   }
 
+  // A changed wall: the way back sits by the buy button, so it reads as a custom order.
+  const resetWall = (height: string) =>
+    picks && (
+      <WallReset product={product} price={price} className={`peel-btn peel-btn--warn inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 text-xs font-bold ${height}`}>
+        <RotateCcw className="size-3.5" strokeWidth={2.5} /> Reset wall
+      </WallReset>
+    );
+
   return (
     <>
       {/* Desktop: inline controls (the button swaps to a synced stepper once in cart) */}
       <div className="mt-4 hidden flex-wrap items-center gap-3 lg:flex">
         {/* One control: Add to cart, which becomes the − / + stepper once added */}
         <AddToCartButton product={product} size="lg" stickerSize={stickerSize} sticker showPrice />
+        {resetWall("h-12")}
       </div>
 
       {/* Mobile: buy bar pinned to the bottom (above the cart strip when it's showing) */}
@@ -49,12 +59,13 @@ export default function ProductPurchase({
         }`}
       >
         {inCart && !out ? (
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-2">
             <CartStepper item={inCart} sticker />
-            <span className="flex items-center gap-1.5 text-sm font-bold text-mint">
+            <span className="flex items-center gap-1.5 text-sm font-bold whitespace-nowrap text-mint">
               <Check className="size-4" strokeWidth={3} /> In cart ·{" "}
               {formatINR(inCart.qty * inCart.price)}
             </span>
+            {resetWall("h-11")}
           </div>
         ) : (
           <div className="flex items-center gap-3">
@@ -80,6 +91,7 @@ export default function ProductPurchase({
                 </>
               )}
             </button>
+            {resetWall("h-11")}
           </div>
         )}
       </div>
