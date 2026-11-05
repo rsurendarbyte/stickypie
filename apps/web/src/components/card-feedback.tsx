@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "@/components/page-link";
+import ShopLinks from "@/components/shop-links";
 import { useEffect, useRef, useState } from "react";
-import { ShoppingBag } from "lucide-react";
 import { TextAreaField } from "./field";
 import StarPicker, { Stars } from "./star-rating";
 
@@ -144,12 +144,7 @@ function Thanks({ done }: { done: Done }) {
         Once we&apos;ve read it, your thank-you offer shows up in your account and is taken off at your next checkout.
       </p>
       <div className="mt-4 flex flex-wrap gap-2">
-        <Link
-          href="/stickers"
-          className="peel-btn inline-flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-bold"
-        >
-          <ShoppingBag className="peel-icon size-4" /> Browse stickers
-        </Link>
+        <ShopLinks />
         {!happy && (
           <Link
             href="/contact"

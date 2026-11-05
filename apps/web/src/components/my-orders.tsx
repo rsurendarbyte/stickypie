@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "@/components/page-link";
+import ShopLinks from "@/components/shop-links";
 import { useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
@@ -211,12 +212,9 @@ export function OrderList({ orders }: { orders: Order[] }) {
       <div className="mt-6 rounded-2xl border border-dashed border-line p-10 text-center">
         <Package className="mx-auto size-10 text-fog/60" />
         <p className="mt-3 font-semibold">No orders yet</p>
-        <Link
-          href="/stickers"
-          className="peel-btn mt-4 inline-flex h-10 items-center rounded-xl px-5 text-sm font-bold"
-        >
-          Browse stickers
-        </Link>
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          <ShopLinks />
+        </div>
       </div>
     );
   }

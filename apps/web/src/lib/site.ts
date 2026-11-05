@@ -7,7 +7,7 @@ import { siteUrl } from "./mode";
 export const SITE_NAME = "StickyPie";
 export const SITE_TAGLINE = "Stick Your Style";
 export const SITE_DESCRIPTION =
-  "Buy vinyl stickers online in India — car, bike, laptop and helmet stickers, plus AI avatar stickers of you from your photo. Ships across India.";
+  "Buy die-cut vinyl stickers and 300 GSM wall posters online in India: AI stickers of you, car and bike stickers, and ready wall poster sets.";
 
 /**
  * Only the production build may be indexed. dev.stickypie.in, workers.dev

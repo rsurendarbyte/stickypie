@@ -1,4 +1,5 @@
 import Link from "@/components/page-link";
+import ShopLinks from "@/components/shop-links";
 
 export default function NotFound() {
   return (
@@ -9,10 +10,10 @@ export default function NotFound() {
         The page you&apos;re looking for doesn&apos;t exist — or it&apos;s stuck under someone&apos;s
         laptop lid.
       </p>
-      <Link
-        href="/"
-        className="peel-btn peel-btn--brand mt-2 rounded-xl px-6 py-2.5 text-sm font-semibold"
-      >
+      <div className="mt-2 flex flex-wrap justify-center gap-2">
+        <ShopLinks />
+      </div>
+      <Link href="/" className="text-sm font-semibold text-fog hover:text-snow">
         Back home
       </Link>
     </div>

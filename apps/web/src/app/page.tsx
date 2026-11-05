@@ -22,7 +22,7 @@ export function generateMetadata(): Metadata {
     description: SITE_DESCRIPTION,
     path: "/",
   });
-  return { ...base, title: { absolute: `Buy Vinyl Stickers Online in India | ${SITE_NAME} — ${SITE_TAGLINE}` } };
+  return { ...base, title: { absolute: `AI Stickers & Wall Posters Online in India | ${SITE_NAME}` } };
 }
 
 // Built as a static shell (free, unlimited on Cloudflare). Products load live

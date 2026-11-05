@@ -409,13 +409,13 @@ export default function ProductDetailClient({
 /** A wall set at a glance: how many posters of each size, and the wall it needs. */
 function WallFacts({ product }: { product: Product }) {
   const sizes = packPosterSizes(product);
-  const feet = wallSize(product);
+  const space = wallSize(product);
   const facts = [
     ...[9, 6].flatMap((inches) => {
       const count = sizes.filter((s) => s === inches).length;
       return count ? [{ value: `${count} ${count === 1 ? "pc" : "pcs"}`, label: posterSizeLabel(inches) }] : [];
     }),
-    ...(feet ? [{ value: feet, label: "Wall space" }] : []),
+    ...(space ? [{ value: space, label: "Wall space" }] : []),
   ];
   return (
     <dl className={`mt-3 grid max-w-md gap-2 ${facts.length > 2 ? "grid-cols-3" : "grid-cols-2"}`}>
