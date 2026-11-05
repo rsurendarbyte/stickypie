@@ -35,14 +35,6 @@ export default function LoginForm({ mode }: { mode: "demo" | "supabase" }) {
         {pending ? <Loader2 className="size-4 animate-spin" /> : <KeyRound className="size-4" />}
         Sign in
       </button>
-
-      {mode === "demo" && (
-        <p className="text-center text-[11px] leading-relaxed text-fog/70">
-          Demo mode (no Supabase configured). The password comes from{" "}
-          <code className="rounded bg-panel px-1 py-0.5">ADMIN_DEV_PASSWORD</code> — see
-          apps/admin/.env.example for the default.
-        </p>
-      )}
     </form>
   );
 }
