@@ -32,12 +32,18 @@ export function pickReplacement(removed: Product, wall: Product, all: Product[],
     )[0];
 }
 
-/** The set's picture with new posters over the old ones' spots. null when it has no spots to paint. */
+/**
+ * The set's picture with new posters over the old ones' spots. An older pack's
+ * picture is a collage whose spots don't line up with what's drawn on it, so it
+ * only changes when every poster is given: then it starts on a bare painted
+ * wall. null when there are no spots to paint.
+ */
 async function repaint(wall: Product, changes: { index: number; poster: Product }[]) {
   const spots = wall.tags.find((t) => t.startsWith("wall spots:"))?.slice(11).split(";");
   const r2 = r2Config();
-  // An older pack's picture is a collage: its spots don't line up with what's drawn on it.
-  if (!r2 || !wall.tags.includes("wall setup") || wall.tags.includes("wall collage") || !changes.every((c) => spots?.[c.index])) return null;
+  const collage = wall.tags.includes("wall collage");
+  if (!r2 || !wall.tags.includes("wall setup") || !changes.every((c) => spots?.[c.index])) return null;
+  if (collage && changes.length < spots!.length) return null;
   const download = async (url: string) => {
     const res = await fetch(imageSrc(url), { cache: "no-store" });
     if (!res.ok) throw new Error(`Could not load ${url}`);
@@ -45,7 +51,16 @@ async function repaint(wall: Product, changes: { index: number; poster: Product 
   };
   const sharpModule = "sharp"; // kept out of the Worker bundle
   const { default: sharp } = await import(/* webpackIgnore: true */ sharpModule);
-  const picture = await download(wall.imageUrl);
+  const paint = wall.tags.find((t) => t.startsWith("wall paint:"))?.slice(11).split(",") ?? ["#e8e4dc", "#d9d4ca"];
+  const bareWall = () =>
+    sharp(
+      Buffer.from(
+        `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1600"><defs><linearGradient id="w" x2="1" y2="1"><stop stop-color="${paint[0]}"/><stop offset="1" stop-color="${paint[1] ?? paint[0]}"/></linearGradient></defs><rect width="1600" height="1600" fill="url(#w)"/></svg>`
+      )
+    )
+      .jpeg()
+      .toBuffer();
+  const picture = collage ? await bareWall() : await download(wall.imageUrl);
   const { width } = await sharp(picture).metadata();
   const px = (percent: number) => Math.round((percent / 100) * width);
   const layers = await Promise.all(
@@ -60,13 +75,14 @@ async function repaint(wall: Product, changes: { index: number; poster: Product 
       return { input, left: px(x), top: px(y) };
     })
   );
+  const tags = collage ? { tags: wall.tags.filter((t) => t !== "wall collage") } : {};
   const body = await sharp(picture).composite(layers).jpeg({ quality: 90 }).toBuffer();
   const key = `packs/${wall.slug}-${Date.now()}.jpg`;
   await r2Client(r2).send(
     new PutObjectCommand({ Bucket: r2.bucket, Key: key, Body: body, ContentType: "image/jpeg", CacheControl: "public, max-age=31536000, immutable" })
   );
   const imageUrl = `${r2.publicUrl}/${key}`;
-  return { imageUrl, thumbUrl: await makeThumb(imageUrl) };
+  return { imageUrl, thumbUrl: await makeThumb(imageUrl), ...tags };
 }
 
 /** Takes a poster out of every set holding it. */
@@ -98,19 +114,17 @@ export async function openWallOrders(driver: DataDriver, wallId: string) {
   return orders.filter((o) => ["paid", "packed", "shipped"].includes(o.status) && o.items.some((i) => i.productId === wallId));
 }
 
-/** Gives a wall a new set of posters, spot for spot, and repaints the spots that changed. */
+/** Gives a wall its set of posters, spot for spot, and rebuilds its picture from them, so the two always match. */
 export async function saveWallPosters(driver: DataDriver, wall: Product, packItems: string[]) {
   const open = await openWallOrders(driver, wall.id);
   if (open.length) throw new Error(`This wall has ${open.length} open order${open.length === 1 ? "" : "s"}. Change it after they are delivered.`);
   if (packItems.length !== wall.packItems.length) throw new Error("A wall must keep its number of posters.");
   if (new Set(packItems).size !== packItems.length) throw new Error("Each poster can only be on the wall once.");
   const posters = await driver.getProductsByIds(packItems);
-  const changes = packItems.flatMap((id, index) => {
-    if (id === wall.packItems[index]) return [];
+  const changes = packItems.map((id, index) => {
     const poster = posters.find((p) => p.id === id);
-    if (!poster || !isCandidate(poster)) throw new Error("Pick only mini posters that are open for sale.");
-    return [{ index, poster }];
+    if (!poster || (id !== wall.packItems[index] && !isCandidate(poster))) throw new Error("Pick only mini posters that are open for sale.");
+    return { index, poster };
   });
-  if (!changes.length) return wall;
   return driver.updateProduct(wall.id, { packItems, ...((await repaint(wall, changes)) ?? {}) });
 }

@@ -14,6 +14,11 @@ export const WALL_THEMES = [
   { id: "retro", title: "Retro walls" },
 ] as const;
 
+/** Tags that hold a wall's own data (layout, paint, theme), not words shoppers search: only code changes these. */
+export function isWallDataTag(tag: string) {
+  return /^wall (theme|size|paint|spots):/.test(tag) || ["wall setup", "wall collage", "poster pack"].includes(tag);
+}
+
 export type WallTile = { x: number; y: number; /** Longest side: 6 = 4 × 6 in, 9 = 6 × 9 in. */ inches: 6 | 9 };
 export type WallLayout = { id: string; name: string; tiles: WallTile[] };
 

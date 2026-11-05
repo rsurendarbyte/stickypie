@@ -248,6 +248,11 @@ export default function WallPosterEditor({
               >
                 <RotateCcw className="size-4" /> Undo changes
               </button>
+              {!dirty && (
+                <button type="button" disabled={saving} onClick={save} className="text-xs font-semibold text-fog hover:text-snow disabled:opacity-50">
+                  Refresh wall picture
+                </button>
+              )}
               {dirty && <span className="text-xs text-gold">Not saved yet</span>}
             </div>
           </div>
