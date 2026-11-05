@@ -32,9 +32,6 @@ export default function LoginPage() {
         <div className="mt-7">
           <LoginForm mode={mode} />
         </div>
-        {mode === "demo" && (
-          <p className="mt-5 text-center text-[11px] text-fog/60">Mode: local demo store</p>
-        )}
       </div>
     </div>
   );
