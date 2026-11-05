@@ -279,6 +279,8 @@ export interface DataDriver {
   /** Allowed from pending/paid/packed; restocks items if payment had been captured. */
   cancelOrder(id: string): Promise<Order>;
   setCfOrderId(id: string, cfOrderId: string): Promise<void>;
+  /** Links a shopper's pending cart to the order made from it; paying that order marks the cart ordered. */
+  linkCartToOrder(token: string, orderId: string, userId: string | null): Promise<void>;
   /** Records payment details without changing the status (e.g. paid after cancellation). */
   setPaymentNote(id: string, note: string, paymentId?: string | null): Promise<void>;
   /** A shopper's unpaid online-payment orders created since `sinceIso`, newest first. */

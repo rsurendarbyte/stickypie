@@ -11,7 +11,8 @@
     "./supabase": "./src/store/supabase.ts",
     "./seed-data.json": "./src/seed-data.json",
     "./qr-art": "./src/qr-art.ts",
-    "./text-art": "./src/text-art.ts"
+    "./text-art": "./src/text-art.ts",
+    "./wall-sheets": "./src/wall-sheets.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.4",

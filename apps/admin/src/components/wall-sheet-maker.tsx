@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Download, FileText, Loader2, Minus, Plus, Scissors, Search, X } from "lucide-react";
 import { posterSizeLabel, type PackPoster } from "@stickypie/shared";
 import { imageDownloadHref, imageSrc } from "@/lib/img";
-import { BLEED, DEFAULT_CUT_AREA, MM_PER_IN, PRINT_DPI, cutBox, cutSvg, drawSheet, layOut, sheetPdf, type CutArea, type Piece, type Placed } from "@/lib/wall-sheets";
+import { BLEED, DEFAULT_CUT_AREA, MM_PER_IN, PRINT_DPI, SHEET, canvasPdf, cutBox, cutSteps, cutSvg, drawSheet, layOut, type CutArea, type Piece, type Placed } from "@stickypie/shared/wall-sheets";
 
 /** `preview` is the small picture: the sheets are arranged and shown with it, the full file is only fetched for the PDF. */
 export type SheetPoster = PackPoster & { preview: string };
@@ -65,7 +65,7 @@ export default function WallSheetMaker({ walls, ordered }: { walls: SheetWall[];
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const images = useRef(new Map<string, Promise<HTMLImageElement>>());
-  const cut = cutBox(area);
+  const cut = cutBox(SHEET, area);
 
   const list = (tab === "orders" ? ordered : walls).filter((w) =>
     `${w.name} ${w.order ?? ""}`.toLowerCase().includes(query.trim().toLowerCase())
@@ -114,10 +114,10 @@ export default function WallSheetMaker({ walls, ordered }: { walls: SheetWall[];
           }
         }
         if (!live) return;
-        const sheets = layOut(pieces, area, bleed ? BLEED : 0, stock);
+        const sheets = layOut(pieces, SHEET, area, bleed ? BLEED : 0, stock);
         const batch = batchCode();
         const previews = sheets.map((sheet, n) =>
-          drawSheet(sheet, area, PREVIEW_DPI, sheetLabel(batch, n, sheets.length), bleed ? BLEED : 0, showCut).toDataURL("image/jpeg", 0.8)
+          drawSheet(sheet, SHEET, area, PREVIEW_DPI, sheetLabel(batch, n, sheets.length), bleed ? BLEED : 0, showCut).toDataURL("image/jpeg", 0.8)
         );
         if (live) setLayout({ sheets, previews, batch, trimmed });
       } catch (err) {
@@ -136,15 +136,14 @@ export default function WallSheetMaker({ walls, ordered }: { walls: SheetWall[];
 
   async function savePdf(l: Layout, n: number) {
     const sheet = await Promise.all(l.sheets[n].map(async (p) => ({ ...p, src: await image(p.file) })));
-    const canvas = drawSheet(sheet, area, PRINT_DPI, sheetLabel(l.batch, n, l.sheets.length), bleed ? BLEED : 0);
-    const jpeg = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.95));
-    if (!jpeg) throw new Error("This browser couldn't make the sheet");
-    const bytes = new Uint8Array(await jpeg.arrayBuffer());
-    save(sheetPdf(bytes, { w: canvas.width, h: canvas.height }), `${fileName(l.batch, n)}-print.pdf`);
+    const canvas = drawSheet(sheet, SHEET, area, PRINT_DPI, sheetLabel(l.batch, n, l.sheets.length), bleed ? BLEED : 0);
+    const pdf = await canvasPdf(canvas, SHEET);
+    if (!pdf) throw new Error("This browser couldn't make the sheet");
+    save(pdf, `${fileName(l.batch, n)}-print.pdf`);
   }
 
   function saveCut(l: Layout, n: number) {
-    save(new Blob([cutSvg(l.sheets[n], area)], { type: "image/svg+xml" }), `${fileName(l.batch, n)}-cut.svg`);
+    save(new Blob([cutSvg(l.sheets[n], SHEET, area)], { type: "image/svg+xml" }), `${fileName(l.batch, n)}-cut.svg`);
   }
 
   async function run(id: string, job: () => Promise<void> | void) {
@@ -375,12 +374,9 @@ export default function WallSheetMaker({ walls, ordered }: { walls: SheetWall[];
             <section className="rounded-2xl border border-line bg-ink2 p-4 text-sm">
               <h2 className="font-semibold">For the cutting shop</h2>
               <ol className="mt-2 list-decimal space-y-1 pl-5 text-fog">
-                <li>Print the PDF at 100% (actual size) on the 13 × 19 in sheet. No fit to page.</li>
-                <li>In Design Space upload the SVG, select all, then set the size with the lock on: {(cut.w / MM_PER_IN).toFixed(2)} × {(cut.h / MM_PER_IN).toFixed(2)} in. Big files get shrunk on upload.</li>
-                <li>Select all and click Attach, so the whole sheet stays together as one.</li>
-                <li>Click Make, choose Without Mat and set the material size to 13 × 19 in. Use a plain cut, not Print Then Cut.</li>
-                <li>On Review artwork the top left mark must sit {area.left} in from the left and {area.top} in from the top.</li>
-                <li>Test on plain paper first. The cut corner marks must land on the printed marks. A cut that is off leaves a thin white edge on the poster.</li>
+                {cutSteps(SHEET, area).map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
               </ol>
             </section>
           </>

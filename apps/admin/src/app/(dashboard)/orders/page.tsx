@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { OrderStatus } from "@stickypie/shared";
 import { ORDER_STATUSES, STATUS_LABELS } from "@stickypie/shared";
 import OrdersTable from "@/components/orders-table";
+import { pendingCartCount } from "@/lib/carts";
 import { getAdminDriver } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,7 @@ export default async function OrdersPage({
 }) {
   const { status } = await searchParams;
   const driver = await getAdminDriver();
-  const all = await driver.listOrders();
+  const [all, carts] = await Promise.all([driver.listOrders(), pendingCartCount()]);
 
   const counts: Partial<Record<OrderStatus, number>> = {};
   for (const order of all) {
@@ -49,6 +50,9 @@ export default async function OrdersPage({
             {STATUS_LABELS[s]} ({counts[s] ?? 0})
           </Link>
         ))}
+        <Link href="/carts" prefetch={false} className={chip(false)}>
+          Carts, pending ({carts})
+        </Link>
       </div>
 
       <div className="mt-4">

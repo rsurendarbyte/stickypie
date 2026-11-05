@@ -409,6 +409,9 @@ export function createLocalDriver(filePath: string): DataDriver {
       return order;
     },
 
+    // Carts are only saved to Supabase; the demo store has none.
+    async linkCartToOrder() {},
+
     async setCfOrderId(id, cfOrderId) {
       const store = load();
       const order = getOrderOrThrow(store, id);

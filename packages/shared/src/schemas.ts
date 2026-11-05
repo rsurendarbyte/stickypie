@@ -70,6 +70,8 @@ export const customerSchema = z.object({
 
 export const checkoutSchema = z.object({
   customer: customerSchema,
+  /** This browser's saved cart, linked to the order for the admin's Carts page. */
+  cartToken: z.string().uuid().optional(),
   items: z
     .array(
       z.object({

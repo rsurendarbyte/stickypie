@@ -333,6 +333,15 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
       if (error) throw friendly(error);
     },
 
+    async linkCartToOrder(token, orderId, userId) {
+      const { error } = await client
+        .from("carts")
+        .update({ order_id: orderId, ...(userId ? { user_id: userId } : {}) })
+        .eq("token", token)
+        .eq("status", "pending");
+      if (error) throw friendly(error);
+    },
+
     async setPaymentNote(id, note, paymentId) {
       const changes: Record<string, unknown> = { payment_note: note };
       if (paymentId) changes.cf_payment_id = paymentId;

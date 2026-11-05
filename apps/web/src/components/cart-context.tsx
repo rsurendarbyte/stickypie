@@ -1,5 +1,6 @@
 "use client";
 
+import { syncCart } from "@/lib/cart-sync";
 import { trackMeta } from "@/lib/meta-pixel";
 import {
   createContext,
@@ -134,6 +135,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // storage may be unavailable; cart still works in memory
     }
+    syncCart(items);
   }, [items]);
 
   const put = useCallback((product: CartProduct, qty: number) => {
