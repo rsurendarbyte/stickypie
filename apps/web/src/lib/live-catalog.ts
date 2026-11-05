@@ -248,11 +248,22 @@ export function useRelatedProducts(
 export function useLiveProduct(
   slug: string,
   initial: Product
-): { product: Product; unavailable: boolean } {
+): { product: Product; unavailable: boolean; checked: boolean } {
   const { bundle } = useBundle();
-  if (!liveCatalogEnabled || !bundle) return { product: initial, unavailable: false };
+  const checked = useCatalogChecked();
+  if (!liveCatalogEnabled || !bundle) return { product: initial, unavailable: false, checked };
   const live = bundle.products.find((p) => p.slug === slug);
-  return live ? { product: live, unavailable: false } : { product: initial, unavailable: true };
+  return live ? { product: live, unavailable: false, checked } : { product: initial, unavailable: true, checked };
+}
+
+/**
+ * True once the catalog on the page has been checked with the database. Until
+ * then it may be this browser's saved copy or the page's build-time snapshot,
+ * so anything that must match the admin (a wall's posters) waits for it.
+ */
+export function useCatalogChecked(): boolean {
+  const { bundle, failed } = useBundle();
+  return !liveCatalogEnabled || failed || Boolean(bundle?.fresh);
 }
 
 /** Minimum order + shipping zones from the admin (defaults until `loaded`). */

@@ -48,7 +48,7 @@ export default function ProductDetailClient({
   packPosters?: PackPosterLink[];
 }) {
   // Static snapshot first paint; live stock/price/availability from Supabase.
-  const { product, unavailable } = useLiveProduct(initial.slug, initial);
+  const { product, unavailable, checked } = useLiveProduct(initial.slug, initial);
   useWindowScrollMemory(true);
   rememberPackPosters(packPosters);
   // Remember (in this browser only) what kind of stickers they look at, for the home hero.
@@ -91,7 +91,13 @@ export default function ProductDetailClient({
         if (own) return [{ ...own, inches }];
         return p ? [{ id: p.id, slug: p.slug, name: p.name, imageUrl: p.thumbUrl ?? p.imageUrl, active: true, inches }] : [];
       })
-    : packPosters;
+    : // The pack as it is now: the page's own list dates from its last deploy.
+      product.packItems.flatMap((id, i) => {
+        const p = posterCatalog.find((c) => c.id === id);
+        const inches = packPosterSizes(product)[i] ?? 6;
+        if (p) return [{ id: p.id, slug: p.slug, name: p.name, imageUrl: p.thumbUrl ?? p.imageUrl, active: true, inches }];
+        return packPosters.filter((own) => own.id === id);
+      });
   const shownTags = product.tags.filter((t) => !isInternalTag(t));
   const wall = isWallSetup(product);
   // A wall's posters have their own buttons, so the picture around them can't be one.
@@ -100,13 +106,14 @@ export default function ProductDetailClient({
   const inside = isPack && (
       <div className={wall ? "mt-8" : "mt-5"}>
         <h2 className="font-display text-lg font-semibold">
-          What&apos;s inside · {shownPosters.length} posters
+          What&apos;s inside · {product.packItems.length} posters
         </h2>
         <p className="text-xs text-fog">
-          {packSizeSummary(shownPosters.map((p) => p.inches))}. Lay them out like the picture.
+          {packSizeSummary(packPosterSizes(product))}. Lay them out like the picture.
         </p>
         <ol className={`mt-2 grid gap-2 ${wall ? "grid-cols-4 sm:grid-cols-6 lg:grid-cols-8" : "max-w-md grid-cols-3 sm:grid-cols-4"}`}>
-          {shownPosters.map((p, n) => {
+          {!checked && product.packItems.map((id) => <li key={id} className="aspect-[2/3] animate-pulse rounded-md bg-panel" />)}
+          {checked && shownPosters.map((p, n) => {
             const tile = (
               <>
                 <SmartImg full={p.imageUrl} thumb={null} alt={p.name} className="aspect-[2/3] w-full rounded-md object-cover" />
@@ -183,7 +190,9 @@ export default function ProductDetailClient({
             className={`absolute inset-0 grid cursor-zoom-in grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center ${wall && wallView !== "wall" ? "invisible" : ""} ${wall ? "" : isPack ? "p-2" : "p-6 sm:p-10"}`}
             style={{ transform: isPack ? undefined : `rotate(${rotate / 2}deg)` }}
           >
-            {wall ? (
+            {wall && !checked ? (
+              <span className="size-[92%] animate-pulse rounded-2xl bg-panel" />
+            ) : wall ? (
               <WallStage
                 bare
                 product={product}
@@ -213,7 +222,7 @@ export default function ProductDetailClient({
               <WallSizeMap product={product} posters={picks} />
             </div>
           )}
-          {wall && !out && !unavailable && wallView === "wall" && <WallTip />}
+          {wall && checked && !out && !unavailable && wallView === "wall" && <WallTip />}
           {off !== null && !unavailable && wallView === "wall" && (
             <span className="pie-gradient absolute top-4 left-4 rounded-full px-3 py-1 text-xs font-bold text-white">
               SAVE {off}%
