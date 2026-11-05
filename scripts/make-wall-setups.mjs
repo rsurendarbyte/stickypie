@@ -25,6 +25,8 @@ const GAP = 0.3; // inches between posters
 const IMAGE_HOST = "https://stickers.stickypie.in";
 const SMALL = { w: 4, h: 6 };
 const BIG = { w: 6, h: 9 };
+/** One price per wall, by number of posters. */
+const WALL_PRICES = { 4: 199, 6: 199, 7: 229, 8: 259, 9: 279, 10: 299, 11: 329, 14: 379, 20: 459, 30: 549 };
 
 // pack: id in packs.json; its first poster goes big.
 const SETUPS = [
@@ -111,6 +113,18 @@ function layoutSpots(name, count) {
     const top = (height - (rows * rowH - GAP)) / 2;
     return Array.from({ length: rows }, (_, r) => small(x, top + r * rowH));
   };
+  if (name === "grand") {
+    // Two big posters in the middle, three columns either side, a row above and below.
+    const left = colW * 3;
+    const right = left + bigW;
+    const band = rowH * 3 - GAP;
+    const bigTop = rowH + (band - height) / 2;
+    const side = (x) => Array.from({ length: 3 }, (_, r) => small(x, rowH + r * rowH));
+    const inset = (right + colW * 3 - GAP - (5 * colW - GAP)) / 2;
+    const row = (y) => Array.from({ length: 5 }, (_, i) => small(inset + i * colW, y));
+    const columns = [0, colW, colW * 2, right, right + colW, right + colW * 2].flatMap(side);
+    return [big(left, bigTop), big(left, bigTop + bigH), ...row(0), ...columns, ...row(rowH + band + GAP)];
+  }
   if (name === "trio") {
     const perRow = Math.min(4, Math.floor((count - 3) / 2));
     const inset = (bigW * 3 - GAP - (perRow * colW - GAP)) / 2;
@@ -258,8 +272,10 @@ async function saveSetup(setup, tags, rows, done) {
   }
   const [existing] = await rest(`products?slug=eq.${slug}&select=id`);
   // Starting price by poster: change it in the admin any time (--prices resets it).
-  const price = Math.ceil((done.sizes.length * 69) / 50) * 50 - 1;
-  const priced = { price, compare_at_price: price * 2 };
+  const listed = Math.ceil((done.sizes.length * 69) / 50) * 50 - 1;
+  const price = WALL_PRICES[done.sizes.length];
+  if (!price) throw new Error(`no price set for a wall of ${done.sizes.length}`);
+  const priced = { price, compare_at_price: listed };
   if (existing) {
     const patch = args.includes("--prices") ? { ...row, ...priced } : row;
     await rest(`products?id=eq.${existing.id}`, { method: "PATCH", body: JSON.stringify(patch) });
@@ -376,7 +392,7 @@ if (setsFile) {
     });
     if (new Set(rows).size !== rows.length) throw new Error(`${set.name}: a poster twice`);
     for (const row of rows) if (!pictures.has(row.id)) pictures.set(row.id, await picture(row.display_url ?? row.image_url));
-    const setup = { file: `${set.theme}/${kebab(set.name)}`, theme: set.theme, title: `${set.name} Wall Setup`, layout: set.layout, ...paintFor(set.theme, i) };
+    const setup = { file: `${set.theme}/${kebab(set.name)}`, theme: set.theme, title: `${set.name} Wall Setup`, layout: set.layout, ...paintFor(set.theme, set.paint ?? i) };
     const done = await draw(setup, rows.map((r) => pictures.get(r.id)));
     if (done.sizes.length !== rows.length) throw new Error(`${set.name}: ${rows.length} posters, layout holds ${done.sizes.length}`);
     if (save) await saveSetup(setup, [set.theme], rows, done);

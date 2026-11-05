@@ -34,10 +34,16 @@
   .theme .tick { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 50%; background: var(--brand); color: #fff; display: none; place-items: center; font-weight: 700; }
   .theme.on .tick { display: grid; }
 
+  .designs { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+  .designs video, .designs .ph { max-height: 300px; }
+
   /* packs */
   .packs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
   .pack { position: relative; padding: 0; text-align: left; overflow: hidden; border: 2px solid var(--line); border-radius: 14px; background: #fff; }
-  .pack img { display: block; width: 100%; aspect-ratio: 2/3; object-fit: cover; background: #f4f1ec; }
+  .pack img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; background: #f4f1ec; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .chips button { border-radius: 999px; padding: 5px 12px; font-size: 13px; font-weight: 600; }
+  .chips button.on { background: var(--ink); border-color: var(--ink); color: #fff; }
   .pack .meta { padding: 7px 9px 9px; }
   .pack .meta b { display: block; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pack .meta small { color: var(--muted); font-size: 12px; }
@@ -62,6 +68,7 @@
   .job .info small { color: var(--muted); }
   .job .dl { display: flex; gap: 8px; margin-top: 8px; }
   .job .dl a { flex: 1; text-align: center; text-decoration: none; color: var(--ink); border: 1px solid var(--line); border-radius: 9px; padding: 6px 0; font-size: 13px; font-weight: 600; }
+  .job .dl button { color: var(--red); padding: 6px 10px; font-size: 13px; font-weight: 600; border-radius: 9px; }
   .job .dl a.main { background: var(--ink); color: #fff; border-color: var(--ink); }
   .state { display: inline-block; font-size: 11px; font-weight: 700; border-radius: 6px; padding: 1px 7px; margin-left: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
   .state.waiting { background: #eee6df; color: var(--muted); }
@@ -83,24 +90,28 @@
 <body>
 <main>
   <h1>Reel <span>Studio</span></h1>
-  <p class="lead">Make Instagram reels of the wall poster sets: pick a style, pick packs, press Make. Each reel is 9:16, about 10 seconds, no sound (add a trending sound in Instagram).</p>
+  <p class="lead">Make Instagram reels of the wall sets: pick a style, pick walls, press Make. Posters go up on the wall's own paint, each at its true place and size. Each reel is 9:16, about 10 seconds, no sound (add a trending sound in Instagram).</p>
 
-  <h2><span class="n">1</span> Pick a style <small style="color:var(--muted);font-weight:400">— hover to play the sample</small></h2>
+  <h2><span class="n">1</span> Pick a design <small style="color:var(--muted);font-weight:400">— how the reel looks; hover to play</small></h2>
+  <div class="themes designs" id="designs"></div>
+
+  <h2><span class="n">2</span> Pick a style <small style="color:var(--muted);font-weight:400">— how the posters go up; works with any design</small></h2>
   <div class="themes" id="themes"></div>
 
-  <h2><span class="n">2</span> Pick packs</h2>
+  <h2><span class="n">3</span> Pick walls</h2>
+  <div class="chips" id="rows"></div>
   <div class="row" style="margin-bottom:12px">
-    <input type="search" id="q" placeholder="Search packs…" />
-    <button id="all">Select all</button>
+    <input type="search" id="q" placeholder="Search walls…" />
+    <button id="all">Select these</button>
     <button id="none">Clear</button>
-    <button id="notmade">Select the ones not made in this style</button>
+    <button id="notmade">Select these not made in this style</button>
     <span class="grow"></span>
     <small id="count" style="color:var(--muted)"></small>
   </div>
-  <div class="packs" id="packs"><p class="empty">Loading packs from the shop…</p></div>
+  <div class="packs" id="packs"><p class="empty">Loading walls from the shop…</p></div>
 
   <div id="making" hidden>
-    <h2><span class="n">3</span> Making now</h2>
+    <h2><span class="n">4</span> Making now</h2>
     <div class="jobs" id="jobs"></div>
   </div>
 
@@ -110,13 +121,17 @@
 </main>
 
 <div class="bar"><div class="in">
-  <div class="grow" id="summary">Pick a style and at least one pack.</div>
+  <div class="grow" id="summary">Pick a style and at least one wall.</div>
   <button class="make" id="make" disabled>Make reels</button>
 </div></div>
 
 <script>
 const THEMES = [
   { id: "classic", name: "Classic", text: "\"Blank wall?\" — each poster sticks on with a bounce." },
+  { id: "sweep", name: "Sweep", text: "\"Wall goals.\" — the whole wall glides round from the side as posters land." },
+  { id: "doors", name: "Doors", text: "\"Open the wall.\" — each poster swings open on its left edge, in a wave." },
+  { id: "pull", name: "Pull back", text: "\"Step back.\" — close on the biggest poster, the rest fade in as it pulls back." },
+  { id: "deal", name: "Deal out", text: "\"Deal me in.\" — a stack in the middle deals out to each poster's place." },
   { id: "night", name: "Night garage", text: "Dark garage, \"Lights on.\" — posters flicker on like spotlights." },
   { id: "beforeafter", name: "Before / After", text: "Plain wall, then a swipe bar wipes across to the poster wall." },
   { id: "onebyone", name: "One by one", text: "\"What's inside?\" — every poster full screen with a 1/9 counter." },
@@ -127,61 +142,108 @@ const THEMES = [
   { id: "flip", name: "Card flip", text: "\"Flip it.\" — orange StickyPie cards flip over to show the posters." },
   { id: "rows", name: "Row by row", text: "Rows of posters slide in from alternating sides." },
 ];
-const SAMPLE = "off-road-poster-pack";
-const fileOf = (slug, theme) => (theme === "classic" ? slug : `${slug}-${theme}`);
+const DESIGNS = [
+  { id: "wall", name: "Painted wall", text: "The set's own wall colour, name on top, price card at the end." },
+  { id: "shop", name: "Shop page", text: "Like the wall page: cream page, no wall, size boxes, then the buy panel slides up." },
+  { id: "sizemap", name: "Size map", text: "Posters fade back with their sizes on tags, measured in cm." },
+  { id: "bold", name: "Bold", text: "Dark, the wall up top and a huge name in yellow under it." },
+];
+const SAMPLE = "night-garage-wall-setup";
+// Same rows as the shop (packages/shared/src/walls.ts), then the older packs.
+const ROWS = [
+  { id: "all", title: "All" },
+  { id: "cars", title: "Cars" },
+  { id: "legends", title: "Legends" },
+  { id: "ride", title: "Ride & adventure" },
+  { id: "travel", title: "Travel" },
+  { id: "india", title: "Incredible India" },
+  { id: "devotional", title: "Devotional" },
+  { id: "motivational", title: "Motivational" },
+  { id: "retro", title: "Retro" },
+  { id: "packs", title: "Older packs" },
+];
+const fileOf = (slug, theme, d) => [slug, ...(theme === "classic" ? [] : [theme]), ...(d === "wall" ? [] : [d])].join("-");
 
 let packs = [];
 let reels = new Map(); // file -> made time
 let theme = localStorage.getItem("reel-theme") || "classic";
+let design = localStorage.getItem("reel-design") || "wall";
+let row = "all";
 const picked = new Set();
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const inr = (n) => "₹" + Number(n).toLocaleString("en-IN");
 
+function sampleOf(file) {
+  return reels.has(file)
+    ? `<video muted loop playsinline preload="metadata" src="/reels/${file}.mp4#t=4"></video>`
+    : `<div class="ph">no sample yet</div>`;
+}
+
 function drawThemes() {
+  $("designs").innerHTML = DESIGNS.map((d) =>
+    `<button class="theme ${d.id === design ? "on" : ""}" data-design="${d.id}">${sampleOf(fileOf(SAMPLE, "doors", d.id))}<span class="tick">✓</span><b>${d.name}</b><small>${esc(d.text)}</small></button>`
+  ).join("");
   $("themes").innerHTML = THEMES.map((t) => {
-    const sample = reels.has(fileOf(SAMPLE, t.id));
-    const media = sample
-      ? `<video muted loop playsinline preload="metadata" src="/reels/${fileOf(SAMPLE, t.id)}.mp4#t=4"></video>`
-      : `<div class="ph">no sample yet</div>`;
+    const own = fileOf(SAMPLE, t.id, design);
+    const media = sampleOf(reels.has(own) ? own : fileOf(SAMPLE, t.id, "wall"));
     return `<button class="theme ${t.id === theme ? "on" : ""}" data-theme="${t.id}">${media}<span class="tick">✓</span><b>${t.name}</b><small>${esc(t.text)}</small></button>`;
   }).join("");
   document.querySelectorAll(".theme").forEach((el) => {
     const v = el.querySelector("video");
-    el.onclick = () => { theme = el.dataset.theme; localStorage.setItem("reel-theme", theme); drawThemes(); drawPacks(); summary(); };
+    el.onclick = () => {
+      if (el.dataset.design) { design = el.dataset.design; localStorage.setItem("reel-design", design); }
+      else { theme = el.dataset.theme; localStorage.setItem("reel-theme", theme); }
+      drawThemes(); drawPacks(); summary();
+    };
     if (v) { el.onmouseenter = () => { v.currentTime = 0; v.play().catch(() => {}); }; el.onmouseleave = () => v.pause(); }
   });
 }
 
-function drawPacks() {
+function shown() {
   const q = $("q").value.trim().toLowerCase();
-  const list = packs.filter((p) => !q || p.name.toLowerCase().includes(q));
+  return packs.filter((p) => (row === "all" || p.row === row) && (!q || p.name.toLowerCase().includes(q)));
+}
+
+function drawRows() {
+  $("rows").innerHTML = ROWS.map((r) => {
+    const n = r.id === "all" ? packs.length : packs.filter((p) => p.row === r.id).length;
+    return n ? `<button class="${r.id === row ? "on" : ""}" data-row="${r.id}">${esc(r.title)} ${n}</button>` : "";
+  }).join("");
+  document.querySelectorAll("[data-row]").forEach((el) => (el.onclick = () => { row = el.dataset.row; drawRows(); drawPacks(); }));
+}
+
+function drawPacks() {
+  const list = shown();
   $("packs").innerHTML = list.map((p) => `
     <button class="pack ${picked.has(p.slug) ? "on" : ""}" data-slug="${p.slug}">
       <img src="${esc(p.thumb || "")}" alt="" loading="lazy" />
       <span class="check">${picked.has(p.slug) ? "✓" : ""}</span>
-      ${reels.has(fileOf(p.slug, theme)) ? `<span class="made">made</span>` : ""}
+      ${reels.has(fileOf(p.slug, theme, design)) ? `<span class="made">made</span>` : ""}
       <span class="meta"><b>${esc(p.name)}</b><small>${p.posters} posters · ${inr(p.price)}</small></span>
-    </button>`).join("") || `<p class="empty">No pack matches.</p>`;
+    </button>`).join("") || `<p class="empty">No wall matches.</p>`;
   document.querySelectorAll(".pack").forEach((el) => (el.onclick = () => {
     picked.has(el.dataset.slug) ? picked.delete(el.dataset.slug) : picked.add(el.dataset.slug);
     drawPacks(); summary();
   }));
-  $("count").textContent = `${packs.length} packs`;
+  $("count").textContent = `${list.length} of ${packs.length} walls`;
 }
 
 function summary() {
   const t = THEMES.find((x) => x.id === theme);
+  const d = DESIGNS.find((x) => x.id === design);
   $("make").disabled = picked.size === 0;
   $("make").textContent = picked.size ? `Make ${picked.size} reel${picked.size === 1 ? "" : "s"}` : "Make reels";
   $("summary").innerHTML = picked.size
-    ? `<b>${t.name}</b> style · ${picked.size} pack${picked.size === 1 ? "" : "s"} · about ${Math.max(1, Math.round(picked.size * 20 / 60))} min`
-    : "Pick a style and at least one pack.";
+    ? `<b>${d.name}</b> design · <b>${t.name}</b> style · ${picked.size} wall${picked.size === 1 ? "" : "s"} · about ${Math.max(1, Math.round(picked.size * 20 / 60))} min`
+    : "Pick a style and at least one wall.";
 }
 
 function parseFile(file) {
-  const th = THEMES.find((x) => x.id !== "classic" && file.endsWith(`-${x.id}`));
-  return th ? { slug: file.slice(0, -(th.id.length + 1)), theme: th } : { slug: file, theme: THEMES[0] };
+  const d = DESIGNS.find((x) => x.id !== "wall" && file.endsWith(`-${x.id}`));
+  const rest = d ? file.slice(0, -(d.id.length + 1)) : file;
+  const th = THEMES.find((x) => x.id !== "classic" && rest.endsWith(`-${x.id}`));
+  return { slug: th ? rest.slice(0, -(th.id.length + 1)) : rest, theme: th ?? THEMES[0], design: d ?? DESIGNS[0] };
 }
 
 function drawLibrary() {
@@ -189,15 +251,15 @@ function drawLibrary() {
   $("nolib").style.display = list.length ? "none" : "";
   const name = (slug) => packs.find((p) => p.slug === slug)?.name || slug;
   $("library").innerHTML = list.map(([file, r]) => {
-    const { slug, theme: th } = parseFile(file);
+    const { slug, theme: th, design: de } = parseFile(file);
     const v = Math.round(r.made);
     return `<div class="job" data-file="${file}">
       <video controls playsinline preload="none" poster="/reels/${file}-cover.jpg?v=${v}" src="/reels/${file}.mp4?v=${v}"></video>
-      <div class="info"><b>${esc(name(slug))}</b><small>${th.name}</small>
+      <div class="info"><b>${esc(name(slug))}</b><small>${de.name} · ${th.name}</small>
         <div class="cap">${r.caption
           ? `<textarea readonly>Loading caption…</textarea><div class="row"><button data-copy>Copy caption</button><button data-recap>Remake caption</button></div>`
           : `<button data-recap>Make caption</button>`}</div>
-        <div class="dl"><a class="main" href="/reels/${file}.mp4?download=1">Download video</a><a href="/reels/${file}-cover.jpg?download=1">Cover</a></div>
+        <div class="dl"><a class="main" href="/reels/${file}.mp4?download=1">Download video</a><a href="/reels/${file}-cover.jpg?download=1">Cover</a><button data-delete>Delete</button></div>
       </div></div>`;
   }).join("");
   document.querySelectorAll("#library .job").forEach((el) => {
@@ -209,6 +271,13 @@ function drawLibrary() {
       try { await navigator.clipboard.writeText(ta.value); } catch { ta.select(); document.execCommand("copy"); }
       copy.textContent = "Copied ✓"; copy.classList.add("copied");
       setTimeout(() => { copy.textContent = "Copy caption"; copy.classList.remove("copied"); }, 1600);
+    };
+    el.querySelector("[data-delete]").onclick = async (e) => {
+      if (!confirm("Delete this reel with its cover and caption? This can't be undone.")) return;
+      e.target.textContent = "Deleting…"; e.target.disabled = true;
+      const res = await fetch("/api/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ file }) });
+      if (!res.ok) { alert((await res.json()).error || "Couldn't delete it"); e.target.textContent = "Delete"; e.target.disabled = false; return; }
+      await loadReels(); drawThemes(); drawPacks(); drawLibrary();
     };
     el.querySelector("[data-recap]").onclick = async (e) => {
       e.target.textContent = "Writing…"; e.target.disabled = true;
@@ -229,7 +298,7 @@ function drawJobs(all) {
   $("making").hidden = !jobs.length;
   const name = (slug) => packs.find((p) => p.slug === slug)?.name || slug;
   $("jobs").innerHTML = jobs.slice().reverse().map((j) => {
-    const t = THEMES.find((x) => x.id === j.theme)?.name || j.theme;
+    const t = `${DESIGNS.find((x) => x.id === j.design)?.name || j.design} · ${THEMES.find((x) => x.id === j.theme)?.name || j.theme}`;
     const secs = j.started ? Math.round(((j.finished || Date.now()) - j.started) / 1000) : 0;
     let top;
     if (j.state === "done") top = `<video controls playsinline preload="metadata" src="/reels/${j.file}.mp4?v=${j.finished}"></video>`;
@@ -268,16 +337,16 @@ async function poll() {
 $("make").onclick = async () => {
   const slugs = packs.map((p) => p.slug).filter((s) => picked.has(s));
   $("make").disabled = true;
-  const res = await fetch("/api/make", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slugs, theme }) });
+  const res = await fetch("/api/make", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slugs, theme, design }) });
   if (!res.ok) alert((await res.json()).error || "Could not start");
   picked.clear(); drawPacks(); summary();
   $("making").hidden = false;
   $("making").scrollIntoView({ behavior: "smooth", block: "start" });
 };
 $("q").oninput = drawPacks;
-$("all").onclick = () => { packs.forEach((p) => picked.add(p.slug)); drawPacks(); summary(); };
+$("all").onclick = () => { shown().forEach((p) => picked.add(p.slug)); drawPacks(); summary(); };
 $("none").onclick = () => { picked.clear(); drawPacks(); summary(); };
-$("notmade").onclick = () => { picked.clear(); packs.forEach((p) => !reels.has(fileOf(p.slug, theme)) && picked.add(p.slug)); drawPacks(); summary(); };
+$("notmade").onclick = () => { picked.clear(); shown().forEach((p) => !reels.has(fileOf(p.slug, theme, design)) && picked.add(p.slug)); drawPacks(); summary(); };
 
 (async () => {
   await loadReels();
@@ -285,9 +354,10 @@ $("notmade").onclick = () => { picked.clear(); packs.forEach((p) => !reels.has(f
   try {
     packs = await (await fetch("/api/packs")).json();
     if (!Array.isArray(packs)) throw new Error(packs.error);
+    drawRows();
     drawPacks();
   } catch (e) {
-    $("packs").innerHTML = `<p class="err">Couldn't load packs from the shop (${esc(e.message)}). Check the internet and reload.</p>`;
+    $("packs").innerHTML = `<p class="err">Couldn't load walls from the shop (${esc(e.message)}). Check the internet and reload.</p>`;
   }
   summary();
   drawLibrary();

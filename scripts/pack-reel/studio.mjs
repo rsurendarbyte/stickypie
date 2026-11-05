@@ -1,5 +1,5 @@
-// Reel Studio (http://localhost:8766): a page to make wall pack reels without the
-// terminal. Pick packs and a style, press Make, watch it, play and download.
+// Reel Studio (http://localhost:8766): a page to make wall set and pack reels without
+// the terminal. Pick sets and a style, press Make, watch it, play and download.
 // It runs scripts/pack-reel/reel.py one reel at a time and serves the videos from
 // prod_stickers/poster-packs/reels/. Only reachable from this Mac.
 //
@@ -14,12 +14,13 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "../..");
 const REELS = path.join(ROOT, "prod_stickers/poster-packs/reels");
 const PORT = 8766;
-const THEMES = ["classic", "night", "beforeafter", "onebyone", "zoom", "scatter", "polaroid", "quickcuts", "flip", "rows"];
-const SLUG = /^[a-z0-9-]+-poster-pack$/;
+const THEMES = ["classic", "sweep", "doors", "pull", "deal", "night", "beforeafter", "onebyone", "zoom", "scatter", "polaroid", "quickcuts", "flip", "rows"];
+const DESIGNS = ["wall", "shop", "sizemap", "bold"];
+const SLUG = /^[a-z0-9-]+-(poster-pack|wall-setup)$/;
 
 fs.mkdirSync(REELS, { recursive: true });
 
-// The live shop's packs (read-only, public key — the same list the shop shows).
+// The live shop's wall sets and packs (read-only, public key — the same list the shop shows).
 const env = Object.fromEntries(
   fs
     .readFileSync(path.join(ROOT, "apps/web/.env.prod"), "utf8")
@@ -31,20 +32,28 @@ const env = Object.fromEntries(
 async function packs() {
   const key = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const res = await fetch(
-    `${env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/products?slug=like.*-poster-pack&is_active=eq.true&select=slug,name,price,thumb_url,pack_items&order=name`,
+    `${env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/products?or=(slug.like.*-poster-pack,slug.like.*-wall-setup)&is_active=eq.true&select=slug,name,price,thumb_url,pack_items,tags&order=name`,
     { headers: { apikey: key, Authorization: `Bearer ${key}` } }
   );
   if (!res.ok) throw new Error(`shop said ${res.status}`);
   return (await res.json()).map((p) => ({
     slug: p.slug,
-    name: p.name.replace(/\s+—\s+\d+\s+Mini Poster Pack$/, ""),
+    name: p.name.replace(/\s+—\s+\d+\s+Mini Poster Pack$/, "").replace(/\s+Wall Setup$/, ""),
+    row: p.tags?.find((t) => t.startsWith("wall theme:"))?.slice(11) ?? "packs",
     price: p.price,
     thumb: p.thumb_url,
     posters: p.pack_items?.length ?? 0,
   }));
 }
 
-const fileName = (slug, theme) => (theme === "classic" ? slug : `${slug}-${theme}`);
+const fileName = (slug, theme, design) => [slug, ...(theme === "classic" ? [] : [theme]), ...(design === "wall" ? [] : [design])].join("-");
+// A reel's file name back to its wall, style and design.
+function parseFile(file) {
+  const design = DESIGNS.find((d) => d !== "wall" && file?.endsWith(`-${d}`)) ?? "wall";
+  const rest = design === "wall" ? file : file?.slice(0, -(design.length + 1));
+  const theme = THEMES.find((th) => th !== "classic" && rest?.endsWith(`-${th}`)) ?? "classic";
+  return { theme, design, slug: theme === "classic" ? rest : rest?.slice(0, -(theme.length + 1)) };
+}
 
 // One reel at a time; the rest wait in the queue.
 const jobs = []; // {id, slug, theme, state: waiting|making|done|failed, log, file, started, finished}
@@ -57,13 +66,13 @@ function runNext() {
   busy = true;
   job.state = "making";
   job.started = Date.now();
-  const child = spawn("python3", [path.join(HERE, "reel.py"), job.slug, `--theme=${job.theme}`], { cwd: ROOT });
+  const child = spawn("python3", [path.join(HERE, "reel.py"), job.slug, `--theme=${job.theme}`, `--design=${job.design}`], { cwd: ROOT });
   const onData = (d) => (job.log = (job.log + d.toString()).slice(-4000));
   child.stdout.on("data", onData);
   child.stderr.on("data", onData);
   child.on("close", (code) => {
     job.finished = Date.now();
-    const name = fileName(job.slug, job.theme);
+    const name = fileName(job.slug, job.theme, job.design);
     job.state = code === 0 && fs.existsSync(path.join(REELS, `${name}.mp4`)) ? "done" : "failed";
     if (job.state === "done") job.file = name;
     busy = false;
@@ -114,11 +123,12 @@ http
       if (req.method === "POST" && url.pathname === "/api/make") {
         let body = "";
         for await (const c of req) body += c;
-        const { slugs, theme } = JSON.parse(body || "{}");
+        const { slugs, theme, design = "wall" } = JSON.parse(body || "{}");
         if (!THEMES.includes(theme)) return send(res, 400, { error: "unknown style" });
+        if (!DESIGNS.includes(design)) return send(res, 400, { error: "unknown design" });
         const ok = (Array.isArray(slugs) ? slugs : []).filter((s) => SLUG.test(s));
         if (!ok.length) return send(res, 400, { error: "pick at least one pack" });
-        for (const slug of ok) jobs.push({ id: nextId++, slug, theme, state: "waiting", log: "" });
+        for (const slug of ok) jobs.push({ id: nextId++, slug, theme, design, state: "waiting", log: "" });
         runNext();
         return send(res, 200, { queued: ok.length });
       }
@@ -127,15 +137,27 @@ http
         let body = "";
         for await (const c of req) body += c;
         const { file } = JSON.parse(body || "{}");
-        const theme = THEMES.find((th) => th !== "classic" && file?.endsWith(`-${th}`)) ?? "classic";
-        const slug = theme === "classic" ? file : file?.slice(0, -(theme.length + 1));
+        const { slug, theme, design } = parseFile(file);
         if (!SLUG.test(slug ?? "")) return send(res, 400, { error: "unknown reel" });
         const code = await new Promise((done) =>
-          spawn("python3", [path.join(HERE, "reel.py"), slug, `--theme=${theme}`, "--caption-only"], { cwd: ROOT }).on("close", done)
+          spawn("python3", [path.join(HERE, "reel.py"), slug, `--theme=${theme}`, `--design=${design}`, "--caption-only"], { cwd: ROOT }).on("close", done)
         );
-        const txt = path.join(REELS, `${fileName(slug, theme)}-caption.txt`);
+        const txt = path.join(REELS, `${fileName(slug, theme, design)}-caption.txt`);
         if (code !== 0 || !fs.existsSync(txt)) return send(res, 500, { error: "could not write the caption" });
         return send(res, 200, { caption: fs.readFileSync(txt, "utf8") });
+      }
+      // Delete a reel: its video, cover and caption.
+      if (req.method === "POST" && url.pathname === "/api/delete") {
+        let body = "";
+        for await (const c of req) body += c;
+        const { file } = JSON.parse(body || "{}");
+        const { slug, theme, design } = parseFile(file);
+        if (!SLUG.test(slug ?? "")) return send(res, 400, { error: "unknown reel" });
+        if (jobs.some((j) => j.slug === slug && j.theme === theme && j.design === design && (j.state === "waiting" || j.state === "making"))) {
+          return send(res, 409, { error: "this reel is being made" });
+        }
+        for (const end of [".mp4", "-cover.jpg", "-caption.txt"]) fs.rmSync(path.join(REELS, file + end), { force: true });
+        return send(res, 200, { deleted: file });
       }
       // /reels/<name>.mp4 | -cover.jpg | -caption.txt   (?download=1 to save it)
       const m = url.pathname.match(/^\/reels\/([a-z0-9-]+)(\.mp4|-cover\.jpg|-caption\.txt)$/);
