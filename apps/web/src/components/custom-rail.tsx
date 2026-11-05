@@ -110,7 +110,7 @@ export default function CustomRail({ title = "Make your own" }: { title?: string
           key={src}
           href={`/avatar-stickers?style=${encodeURIComponent(label)}`}
           aria-label={`${label} AI avatar stickers of you`}
-          className="rail-card-drawn group relative flex w-44 shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-line bg-ink2 transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] sm:w-48 md:w-52"
+          className="rail-card-drawn group relative flex w-[min(60vw,15rem)] shrink-0 snap-start sm:w-44 flex-col overflow-hidden rounded-2xl border border-line bg-ink2 transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] sm:w-48 md:w-52"
         >
           {/* art: the style's sample avatar, shown one of three ways (picked at random per visit) */}
           <StickerArt
@@ -156,7 +156,7 @@ export default function CustomRail({ title = "Make your own" }: { title?: string
             key={href}
             href={href}
             style={{ backgroundColor: s.card }}
-            className="rail-card-drawn group relative flex w-44 shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-line transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] sm:w-48 md:w-52"
+            className="rail-card-drawn group relative flex w-[min(60vw,15rem)] shrink-0 snap-start sm:w-44 flex-col overflow-hidden rounded-2xl border border-line transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] sm:w-48 md:w-52"
           >
             {/* art: a blank die-cut sticker with the option's icon, slightly tilted */}
             <div
@@ -325,7 +325,7 @@ function LeadCard({
     <PageLink
       href="/avatar-stickers"
       aria-label="Turn your photo into AI stickers"
-      className="rail-card-drawn group relative flex w-44 shrink-0 snap-start flex-col overflow-hidden rounded-2xl border border-brand/40 bg-ink2 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] sm:w-48 md:w-52"
+      className="rail-card-drawn group relative flex w-[min(60vw,15rem)] shrink-0 snap-start sm:w-44 flex-col overflow-hidden rounded-2xl border border-brand/40 bg-ink2 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] sm:w-48 md:w-52"
     >
       <StickerArt design="frame" pictures={pictures} label />
       <div className="p-3">

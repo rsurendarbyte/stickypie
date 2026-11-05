@@ -32,7 +32,7 @@ export function posterTitle(name: string) {
   return name.replace(/\s*(—\s*)?Mini Poster\s*$/i, "").trim() || name;
 }
 
-const CARD_WIDTH = "w-44 shrink-0 sm:w-48 md:w-52";
+const CARD_WIDTH = "w-[min(60vw,15rem)] shrink-0 sm:w-48 md:w-52";
 
 export default function ProductCard({ product, width = CARD_WIDTH, wallEffect }: { product: Product; width?: string; wallEffect?: WallEffect }) {
   return isPosterPack(product) ? (
