@@ -11,6 +11,7 @@ import {
   usualSizes,
   formatDimensions,
   formatINR,
+  isWallDataTag,
   productInputSchema,
   slugify,
 } from "@stickypie/shared";
@@ -44,7 +45,9 @@ export default function ProductForm({
   const [categoryIds, setCategoryIds] = useState<string[]>(
     product?.categoryIds ?? (product?.categoryId ? [product.categoryId] : [])
   );
-  const [tags, setTags] = useState(product?.tags.join(", ") ?? "");
+  const isWall = (product?.packItems.length ?? 0) > 0;
+  // A wall's data tags (layout, paint, theme) stay out of this box: they hold commas and are saved as they are.
+  const [tags, setTags] = useState(product?.tags.filter((t) => !isWallDataTag(t)).join(", ") ?? "");
   const [imageUrl, setImageUrl] = useState(product?.imageUrl ?? "");
   const [tracked, setTracked] = useState(product ? product.stock !== null : true);
   const [stock, setStock] = useState(
@@ -223,7 +226,8 @@ export default function ProductForm({
       const res = await fetch(editing ? `/api/products/${product!.id}` : "/api/products", {
         method: editing ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(parsed.data),
+        // A wall's picture is built from its posters, so the form leaves it alone.
+        body: JSON.stringify(isWall ? { ...parsed.data, imageUrl: undefined } : parsed.data),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Save failed");
@@ -282,6 +286,10 @@ export default function ProductForm({
         />
 
         <div className="rounded-xl border border-line bg-ink2/60 p-4">
+          {isWall ? (
+            <p className="text-[10.5px] font-semibold tracking-widest text-fog uppercase">Price</p>
+          ) : (
+          <>
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <p className="text-[10.5px] font-semibold tracking-widest text-fog uppercase">
               Sizes &amp; prices
@@ -370,8 +378,10 @@ export default function ProductForm({
               + Add size
             </button>
           </div>
+          </>
+          )}
           {sizesOn.length === 0 && (
-            <div className="mt-4 grid gap-4 border-t border-line pt-4 sm:grid-cols-2">
+            <div className={`mt-4 grid gap-4 sm:grid-cols-2 ${isWall ? "" : "border-t border-line pt-4"}`}>
               <TextField
                 label="Price (₹)"
                 value={price}
@@ -459,6 +469,14 @@ export default function ProductForm({
 
       {/* Image + live preview */}
       <div className="space-y-4">
+        {isWall ? (
+          <div>
+            <span className="mb-1.5 block text-[10.5px] font-semibold tracking-widest text-fog uppercase">Wall picture</span>
+            <img src={imageSrc(product!.imageUrl)} alt="" className="aspect-square w-full rounded-2xl border border-line object-contain" />
+            <p className="mt-1.5 text-xs text-fog">Made from the wall's posters. Shoppers see it in share previews and the cart.</p>
+          </div>
+        ) : (
+        <>
         <div>
           <span className="mb-1.5 block text-[10.5px] font-semibold tracking-widest text-fog uppercase">
             Sticker image
@@ -575,6 +593,8 @@ export default function ProductForm({
             })()}
           </div>
         </div>
+        </>
+        )}
       </div>
 
       {/* Library modal */}

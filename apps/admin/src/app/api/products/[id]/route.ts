@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { productInputSchema } from "@stickypie/shared";
+import { isWallDataTag, productInputSchema } from "@stickypie/shared";
 import { requireAdminApi } from "@/lib/data";
 import { prepareProductInput } from "@/lib/product-input";
 import { swapOutOfWalls } from "@/lib/wall-reshuffle";
@@ -25,8 +25,10 @@ export async function PATCH(req: Request, ctx: Ctx) {
     );
   }
   try {
-    const existing = parsed.data.imageUrl ? await auth.driver.getProductById(id) : null;
-    const product = await auth.driver.updateProduct(id, await prepareProductInput(parsed.data, existing));
+    const existing = parsed.data.imageUrl || parsed.data.tags ? await auth.driver.getProductById(id) : null;
+    // The form never sees a wall's data tags; they stay as they are.
+    const tags = parsed.data.tags && [...parsed.data.tags, ...(existing?.tags.filter(isWallDataTag) ?? [])];
+    const product = await auth.driver.updateProduct(id, await prepareProductInput({ ...parsed.data, ...(tags && { tags }) }, existing));
     return NextResponse.json({ product });
   } catch (err) {
     return NextResponse.json(

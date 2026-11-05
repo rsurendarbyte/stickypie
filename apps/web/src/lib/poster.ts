@@ -29,10 +29,12 @@ export function wallBackground(product: Product): { background: string } | null 
 export function wallSpots(product: Product): { x: number; y: number; w: number; h: number }[] {
   const spots = tagValue(product, "spots");
   if (!spots) return [];
-  return spots.split(";").map((spot) => {
+  const parsed = spots.split(";").map((spot) => {
     const [x, y, w, h] = spot.split(",").map(Number);
     return { x, y, w, h };
   });
+  // Damaged data counts as no spots, so the wall falls back to its picture.
+  return parsed.every((s) => [s.x, s.y, s.w, s.h].every(Number.isFinite)) ? parsed : [];
 }
 
 /** How many of each size in a set, biggest first: "2 pcs 6×9 + 4 pcs 4×6 in". */
