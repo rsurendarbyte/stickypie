@@ -21,7 +21,7 @@ import ProductCardSkeleton from "./product-card-skeleton";
 import ProductDetails from "./product-details";
 import ProductReviews, { RatingSummary } from "./product-reviews";
 import ProductPurchase from "./product-purchase";
-import Row from "./row";
+import LazyRail from "./lazy-rail";
 import { rememberPackPosters } from "@/lib/poster-images";
 import FinishPicker from "./finish-picker";
 import WallSizeMap, { WallPosterSheet, WallViewSwitch, usePosterCatalog, type WallView } from "./wall-size-map";
@@ -190,16 +190,17 @@ export default function ProductDetailClient({
             className={`absolute inset-0 grid cursor-zoom-in grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center ${wall && wallView !== "wall" ? "invisible" : ""} ${wall ? "" : isPack ? "p-2" : "p-6 sm:p-10"}`}
             style={{ transform: isPack ? undefined : `rotate(${rotate / 2}deg)` }}
           >
-            {wall && !checked ? (
+            {wall && picks && !checked ? (
               <span className="size-[92%] animate-pulse rounded-2xl bg-panel" />
             ) : wall ? (
               <WallStage
                 bare
+                priority
                 product={product}
                 posters={picks}
-                onRemove={(i) => pickPoster(product, i, "")}
-                onAdd={setSpot}
-                onSwap={(a, b) => swapPosters(product, a, b)}
+                onRemove={checked ? (i) => pickPoster(product, i, "") : undefined}
+                onAdd={checked ? setSpot : undefined}
+                onSwap={checked ? (a, b) => swapPosters(product, a, b) : undefined}
                 src={product.imageUrl}
                 alt={product.name}
                 className={out || unavailable ? "opacity-50 saturate-50" : ""}
@@ -389,14 +390,15 @@ export default function ProductDetailClient({
 
       {(!relatedLoaded || moreLikeThis.length > 0) && (
         <div className="mt-6 -mx-4 sm:-mx-8">
-          <Row
+          <LazyRail
+            eager={false}
             title="More like this"
             href={category ? `/stickers/${category.slug}` : "/stickers"}
           >
             {relatedLoaded
               ? moreLikeThis.map((p) => <ProductCard key={p.id} product={p} />)
               : Array.from({ length: 5 }, (_, i) => <ProductCardSkeleton key={i} index={i} />)}
-          </Row>
+          </LazyRail>
         </div>
       )}
       <ProductReviews productId={product.id} />

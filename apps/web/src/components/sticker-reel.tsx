@@ -372,7 +372,8 @@ function ReelItem({
             )}
             {checked && wallView === "wall" && !arranging && <WallTip />}
             <div className={`size-full ${wallView !== "wall" ? "invisible" : ""}`}>
-            {!checked ? <span className="block size-full animate-pulse rounded-2xl bg-panel" /> : <WallStage bare product={product} posters={posters} onRemove={emptySpot} onAdd={setSpot} onSwap={(a, b) => setDraft((now) => now && swapSpots(now, a, b))} arranging={arranging} onArrange={() => setDraft(picks ?? product.packItems)} src={product.imageUrl} alt={product.name} className={out ? "opacity-50 saturate-50" : ""} />}
+            {/* The set as sold draws at once from the page's own posters. A shopper's own picks, and changing them, wait for the checked catalog. */}
+            {picks && !checked ? <span className="block size-full animate-pulse rounded-2xl bg-panel" /> : <WallStage bare priority product={product} posters={posters} onRemove={checked ? emptySpot : undefined} onAdd={checked ? setSpot : undefined} onSwap={checked ? (a, b) => setDraft((now) => now && swapSpots(now, a, b)) : undefined} arranging={arranging} onArrange={checked ? () => setDraft(picks ?? product.packItems) : undefined} src={product.imageUrl} alt={product.name} className={out ? "opacity-50 saturate-50" : ""} />}
             </div>
             </div>
             {/* below the wall, so nothing sits on a poster or its close button */}

@@ -333,7 +333,7 @@ export default function Hero({
                 className="absolute inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center p-2 sm:p-4 md:px-6 md:pt-0 md:pb-5"
               >
                 {wallSpots(product).length > 0 ? (
-                  <WallStage bare product={product} src={product.thumbUrl ?? product.imageUrl} alt={product.name} />
+                  <WallStage bare priority product={product} src={product.thumbUrl ?? product.imageUrl} alt={product.name} />
                 ) : (
                 <SmartImg
                   full={product.imageUrl}
