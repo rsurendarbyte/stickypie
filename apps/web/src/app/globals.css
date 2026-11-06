@@ -342,22 +342,32 @@ select option {
   }
 }
 
-/* Gentle, slow loop for the header logo: rests flat most of the time, then
-   the corner lifts a little, holds, and settles back. */
+/* Gentle, slow peel for the header logo: rests flat most of the time, then the
+   corner lifts a little, holds, and settles back. It only runs while .peel-run
+   is on (nav.tsx): a loop that "rests" still redraws the page every frame, and
+   the flap scales instead of resizing, so a peel never lays the page out. */
 .peel-gentle {
-  --peel-dur: 7s;
+  --peel-dur: 3.15s;
   --peel-face: transparent;
 }
 .peel-gentle .peel-face {
   border-radius: 11px;
   box-shadow: none;
-  animation-name: peel-face-gentle;
-  animation-timing-function: cubic-bezier(0.37, 0, 0.25, 1);
+  animation: none;
 }
 .peel-gentle .peel-flap-wrap {
-  animation-name: peel-flap-gentle;
-  animation-timing-function: cubic-bezier(0.37, 0, 0.25, 1);
+  width: 34%;
+  height: 34%;
+  transform: scale(0);
+  transform-origin: 100% 100%;
+  animation: none;
   filter: drop-shadow(-1px -1px 2px rgba(16, 24, 40, 0.18));
+}
+.peel-gentle.peel-run .peel-face {
+  animation: peel-face-gentle var(--peel-dur) cubic-bezier(0.37, 0, 0.25, 1);
+}
+.peel-gentle.peel-run .peel-flap-wrap {
+  animation: peel-flap-gentle var(--peel-dur) cubic-bezier(0.37, 0, 0.25, 1);
 }
 /* The SP mark sits over its hole in the wide header logo (logo-wide-base). */
 .peel-logo {
@@ -371,12 +381,11 @@ select option {
   border-radius: 23%;
 }
 @keyframes peel-face-gentle {
-  0%,
-  55% {
+  0% {
     clip-path: polygon(0 0, 100% 0, 100% 100%, 100% 100%, 0 100%);
   }
-  72%,
-  82% {
+  38%,
+  60% {
     clip-path: polygon(0 0, 100% 0, 100% 66%, 66% 100%, 0 100%);
   }
   100% {
@@ -384,24 +393,20 @@ select option {
   }
 }
 @keyframes peel-flap-gentle {
-  0%,
-  55% {
-    width: 0;
-    height: 0;
+  0% {
+    transform: scale(0);
   }
-  72%,
-  82% {
-    width: 34%;
-    height: 34%;
+  38%,
+  60% {
+    transform: scale(1);
   }
   100% {
-    width: 0;
-    height: 0;
+    transform: scale(0);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .peel-gentle .peel-face,
-  .peel-gentle .peel-flap-wrap {
+  .peel-gentle.peel-run .peel-face,
+  .peel-gentle.peel-run .peel-flap-wrap {
     animation: none;
   }
 }
@@ -1275,7 +1280,9 @@ html[data-lite]:not([data-lite="net"]) .sticker-wall-down {
 /* Sticker wall: now and then a sticker peels — its top-right corner folds
    back along a diagonal, showing the white backing paper in the sticker's own
    die-cut shape, then smooths down again. --pk is how far it has peeled (0–1
-   of the tile); each tile has its own cycle (--peel-cycle / --peel-delay).
+   of the tile). --pk can't run on the GPU, so only the few tiles peeling on
+   screen animate (.wall-peeling, set by useWallPeels in hero.tsx) and each gets
+   its own layer: a tile at rest costs nothing while the wall slides.
    The flap is a copy of the sticker turned white and mirrored across the fold
    (no extra image request, no CORS needed). */
 @property --pk {
@@ -1285,22 +1292,26 @@ html[data-lite]:not([data-lite="net"]) .sticker-wall-down {
 }
 .wall-peel {
   --pk: 0;
-  animation: wall-peel var(--peel-cycle, 10s) cubic-bezier(0.3, 0.7, 0.2, 1) var(--peel-delay, 0s) infinite;
+}
+.wall-peeling {
+  animation: wall-peel 3.2s cubic-bezier(0.3, 0.7, 0.2, 1);
+  will-change: transform;
 }
 @keyframes wall-peel {
   0%,
-  74%,
   100% {
     --pk: 0;
   }
-  85%,
-  91% {
+  42%,
+  65% {
     --pk: 0.56;
   }
 }
 /* the sticker, minus the corner that has lifted off */
 .wall-peel-front {
   filter: drop-shadow(0 4px 6px rgba(16, 24, 40, 0.2));
+}
+.wall-peeling .wall-peel-front {
   clip-path: polygon(
     0 0,
     calc(100% - var(--pk) * 100%) 0,
@@ -1310,8 +1321,12 @@ html[data-lite]:not([data-lite="net"]) .sticker-wall-down {
   );
 }
 .wall-peel-shadow {
+  display: none;
   pointer-events: none;
   filter: drop-shadow(-3px 4px 3px rgba(16, 24, 40, 0.4)) drop-shadow(0 0 1px rgba(16, 24, 40, 0.35));
+}
+.wall-peeling .wall-peel-shadow {
+  display: block;
 }
 /* the lifted corner, mirrored across the fold line and turned to white paper */
 .wall-peel-flap {
@@ -1320,14 +1335,6 @@ html[data-lite]:not([data-lite="net"]) .sticker-wall-down {
   clip-path: polygon(calc(100% - var(--pk) * 100%) 0, 100% 0, 100% calc(var(--pk) * 100%));
   /* backing paper: light grey so it reads against the white tile */
   filter: brightness(0) invert(0.84);
-}
-@media (prefers-reduced-motion: reduce) {
-  .wall-peel {
-    animation: none;
-  }
-}
-html[data-lite]:not([data-lite="net"]) .wall-peel {
-  animation: none;
 }
 
 /* "Stickers of YOU" lead card designs (custom-rail.tsx). Slider: the grey
@@ -1471,10 +1478,10 @@ html[data-lite]:not([data-lite="net"]) .wall-peel {
 /* The sticker peel assumes square art (it folds along the diagonal in %). On a
    rectangle the fold size comes from the poster's width instead (cqw), so the
    corner folds back at 45° like the stickers'. */
-.wall-peel-poster {
+.wall-peeling.wall-peel-poster {
   container-type: size;
 }
-.wall-peel-poster .wall-peel-front {
+.wall-peeling.wall-peel-poster .wall-peel-front {
   clip-path: polygon(
     0 0,
     calc(100% - var(--pk) * 60cqw) 0,
