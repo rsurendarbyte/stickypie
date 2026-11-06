@@ -1570,14 +1570,33 @@ html[data-no-save] img:not(a[href] img) {
 .wall-slot.is-done {
   opacity: 0;
 }
-/* Dragging a poster to another spot (lib/use-wall-drag). Up and down stay with the browser
-   so the wall scrolls; sideways comes to the hook, which also stops the scroll once a poster is up. */
+/* Dragging a poster to another spot (lib/use-wall-drag). Touches stay with the browser so
+   the wall scrolls; only a hold lifts a poster, and the hook stops the scroll from there. */
 .wall-movable {
-  touch-action: pan-y;
   cursor: grab;
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+}
+/* The swipe view's arranging: posters shake, and a finger on one drags it at once. */
+.wall-arranging .wall-movable {
+  touch-action: none;
+  animation: wall-shake 0.3s ease-in-out infinite alternate;
+}
+.wall-arranging .wall-movable:nth-child(even) {
+  animation-direction: alternate-reverse;
+  animation-duration: 0.26s;
+}
+.wall-arranging .wall-movable.is-lifted {
+  animation: none;
+}
+@keyframes wall-shake {
+  from {
+    rotate: -1.2deg;
+  }
+  to {
+    rotate: 1.2deg;
+  }
 }
 .wall-movable .wall-print {
   transition: box-shadow 0.15s ease;

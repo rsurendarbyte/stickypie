@@ -1,13 +1,16 @@
 // Drag one poster of a wall onto another to swap them. A mouse picks a poster up
-// as soon as it moves. A finger picks it up by sliding sideways, or by holding it
-// for a moment and then going any way, so an up or down swipe over the wall still
-// scrolls the page. The lifted poster moves on the compositor, with no React render,
-// so it stays with the finger on slow phones.
+// as soon as it moves. A finger only picks it up by holding still for a moment, so
+// a swipe in any direction stays a swipe; once a poster is up, whatever scrolls
+// around it is locked until it lands. The swipe view asks for a longer hold, which
+// turns on arranging: posters shake, the reel stays put, and a finger drags them
+// straight away until the shopper is done. The lifted poster moves on the compositor,
+// with no React render, so it stays with the finger on slow phones.
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, type RefObject } from "react";
 
-const HOLD_MS = 150;
+const HOLD_MS = 200;
+const ARRANGE_HOLD_MS = 500;
 const MOUSE_SLOP = 5;
 const FINGER_SLOP = 9;
 const LIFT = 1.07;
@@ -20,15 +23,35 @@ const spotOf = (node: Element) => Number((node as HTMLElement).dataset.wallSpot)
 const centre = (r: DOMRect) => [r.left + r.width / 2, r.top + r.height / 2];
 const calm = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-/** `order` is the wall's posters as a string: when it changes after a drop, they glide to their new spots. */
-export function useWallDrag(root: RefObject<HTMLElement | null>, onSwap: ((from: number, to: number) => void) | undefined, order: string) {
+/**
+ * `order` is the wall's posters as a string: when it changes after a drop, they glide to their new spots.
+ * `arrange`: for the swipe view, the shopper's arranging on or off and how a long hold turns it on.
+ */
+export function useWallDrag(
+  root: RefObject<HTMLElement | null>,
+  onSwap: ((from: number, to: number) => void) | undefined,
+  order: string,
+  arrange?: { on: boolean; start: () => void }
+) {
   const swap = useRef(onSwap);
   const landing = useRef<Landing | null>(null);
+  const plan = useRef(arrange);
   const on = Boolean(onSwap);
+  const arranging = Boolean(arrange?.on);
 
   useEffect(() => {
     swap.current = onSwap;
+    plan.current = arrange;
   });
+
+  useEffect(() => {
+    if (!arranging) return;
+    const scroller = root.current?.closest<HTMLElement>(".reel-scroller");
+    if (scroller) scroller.style.overflowY = "hidden";
+    return () => {
+      if (scroller) scroller.style.overflowY = "";
+    };
+  }, [root, arranging]);
 
   useEffect(() => {
     const el = root.current;
@@ -47,6 +70,7 @@ export function useWallDrag(root: RefObject<HTMLElement | null>, onSwap: ((from:
       let boxes: Box[] = [];
       let over: Box | null = null;
       let hold = 0;
+      let scroller: HTMLElement | null = null;
 
       const place = () => {
         held.style.transform = `translate3d(${x - startX}px, ${y - startY}px, 0) scale(${LIFT})`;
@@ -59,16 +83,18 @@ export function useWallDrag(root: RefObject<HTMLElement | null>, onSwap: ((from:
 
       const lift = () => {
         lifted = true;
+        scroller = el.closest<HTMLElement>(".reel-scroller");
+        if (scroller) scroller.style.overflowY = "hidden";
         boxes = [...el.querySelectorAll<HTMLElement>("[data-wall-spot]")].map((node) => ({ node, spot: spotOf(node), rect: node.getBoundingClientRect() }));
         held.classList.add("is-lifted");
         held.style.zIndex = "40";
         held.style.willChange = "transform";
-        held.style.transition = "transform 0.13s ease-out";
+        held.style.transition = "transform 0.16s ease-out";
         held.style.transform = `translate3d(${x - startX}px, ${y - startY}px, 0) scale(${LIFT})`;
         if (finger) navigator.vibrate?.(8);
         window.setTimeout(() => {
           if (lifted) held.style.transition = "none";
-        }, 130);
+        }, 160);
       };
 
       const stopListening = () => {
@@ -80,6 +106,7 @@ export function useWallDrag(root: RefObject<HTMLElement | null>, onSwap: ((from:
       };
 
       const settle = () => {
+        if (scroller && !plan.current?.on) scroller.style.overflowY = "";
         over?.node.classList.remove("is-drop");
         held.classList.remove("is-lifted");
         held.style.transition = "";
@@ -103,11 +130,9 @@ export function useWallDrag(root: RefObject<HTMLElement | null>, onSwap: ((from:
         if (ev.pointerId !== e.pointerId) return;
         [x, y] = [ev.clientX, ev.clientY];
         if (!lifted) {
-          const [across, down] = [Math.abs(x - startX), Math.abs(y - startY)];
-          if (Math.hypot(across, down) <= (finger ? FINGER_SLOP : MOUSE_SLOP)) return;
-          // Before the hold is up, a finger going up or down is scrolling.
-          if (finger && down >= across) return stopListening();
-          window.clearTimeout(hold);
+          if (Math.hypot(x - startX, y - startY) <= (finger ? FINGER_SLOP : MOUSE_SLOP)) return;
+          // A finger that moves before the hold is up is swiping.
+          if (finger && !plan.current?.on) return stopListening();
           lift();
         }
         place();
@@ -147,7 +172,12 @@ export function useWallDrag(root: RefObject<HTMLElement | null>, onSwap: ((from:
       window.addEventListener("pointerup", up, true);
       window.addEventListener("pointercancel", cancel, true);
       cancelPress = stopListening;
-      if (finger) hold = window.setTimeout(lift, HOLD_MS);
+      if (finger && !plan.current?.on) {
+        hold = window.setTimeout(() => {
+          plan.current?.start();
+          lift();
+        }, plan.current ? ARRANGE_HOLD_MS : HOLD_MS);
+      }
     };
 
     // Must not be passive: once a poster is up, this is what stops the page scrolling under it.
@@ -164,6 +194,7 @@ export function useWallDrag(root: RefObject<HTMLElement | null>, onSwap: ((from:
     el.addEventListener("contextmenu", menu);
     return () => {
       cancelPress?.();
+      el.closest<HTMLElement>(".reel-scroller")?.style.removeProperty("overflow-y");
       el.removeEventListener("pointerdown", down);
       el.removeEventListener("touchmove", touchMove);
       el.removeEventListener("contextmenu", menu);

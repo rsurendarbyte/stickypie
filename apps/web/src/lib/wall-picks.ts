@@ -51,9 +51,15 @@ export function pickPoster(product: Product, spot: number, posterId: string) {
 }
 
 /** Swaps the posters on two spots. Each spot keeps its size, and every poster is sold in both. */
+export const swapSpots = (posters: string[], a: number, b: number) => posters.map((id, i) => (i === a ? posters[b] : i === b ? posters[a] : id));
+
 export function swapPosters(product: Product, a: number, b: number) {
-  const now = picks[product.id] ?? product.packItems;
-  save({ ...picks, [product.id]: now.map((id, i) => (i === a ? now[b] : i === b ? now[a] : id)) });
+  save({ ...picks, [product.id]: swapSpots(picks[product.id] ?? product.packItems, a, b) });
+}
+
+/** The whole wall at once, when the swipe view's arranging is done. */
+export function setPosters(product: Product, posters: string[]) {
+  save({ ...picks, [product.id]: posters });
 }
 
 function resetPicks(productId: string) {
