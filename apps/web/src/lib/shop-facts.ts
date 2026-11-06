@@ -2,9 +2,9 @@
 // count, starting prices, make-your-own prices), read at build time.
 import { avatarBook, avatarExtraPrice, customSizes } from "@stickypie/shared";
 import { getDriver } from "./data";
-import { isMiniPoster } from "./poster";
+import { isMiniPoster, isPosterPack } from "./poster";
 import { absoluteUrl } from "./site";
-import type { ShopFacts } from "./seo";
+import { lowestPrice, type ShopFacts } from "./seo";
 
 export async function loadShopFacts(): Promise<ShopFacts> {
   const driver = getDriver();
@@ -15,16 +15,15 @@ export async function loadShopFacts(): Promise<ShopFacts> {
   ]);
   // Make-your-own (custom, QR, name) is only offered while its switch is on.
   const made = (prices: Record<string, number>) => (features.customStickers ? customSizes(prices) : []);
-  const lowest = (list: typeof products) => {
-    const prices = list.flatMap((p) => (p.sizes.length ? p.sizes.map((s) => s.price) : [p.price]));
-    return prices.length ? Math.min(...prices) : null;
-  };
-  const posters = products.filter(isMiniPoster);
+  const posters = products.filter((p) => isMiniPoster(p) && !isPosterPack(p));
+  const wallSets = products.filter(isPosterPack);
   return {
-    designs: products.length,
+    designs: products.length - wallSets.length,
     posters: posters.length,
-    stickerFrom: lowest(products),
-    posterFrom: lowest(posters),
+    wallSets: wallSets.length,
+    wallSetFrom: lowestPrice(wallSets),
+    stickerFrom: lowestPrice(products),
+    posterFrom: lowestPrice(posters),
     custom: made(settings.customPrices),
     qr: made(settings.qrPrices),
     text: made(settings.textPrices),

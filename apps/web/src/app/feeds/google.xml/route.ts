@@ -39,12 +39,13 @@ export async function GET() {
     const availability = product.stock === 0 ? "out_of_stock" : "in_stock";
     const poster = isPoster(product);
     const type = [poster ? "Posters" : "Stickers", catName.get(product.categoryId ?? "")].filter(Boolean).join(" > ");
+    const pack = isPosterPack(product);
     return sizes.map((size) => {
       const sale = size.compareAtPrice && size.compareAtPrice > size.price;
       const fields: [string, string][] = [
         ["g:id", size.inches ? `${product.slug}-${size.inches}in` : product.slug],
         ["g:item_group_id", product.slug],
-        ["g:title", `${seoName(product)}${size.inches ? ` – ${poster ? sizeChipLabel(product, size.inches) : size.inches} inch` : ""} | ${poster ? "Wall Poster" : "Die-Cut Vinyl"}`],
+        ["g:title", pack ? `${seoName(product)} – ${product.packItems.length} Posters` : `${seoName(product)}${size.inches ? ` – ${poster ? sizeChipLabel(product, size.inches) : size.inches} inch` : ""} | ${poster ? "Wall Poster" : "Die-Cut Vinyl"}`],
         ["g:description", productSeoDescription(product)],
         ["g:link", absoluteUrl(`/sticker/${product.slug}`)],
         ["g:image_link", absoluteUrl(product.imageUrl)],
@@ -56,7 +57,7 @@ export async function GET() {
         ["g:identifier_exists", "no"],
         ["g:google_product_category", poster ? GOOGLE_POSTER_CATEGORY : GOOGLE_CATEGORY],
         ["g:product_type", type],
-        ["g:material", isPosterPack(product) ? "Poster Paper" : poster ? "Poster Paper or Vinyl" : "Vinyl"],
+        ["g:material", pack ? "Poster Paper" : poster ? "Poster Paper or Vinyl" : "Vinyl"],
         ...(size.inches ? [["g:size", `${poster ? sizeChipLabel(product, size.inches) : size.inches} inch`] as [string, string]] : []),
       ];
       return `    <item>\n${fields.map(([k, v]) => `      <${k}>${xml(v)}</${k}>`).join("\n")}\n    </item>`;
@@ -66,9 +67,9 @@ export async function GET() {
   const body = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
   <channel>
-    <title>${xml(SITE_NAME)} stickers</title>
+    <title>${xml(SITE_NAME)} stickers and wall posters</title>
     <link>${xml(absoluteUrl("/"))}</link>
-    <description>${xml(`Die-cut vinyl stickers from ${SITE_NAME}, shipped across India`)}</description>
+    <description>${xml(`Die-cut vinyl stickers and wall posters from ${SITE_NAME}, shipped across India`)}</description>
 ${items.join("\n")}
   </channel>
 </rss>

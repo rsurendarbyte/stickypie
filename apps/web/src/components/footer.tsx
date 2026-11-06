@@ -1,12 +1,12 @@
 import Link from "@/components/page-link";
 import { PaymentPartnerNote } from "./payment-partner";
-import { SURFACES } from "@/lib/surfaces";
+import { POSTER_SURFACES, SURFACES } from "@/lib/surfaces";
 
 const COLUMNS: Array<{ title: string; links: Array<{ label: string; href: string }> }> = [
   {
     title: "Shop",
     links: [
-      { label: "Wall posters", href: "/stickers/poster-packs" },
+      { label: "Wall poster sets", href: "/stickers/poster-packs" },
       { label: "All stickers", href: "/stickers" },
       { label: "New drops", href: "/stickers?sort=new" },
       { label: "Custom stickers", href: "/custom-stickers" },
@@ -14,6 +14,10 @@ const COLUMNS: Array<{ title: string; links: Array<{ label: string; href: string
       { label: "Name stickers", href: "/name-stickers" },
       ...SURFACES.map((s) => ({ label: s.name, href: `/${s.slug}` })),
     ],
+  },
+  {
+    title: "Wall posters",
+    links: POSTER_SURFACES.map((s) => ({ label: s.name, href: `/${s.slug}` })),
   },
   {
     title: "Support",
@@ -35,7 +39,7 @@ const COLUMNS: Array<{ title: string; links: Array<{ label: string; href: string
 export default function Footer({ demoMode }: { demoMode: boolean }) {
   return (
     <footer className="border-t border-line bg-ink2">
-      <div className="grid w-full gap-10 px-4 py-12 sm:px-8 md:grid-cols-[1.4fr_1fr_1fr_1fr] lg:px-12 2xl:px-20">
+      <div className="grid w-full gap-10 px-4 py-12 sm:px-8 md:grid-cols-[1.4fr_1fr_1fr_1fr_1fr] lg:px-12 2xl:px-20">
         <div>
           <p className="flex items-center gap-2.5 font-display text-2xl font-semibold">
             <img src="/icons/icon-192.png" alt="" width={36} height={36} className="size-9 rounded-[11px]" />
@@ -44,8 +48,8 @@ export default function Footer({ demoMode }: { demoMode: boolean }) {
             </span>
           </p>
           <p className="mt-2 max-w-xs text-sm text-fog">
-            Stick your style. Premium die-cut vinyl stickers for rides, lids, laptops and
-            everything in between.
+            Stick your style. Premium die-cut vinyl stickers for rides, lids and laptops,
+            and wall posters for everywhere in between.
           </p>
           <p className="mt-4 text-xs text-fog/70">
             <PaymentPartnerNote />

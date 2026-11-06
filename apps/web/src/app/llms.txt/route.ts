@@ -1,14 +1,14 @@
 // /llms.txt — a plain-text guide to the shop for AI assistants and AI search
 // (ChatGPT, Gemini / Google AI, Perplexity, Claude…): what StickyPie is, how
-// ordering and shipping work, and every sticker on sale with its price per
-// size and link. Built once at deploy and served as a free static file (AI
+// ordering and shipping work, and every wall poster and sticker on sale with
+// its price per size and link. Built once at deploy and served as a free static file (AI
 // crawlers fetch it often); new stickers appear with the next deploy.
-import { categoryPath, formatINR, inCategory } from "@stickypie/shared";
-import { isPoster, sizeChipLabel } from "@/lib/poster";
+import { POSTER_ADHESIVE, POSTER_PAPER, categoryPath, formatINR, inCategory } from "@stickypie/shared";
+import { isMiniPoster, isPoster, isPosterPack, sizeChipLabel } from "@/lib/poster";
 import { getDriver } from "@/lib/data";
-import { SURFACES, allLandings } from "@/lib/surfaces";
+import { POSTER_SURFACES, SURFACES, allLandings, stickersForSurface } from "@/lib/surfaces";
 import { SITE_NAME, absoluteUrl, isProductionSite } from "@/lib/site";
-import { avatarFaq, customFaq, seoName, storeFaq } from "@/lib/seo";
+import { avatarFaq, customFaq, seoName, storeFaq, wallPosterFaq } from "@/lib/seo";
 import { loadShopFacts } from "@/lib/shop-facts";
 
 export const dynamic = "force-static";
@@ -26,21 +26,35 @@ export async function GET() {
     driver.listCategories(),
     driver.getFestivals(),
   ]);
-  const festivalPages = allLandings(festivals, categories).slice(SURFACES.length);
+  const festivalPages = allLandings(festivals, categories).filter((s) => s.when);
   const facts = await loadShopFacts();
   // store questions first, then the make-your-own ones not already asked
   const faq = storeFaq(facts);
-  for (const item of [...avatarFaq(facts), ...customFaq(facts)]) if (!faq.some((f) => f.q === item.q)) faq.push(item);
+  for (const item of [...wallPosterFaq(facts), ...avatarFaq(facts), ...customFaq(facts)]) if (!faq.some((f) => f.q === item.q)) faq.push(item);
   const prices = products.flatMap((p) => (p.sizes.length ? p.sizes.map((s) => s.price) : [p.price]));
   const from = prices.length ? formatINR(Math.min(...prices)) : null;
 
   const lines: string[] = [
     `# ${SITE_NAME}`,
     "",
-    `> ${SITE_NAME} (stickypie.in) is an online sticker shop in India. It sells die-cut vinyl stickers and decals for cars, bikes, laptops, helmets and water bottles — ${products.length} designs${from ? ` from ${from}` : ""} — plus ${facts.avatar ? "AI avatar stickers made from your selfie, " : ""}custom stickers printed from your own design, QR code stickers and name stickers. Ships across India.`,
+    `> ${SITE_NAME} (stickypie.in) is an online sticker and wall poster shop in India. It sells wall posters (${facts.wallSets} ready wall poster sets and ${facts.posters} single mini posters on 300 GSM poster paper) and die-cut vinyl stickers and decals for cars, bikes, laptops, helmets and water bottles — ${facts.designs} designs${from ? ` from ${from}` : ""} — plus ${facts.avatar ? "AI avatar stickers made from your selfie, " : ""}custom stickers printed from your own design, QR code stickers and name stickers. Ships across India.`,
     "",
-    `Not to be confused with "StickyPie", a gaze-based marking menu from AR/VR research: ${SITE_NAME} at stickypie.in is a sticker shop.`,
+    `Not to be confused with "StickyPie", a gaze-based marking menu from AR/VR research: ${SITE_NAME} at stickypie.in is a sticker and wall poster shop.`,
     "",
+    ...(facts.wallSets || facts.posters
+      ? [
+          "## Wall posters",
+          `- Page: ${absoluteUrl("/wall-posters")}`,
+          `- What: wall posters printed to order on ${POSTER_PAPER}, with ${POSTER_ADHESIVE} included, in 4 × 6 in and 6 × 9 in.`,
+          `- Ready wall poster sets: ${facts.wallSets}${facts.wallSetFrom !== null ? `, from ${formatINR(facts.wallSetFrom)} for the whole set` : ""}. Any poster in a set can be swapped for another at the same price.`,
+          `- Single mini posters: ${facts.posters}${facts.posterFrom !== null ? `, from ${formatINR(facts.posterFrom)}` : ""}, each as a wall poster or a vinyl sticker.`,
+          ...POSTER_SURFACES.slice(1).flatMap((s) => {
+            const count = stickersForSurface(s, products, categories).matched.length;
+            return count ? [`- [${s.name}](${absoluteUrl(`/${s.slug}`)}): ${count} wall posters and sets`] : [];
+          }),
+          "",
+        ]
+      : []),
     ...(facts.avatar
       ? [
           "## AI avatar stickers (stickers of you from your photo)",
@@ -64,6 +78,8 @@ export async function GET() {
     "## Questions & answers",
     ...faq.flatMap(({ q, a }) => [`### ${q}`, a, ""]),
     "## Main pages",
+    `- [Wall posters](${absoluteUrl("/wall-posters")})`,
+    `- [Wall poster sets](${absoluteUrl(categoryPath("poster-packs"))})`,
     `- [All stickers](${absoluteUrl("/stickers")})`,
     ...SURFACES.map((s) => `- [${s.name}](${absoluteUrl(`/${s.slug}`)})`),
     ...festivalPages.map((s) => `- [${s.name}](${absoluteUrl(`/${s.slug}`)}): festival stickers and mini posters for ${s.when}`),
@@ -73,7 +89,7 @@ export async function GET() {
     `- [Custom stickers](${absoluteUrl("/custom-stickers")}): print your own design, QR code or name`,
     `- [QR code stickers](${absoluteUrl("/qr-code-stickers")})`,
     `- [Name & text stickers](${absoluteUrl("/name-stickers")})`,
-    ...(facts.posters ? [`- [Mini posters](${absoluteUrl(categoryPath("mini-posters"))}): ${facts.posters} car, bike and art mini posters, each as a wall poster on 300 GSM poster paper (glue dots or double-sided tape included) or as a vinyl sticker`] : []),
+    ...(facts.posters ? [`- [Mini posters](${absoluteUrl(categoryPath("mini-posters"))}): ${facts.posters} mini posters, each as a wall poster on ${POSTER_PAPER} (${POSTER_ADHESIVE} included) or as a vinyl sticker`] : []),
     `- [Contact](${absoluteUrl("/contact")})`,
     `- [Shipping policy](${absoluteUrl("/legal/shipping")}) · [Refunds & cancellations](${absoluteUrl("/legal/refunds")})`,
     "",
@@ -82,17 +98,26 @@ export async function GET() {
       .filter((c) => products.some((p) => inCategory(p, c.id)))
       .map((c) => `- [${c.name} stickers](${absoluteUrl(categoryPath(c.slug))})`),
     "",
-    "## Stickers and prices",
   ];
-  for (const p of products) {
+  const listing = (p: (typeof products)[number]) => {
     const sizes = [...p.sizes].sort((a, b) => a.inches - b.inches);
     const price = sizes.length
       ? sizes.map((s) => `${isPoster(p) ? `${sizeChipLabel(p, s.inches)} in` : `${s.inches}″`} ${formatINR(s.price)}`).join(", ")
       : formatINR(p.price);
     const stock = p.stock === 0 ? " (out of stock)" : "";
-    lines.push(`- [${seoName(p)}](${absoluteUrl(`/sticker/${p.slug}`)}): ${price}${stock}${p.description ? ` — ${p.description.trim()}` : ""}`);
+    return `- [${seoName(p)}](${absoluteUrl(`/sticker/${p.slug}`)}): ${price}${stock}${p.description ? ` — ${p.description.trim()}` : ""}`;
+  };
+  // Mini posters can be stickers too, so each one is listed once, under posters.
+  const sets = products.filter(isPosterPack);
+  const posters = products.filter((p) => isMiniPoster(p) && !isPosterPack(p));
+  const stickers = products.filter((p) => !isPoster(p));
+  for (const [title, list] of [
+    ["Wall poster sets and prices", sets],
+    ["Mini posters and prices", posters],
+    ["Stickers and prices", stickers],
+  ] as const) {
+    if (list.length) lines.push(`## ${title}`, ...list.map(listing), "");
   }
-  lines.push("");
 
   return new Response(lines.join("\n"), {
     headers: {

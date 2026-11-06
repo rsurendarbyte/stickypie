@@ -6,7 +6,7 @@ import type { Category, Product, PublicReview } from "@stickypie/shared";
 import { POSTER_ADHESIVE, POSTER_PAPER, categoryPath, formatINR, packPosterSizes, packSizeSummary, type PosterFinish } from "@stickypie/shared";
 import { SITE_NAME, absoluteUrl } from "./site";
 import { siteUrl } from "./mode";
-import { isInternalTag, isMiniPoster, isPoster, isPosterPack, sizeChipLabel } from "./poster";
+import { isInternalTag, isMiniPoster, isPoster, isPosterPack, posterSetName, sizeChipLabel } from "./poster";
 
 /** Where parcels go and how long they take (matches the shipping policy). */
 const HANDLING_DAYS = { min: 2, max: 4 };
@@ -14,8 +14,15 @@ const TRANSIT_DAYS = { min: 3, max: 5 };
 
 /** "Made in India" → "Made in India Sticker"; leaves "… Decal/Badge/Pack" alone. */
 export function seoName(product: Product): string {
+  if (isPosterPack(product)) return wallSetName(product);
   if (isMiniPoster(product)) return /poster/i.test(product.name) ? product.name : `${product.name} Mini Poster`;
   return /sticker|decal|badge|pack|label/i.test(product.name) ? product.name : `${product.name} Sticker`;
+}
+
+/** "Red Line Wall Setup — 6 Mini Poster Pack" → "Red Line Wall Poster Set": what people search for. */
+function wallSetName(product: Product): string {
+  const name = posterSetName(product.name).replace(/\s*Wall Setup$/i, "");
+  return `${name} ${/\bwall\b/i.test(name) ? "Poster Set" : "Wall Poster Set"}`;
 }
 
 function sizeList(product: Product): string {
@@ -25,11 +32,17 @@ function sizeList(product: Product): string {
 }
 
 export function productSeoTitle(product: Product): string {
-  if (isPosterPack(product)) return `${product.name} – Wall Poster Set`;
+  if (isPosterPack(product)) return `${seoName(product)} – ${product.packItems.length} Posters`;
   return isMiniPoster(product) ? `${seoName(product)} – Wall Poster or Vinyl Sticker` : `${seoName(product)} – Die-Cut Vinyl Decal`;
 }
 
 export function productSeoDescription(product: Product): string {
+  if (isPosterPack(product)) {
+    const pitch = `Buy the ${seoName(product)}: ${product.packItems.length} wall posters on ${POSTER_PAPER}, ${POSTER_ADHESIVE} included, for ${formatINR(product.price)}. Ships across India.`;
+    const lead = product.description.trim();
+    const text = lead ? `${pitch} ${lead}` : pitch;
+    return text.length > 160 ? `${text.slice(0, 157).trimEnd()}…` : text;
+  }
   const sizes = sizeList(product);
   const pitch = `Buy the ${seoName(product)} from ${SITE_NAME}, online in India from ${formatINR(product.price)}${
     sizes ? ` in ${sizes} sizes` : ""
@@ -49,8 +62,8 @@ export function productDetails(product: Product, categoryNames: string[], finish
   if (isPosterPack(product)) {
     const count = product.packItems.length;
     return {
-      heading: `About the ${product.name}`,
-      intro: `The ${product.name} is a set of ${count} matching mini posters, printed on ${POSTER_PAPER} for your order. Its posters are ${packSizeSummary(packPosterSizes(product))}, and ${POSTER_ADHESIVE} come in the box so you can put them up side by side, like the picture, for an instant wall collage.`,
+      heading: `About the ${name}`,
+      intro: `The ${name} is a set of ${count} matching mini posters, printed on ${POSTER_PAPER} for your order. Its posters are ${packSizeSummary(packPosterSizes(product))}, and ${POSTER_ADHESIVE} come in the box so you can put them up side by side, like the picture, for an instant wall collage.`,
       facts: [
         ["In the set", `${count} mini posters`],
         ["Material", POSTER_PAPER],
@@ -128,8 +141,11 @@ export type Faq = { q: string; a: string };
 
 /** Live numbers the answers quote (see lib/shop-facts.ts); null = not offered. */
 export type ShopFacts = {
+  /** Everything sold on its own: stickers and mini posters, not wall sets. */
   designs: number;
   posters: number;
+  wallSets: number;
+  wallSetFrom: number | null;
   stickerFrom: number | null;
   posterFrom: number | null;
   custom: { inches: number; price: number }[];
@@ -138,6 +154,12 @@ export type ShopFacts = {
   /** AI avatar sticker packs: minimum packs, price per pack, the style names and one picture per style. */
   avatar: { packs: number; price: number; extra: number; styles: string[]; pictures: { style: string; url: string }[] } | null;
 };
+
+/** The cheapest price across these products, at any size. */
+export function lowestPrice(products: Product[]): number | null {
+  const prices = products.flatMap((p) => (p.sizes.length ? p.sizes.map((s) => s.price) : [p.price]));
+  return prices.length ? Math.min(...prices) : null;
+}
 
 const fromPrice = (sizes: { price: number }[]) => (sizes.length ? Math.min(...sizes.map((s) => s.price)) : null);
 const sizePrices = (sizes: { inches: number; price: number }[]) =>
@@ -161,10 +183,11 @@ export function storeFaq(facts: ShopFacts): Faq[] {
   return [
     {
       q: "What is StickyPie?",
-      a: `${SITE_NAME} (stickypie.in) is an online sticker shop in India. It sells ${facts.designs} die-cut vinyl sticker designs for cars, bikes, laptops and helmets${
+      a: `${SITE_NAME} (stickypie.in) is an online sticker and wall poster shop in India. It sells ${facts.designs} designs: die-cut vinyl stickers for cars, bikes, laptops and helmets${
         facts.posters ? ", mini posters" : ""
-      }${facts.avatar ? ", AI avatar stickers made from your photo" : ""} and custom stickers, printed to order and shipped across India.`,
+      }${facts.wallSets ? `, ${facts.wallSets} ready wall poster sets` : ""}${facts.avatar ? ", AI avatar stickers made from your photo" : ""} and custom stickers, printed to order and shipped across India.`,
     },
+    ...wallPosterFaq(facts).slice(0, 2),
     ...(facts.posters
       ? [
           {
@@ -232,6 +255,66 @@ export function storeFaq(facts: ShopFacts): Faq[] {
       a: "Stickers are printed to order, so an order can't be cancelled once the payment is confirmed. If an item arrives damaged or wrong, it's replaced free of charge, shipping included.",
     },
   ];
+}
+
+/**
+ * Wall poster questions, for /wall-posters (all of them), the home page (the
+ * first two) and /llms.txt. Empty while nothing is on sale.
+ */
+export function wallPosterFaq(facts: ShopFacts): Faq[] {
+  const { posters, wallSets, posterFrom, wallSetFrom } = facts;
+  if (!posters && !wallSets) return [];
+  const range = [
+    wallSets && `${wallSets} ready wall poster sets${wallSetFrom !== null ? ` from ${formatINR(wallSetFrom)}` : ""}`,
+    posters && `${posters} single mini posters${posterFrom !== null ? ` from ${formatINR(posterFrom)}` : ""}`,
+  ].filter(Boolean);
+  return [
+    {
+      q: "Where can I buy wall posters online in India?",
+      a: `${SITE_NAME} (stickypie.in) sells ${range.join(" and ")}: cars, bikes, Tamil cinema, cricket, motivational, devotional, travel and retro designs. They're printed to order on ${POSTER_PAPER} and shipped across India. See them all at stickypie.in/wall-posters.`,
+    },
+    {
+      q: "How much do wall posters cost?",
+      a: `${[
+        posterFrom !== null && `Single mini posters start at ${formatINR(posterFrom)}`,
+        wallSetFrom !== null && `wall poster sets start at ${formatINR(wallSetFrom)} for the whole set`,
+      ].filter(Boolean).join(", and ")}. Every poster page lists its price, and shipping is worked out at checkout from your pin code.`,
+    },
+    {
+      q: "What sizes do your wall posters come in?",
+      a: "4 × 6 in and 6 × 9 in. Wall sets can mix the two, and each set's page shows how much wall it covers.",
+    },
+    {
+      q: "What comes in a wall poster set?",
+      a: `Every poster in the set, printed on ${POSTER_PAPER}, plus ${POSTER_ADHESIVE} to put them up. One set is one price, however many posters it has.`,
+    },
+    {
+      q: "How do I put up the posters?",
+      a: POSTER_TIPS,
+    },
+    {
+      q: "Can I change the posters in a wall set?",
+      a: "Yes. On any wall set's page, tap × on a poster and pick another one in its place. The set keeps its layout, sizes and price.",
+    },
+    {
+      q: "Are the wall posters paper or vinyl?",
+      a: `Wall poster sets are always on ${POSTER_PAPER}. A single mini poster can be either: choose a wall poster on paper, or a vinyl sticker you peel and stick.`,
+    },
+  ];
+}
+
+/** The price question for a poster subject page, from what's on it now. */
+export function posterTopicFaq(label: string, products: Product[]): Faq | null {
+  const single = lowestPrice(products.filter((p) => !isPosterPack(p)));
+  const set = lowestPrice(products.filter(isPosterPack));
+  if (single === null && set === null) return null;
+  return {
+    q: `How much do ${label} cost?`,
+    a: `${[
+      single !== null && `Single mini posters start at ${formatINR(single)}`,
+      set !== null && `wall poster sets start at ${formatINR(set)} for the whole set`,
+    ].filter(Boolean).join(", and ")}. Shipping is worked out at checkout from your pin code.`,
+  };
 }
 
 /**
@@ -426,7 +509,14 @@ export function productStructuredData(
       ? { category: `${isPoster(product) ? "Posters" : "Stickers"} > ${mainCategory.name}` }
       : { category: isPoster(product) ? "Posters" : "Stickers" }),
     ...(product.tags.length ? { keywords: product.tags.filter((t) => !isInternalTag(t)).join(", ") } : {}),
-    ...(sizes[0].inches
+    ...(isPosterPack(product)
+      ? {
+          additionalProperty: [
+            { "@type": "PropertyValue", name: "Posters in the set", value: product.packItems.length },
+            { "@type": "PropertyValue", name: "Poster sizes", value: packSizeSummary(packPosterSizes(product)) },
+          ],
+        }
+      : sizes[0].inches
       ? {
           additionalProperty: {
             "@type": "PropertyValue",
@@ -443,7 +533,9 @@ export function productStructuredData(
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Stickers", item: absoluteUrl("/stickers") },
+      isPoster(product)
+        ? { "@type": "ListItem", position: 1, name: "Wall Posters", item: absoluteUrl("/wall-posters") }
+        : { "@type": "ListItem", position: 1, name: "Stickers", item: absoluteUrl("/stickers") },
       ...(mainCategory
         ? [{ "@type": "ListItem", position: 2, name: mainCategory.name, item: absoluteUrl(categoryPath(mainCategory.slug)) }]
         : []),
@@ -498,11 +590,11 @@ export function storeStructuredData(supportEmail: string) {
     image: absoluteUrl("/icons/icon-512.png"),
     slogan: "Stick your style",
     description:
-      "StickyPie (stickypie.in) is an online sticker shop in India: die-cut vinyl stickers and decals for cars, bikes, laptops and helmets, mini posters, AI avatar stickers of you and custom stickers.",
+      "StickyPie (stickypie.in) is an online sticker and wall poster shop in India: die-cut vinyl stickers and decals for cars, bikes, laptops and helmets, 300 GSM wall posters and wall poster sets, AI avatar stickers of you and custom stickers.",
     disambiguatingDescription:
-      "StickyPie is the Indian online sticker shop at stickypie.in — not the StickyPie gaze-based marking menu from AR/VR research.",
+      "StickyPie is the Indian online sticker and wall poster shop at stickypie.in — not the StickyPie gaze-based marking menu from AR/VR research.",
     brand: { "@type": "Brand", name: SITE_NAME, url: siteUrl(), logo: absoluteUrl("/icons/icon-512.png") },
-    knowsAbout: ["vinyl stickers", "car stickers", "bike stickers", "laptop stickers", "custom stickers", "AI avatar stickers"],
+    knowsAbout: ["wall posters", "wall poster sets", "mini posters", "car posters", "vinyl stickers", "car stickers", "bike stickers", "laptop stickers", "custom stickers", "AI avatar stickers"],
     areaServed: { "@type": "Country", name: "India" },
     contactPoint: { "@type": "ContactPoint", contactType: "customer support", email: supportEmail, areaServed: "IN" },
     hasMerchantReturnPolicy: RETURN_POLICY,

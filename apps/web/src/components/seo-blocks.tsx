@@ -2,7 +2,9 @@
 // shoppers and search engines (details, how-to, FAQ). No client JS.
 import FaqItem from "@/components/faq-item";
 import Link from "@/components/page-link";
-import type { Faq } from "@/lib/seo";
+import { seoName, type Faq } from "@/lib/seo";
+import { POSTER_SURFACES } from "@/lib/surfaces";
+import type { Product } from "@stickypie/shared";
 
 export function ProductAbout({
   heading,
@@ -62,6 +64,52 @@ export function CategoryAbout({
   );
 }
 
+/**
+ * Links to the wall poster subject pages, in the page's own HTML. On a phone
+ * they stay on one line and slide sideways.
+ */
+export function PosterTopics({ current, className = "" }: { current?: string; className?: string }) {
+  return (
+    <nav aria-label="Wall posters by subject" className={`no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 ${className}`}>
+      {POSTER_SURFACES.map((s) => (
+        <Link
+          key={s.slug}
+          href={`/${s.slug}`}
+          aria-current={s.slug === current ? "page" : undefined}
+          className={`shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-semibold ${
+            s.slug === current ? "border-brand bg-brand/[0.07] text-brand" : "border-line bg-white text-fog hover:text-snow"
+          }`}
+        >
+          {s.name}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+/**
+ * Every item as a plain link, closed until tapped. Shop grids are drawn in the
+ * browser, and AI crawlers don't run scripts, so this is how they (and Google)
+ * reach each product from the page.
+ */
+export function ProductLinks({ heading, products }: { heading: string; products: Product[] }) {
+  if (!products.length) return null;
+  return (
+    <details className="mt-10 max-w-5xl rounded-2xl border border-line bg-ink2/80 px-4 py-3">
+      <summary className="cursor-pointer font-display text-lg font-bold">{heading}</summary>
+      <ul className="mt-3 columns-1 gap-6 text-sm sm:columns-2 lg:columns-3">
+        {products.map((p) => (
+          <li key={p.id} className="break-inside-avoid py-1">
+            <Link href={`/sticker/${p.slug}`} className="text-fog hover:text-snow">
+              {seoName(p)}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
 /** Home page: an H1 + short shop intro, then common questions. */
 export function StoreAbout({ faq }: { faq: Faq[] }) {
   return (
@@ -117,6 +165,18 @@ export function StoreAbout({ faq }: { faq: Faq[] }) {
         </Link>{" "}
         in anime, chibi, 90s retro and more trending styles.
       </p>
+      <p className="mt-3 max-w-3xl text-[15px] leading-relaxed text-fog">
+        Doing up a room? Our{" "}
+        <Link
+          href="/wall-posters"
+          className="text-snow underline-offset-2 hover:underline"
+        >
+          wall posters
+        </Link>{" "}
+        are printed on 300 GSM poster paper, one at a time or as ready sets that
+        cover a whole wall, with glue dots or double-sided tape included.
+      </p>
+      <PosterTopics className="mt-4" />
 
       <h2 className="mt-10 font-display text-xl font-bold">
         Questions, answered

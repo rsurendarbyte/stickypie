@@ -3,12 +3,15 @@ import FaqItem from "@/components/faq-item";
 import { notFound } from "next/navigation";
 import JsonLd from "@/components/json-ld";
 import PageLink from "@/components/page-link";
+import { PosterTopics, ProductLinks } from "@/components/seo-blocks";
 import SurfaceGrid from "@/components/surface-grid";
 import { productSnapshot } from "@/lib/catalog-snapshot";
 import { getDriver } from "@/lib/data";
-import { itemListStructuredData, seoName } from "@/lib/seo";
+import { formatINR } from "@stickypie/shared";
+import { itemListStructuredData, lowestPrice, posterTopicFaq, seoName, wallPosterFaq } from "@/lib/seo";
+import { loadShopFacts } from "@/lib/shop-facts";
 import { absoluteUrl, pageMetadata } from "@/lib/site";
-import { SURFACES, allLandings, stickersForSurface, type Surface } from "@/lib/surfaces";
+import { SURFACES, allLandings, posterLabel, stickersForSurface, type Surface } from "@/lib/surfaces";
 
 // "Where it goes" landing pages: /car-stickers, /bike-stickers, /laptop-stickers,
 // /helmet-stickers, /bottle-stickers, plus a page per festival from the admin
@@ -63,18 +66,31 @@ export default async function SurfacePage({
   // where-it-goes pages fall back on everything, since vinyl fits them all.
   const listed = surface.when && matched.length ? matched : [...matched, ...others];
   const popular = listed.slice(0, 12);
+  const posters = surface.posters;
+  const hub = surface.slug === "wall-posters";
+  const from = lowestPrice(matched);
+  // Poster prices move with the catalog, so those answers are built here.
+  const priceFaq = posters && !hub ? posterTopicFaq(posterLabel(surface), matched) : null;
+  const faq = [...surface.faq, ...(hub ? wallPosterFaq(await loadShopFacts()) : priceFaq ? [priceFaq] : [])];
 
   const structuredData = [
     {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       itemListElement: [
-        {
-          "@type": "ListItem",
-          position: 1,
-          name: "Stickers",
-          item: absoluteUrl("/stickers"),
-        },
+        posters
+          ? {
+              "@type": "ListItem",
+              position: 1,
+              name: hub ? "Home" : "Wall Posters",
+              item: absoluteUrl(hub ? "/" : "/wall-posters"),
+            }
+          : {
+              "@type": "ListItem",
+              position: 1,
+              name: "Stickers",
+              item: absoluteUrl("/stickers"),
+            },
         {
           "@type": "ListItem",
           position: 2,
@@ -85,12 +101,12 @@ export default async function SurfacePage({
     },
     itemListStructuredData(listed),
     // a festival may not have questions yet
-    ...(surface.faq.length
+    ...(faq.length
       ? [
           {
             "@context": "https://schema.org",
             "@type": "FAQPage",
-            mainEntity: surface.faq.map(({ q, a }) => ({
+            mainEntity: faq.map(({ q, a }) => ({
               "@type": "Question",
               name: q,
               acceptedAnswer: { "@type": "Answer", text: a },
@@ -104,8 +120,8 @@ export default async function SurfacePage({
     <div className="min-h-screen w-full px-4 pt-24 pb-24 sm:px-8 lg:px-12 2xl:px-20">
       <JsonLd data={structuredData} />
       <nav className="text-xs text-fog">
-        <PageLink href="/stickers" className="hover:text-snow">
-          Stickers
+        <PageLink href={posters ? (hub ? "/" : "/wall-posters") : "/stickers"} className="hover:text-snow">
+          {posters ? (hub ? "Home" : "Wall posters") : "Stickers"}
         </PageLink>
         <span className="mx-1.5">/</span>
         <span>{surface.name}</span>
@@ -119,6 +135,12 @@ export default async function SurfacePage({
       <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-fog">
         {surface.intro}
       </p>
+      {posters && matched.length > 0 && (
+        <p className="mt-1 text-sm font-semibold text-snow">
+          {matched.length} designs{from !== null ? ` from ${formatINR(from)}` : ""}
+        </p>
+      )}
+      {posters && <PosterTopics current={surface.slug} className="mt-4" />}
 
       <SurfaceGrid
         surface={surface}
@@ -138,7 +160,9 @@ export default async function SurfacePage({
       </section>
       )}
 
-      {popular.length > 0 && (
+      {posters && <ProductLinks heading={`All ${posterLabel(surface)}`} products={matched} />}
+
+      {!posters && popular.length > 0 && (
         <section className="mt-12 max-w-5xl">
           <h2 className="font-display text-xl font-bold">
             Popular {surface.name.toLowerCase()}
@@ -158,19 +182,20 @@ export default async function SurfacePage({
         </section>
       )}
 
-      {surface.faq.length > 0 && (
+      {faq.length > 0 && (
         <section className="mt-12 max-w-3xl">
           <h2 className="font-display text-xl font-bold">
             {surface.name}: questions, answered
           </h2>
           <div className="mt-4 divide-y divide-line rounded-2xl border border-line bg-ink2/80">
-            {surface.faq.map(({ q, a }) => (
+            {faq.map(({ q, a }) => (
               <FaqItem key={q} q={q} a={a} />
             ))}
           </div>
         </section>
       )}
 
+      {!posters && (
       <section className="mt-12">
         <h2 className="text-sm font-semibold tracking-wide text-fog uppercase">
           Stickers for everything else
@@ -196,6 +221,7 @@ export default async function SurfacePage({
           </li>
         </ul>
       </section>
+      )}
     </div>
   );
 }
