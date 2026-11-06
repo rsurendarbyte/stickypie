@@ -359,6 +359,17 @@ select option {
   animation-timing-function: cubic-bezier(0.37, 0, 0.25, 1);
   filter: drop-shadow(-1px -1px 2px rgba(16, 24, 40, 0.18));
 }
+/* The SP mark sits over its hole in the wide header logo (logo-wide-base). */
+.peel-logo {
+  position: absolute;
+  left: 6.81%;
+  top: 20.51%;
+  width: 25.84%;
+  height: 75.95%;
+}
+.peel-logo .peel-face {
+  border-radius: 23%;
+}
 @keyframes peel-face-gentle {
   0%,
   55% {
