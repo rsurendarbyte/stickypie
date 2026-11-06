@@ -6,7 +6,7 @@ import type { Product } from "@stickypie/shared";
 import { POSTER_ADHESIVE, POSTER_PAPER, belowMinimum, discountPercent, formatINR, inCategory, packPosterSizes, packSizeSummary } from "@stickypie/shared";
 import { useCatalogChecked, useLiveCatalog, useStoreSettings } from "@/lib/live-catalog";
 import { rememberPackPosters, rememberPosters } from "@/lib/poster-images";
-import { pickPoster, useWallLine } from "@/lib/wall-picks";
+import { pickPoster, swapPosters, useWallLine } from "@/lib/wall-picks";
 import { cardSkinFor } from "@/lib/palette";
 import { isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel } from "@/lib/poster";
 import { useSkinSeed } from "@/lib/skin-seed";
@@ -359,7 +359,7 @@ function ReelItem({
             )}
             {checked && wallView === "wall" && <WallTip />}
             <div className={`size-full ${wallView !== "wall" ? "invisible" : ""}`}>
-            {!checked ? <span className="block size-full animate-pulse rounded-2xl bg-panel" /> : <WallStage bare product={product} posters={picks} onRemove={(i) => pickPoster(product, i, "")} onAdd={setSpot} src={product.imageUrl} alt={product.name} className={out ? "opacity-50 saturate-50" : ""} />}
+            {!checked ? <span className="block size-full animate-pulse rounded-2xl bg-panel" /> : <WallStage bare product={product} posters={picks} onRemove={(i) => pickPoster(product, i, "")} onAdd={setSpot} onSwap={(a, b) => swapPosters(product, a, b)} src={product.imageUrl} alt={product.name} className={out ? "opacity-50 saturate-50" : ""} />}
             </div>
             </div>
             {/* below the wall, so nothing sits on a poster or its close button */}

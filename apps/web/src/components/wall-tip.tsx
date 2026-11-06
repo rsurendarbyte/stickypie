@@ -62,7 +62,7 @@ export default function WallTip() {
           </span>
           <span className="wall-tip-text">
             <span className="block font-display text-[15px] leading-tight font-bold">Customize your own wall</span>
-            <span className="block text-xs leading-snug opacity-75">Tap the ✕ on a poster to change it</span>
+            <span className="block text-xs leading-snug opacity-75">Tap ✕ to change a poster, drag it to move it</span>
           </span>
         </div>
         </div>
