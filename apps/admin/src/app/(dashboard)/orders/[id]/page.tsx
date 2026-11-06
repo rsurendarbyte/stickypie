@@ -6,6 +6,7 @@ import AvatarOrderPrompts from "@/components/avatar-order-prompts";
 import { avatarPoseSets } from "@/lib/avatar-prompts";
 import FinishedStickers from "@/components/finished-stickers";
 import OrderActions from "@/components/order-actions";
+import OwnPostersDelete from "@/components/own-posters-delete";
 import ShiprocketPanel from "@/components/shiprocket-panel";
 import PrintJobPanel from "@/components/print-job-panel";
 import { shiprocketConfig } from "@/lib/shiprocket";
@@ -28,6 +29,7 @@ export default async function OrderDetailPage({
   const { id } = await params;
   const driver = await getAdminDriver();
   const order = await driver.getOrder(id);
+  const ownPosterDays = (await driver.getSettings()).ownPosterDays;
   if (!order) notFound();
   // Avatar lines: each style's pose sets for the AI prompts (only when there are any).
   const avatarStyles = order.items.some((i) => i.customSpec?.kind === "avatar")
@@ -94,7 +96,7 @@ export default async function OrderDetailPage({
           <h2 className="font-display text-lg font-semibold">Items</h2>
           {order.items.some(isPosterItem) && (
             <p className="mt-2 rounded-lg bg-gold/15 px-3 py-2 text-xs font-semibold text-gold">
-              Has posters: print on 300 GSM paper and pack glue dots or double-sided tape.
+              Has posters: print on 270 GSM photo paper and pack glue dots or double-sided tape.
             </p>
           )}
           <ul className="mt-4 space-y-3">
@@ -195,19 +197,23 @@ export default async function OrderDetailPage({
                         {item.packPosters.map((poster, n) => (
                           <li key={n}>
                             <a
-                              href={imageSrc(poster.imageUrl)}
+                              href={poster.imageUrl ? imageSrc(poster.imageUrl) : undefined}
                               target="_blank"
                               rel="noreferrer"
                               title={poster.name}
                               className="flex items-center gap-1.5 rounded-full border border-line py-0.5 pr-2 pl-0.5 hover:border-snow"
                             >
-                              <img src={imageSrc(poster.imageUrl)} alt="" className="h-6 w-4 rounded-sm object-cover" />
+                              {poster.imageUrl && <img src={imageSrc(poster.imageUrl)} alt="" className="h-6 w-4 rounded-sm object-cover" />}
                               <span className="text-fog">#{n + 1}</span> {poster.name.replace(/ — Mini Poster$| Mini Poster$/, "")}
                               <span className="font-semibold text-gold">{posterSizeLabel(poster.inches)}</span>
+                              {poster.own && <span className="font-semibold text-brand">{poster.imageUrl ? "Customer's own" : "Customer's own, deleted after delivery"}</span>}
                             </a>
                           </li>
                         ))}
                       </ol>
+                      {item.packPosters.some((poster) => poster.own && poster.imageUrl) && (
+                        <OwnPostersDelete orderId={order.id} delivered={order.status === "delivered"} deliveredAt={order.deliveredAt} days={ownPosterDays} />
+                      )}
                     </div>
                   )}
                   {item.sizeLabel && (

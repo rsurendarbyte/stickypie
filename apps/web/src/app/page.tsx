@@ -6,6 +6,7 @@ import { SUPPORT_EMAIL } from "@stickypie/shared";
 import { faqStructuredData, storeFaq, storeStructuredData } from "@/lib/seo";
 import { loadShopFacts } from "@/lib/shop-facts";
 import { productSnapshot } from "@/lib/catalog-snapshot";
+import { fanSnapshot } from "@/lib/hero-fan";
 import { getDriver } from "@/lib/data";
 import { siteUrl } from "@/lib/mode";
 import {
@@ -64,6 +65,7 @@ export default async function HomePage() {
           initial={{ categories, products: productSnapshot(products) }}
           initialRails={rails}
           initialFestivals={festivals}
+          fanPosters={fanSnapshot(products, categories)}
           // festival pages that exist in this deploy (a newer one links to search until the next deploy)
           festivalPages={festivals.filter((f) => f.visible).map((f) => f.slug)}
         />

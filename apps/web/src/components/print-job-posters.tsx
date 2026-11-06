@@ -228,7 +228,7 @@ export default function PosterSheets({ token, code, items }: { token: string; co
     <section className="mt-5 rounded-2xl border border-line bg-ink2 p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-display text-lg font-semibold">Poster sheets · 300 GSM poster paper</h2>
+          <h2 className="font-display text-lg font-semibold">Poster sheets · 270 GSM glossy photo paper</h2>
           <p className="text-xs text-fog">
             {layout
               ? `${ordered} poster${ordered === 1 ? "" : "s"}${extras > 0 ? ` + ${extras} stock extra${extras === 1 ? "" : "s"}` : ""} on ${layout.sheets.length} sheet${layout.sheets.length === 1 ? "" : "s"}. `

@@ -141,7 +141,7 @@ export default function OrderReviews({
                       key={item.id}
                       className="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] size-11 place-items-center rounded-lg bg-panel p-1 ring-2 ring-ink"
                     >
-                      {item.imageUrl && <img src={item.imageUrl} alt="" className="size-full object-contain" />}
+                      {item.imageUrl && <img loading="lazy" decoding="async" src={item.imageUrl} alt="" className="size-full object-contain" />}
                     </span>
                   ))}
                 </div>
@@ -194,7 +194,7 @@ export default function OrderReviews({
                       <Stars value={r.rating} />
                       {r.body && <p className="mt-1 text-sm text-fog">{r.body}</p>}
                       {r.photoUrl && (
-                        <img src={r.photoUrl} alt="Your photo" className="mt-2 h-20 rounded-lg border border-line object-cover" />
+                        <img loading="lazy" decoding="async" src={r.photoUrl} alt="Your photo" className="mt-2 h-20 rounded-lg border border-line object-cover" />
                       )}
                     </div>
                   </li>
@@ -213,7 +213,7 @@ function StickerHeading({ item, status }: { item: OrderItem; status?: ReviewStat
   return (
     <div className="flex items-center gap-3">
       <span className="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] size-12 shrink-0 place-items-center rounded-lg bg-panel p-1">
-        {item.imageUrl && <img src={item.imageUrl} alt="" className="size-full object-contain" />}
+        {item.imageUrl && <img loading="lazy" decoding="async" src={item.imageUrl} alt="" className="size-full object-contain" />}
       </span>
       <p className="min-w-0 flex-1 truncate text-sm font-semibold">{item.name}</p>
       {s && (
@@ -306,7 +306,7 @@ function ReviewForm({
       <div className="flex flex-wrap items-center gap-3">
         {photo ? (
           <span className="relative inline-block">
-            <img src={photo.preview} alt="Your photo" className="h-20 rounded-lg border border-line object-cover" />
+            <img loading="lazy" decoding="async" src={photo.preview} alt="Your photo" className="h-20 rounded-lg border border-line object-cover" />
             <button
               type="button"
               aria-label="Remove photo"

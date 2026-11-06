@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { categoryPath, resolveHomeRails, type Category, type Product } from "@stickypie/shared";
-import { isPosterPack } from "@/lib/poster";
+import { SINGLE_POSTERS, isPosterPack } from "@/lib/poster";
 import { useHomePage, useHomeRails } from "@/lib/live-catalog";
 import { rememberChoice, savedChoice, useRailScrollMemory } from "@/lib/scroll-memory";
 import { wallEffect } from "@/lib/wall-effects";
@@ -174,6 +174,17 @@ export default function WallFeed({
   );
 }
 
+/** Single posters between the walls of the Walls page; the rest are one chip or tap away. */
+export function SinglePostersRail({ posters }: { posters: Product[] }) {
+  return (
+    <LazyRail eager title="Single posters" href={`${categoryPath("poster-packs")}?theme=${SINGLE_POSTERS}`}>
+      {posters.slice(0, 24).map((product) => (
+        <ProductCard key={product.id} product={product} />
+      ))}
+    </LazyRail>
+  );
+}
+
 /** Phones, Walls page: the same feed under the page's own title and chips. */
 export function WallsPageFeed({
   walls,
@@ -181,6 +192,7 @@ export function WallsPageFeed({
   categories,
   seed,
   plain,
+  first,
 }: {
   walls: Product[];
   products: Product[];
@@ -188,6 +200,8 @@ export function WallsPageFeed({
   seed: number;
   /** Search results: only the walls. */
   plain: boolean;
+  /** Comes before the other blocks. */
+  first?: React.ReactNode;
 }) {
   const home = useHomePage();
   const { rails } = useHomeRails([]);
@@ -204,8 +218,9 @@ export function WallsPageFeed({
           </LazyRail>
         ))
       : [];
-    return feedBreaks(rows, on("custom") ? <CustomRail /> : null);
-  }, [plain, home.sections, rails, products, categories, seed]);
+    const blocks = feedBreaks(rows, on("custom") ? <CustomRail /> : null);
+    return first ? [first, ...blocks] : blocks;
+  }, [plain, first, home.sections, rails, products, categories, seed]);
   return (
     <div className="mt-3 -mx-4">
       <WallPosts walls={walls} breaks={breaks} seed={seed} leftovers={false} />

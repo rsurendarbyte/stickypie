@@ -32,7 +32,7 @@ export default async function PrintSheetsPage() {
     order.items.flatMap((item) => {
       const posters =
         item.packPosters ??
-        (/300 GSM/.test(item.sizeLabel ?? "") && item.imageUrl && item.sizeInches
+        (/\b(270|300) GSM/.test(item.sizeLabel ?? "") && item.imageUrl && item.sizeInches
           ? [{ name: item.name, imageUrl: item.imageUrl, inches: item.sizeInches }]
           : null);
       if (!posters?.length) return [];

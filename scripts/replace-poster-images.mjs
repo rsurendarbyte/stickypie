@@ -24,6 +24,7 @@ const RESULTS = path.join(root, "prod_stickers/2x3-ai");
 const LOG = path.join(RESULTS, "replaced-log.json");
 const CORNER = 0.0327; // corner radius as a share of width, measured on the existing masters
 const RENDITIONS = [
+  { column: "tiny_url", maxPx: 240, quality: 72, prefix: "tiny" },
   { column: "thumb_url", maxPx: 480, quality: 80, prefix: "thumbs" },
   { column: "display_url", maxPx: 1024, quality: 82, prefix: "display" },
 ];
@@ -85,7 +86,7 @@ for (const slug of slugs) {
     const name = fs.readdirSync(RESULTS).find((f) => f.replace(/\.(png|jpg|jpeg|webp)$/, "") === slug);
     if (!name) throw new Error("no new image in prod_stickers/2x3-ai");
     const [product] = await (
-      await fetch(`${url}/rest/v1/products?slug=eq.${slug}&select=id,name,image_url,thumb_url,display_url,aspect_ratio`, { headers })
+      await fetch(`${url}/rest/v1/products?slug=eq.${slug}&select=id,name,image_url,tiny_url,thumb_url,display_url,aspect_ratio`, { headers })
     ).json();
     if (!product) throw new Error("no product with that slug");
 

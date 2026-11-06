@@ -1,4 +1,4 @@
-import type { Product } from "@stickypie/shared";
+import type { OrderItem, Product } from "@stickypie/shared";
 import { packPosterSizes } from "@stickypie/shared";
 
 /** Mini posters are tagged "mini poster" (and their slugs end in -mini-poster). */
@@ -10,6 +10,14 @@ export function isMiniPoster(product: Product) {
 export function isPosterPack(product: Product) {
   return (product.packItems?.length ?? 0) > 0;
 }
+
+/** A mini poster sold on its own, not a set of them. */
+export function isSinglePoster(product: Product) {
+  return isMiniPoster(product) && !isPosterPack(product);
+}
+
+/** The Walls page's "theme" for single posters: ?theme=single. */
+export const SINGLE_POSTERS = "single";
 
 /** A wall setup: a poster pack shown on a painted wall (square picture). */
 export function isWallSetup(product: Product) {
@@ -35,6 +43,18 @@ export function wallSpots(product: Product): { x: number; y: number; w: number; 
   });
   // Damaged data counts as no spots, so the wall falls back to its picture.
   return parsed.every((s) => [s.x, s.y, s.w, s.h].every(Number.isFinite)) ? parsed : [];
+}
+
+/**
+ * A wall with the shopper's picks: it is saved with just its first poster as the
+ * line's picture, so this gives the wall they bought, each poster in its place.
+ * Null for anything else (which keeps its own picture).
+ */
+export function orderWallPosters(item: OrderItem, set: Product | undefined) {
+  const posters = item.packPosters ?? [];
+  const spots = set ? wallSpots(set) : [];
+  if (posters.length !== spots.length || !posters.some((p) => p.imageUrl === item.imageUrl)) return null;
+  return posters.flatMap((p, i) => (p.imageUrl ? [{ src: p.imageUrl, ...spots[i] }] : []));
 }
 
 /** How many of each size in a set, biggest first: "2 pcs 6×9 + 4 pcs 4×6 in". */

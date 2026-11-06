@@ -25,6 +25,7 @@ const PACKS = path.join(root, "prod_stickers/poster-packs/packs.json");
 const CATEGORY = { name: "Wall Poster Sets", slug: "poster-packs", sort: 1 };
 const CORNER = 0.0327; // corner radius as a share of width, like the poster masters
 const RENDITIONS = [
+  { column: "tiny_url", maxPx: 240, quality: 72, prefix: "tiny" },
   { column: "thumb_url", maxPx: 480, quality: 80, prefix: "thumbs" },
   { column: "display_url", maxPx: 1024, quality: 82, prefix: "display" },
 ];

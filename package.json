@@ -26,6 +26,7 @@
     "deploy:www": "cd infra/www-redirect && npx wrangler deploy",
     "deploy:print": "cd infra/print-desk && npx wrangler deploy",
     "reels": "node scripts/pack-reel/studio.mjs",
+    "product-reels": "node scripts/pack-reel/showcase.mjs",
     "db:link": "supabase link --project-ref liqxjqaudwtowvdkbvyi",
     "db:push": "node scripts/db-push.mjs",
     "db:push:prod": "node scripts/db-push.mjs --prod",

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { preconnect } from "react-dom";
 import { Fredoka, Inter } from "next/font/google";
 import "./globals.css";
 import { shopThemeCss } from "@stickypie/shared";
@@ -81,6 +82,9 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // The picture host and the live catalogue: connect early, a slow network's first cost.
+  if (process.env.NEXT_PUBLIC_IMAGE_HOST) preconnect(process.env.NEXT_PUBLIC_IMAGE_HOST);
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL) preconnect(process.env.NEXT_PUBLIC_SUPABASE_URL, { crossOrigin: "anonymous" });
   return (
     // data-lite (LITE_SCRIPT) and data-view (VIEW_SCRIPT) are set before React hydrates.
     <html lang="en" className={`${fredoka.variable} ${inter.variable}`} suppressHydrationWarning>

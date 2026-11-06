@@ -1,4 +1,5 @@
 // Makes the derived WebP images for every product that's missing one:
+//   tiny    (240px,  tiny/)     → products.tiny_url    (hero walls, search, order walls)
 //   thumb   (480px,  thumbs/)   → products.thumb_url   (cards)
 //   display (1024px, display/)  → products.display_url (hero, product page)
 //
@@ -18,6 +19,7 @@ const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 const sharp = require("sharp");
 
 const RENDITIONS = [
+  { column: "tiny_url", maxPx: 240, quality: 72, prefix: "tiny" },
   { column: "thumb_url", maxPx: 480, quality: 80, prefix: "thumbs" },
   { column: "display_url", maxPx: 1024, quality: 82, prefix: "display" },
 ];
@@ -58,7 +60,7 @@ async function artwork(imageUrl) {
 
 const products = await (
   await fetch(
-    `${url}/rest/v1/products?select=id,name,image_url,thumb_url,display_url&or=(thumb_url.is.null,display_url.is.null)`,
+    `${url}/rest/v1/products?select=id,name,image_url,tiny_url,thumb_url,display_url&or=(tiny_url.is.null,thumb_url.is.null,display_url.is.null)`,
     { headers }
   )
 ).json();
@@ -69,7 +71,9 @@ let done = 0;
 for (const p of products) {
   try {
     const missing = RENDITIONS.filter((r) => p[r.column] == null);
-    const source = await artwork(p.image_url);
+    // Only the tiny one missing: the 480px picture is plenty, and far quicker to fetch.
+    const tinyOnly = missing.length === 1 && missing[0].column === "tiny_url" && p.thumb_url;
+    const source = await artwork(tinyOnly ? p.thumb_url : p.image_url);
     const patch = {};
     const sizesLog = [];
     for (const { column, maxPx, quality, prefix } of missing) {

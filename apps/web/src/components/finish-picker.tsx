@@ -5,7 +5,7 @@ import type { PosterFinish } from "@stickypie/shared";
 import { setFinish, useFinish } from "@/lib/poster-finish";
 
 const OPTIONS: { id: PosterFinish; icon: typeof Frame; label: string; detail: string }[] = [
-  { id: "poster", icon: Frame, label: "Wall poster", detail: "300 GSM, glue dots included" },
+  { id: "poster", icon: Frame, label: "Wall poster", detail: "270 GSM, glue dots included" },
   { id: "sticker", icon: Sticker, label: "Sticker", detail: "Vinyl, peel & stick" },
 ];
 

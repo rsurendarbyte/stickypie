@@ -7,6 +7,7 @@ import {
   STATUS_LABELS,
   formatDateTime,
   formatINR,
+  isCustomProductId,
   needsArtwork,
   orderCode,
   sameToken,
@@ -19,10 +20,12 @@ import { MetaPurchase } from "@/components/meta-track";
 import CustomOrderUpload from "@/components/custom-order-upload";
 import OrderReviews from "@/components/order-reviews";
 import OrderTracking from "@/components/order-tracking";
+import OrderWallThumb from "@/components/order-wall-thumb";
 import OrderSignIn from "@/components/order-sign-in";
 import PaymentPending from "@/components/payment-pending";
 import { latestPaymentAttempt, reconcileOrderPayment } from "@/lib/payments";
 import { getDriver } from "@/lib/data";
+import { orderWallPosters } from "@/lib/poster";
 import { orderViewer } from "@/lib/shopper";
 import { PRIVATE_PAGE_ROBOTS, absoluteUrl } from "@/lib/site";
 
@@ -111,6 +114,12 @@ export default async function OrderPage({
       // Unknown → keep checking.
     }
   }
+
+  // Each line opens its product (a wall with the shopper's picks: its set's page).
+  // Custom stickers, and products no longer on sale, have no page to open.
+  const productIds = order.items.flatMap((i) => (i.productId && !isCustomProductId(i.productId) ? [i.productId] : []));
+  const onSale = await driver.getProductsByIds([...new Set(productIds)]).catch(() => []);
+  const products = new Map(onSale.map((p) => [p.id, p]));
 
   // Paid custom order: the design (or avatar photo) upload is the main thing
   // on this page. (QR / name stickers are drawn by us from their saved details.)
@@ -291,21 +300,60 @@ export default async function OrderPage({
           </div>
           <ul className="mt-4 space-y-3">
             {order.items.map((item) => {
+              const product = products.get(item.productId ?? "");
+              const href = product?.isActive ? `/sticker/${product.slug}` : null;
+              const own = (item.packPosters ?? []).filter((p) => p.own);
+              const pictures = [...new Set(own.map((p) => p.imageUrl).filter(Boolean))];
+              const wall = orderWallPosters(item, product);
+              const thumb = wall ? (
+                <OrderWallThumb posters={wall} className="size-20 rounded-lg bg-panel ring-1 ring-line" />
+              ) : (
+                <span className="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] size-14 shrink-0 place-items-center rounded-lg bg-panel p-1 ring-1 ring-line">
+                  {(item.imageUrl || item.isCustom) && (
+                    <img loading="lazy" decoding="async"
+                      src={item.imageUrl || "/icons/custom-sticker.svg"}
+                      alt=""
+                      className="sticker-cut-sm size-full object-contain"
+                    />
+                  )}
+                </span>
+              );
+              const name = (
+                <>
+                  {item.name} <span className="text-fog">× {item.quantity}</span>
+                </>
+              );
               return (
                 <li key={item.id} className="flex items-center gap-3">
-                  <span className="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] size-12 shrink-0 place-items-center rounded-lg bg-panel p-1 ring-1 ring-line">
-                    {(item.imageUrl || item.isCustom) && (
-                      <img
-                        src={item.imageUrl || "/icons/custom-sticker.svg"}
-                        alt=""
-                        className="sticker-cut-sm size-full object-contain"
-                      />
-                    )}
-                  </span>
+                  {href ? <Link href={href} aria-label={`View ${item.name}`} className="shrink-0 rounded-lg transition-transform hover:scale-105">{thumb}</Link> : thumb}
                   <span className="min-w-0 flex-1 text-sm">
-                    <span className="block truncate">
-                      {item.name} <span className="text-fog">× {item.quantity}</span>
-                    </span>
+                    {href ? (
+                      <Link href={href} className="block truncate underline decoration-line underline-offset-2 hover:text-brand hover:decoration-brand">
+                        {name}
+                      </Link>
+                    ) : (
+                      <span className="block truncate">{name}</span>
+                    )}
+                    {own.length > 0 && (
+                      <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        {pictures.map((url, n) => (
+                          // the shopper's own picture, full size in a new tab
+                          <a
+                            key={url}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`See your picture ${n + 1}`}
+                            className="block w-11 shrink-0 overflow-hidden rounded ring-1 ring-line transition-transform hover:scale-105"
+                          >
+                            <img loading="lazy" decoding="async" src={url} alt="" className="block aspect-[2/3] w-full object-cover" />
+                          </a>
+                        ))}
+                        <span className="text-xs text-fog">
+                          {pictures.length ? (pictures.length > 1 ? "Your pictures" : "Your picture") : "Your picture was removed after delivery"}
+                        </span>
+                      </span>
+                    )}
                     {item.customSpec?.kind === "avatar" ? (
                       <>
                         <span className="block text-xs text-fog">{item.sizeLabel}</span>

@@ -8,7 +8,7 @@ import { imageSrc } from "./img";
 import { r2Client, r2Config } from "./r2";
 import { arrangeWall } from "./wall-layout";
 import { wallName } from "./wall-names";
-import { makeDisplay, makeThumb } from "./thumbs";
+import { makeDisplay, makeThumb, makeTiny } from "./thumbs";
 
 const NOT_FOR_WALLS = /festival|diwali/i;
 const HAND_PICK_ONLY = /tvk/i;
@@ -84,7 +84,7 @@ async function repaint(wall: Product, changes: { index: number; poster: Product 
   const imageUrl = `${r2.publicUrl}/${key}`;
   // One retry: R2 uploads drop now and then, and a wall with no thumb loads its full picture on every card.
   const thumbUrl = (await makeThumb(imageUrl)) ?? (await makeThumb(imageUrl));
-  return { imageUrl, thumbUrl, displayUrl: await makeDisplay(imageUrl), ...tags };
+  return { imageUrl, thumbUrl, tinyUrl: await makeTiny(imageUrl), displayUrl: await makeDisplay(imageUrl), ...tags };
 }
 
 /**

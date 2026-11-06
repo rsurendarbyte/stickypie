@@ -167,7 +167,7 @@ function SpotlightBody({ onClose }: { onClose: () => void }) {
       >
         <span className="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] size-11 shrink-0 place-items-center rounded-xl bg-ink p-1 shadow-[inset_0_0_0_1px_rgba(16,24,40,0.06)]">
           <img
-            src={p.thumbUrl ?? p.imageUrl}
+            src={p.tinyUrl ?? p.thumbUrl ?? p.imageUrl}
             alt=""
             loading="lazy"
             className="size-full object-contain"

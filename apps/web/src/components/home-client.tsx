@@ -3,6 +3,7 @@
 import Link from "@/components/page-link";
 import { Children, Fragment } from "react";
 import Hero from "./hero";
+import type { FanPoster } from "@/lib/hero-fan";
 import ProductCard from "./product-card";
 import ProductCardSkeleton from "./product-card-skeleton";
 import Row from "./row";
@@ -28,18 +29,19 @@ import { useFestivals, useHomePage, useHomeRails, useLiveCatalog, type Catalog }
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
 import { useDaySeed } from "@/lib/skin-seed";
 import { wallEffect } from "@/lib/wall-effects";
-import StickerLoader from "./sticker-loader";
 
 export default function HomeClient({
   initial,
   initialRails,
   initialFestivals,
   festivalPages,
+  fanPosters,
 }: {
   initial: Catalog;
   initialRails: HomeRail[];
   initialFestivals: Festival[];
   festivalPages: string[];
+  fanPosters: FanPoster[];
 }) {
   const catalog = useLiveCatalog(initial);
   const { rails, loaded: railsLoaded } = useHomeRails(initialRails);
@@ -76,16 +78,23 @@ export default function HomeClient({
     .map((f) => ({ f, items: festivalProducts(f, singles).slice(0, 24) }))
     .filter(({ items }) => items.length > 0);
 
+  // The hero never waits: it is on the first paint and stays mounted as the list arrives.
+  const heroBanner = (
+    <Hero
+      products={!hero ? [] : featured.length > 0 ? featured : [hero]}
+      packs={packs}
+      categories={categories}
+      moments={festivalRails.map(({ f, items }) => ({ label: `${f.name} · ${festivalShortDate(f)}`, products: items }))}
+      fanPosters={fanPosters}
+    />
+  );
+
   // Placeholders until the live (on-sale only) list arrives — never stale cards.
   if (!loaded) {
     return (
-      <div aria-busy="true" aria-label="Loading stickers">
-        <div className="w-full px-4 pt-24 sm:px-8 lg:px-12 2xl:px-20">
-          <div className="grid h-[48vh] min-h-[320px] place-items-center rounded-3xl bg-ink2">
-            <StickerLoader size={88} label="Peeling fresh stickers…" />
-          </div>
-        </div>
-        <div className="mt-8 space-y-1 pb-24 sm:space-y-8">
+      <>
+        {heroBanner}
+        <div aria-busy="true" aria-label="Loading stickers" className="mt-2 space-y-1 pb-24 sm:space-y-8">
           {["Top Picks This Week", "New Drops"].map((title) => (
             <Row key={title} title={title}>
               {Array.from({ length: 6 }, (_, i) => (
@@ -94,7 +103,7 @@ export default function HomeClient({
             </Row>
           ))}
         </div>
-      </div>
+      </>
     );
   }
 
@@ -200,12 +209,7 @@ export default function HomeClient({
 
   return (
     <>
-      <Hero
-        products={featured.length > 0 ? featured : [hero]}
-        packs={packs}
-        categories={categories}
-        moments={festivalRails.map(({ f, items }) => ({ label: `${f.name} · ${festivalShortDate(f)}`, products: items }))}
-      />
+      {heroBanner}
       <div className="relative z-10 mt-2 space-y-1 pb-24 sm:space-y-8">
         {order
           .filter((id) => !feedAt || order.indexOf(id) <= order.indexOf(feedAt))

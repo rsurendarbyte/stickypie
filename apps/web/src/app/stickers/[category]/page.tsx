@@ -7,6 +7,7 @@ import BrowseClient from "@/components/browse-client";
 import StickerLoader from "@/components/sticker-loader";
 import { productSnapshot } from "@/lib/catalog-snapshot";
 import { getDriver } from "@/lib/data";
+import { isSinglePoster } from "@/lib/poster";
 import { CategoryAbout, PosterTopics, ProductLinks } from "@/components/seo-blocks";
 import { categoryIntro, itemListStructuredData } from "@/lib/seo";
 import { absoluteUrl, pageMetadata } from "@/lib/site";
@@ -40,9 +41,9 @@ export async function generateMetadata({
   return pageMetadata({
     title: `${title} — Buy Online in India`,
     description: /mini poster/i.test(category.name)
-      ? `Shop ${title.toLowerCase()} at StickyPie: each as a 300 GSM wall poster or a vinyl sticker. Ships across India.`
+      ? `Shop ${title.toLowerCase()} at StickyPie: each as a 270 GSM wall poster or a vinyl sticker. Ships across India.`
       : /poster/i.test(category.name)
-      ? `Shop ${title.toLowerCase()} at StickyPie: wall posters on 300 GSM poster paper, glue dots or double-sided tape included. Ships across India.`
+      ? `Shop ${title.toLowerCase()} at StickyPie: wall posters on 270 GSM glossy photo paper, glue dots or double-sided tape included. Ships across India.`
       : `Shop ${title.toLowerCase()} at StickyPie: die-cut vinyl in several sizes for cars, bikes, laptops and more. Ships across India.`,
     path: categoryPath(category.slug),
   });
@@ -55,6 +56,8 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
   const products = await getDriver().listProducts({ activeOnly: true });
   const inThis = products.filter((p) => inCategory(p, category.id));
   const posters = /poster/i.test(category.name);
+  // The Walls page sells single posters too, drawn in the browser like its sets.
+  const singles = category.slug === "poster-packs" ? products.filter(isSinglePoster) : [];
   const heading = category.slug === "poster-packs" ? "Wall posters" : categoryTitle(category.name);
 
   const breadcrumbLd = {
@@ -70,7 +73,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
 
   return (
     <div className="min-h-screen w-full px-4 pt-[76px] pb-24 sm:px-8 sm:pt-24 lg:px-12 2xl:px-20">
-      <JsonLd data={[breadcrumbLd, itemListStructuredData(inThis)]} />
+      <JsonLd data={[breadcrumbLd, itemListStructuredData(singles.length ? [...inThis.slice(0, 25), ...singles.slice(0, 25)] : inThis)]} />
       <Suspense
         fallback={
           // The page's own HTML: the grid is drawn in the browser, so the heading search engines read is here.
@@ -84,9 +87,13 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
       >
         <BrowseClient initial={{ categories, products: productSnapshot(products) }} categorySlug={category.slug} />
       </Suspense>
-      <CategoryAbout heading={`About our ${categoryTitle(category.name).toLowerCase()}`} text={categoryIntro(category, inThis.length)} />
+      <CategoryAbout
+        heading={`About our ${categoryTitle(category.name).toLowerCase()}`}
+        text={`${categoryIntro(category, inThis.length)}${singles.length ? ` Want just one? Pick from ${singles.length} single posters, each as a wall poster or a vinyl sticker.` : ""}`}
+      />
       {posters && <PosterTopics className="mt-4" />}
       <ProductLinks heading={`All ${categoryTitle(category.name).toLowerCase()}`} products={inThis} />
+      <ProductLinks heading="All single posters" products={singles} />
     </div>
   );
 }

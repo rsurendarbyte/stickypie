@@ -71,7 +71,8 @@ export type AvatarStickerSpec = {
  * A wall the shopper picked: a layout and the poster for each spot, in order. With
  * `set` it is that wall set with some posters replaced: same spots, sizes and price.
  */
-export type WallSpec = { kind: "wall"; layout: string; posters: string[]; set?: string };
+/** `own`: at checkout, the stored picture of each of the shopper's own posters on the wall. */
+export type WallSpec = { kind: "wall"; layout: string; posters: string[]; set?: string; own?: Record<string, string> };
 export type CustomSpec = QrStickerSpec | TextStickerSpec | AvatarStickerSpec;
 /** What a cart line can carry: a wall becomes its posters at checkout, so orders never hold one. */
 export type CartCustomSpec = CustomSpec | WallSpec;
@@ -264,6 +265,11 @@ export function customSizes(prices: Record<string, number>): { inches: number; p
 export function customSizeLabel(inches: number): string {
   return `${formatInches(inches)}″ custom — longest side ${formatInches(inches)} in`;
 }
+
+/** A shopper's own poster on a wall: its picture stays in the browser, under this id, until they pay. */
+export const OWN_POSTER_PREFIX = "own:";
+export const OWN_POSTER_NAME = "Your own poster";
+export const isOwnPoster = (id: string) => id.startsWith(OWN_POSTER_PREFIX);
 
 /** Browser storage key for artwork picked before paying (uploaded once paid). */
 export function customArtKey(ref: string): string {

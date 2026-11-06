@@ -30,6 +30,8 @@ export type StoreSettings = {
   avatarStyles: AvatarStyle[];
   /** Thank-you offer: default % off the next order, pre-filled when approving (admin → Offers). */
   thanksPercent: number;
+  /** Days a shopper's own posters are kept after delivery, for a reprint; 0 = deleted on delivery. */
+  ownPosterDays: number;
 };
 
 export type PaymentGateway = "cashfree" | "razorpay";
@@ -62,6 +64,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
   avatarBook: { pages: 4, price: 300, extra: 0 },
   avatarStyles: DEFAULT_AVATAR_STYLES,
   thanksPercent: 10,
+  ownPosterDays: 7,
 };
 
 /** Couriers price these as special / remote zones. */
@@ -214,6 +217,7 @@ export function rowToSettings(r: any): StoreSettings {
           .map(withBundledPictures)
       : DEFAULT_AVATAR_STYLES,
     thanksPercent: Number(r.thanks_percent ?? DEFAULT_STORE_SETTINGS.thanksPercent),
+    ownPosterDays: Number(r.own_poster_days ?? DEFAULT_STORE_SETTINGS.ownPosterDays),
   };
 }
 
@@ -239,5 +243,6 @@ export function settingsToRow(s: StoreSettings): Record<string, unknown> {
     avatar_book: s.avatarBook,
     avatar_styles: s.avatarStyles,
     thanks_percent: s.thanksPercent,
+    own_poster_days: s.ownPosterDays,
   };
 }

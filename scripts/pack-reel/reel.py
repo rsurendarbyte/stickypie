@@ -172,7 +172,7 @@ def caption(pack, theme):
         "",
         f"{pack['title']}: {n} wall posters, {size_text(pack['sizes'])}" + (f", {pack['feet']} on the wall." if pack["feet"] else "."),
         f"Inside: {inside}.",
-        "300 GSM poster paper, glue dots or double-sided tape included.",
+        "270 GSM glossy photo paper, glue dots or double-sided tape included.",
         f"One set, one price: {price}.",
         "",
         "Ships across India 🇮🇳 Shop at stickypie.in (link in bio)",
@@ -460,7 +460,7 @@ def buy_panel(pack, a):
     panel.alpha_composite(a["chips"], ((W - a["chips"].width) // 2, 322))
     d.rounded_rectangle([m, 494, m + pw, 610], 34, fill=YELLOW)
     d.text((W / 2, 552), "Shop at stickypie.in", font=rounded_font(52, 800), fill=INK, anchor="mm")
-    perks = ["300 GSM poster paper", "Glue dots or tape included", "Walls, doors & cupboards", "Ships in 2–4 days"]
+    perks = ["270 GSM glossy photo paper", "Glue dots or tape included", "Walls, doors & cupboards", "Ships in 2–4 days"]
     for i, perk in enumerate(perks):
         px, py = m + 6 + (i % 2) * 490, 648 + (i // 2) * 54
         d.ellipse([px, py + 8, px + 20, py + 28], fill=(18, 161, 80))

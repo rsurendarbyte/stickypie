@@ -32,6 +32,7 @@ export function rowToProduct(r: any): Product {
     categoryIds: Array.isArray(r.category_ids) ? r.category_ids : r.category_id ? [r.category_id] : [],
     imageUrl: onImageHost(r.image_url),
     thumbUrl: r.thumb_url ? onImageHost(r.thumb_url) : null,
+    tinyUrl: r.tiny_url ? onImageHost(r.tiny_url) : null,
     displayUrl: r.display_url ? onImageHost(r.display_url) : null,
     tags: r.tags ?? [],
     featured: r.featured,
@@ -77,6 +78,7 @@ export function rowToItem(r: any): OrderItem {
           name: String(p.name ?? ""),
           imageUrl: onImageHost(String(p.image_url ?? "")),
           inches: Number(p.inches) || 6,
+          ...(p.own ? { own: true } : {}),
         }))
       : null,
   };
@@ -141,6 +143,7 @@ export function productToRow(input: Partial<ProductInput>): Record<string, unkno
   }
   if (input.imageUrl !== undefined) row.image_url = input.imageUrl;
   if (input.thumbUrl !== undefined) row.thumb_url = input.thumbUrl;
+  if (input.tinyUrl !== undefined) row.tiny_url = input.tinyUrl;
   if (input.displayUrl !== undefined) row.display_url = input.displayUrl;
   if (input.tags !== undefined) row.tags = input.tags;
   if (input.featured !== undefined) row.featured = input.featured;

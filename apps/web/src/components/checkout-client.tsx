@@ -53,6 +53,8 @@ import {
 } from "@/lib/addresses";
 import AddressTypePicker, { AddressTypeBadge } from "./address-type-picker";
 import CartThumb, { WallPicksNote } from "./cart-thumb";
+import { hasOwnPosters, sendOwnPosters, withOwnPosters, type PosterSend } from "@/lib/own-posters";
+import OwnPosterSend from "./own-poster-send";
 import { lineKey, useCart } from "./cart-context";
 import { cartToken } from "@/lib/cart-sync";
 import CartStepper from "./cart-stepper";
@@ -115,6 +117,9 @@ export default function CheckoutClient() {
   // Thank-you offer the shop approved for this account: the server applies it by itself.
   const discount = useMyOffer();
   const [submitting, setSubmitting] = useState(false);
+  // Own posters on their way, as they leave the phone.
+  const [sending, setSending] = useState<PosterSend[] | null>(null);
+  const payForm = useRef<HTMLFormElement>(null);
   const shopper = useShopper();
   const [authMode, setAuthMode] = useState<"create" | "signin">("create");
   const [password, setPassword] = useState("");
@@ -400,6 +405,21 @@ export default function CheckoutClient() {
       setPassword("");
     }
 
+    let ownUrls: Record<string, string> = {};
+    if (hasOwnPosters(items)) {
+      try {
+        ownUrls = await sendOwnPosters(items, token, setSending);
+      } catch {
+        // The list stays up with the reason on the poster, and a way to try again.
+        setSubmitting(false);
+        return;
+      }
+      // A moment on 100%, and for the list's history step to go before payment adds its own.
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      setSending(null);
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    }
+
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
@@ -416,7 +436,7 @@ export default function CheckoutClient() {
             size: item.size,
             ...(item.customRef ? { customRef: item.customRef } : {}),
             ...(item.customKind ? { customKind: item.customKind } : {}),
-            ...(item.customSpec ? { customSpec: item.customSpec } : {}),
+            ...(item.customSpec ? { customSpec: withOwnPosters(item.customSpec, ownUrls) } : {}),
             ...(item.finish ? { finish: item.finish } : {}),
           })),
         }),
@@ -533,7 +553,7 @@ export default function CheckoutClient() {
     >
       {submitting ? (
         <>
-          <StickerLoader size={18} variant="onBrand" /> Taking you to payment…
+          <StickerLoader size={18} variant="onBrand" /> {sending ? "Sending your posters…" : "Taking you to payment…"}
         </>
       ) : (
         <>
@@ -585,6 +605,7 @@ export default function CheckoutClient() {
       </div>
 
       <form
+        ref={payForm}
         id="checkout-form"
         onSubmit={submit}
         className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:gap-7"
@@ -1141,6 +1162,8 @@ export default function CheckoutClient() {
       </form>
 
       {/* ── Email code pop-up (new accounts) ───────────────────────────── */}
+      <OwnPosterSend rows={sending} onRetry={() => payForm.current?.requestSubmit()} onClose={() => setSending(null)} />
+
       <LabelModal
         open={awaitingCode && codeOpen}
         onClose={() => {

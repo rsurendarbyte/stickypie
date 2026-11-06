@@ -27,15 +27,21 @@ export function customFileUrl(path: string): string {
   return `${supabaseUrl()}/storage/v1/object/public/${CUSTOM_STICKER_BUCKET}/${path}`;
 }
 
+/** A picture this shop stored from the checkout's own-poster upload, and nothing else. */
+export function isOwnPosterFile(url: string): boolean {
+  const start = customFileUrl("own-posters/");
+  return url.startsWith(start) && /^\d{4}-\d{2}\/[0-9a-f-]{36}\.(png|jpg|webp)$/.test(url.slice(start.length));
+}
+
 /** Saves the artwork under a random name; returns its storage path + public URL. */
-export async function storeCustomFile(file: File): Promise<{ path: string; url: string }> {
+export async function storeCustomFile(file: File, folder = "uploads"): Promise<{ path: string; url: string }> {
   if (file.size > CUSTOM_STICKER_MAX_BYTES) throw new UploadError("That file is over 5 MB — please upload a smaller one.");
   if (file.size === 0) throw new UploadError("That file is empty.");
   const bytes = new Uint8Array(await file.arrayBuffer());
   const kind = sniff(bytes);
   if (!kind) throw new UploadError("Please upload a PNG, JPG or WebP image.");
   const month = new Date().toISOString().slice(0, 7);
-  const path = `uploads/${month}/${crypto.randomUUID()}.${kind.ext}`;
+  const path = `${folder}/${month}/${crypto.randomUUID()}.${kind.ext}`;
   const res = await fetch(`${supabaseUrl()}/storage/v1/object/${CUSTOM_STICKER_BUCKET}/${path}`, {
     method: "POST",
     headers: { ...headers(kind.type), "cache-control": "public, max-age=31536000, immutable" },

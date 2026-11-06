@@ -142,7 +142,7 @@ export default function AvatarStickersShare({ urls, makeUrl }: { urls: string[];
             aria-label={`View sticker pack ${i + 1} full screen`}
             className="grid aspect-square cursor-zoom-in place-items-center rounded-2xl bg-panel p-3 ring-1 ring-line transition-transform hover:scale-[1.02]"
           >
-            <img src={url} alt={`Sticker pack ${i + 1}`} className="sticker-cut max-h-full max-w-full object-contain" />
+            <img loading="lazy" decoding="async" src={url} alt={`Sticker pack ${i + 1}`} className="sticker-cut max-h-full max-w-full object-contain" />
           </button>
         ))}
       </div>
