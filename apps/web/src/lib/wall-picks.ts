@@ -50,6 +50,12 @@ export function pickPoster(product: Product, spot: number, posterId: string) {
   save({ ...picks, [product.id]: (picks[product.id] ?? product.packItems).map((id, i) => (i === spot ? posterId : id)) });
 }
 
+/** Swaps the posters on two spots. Each spot keeps its size, and every poster is sold in both. */
+export function swapPosters(product: Product, a: number, b: number) {
+  const now = picks[product.id] ?? product.packItems;
+  save({ ...picks, [product.id]: now.map((id, i) => (i === a ? now[b] : i === b ? now[a] : id)) });
+}
+
 function resetPicks(productId: string) {
   const { [productId]: _, ...rest } = picks;
   save(rest);

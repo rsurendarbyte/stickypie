@@ -6,6 +6,7 @@ import type { Product } from "@stickypie/shared";
 import { packPosterSizes } from "@stickypie/shared";
 import { wallBackground, wallSpots } from "@/lib/poster";
 import { posterImage } from "@/lib/poster-images";
+import { useWallDrag } from "@/lib/use-wall-drag";
 import type { WallEffect } from "@/lib/wall-effects";
 
 /**
@@ -57,6 +58,7 @@ function markSeen(id: string) {
  * `effect`: how the posters arrive on a card (see .wall-fx in globals.css).
  * `posters`: the shopper's picks, in place of the set's own posters ("" = an emptied spot).
  * `onRemove` / `onAdd`: a close button on each poster, and an add button on an emptied spot.
+ * `onSwap`: posters can be dragged onto each other, or onto an emptied spot.
  */
 export default function WallStage({
   product,
@@ -69,6 +71,7 @@ export default function WallStage({
   posters,
   onRemove,
   onAdd,
+  onSwap,
   className = "",
 }: {
   product: Product;
@@ -81,6 +84,7 @@ export default function WallStage({
   posters?: string[] | null;
   onRemove?: (spot: number) => void;
   onAdd?: (spot: number) => void;
+  onSwap?: (from: number, to: number) => void;
   className?: string;
 }) {
   const spots = wallSpots(product);
@@ -153,6 +157,9 @@ export default function WallStage({
 
   // An older pack's picture is a collage, so posters can't be cut from it.
   const noCut = product.tags.includes("wall collage") && urls.some((url, i) => ids[i] && !url);
+  // A poster cut from the set's picture only fits its own spot, so all of them must be real.
+  const movable = spots.length > 0 && urls.every((url, i) => url || !ids[i]);
+  useWallDrag(box, movable ? onSwap : undefined, ids.join());
   if (noCut) {
     return <img src={src} alt={alt} loading="lazy" decoding="async" className={`size-full object-contain ${className}`} />;
   }
@@ -208,7 +215,9 @@ export default function WallStage({
       {spots.map((s, i) => (
         <span
           key={i}
-          className="absolute"
+          data-wall-spot={i}
+          data-wall-drag={onSwap && movable && ids[i] ? "" : undefined}
+          className={`absolute ${onSwap && movable && ids[i] ? "wall-movable" : ""}`}
           style={{
             left: `${((s.x - left) / width) * 100}%`,
             top: `${((s.y - top) / height) * 100}%`,
@@ -220,6 +229,7 @@ export default function WallStage({
           {!ids[i] && onAdd && (
             <button
               type="button"
+              data-wall-control
               aria-label={`Add a poster to spot ${i + 1}`}
               onPointerUp={(e) => e.stopPropagation()}
               onClick={(e) => {
@@ -253,6 +263,7 @@ export default function WallStage({
             {onRemove && (
               <button
                 type="button"
+                data-wall-control
                 aria-label={`Remove poster ${i + 1}`}
                 onPointerUp={(e) => e.stopPropagation()}
                 onClick={(e) => {

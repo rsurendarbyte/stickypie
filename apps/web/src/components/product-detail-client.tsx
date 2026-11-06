@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { BadgeCheck, Car, ChevronsUpDown, Frame, Gift, PackageX, Ruler, Sparkles, Truck } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR, packPosterSizes, packSizeSummary, posterSizeLabel } from "@stickypie/shared";
-import { pickPoster, useWallLine } from "@/lib/wall-picks";
+import { pickPoster, swapPosters, useWallLine } from "@/lib/wall-picks";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { recordProductView, useFeatures, useLiveProduct, useRelatedProducts, watchImageSaves } from "@/lib/live-catalog";
@@ -199,6 +199,7 @@ export default function ProductDetailClient({
                 posters={picks}
                 onRemove={(i) => pickPoster(product, i, "")}
                 onAdd={setSpot}
+                onSwap={(a, b) => swapPosters(product, a, b)}
                 src={product.displayUrl ?? product.imageUrl}
                 alt={product.name}
                 className={out || unavailable ? "opacity-50 saturate-50" : ""}
