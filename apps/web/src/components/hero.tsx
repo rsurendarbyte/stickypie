@@ -50,6 +50,7 @@ import {
   useStoreSettings,
 } from "@/lib/live-catalog";
 import { readInterest, type Interest } from "@/lib/interest";
+import { useLite } from "@/lib/lite";
 
 /** Rotating hero: the featured sticker is staged on a big tilted product card. */
 export default function Hero({
@@ -619,9 +620,53 @@ function useWallSize(box: React.RefObject<HTMLDivElement | null>) {
   return size;
 }
 
+/** A sticker peels for this long (see .wall-peeling), so a new one every 700 ms
+ *  keeps four or five peeling at once; two on a phone's smaller wall. */
+const PEEL_EVERY_MS = 700;
+const PEEL_EVERY_MS_PHONE = 1500;
+
+/**
+ * Peels a random tile the shopper can see, now and then. One timer instead of a
+ * looping animation on every tile: a peel can't run on the GPU, so 120 loops
+ * had the page redrawing every frame even with nothing peeling, and any hiccup
+ * in that showed up as a jerk in the wall.
+ */
+function useWallPeels(box: React.RefObject<HTMLDivElement | null>) {
+  const lite = useLite();
+  useEffect(() => {
+    if (lite || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const phone = window.innerWidth < 640;
+    const timer = setInterval(
+      () => {
+        const el = box.current;
+        if (!el || document.hidden) return;
+        const area = el.getBoundingClientRect();
+        // past the words' white wash on anything wider than a phone
+        const left = area.left + (window.innerWidth >= 768 ? area.width * 0.45 : 0);
+        const bottom = Math.min(area.bottom, window.innerHeight);
+        const tiles = el.getElementsByClassName("wall-peel");
+        for (let tries = 0; tries < 12 && tiles.length; tries++) {
+          const tile = tiles[Math.floor(Math.random() * tiles.length)];
+          const r = tile.getBoundingClientRect();
+          const x = r.left + r.width / 2;
+          const y = r.top + r.height / 2;
+          if (x < left || x > area.right || y < area.top || y > bottom) continue;
+          if (tile.classList.contains("wall-peeling")) continue;
+          tile.classList.add("wall-peeling");
+          tile.addEventListener("animationend", () => tile.classList.remove("wall-peeling"), { once: true });
+          return;
+        }
+      },
+      phone ? PEEL_EVERY_MS_PHONE : PEEL_EVERY_MS,
+    );
+    return () => clearInterval(timer);
+  }, [box, lite]);
+}
+
 function BrandSlideArt({ stickers }: { stickers: Product[] }) {
   const box = useRef<HTMLDivElement>(null);
   const size = useWallSize(box);
+  useWallPeels(box);
   // Phones show a small wall: a dozen different pictures (tiles repeat) is
   // plenty, and far less to download on a slow connection.
   const pool = size && size.cols * size.perCol < 90 ? stickers.slice(0, 12) : stickers;
@@ -648,20 +693,16 @@ function BrandSlideArt({ stickers }: { stickers: Product[] }) {
                 loops without a seam, and one copy covers the box, so the screen
                 never reaches either end */}
             <div
-              className={`flex flex-col gap-3 sm:gap-4 ${c % 2 ? "sticker-wall-down" : "sticker-wall-up"}`}
+              className={c % 2 ? "sticker-wall-down" : "sticker-wall-up"}
               // same speed as before, whatever the column's length
               style={{
                 animationDuration: `${((44 + (c % 4) * 7) * col.length) / 7}s`,
               }}
             >
+              {/* the one child keeps the browser from restyling every tile, each
+                  frame, along with the moving column above it */}
+              <div className="flex flex-col gap-3 sm:gap-4">
               {[...col, ...col].map((p, k) => {
-                // Every tile peels its corner now and then: its own cycle length and
-                // starting point (fixed per tile, so server and browser agree).
-                const n = c * 31 + k * 17;
-                const peel = {
-                  "--peel-cycle": `${8 + (n % 9)}s`,
-                  "--peel-delay": `${-((n * 7) % 13)}s`,
-                } as React.CSSProperties;
                 // A mini poster is a rectangle, not a die-cut: it is the tile itself —
                 // no white tile around it — with a white sticker edge, trimmed to 4:5
                 // on the wall only.
@@ -672,7 +713,6 @@ function BrandSlideArt({ stickers }: { stickers: Product[] }) {
                     href={`/sticker/${p.slug}`}
                     tabIndex={-1}
                     aria-label={p.name}
-                    style={peel}
                     className={`wall-tile grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center transition-transform duration-200 hover:scale-[1.06] ${
                       poster
                         ? "aspect-[4/5]"
@@ -735,6 +775,7 @@ function BrandSlideArt({ stickers }: { stickers: Product[] }) {
                   </Link>
                 );
               })}
+              </div>
             </div>
           </div>
         ))}
@@ -872,11 +913,12 @@ function AvatarBookWall({ styles, packs }: { styles: AvatarStyle[]; packs: Produ
         {columns.map((col, c) => (
           <div key={c} className="w-[clamp(92px,13vw,170px)] shrink-0">
             <div
-              className={`flex flex-col gap-3 sm:gap-4 ${c % 2 ? "sticker-wall-down" : "sticker-wall-up"}`}
+              className={c % 2 ? "sticker-wall-down" : "sticker-wall-up"}
               style={{
                 animationDuration: `${((44 + (c % 4) * 7) * col.length) / 5}s`,
               }}
             >
+              <div className="flex flex-col gap-3 sm:gap-4">
               {[...col, ...col].map(({ page, n }, k) => (
                 <Link
                   key={k}
@@ -928,6 +970,7 @@ function AvatarBookWall({ styles, packs }: { styles: AvatarStyle[]; packs: Produ
                   </span>
                 </Link>
               ))}
+              </div>
             </div>
           </div>
         ))}

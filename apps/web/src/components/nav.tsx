@@ -2,7 +2,7 @@
 
 import Link from "@/components/page-link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Search, ShoppingBag, UserRound } from "lucide-react";
 import { useShopper } from "@/lib/shopper-auth";
 import { useCart } from "./cart-context";
@@ -21,6 +21,10 @@ const BACK_PAGES: Record<string, string> = {
   "/checkout": "/stickers",
 };
 
+/** .peel-gentle's length, and the rest before the next peel. */
+const LOGO_PEEL_MS = 3150;
+const LOGO_REST_MS = 3850;
+
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -37,6 +41,24 @@ export default function Nav() {
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // The logo's corner peels every 7 s (see .peel-gentle). Only while it peels:
+  // a CSS loop would keep redrawing the page through the rest as well.
+  const logoPeel = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const el = logoPeel.current;
+    if (!el) return;
+    let timer = 0;
+    const peel = () => {
+      el.classList.add("peel-run");
+      timer = window.setTimeout(() => {
+        el.classList.remove("peel-run");
+        timer = window.setTimeout(peel, LOGO_REST_MS);
+      }, LOGO_PEEL_MS);
+    };
+    timer = window.setTimeout(peel, LOGO_REST_MS);
+    return () => window.clearTimeout(timer);
   }, []);
 
   // ⌘K / Ctrl K, or "/" outside a text field, opens search from anywhere.
@@ -109,7 +131,7 @@ export default function Nav() {
                 height={323}
                 className="block size-full"
               />
-              <span aria-hidden className="peel peel-gentle peel-logo">
+              <span ref={logoPeel} aria-hidden className="peel peel-gentle peel-logo">
                 <span className="peel-face">
                   <img
                     src="/icons/logo-mark.webp"
