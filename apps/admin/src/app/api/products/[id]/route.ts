@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { isWallDataTag, productInputSchema } from "@stickypie/shared";
 import { requireAdminApi } from "@/lib/data";
 import { prepareProductInput } from "@/lib/product-input";
-import { swapOutOfWalls } from "@/lib/wall-reshuffle";
+import { onWallsMessage, wallName } from "@/lib/wall-names";
+import { redrawPosterOnWalls, wallsHolding } from "@/lib/wall-reshuffle";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -29,7 +30,9 @@ export async function PATCH(req: Request, ctx: Ctx) {
     // The form never sees a wall's data tags; they stay as they are.
     const tags = parsed.data.tags && [...parsed.data.tags, ...(existing?.tags.filter(isWallDataTag) ?? [])];
     const product = await auth.driver.updateProduct(id, await prepareProductInput({ ...parsed.data, ...(tags && { tags }) }, existing));
-    return NextResponse.json({ product });
+    const newImage = parsed.data.imageUrl && existing && parsed.data.imageUrl !== existing.imageUrl;
+    const walls = newImage ? await redrawPosterOnWalls(auth.driver, product) : undefined;
+    return NextResponse.json({ product, walls });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Could not update product" },
@@ -43,10 +46,10 @@ export async function DELETE(_req: Request, ctx: Ctx) {
   if (!auth.ok) return auth.res;
   const { id } = await ctx.params;
   try {
-    const product = await auth.driver.getProductById(id);
-    const swaps = product ? await swapOutOfWalls(auth.driver, product) : [];
+    const walls = wallsHolding(await auth.driver.listProducts(), id).map((w) => wallName(w.name));
+    if (walls.length) return NextResponse.json({ error: onWallsMessage(walls) }, { status: 409 });
     await auth.driver.deleteProduct(id);
-    return NextResponse.json({ ok: true, swaps });
+    return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Could not delete product" },

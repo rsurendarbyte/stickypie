@@ -3,7 +3,8 @@ import { orderCode } from "@stickypie/shared";
 import ProductForm from "@/components/product-form";
 import WallPosterEditor from "@/components/wall-poster-editor";
 import { getAdminDriver } from "@/lib/data";
-import { isCandidate, isPickable, openWallOrders } from "@/lib/wall-reshuffle";
+import { wallName } from "@/lib/wall-names";
+import { isCandidate, isPickable, openWallOrders, wallsHolding } from "@/lib/wall-reshuffle";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export default async function EditProductPage({
   ]);
   if (!product) notFound();
   const isWall = product.packItems.length > 0;
-  const [all, open] = isWall ? await Promise.all([driver.listProducts(), openWallOrders(driver, id)]) : [[], []];
+  const [all, open] = await Promise.all([driver.listProducts(), isWall ? openWallOrders(driver, id) : []]);
 
   return (
     <div className="mx-auto w-full max-w-[1400px]">
@@ -41,7 +42,7 @@ export default async function EditProductPage({
         </div>
       )}
       <div className="mt-7">
-        <ProductForm key={product.packItems.length} categories={categories} product={product} />
+        <ProductForm key={product.packItems.length} categories={categories} product={product} walls={wallsHolding(all, id).map((w) => wallName(w.name))} />
       </div>
     </div>
   );
