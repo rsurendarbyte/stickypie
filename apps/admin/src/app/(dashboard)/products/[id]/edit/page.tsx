@@ -41,7 +41,7 @@ export default async function EditProductPage({
         </div>
       )}
       <div className="mt-7">
-        <ProductForm categories={categories} product={product} />
+        <ProductForm key={product.packItems.length} categories={categories} product={product} />
       </div>
     </div>
   );

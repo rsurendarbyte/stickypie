@@ -3,9 +3,10 @@
 // never comes up a poster short. Wall setups also get a fresh picture. The admin
 // can change a wall's posters by hand too, but not while an order for it is open.
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import type { DataDriver, Product } from "@stickypie/shared";
+import { packPosterSizes, type DataDriver, type Product } from "@stickypie/shared";
 import { imageSrc } from "./img";
 import { r2Client, r2Config } from "./r2";
+import { arrangeWall } from "./wall-layout";
 import { makeDisplay, makeThumb } from "./thumbs";
 
 const NOT_FOR_WALLS = /festival|diwali/i;
@@ -77,11 +78,20 @@ async function repaint(wall: Product, changes: { index: number; poster: Product 
         .resize(Math.round(spotW * 1.07), Math.round(spotH * 1.07), { fit: "cover" })
         .extract({ left: Math.round(spotW * 0.035), top: Math.round(spotH * 0.035), width: spotW, height: spotH })
         .toBuffer();
-      return { input, left: px(x), top: px(y) };
+      if (!collage) return [{ input, left: px(x), top: px(y) }];
+      const pad = 30;
+      const shadow = await sharp(
+        Buffer.from(
+          `<svg xmlns="http://www.w3.org/2000/svg" width="${spotW + pad * 2}" height="${spotH + pad * 2}"><filter id="s" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="10"/></filter><rect x="${pad}" y="${pad}" width="${spotW}" height="${spotH}" fill-opacity="0.34" filter="url(#s)"/></svg>`
+        )
+      )
+        .png()
+        .toBuffer();
+      return [{ input: shadow, left: px(x) - pad + 4, top: px(y) - pad + 8 }, { input, left: px(x), top: px(y) }];
     })
   );
   const tags = collage ? { tags: wall.tags.filter((t) => t !== "wall collage") } : {};
-  const body = await sharp(picture).composite(layers).jpeg({ quality: 90 }).toBuffer();
+  const body = await sharp(picture).composite(layers.flat()).jpeg({ quality: 90 }).toBuffer();
   const key = `packs/${wall.slug}-${Date.now()}.jpg`;
   await r2Client(r2).send(
     new PutObjectCommand({ Bucket: r2.bucket, Key: key, Body: body, ContentType: "image/jpeg", CacheControl: "public, max-age=31536000, immutable" })
@@ -119,17 +129,34 @@ export async function openWallOrders(driver: DataDriver, wallId: string) {
   return orders.filter((o) => ["paid", "packed", "shipped"].includes(o.status) && o.items.some((i) => i.productId === wallId));
 }
 
+/** A wall laid out afresh for new poster sizes. "wall collage" sends its picture back to a bare wall. */
+function rearrange(wall: Product, packSizes: number[]) {
+  const { spots, feet } = arrangeWall(packSizes);
+  const count = packSizes.length;
+  return {
+    name: wall.name.replace(/\d+ Mini Poster Pack/, `${count} Mini Poster Pack`),
+    description: wall.description.replace(/setup of \d+ posters, about .+? on your wall/, `setup of ${count} posters, about ${feet} on your wall`),
+    tags: [
+      ...wall.tags.filter((t) => !/^wall (spots:|size:|collage$)/.test(t)),
+      "wall collage",
+      `wall size:${feet}`,
+      `wall spots:${spots.map((s) => s.join(",")).join(";")}`,
+    ],
+  };
+}
+
 /** Gives a wall its set of posters, spot for spot, and rebuilds its picture from them, so the two always match. */
-export async function saveWallPosters(driver: DataDriver, wall: Product, packItems: string[]) {
+export async function saveWallPosters(driver: DataDriver, wall: Product, packItems: string[], packSizes: number[]) {
   const open = await openWallOrders(driver, wall.id);
   if (open.length) throw new Error(`This wall has ${open.length} open order${open.length === 1 ? "" : "s"}. Change it after they are delivered.`);
-  if (packItems.length !== wall.packItems.length) throw new Error("A wall must keep its number of posters.");
+  if (packSizes.length !== packItems.length) throw new Error("Each poster needs a size.");
   if (new Set(packItems).size !== packItems.length) throw new Error("Each poster can only be on the wall once.");
   const posters = await driver.getProductsByIds(packItems);
   const changes = packItems.map((id, index) => {
     const poster = posters.find((p) => p.id === id);
-    if (!poster || (id !== wall.packItems[index] && !isPickable(poster))) throw new Error("Pick only mini posters that are open for sale.");
+    if (!poster || (!wall.packItems.includes(id) && !isPickable(poster))) throw new Error("Pick only mini posters that are open for sale.");
     return { index, poster };
   });
-  return driver.updateProduct(wall.id, { packItems, ...((await repaint(wall, changes)) ?? {}) });
+  const fresh = packSizes.join() === packPosterSizes(wall).join() ? {} : rearrange(wall, packSizes);
+  return driver.updateProduct(wall.id, { packItems, packSizes, ...fresh, ...((await repaint({ ...wall, ...fresh }, changes)) ?? {}) });
 }
