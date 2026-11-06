@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Activity, Eye, Gauge, Users } from "lucide-react";
 import StatCard from "@/components/stat-card";
-import { getProductViews, type ProductViews } from "@/lib/product-views";
+import { getProductViews, getUniqueVisitors, type ProductViews } from "@/lib/product-views";
 import {
   analyticsConfigured,
   FREE_DAILY_REQUESTS,
@@ -29,6 +29,13 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
     } catch (e) {
       error = e instanceof Error ? e.message : "Couldn't reach Cloudflare.";
     }
+  }
+
+  let visitors: number | null = null;
+  try {
+    visitors = await getUniqueVisitors(range);
+  } catch {
+    // shown as a dash in its card
   }
 
   let viewed: ProductViews | null = null;
@@ -68,7 +75,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
           Couldn&apos;t load analytics from Cloudflare: {error}
         </p>
       ) : data ? (
-        <Report data={data} range={range} />
+        <Report data={data} range={range} visitors={visitors} />
       ) : null}
 
       <MostViewed viewed={viewed} error={viewedError} />
@@ -76,7 +83,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
   );
 }
 
-function Report({ data, range }: { data: Analytics; range: Range }) {
+function Report({ data, range, visitors }: { data: Analytics; range: Range; visitors: number | null }) {
   const usedPct = Math.min(100, (data.usage.today / FREE_DAILY_REQUESTS) * 100);
   return (
     <>
@@ -90,8 +97,8 @@ function Report({ data, range }: { data: Analytics; range: Range }) {
         />
         <StatCard
           label="Unique visitors"
-          value={n(data.uniquesPerDay)}
-          sub={range === "today" ? "today (by IP, includes bots)" : "per day, average (by IP, includes bots)"}
+          value={visitors === null ? "—" : n(visitors)}
+          sub="each person counted once, per phone or computer"
           icon={<Users className="size-4" />}
         />
         <StatCard
@@ -215,19 +222,19 @@ const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL ?? "https://stickypie.in";
 
 /** Sticker pages opened most (our own counter), with how many sold in the same days. */
 function MostViewed({ viewed, error }: { viewed: ProductViews | null; error: string }) {
-  const top = Math.max(1, ...(viewed?.products.map((p) => p.views) ?? []));
+  const top = Math.max(1, ...(viewed?.products.map((p) => p.people) ?? []));
   return (
     <section className="mt-6 rounded-2xl border border-line bg-ink2 p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="font-display text-base font-semibold">Most viewed stickers</h2>
         {viewed && (
           <span className="text-xs text-fog">
-            {n(viewed.total)} sticker page views · {n(viewed.saves)} picture saves
+            {n(viewed.total)} unique views · {n(viewed.saves)} picture saves
           </span>
         )}
       </div>
       <p className="mt-1 text-xs text-fog">
-        Each shopper counts once per sticker per visit. Lots of views but no sales? Check its price, photos or sizes. &ldquo;Saved&rdquo; means they tried to save its picture (right-click, long-press or drag) — the shop blocks those, but screenshots can&apos;t be stopped or seen.
+        Each person counts once per sticker, however often they come back. Lots of views but no sales? Check its price, photos or sizes. &ldquo;Saved&rdquo; means they tried to save its picture (right-click, long-press or drag) — the shop blocks those, but screenshots can&apos;t be stopped or seen.
       </p>
       {error ? (
         <p className="mt-3 text-sm text-red-400">{error}</p>
@@ -237,7 +244,7 @@ function MostViewed({ viewed, error }: { viewed: ProductViews | null; error: str
         <ul className="mt-3 space-y-1.5">
           {viewed.products.map((p) => (
             <li key={p.id} className="relative overflow-hidden rounded-lg px-2 py-1.5 text-sm">
-              <span aria-hidden className="absolute inset-y-0 left-0 rounded-lg bg-brand/10" style={{ width: `${(p.views / top) * 100}%` }} />
+              <span aria-hidden className="absolute inset-y-0 left-0 rounded-lg bg-brand/10" style={{ width: `${(p.people / top) * 100}%` }} />
               <span className="relative flex items-center gap-3">
                 {p.thumb ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -253,7 +260,7 @@ function MostViewed({ viewed, error }: { viewed: ProductViews | null; error: str
                   <span className="min-w-0 flex-1 truncate">{p.name}</span>
                 )}
                 <span className="shrink-0 text-xs text-fog tabular-nums">
-                  {n(p.views)} {p.views === 1 ? "view" : "views"} ·{" "}
+                  {n(p.people)} {p.people === 1 ? "person" : "people"} ·{" "}
                   {p.saves > 0 && <span className="text-amber-400">{n(p.saves)} saved · </span>}
                   <span className={p.sold ? "text-mint" : ""}>{n(p.sold)} sold</span>
                 </span>
@@ -274,7 +281,7 @@ function Setup() {
       <ol className="mt-3 list-decimal space-y-1.5 pl-5">
         <li>Cloudflare dashboard → My Profile → API Tokens → Create Token → Custom token.</li>
         <li>
-          Permissions: <b>Account · Account Analytics · Read</b> and <b>Zone · Analytics · Read</b> (zone stickypie.in).
+          Permissions: <b>Account · Account Analytics · Read</b>.
         </li>
         <li>
           Save it as the admin secret <code className="rounded bg-snow/10 px-1">CF_ANALYTICS_TOKEN</code>, then reload this page.

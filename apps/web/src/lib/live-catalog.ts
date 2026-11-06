@@ -323,9 +323,57 @@ export function useProductReviews(productId: string): {
   return { reviews, average, loaded: Boolean(bundle) || failed || !liveCatalogEnabled };
 }
 
+const notAPerson = () => typeof window === "undefined" || navigator.webdriver || /bot|crawl|spider|lighthouse|facebookexternalhit/i.test(navigator.userAgent);
+/** Today in India's calendar, like the days in the database. */
+const indiaDay = () => new Date(Date.now() + 5.5 * 3600_000).toISOString().slice(0, 10);
+
+function rpc(name: string, body: Record<string, unknown>) {
+  fetch(`${SUPABASE_URL}/rest/v1/rpc/${name}`, {
+    method: "POST",
+    headers: { apikey: ANON_KEY!, Authorization: `Bearer ${ANON_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    keepalive: true,
+  }).catch(() => {});
+}
+
+/**
+ * Counts this browser as one visitor today. It remembers the last day it was
+ * counted and sends that along, so the database moves its 1 to today and the
+ * same person is never in two days' counts. Storage off: not counted at all.
+ */
+export function recordVisitor() {
+  if (!liveCatalogEnabled || notAPerson()) return;
+  const today = indiaDay();
+  let prev: string | null;
+  try {
+    prev = localStorage.getItem("stickypie.lastSeen");
+    if (prev === today) return;
+    localStorage.setItem("stickypie.lastSeen", today);
+  } catch {
+    return;
+  }
+  rpc("record_visitor", { p_prev: prev });
+}
+
+/** Whether this is this browser's first look at a sticker today, and its last look before that. */
+function lookToday(productId: string): { p_new: boolean; p_prev: string | null } {
+  const today = indiaDay();
+  try {
+    const looks: Record<string, string> = JSON.parse(localStorage.getItem("stickypie.looks") || "{}");
+    const prev = looks[productId] ?? null;
+    if (prev === today) return { p_new: false, p_prev: null };
+    delete looks[productId];
+    looks[productId] = today;
+    localStorage.setItem("stickypie.looks", JSON.stringify(Object.fromEntries(Object.entries(looks).slice(-300))));
+    return { p_new: true, p_prev: prev };
+  } catch {
+    return { p_new: false, p_prev: null };
+  }
+}
+
 /** Adds 1 to a sticker's views or saves (record_product_view / _save), once per visit. */
 function countOnce(kind: "view" | "save", productId: string) {
-  if (!liveCatalogEnabled || typeof window === "undefined" || navigator.webdriver) return;
+  if (!liveCatalogEnabled || notAPerson()) return;
   const key = kind === "view" ? "stickypie.viewed" : "stickypie.saved";
   try {
     const seen: string[] = JSON.parse(sessionStorage.getItem(key) || "[]");
@@ -334,18 +382,14 @@ function countOnce(kind: "view" | "save", productId: string) {
   } catch {
     // storage off: still count it
   }
-  fetch(`${SUPABASE_URL}/rest/v1/rpc/record_product_${kind}`, {
-    method: "POST",
-    headers: { apikey: ANON_KEY!, Authorization: `Bearer ${ANON_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ p_product: productId }),
-    keepalive: true,
-  }).catch(() => {});
+  rpc(`record_product_${kind}`, kind === "view" ? { p_product: productId, ...lookToday(productId) } : { p_product: productId });
 }
 
 /**
  * Counts one view of a sticker page for the admin's "Most viewed" list: once
- * per product per browser visit (reloads and going back don't add more). Only
- * the product id is sent — nothing about the shopper.
+ * per product per browser visit (reloads and going back don't add more), and
+ * one person however many times they come back. Only the product id and the
+ * day they last looked are sent — nothing about the shopper.
  */
 export const recordProductView = (productId: string) => countOnce("view", productId);
 
