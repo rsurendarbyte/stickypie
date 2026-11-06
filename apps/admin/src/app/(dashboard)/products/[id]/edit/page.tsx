@@ -3,7 +3,7 @@ import { orderCode } from "@stickypie/shared";
 import ProductForm from "@/components/product-form";
 import WallPosterEditor from "@/components/wall-poster-editor";
 import { getAdminDriver } from "@/lib/data";
-import { isCandidate, openWallOrders } from "@/lib/wall-reshuffle";
+import { isCandidate, isPickable, openWallOrders } from "@/lib/wall-reshuffle";
 
 export const dynamic = "force-dynamic";
 
@@ -33,8 +33,8 @@ export default async function EditProductPage({
           <WallPosterEditor
             wall={product}
             posters={all
-              .filter((p) => isCandidate(p) || product.packItems.includes(p.id))
-              .map((p) => ({ id: p.id, name: p.name, image: p.thumbUrl ?? p.imageUrl, categoryIds: p.categoryIds }))}
+              .filter((p) => isPickable(p) || product.packItems.includes(p.id))
+              .map((p) => ({ id: p.id, name: p.name, image: p.thumbUrl ?? p.imageUrl, categoryIds: p.categoryIds, handPickOnly: isPickable(p) && !isCandidate(p) }))}
             categories={categories}
             openOrders={open.map((o) => ({ id: o.id, code: orderCode(o.id) }))}
           />

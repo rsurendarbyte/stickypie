@@ -8,10 +8,15 @@ import { imageSrc } from "./img";
 import { r2Client, r2Config } from "./r2";
 import { makeDisplay, makeThumb } from "./thumbs";
 
-const NOT_FOR_WALLS = /festival|diwali|tvk/i;
+const NOT_FOR_WALLS = /festival|diwali/i;
+const HAND_PICK_ONLY = /tvk/i;
 
-export const isCandidate = (p: Product) =>
+/** The admin can put these on a wall by hand. */
+export const isPickable = (p: Product) =>
   p.isActive && p.slug.endsWith("-mini-poster") && p.packItems.length === 0 && !p.tags.some((t) => NOT_FOR_WALLS.test(t));
+
+/** These can also land on a wall on their own, by randomizing or as a replacement. */
+export const isCandidate = (p: Product) => isPickable(p) && !p.tags.some((t) => HAND_PICK_ONLY.test(t));
 
 const words = (p: Product) => p.slug.split("-").filter((w) => !["mini", "poster"].includes(w));
 
@@ -123,7 +128,7 @@ export async function saveWallPosters(driver: DataDriver, wall: Product, packIte
   const posters = await driver.getProductsByIds(packItems);
   const changes = packItems.map((id, index) => {
     const poster = posters.find((p) => p.id === id);
-    if (!poster || (id !== wall.packItems[index] && !isCandidate(poster))) throw new Error("Pick only mini posters that are open for sale.");
+    if (!poster || (id !== wall.packItems[index] && !isPickable(poster))) throw new Error("Pick only mini posters that are open for sale.");
     return { index, poster };
   });
   return driver.updateProduct(wall.id, { packItems, ...((await repaint(wall, changes)) ?? {}) });
