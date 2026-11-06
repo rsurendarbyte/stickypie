@@ -15,6 +15,7 @@ export * from "./sheet-pack";
 export * from "./shipping";
 export * from "./home-rails";
 export * from "./home-page";
+export * from "./wall-costs";
 export * from "./festivals";
 export * from "./features";
 export * from "./custom";

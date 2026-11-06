@@ -14,9 +14,11 @@ import {
   rowToOrder,
   rowToProduct,
 } from "./mappers";
+import { CUSTOM_STICKER_BUCKET } from "../custom";
 import { rowToSettings, settingsToRow, type StoreSettings } from "../shipping";
 import { rowToFeatures, type FeatureFlags } from "../features";
 import { rowToHomePage, type HomePage } from "../home-page";
+import { rowToWallCosts, type WallCosts } from "../wall-costs";
 import { rowToHomeRails, type HomeRail } from "../home-rails";
 import { rowToFestivals, type Festival } from "../festivals";
 import {
@@ -43,6 +45,50 @@ function friendly(error: { code?: string; message: string }): Error {
  *  - admin app: the signed-in admin's client (RLS enforces admin-only writes).
  */
 export function createSupabaseDriver(client: SupabaseClient): DataDriver {
+  /**
+   * Deletes an order's own posters. A browser can send the same picture for a second
+   * order, so a file another order still needs stays until that one is finished with.
+   */
+  async function clearOwnPosters(order: Order) {
+    const urls = [...new Set(order.items.flatMap((item) => item.packPosters ?? []).flatMap((p) => (p.own && p.imageUrl ? [p.imageUrl] : [])))];
+    if (!urls.length) return;
+    const unused: string[] = [];
+    for (const url of urls) {
+      const { data, error } = await client
+        .from("order_items")
+        .select("order_id, orders!inner(status)")
+        .contains("pack_posters", JSON.stringify([{ image_url: url }]))
+        .neq("order_id", order.id)
+        .in("orders.status", ["pending", "paid", "packed", "shipped"]);
+      if (error) throw error;
+      if (!data.length) unused.push(url.split(`/${CUSTOM_STICKER_BUCKET}/`)[1]);
+    }
+    if (unused.length) {
+      const { data, error } = await client.storage.from(CUSTOM_STICKER_BUCKET).remove(unused);
+      if (error) throw error;
+      // Storage answers a refused delete with an empty list, not an error.
+      if (data.length < unused.length) throw new Error("The pictures could not be deleted.");
+    }
+    const { error } = await client.rpc("clear_own_posters", { p_order_id: order.id });
+    if (error) throw error;
+  }
+
+  /** Own posters past their days after delivery. There's no timer on this site, so any order's next status change clears them. */
+  async function clearDueOwnPosters() {
+    const { data: settings, error: settingsError } = await client.from("store_settings").select("own_poster_days").eq("id", 1).single();
+    if (settingsError) throw settingsError;
+    const cutoff = new Date(Date.now() - settings.own_poster_days * 86_400_000).toISOString();
+    const { data, error } = await client
+      .from("order_items")
+      .select("order_id, pack_posters, orders!inner(status, delivered_at)")
+      .contains("pack_posters", JSON.stringify([{ own: true }]))
+      .eq("orders.status", "delivered")
+      .lte("orders.delivered_at", cutoff);
+    if (error) throw error;
+    const due = data.filter((item) => item.pack_posters.some((p: { own?: boolean; image_url?: string }) => p.own && p.image_url));
+    for (const id of new Set(due.map((item) => item.order_id))) await clearOwnPosters(await getOrderOrThrow(id));
+  }
+
   /** The features column also holds the home page, so a save must keep what it isn't changing. */
   async function savedFeatures() {
     const { data, error } = await client.from("store_settings").select("features").eq("id", 1).single();
@@ -238,7 +284,7 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
         custom_ref: item.isCustom ? (item.customRef ?? null) : null,
         custom_spec: item.isCustom ? (item.customSpec ?? null) : null,
         pack_posters: item.packPosters?.length
-          ? item.packPosters.map((p) => ({ name: p.name, image_url: p.imageUrl, inches: p.inches }))
+          ? item.packPosters.map((p) => ({ name: p.name, image_url: p.imageUrl, inches: p.inches, ...(p.own ? { own: true } : {}) }))
           : null,
       }));
       const { error: itemsError } = await client.from("order_items").insert(items);
@@ -319,7 +365,13 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
       }
       const { error } = await client.from("orders").update(changes).eq("id", id);
       if (error) throw friendly(error);
+      // The order has moved on whatever happens here, so a failed cleanup is only logged.
+      await clearDueOwnPosters().catch((err) => console.error("[own-posters] not deleted", err));
       return getOrderOrThrow(id);
+    },
+
+    async clearOwnPosters(id) {
+      await clearOwnPosters(await getOrderOrThrow(id));
     },
 
     async cancelOrder(id) {
@@ -488,6 +540,23 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
         .single();
       if (error) throw friendly(error);
       return rowToFeatures(data.features);
+    },
+
+    async getWallCosts() {
+      const { data, error } = await client.from("store_settings").select("features").eq("id", 1).maybeSingle();
+      if (error) return rowToWallCosts(null);
+      return rowToWallCosts(data?.features?.wallCosts);
+    },
+
+    async updateWallCosts(costs: WallCosts) {
+      const { data, error } = await client
+        .from("store_settings")
+        .update({ features: { ...(await savedFeatures()), wallCosts: costs } })
+        .eq("id", 1)
+        .select("features")
+        .single();
+      if (error) throw error;
+      return rowToWallCosts(data.features?.wallCosts);
     },
 
     async getHomePage() {

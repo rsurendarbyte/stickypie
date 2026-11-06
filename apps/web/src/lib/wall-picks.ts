@@ -4,7 +4,8 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import { lineKey, useCart, type CartProduct } from "@/components/cart-context";
-import { CUSTOM_PRODUCT_PREFIX, packPosterSizes, packSizeSummary, type Product } from "@stickypie/shared";
+import { CUSTOM_PRODUCT_PREFIX, isOwnPoster, packPosterSizes, packSizeSummary, type Product } from "@stickypie/shared";
+import { ownPosterGone, useOwnPosters } from "./own-posters";
 import { wallSpots } from "./poster";
 import { posterImage } from "./poster-images";
 
@@ -72,7 +73,9 @@ export const wallLineId = (setId: string) => `${CUSTOM_PRODUCT_PREFIX}wall-${set
 
 /** The cart line for a set with the shopper's posters: same wall, same price. */
 function wallCartLine(product: Product, posters: string[], price: number): CartProduct {
-  const first = posterImage(posters[0]) ?? product.imageUrl;
+  // An own poster's picture only lives on this page, so a saved cart line can't hold it.
+  const ours = posters.filter((id) => !isOwnPoster(id));
+  const first = (ours[0] && posterImage(ours[0])) ?? product.imageUrl;
   return {
     productId: wallLineId(product.id),
     size: null,
@@ -87,7 +90,7 @@ function wallCartLine(product: Product, posters: string[], price: number): CartP
     customKind: "wall",
     customSpec: { kind: "wall", layout: "set", posters, set: product.id },
     wallPreview: wallSpots(product).flatMap((spot, i) => {
-      const src = posterImage(posters[i]);
+      const src = isOwnPoster(posters[i]) ? null : posterImage(posters[i]);
       return src ? [{ src, ...spot }] : [];
     }),
   };
@@ -100,6 +103,7 @@ function wallCartLine(product: Product, posters: string[], price: number): CartP
 export function useWallLine(product: Product, price: number) {
   const { items, setLine, remove } = useCart();
   const posters = useWallPicks(product.id);
+  const ownLoaded = useOwnPosters(posters);
   const gaps = wallGaps(posters);
   const line = posters ? wallCartLine(product, posters, price) : null;
   const inCart = items.find((item) => item.productId === wallLineId(product.id));
@@ -114,6 +118,12 @@ export function useWallLine(product: Product, price: number) {
     else if (saved && posters?.join() !== saved.join()) setLine(line);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saved?.join(), posters?.join(), Boolean(plain)]);
+
+  // An own poster this browser no longer has: its spot opens up to be filled again.
+  useEffect(() => {
+    if (posters?.some(ownPosterGone)) save({ ...picks, [product.id]: posters.map((id) => (ownPosterGone(id) ? "" : id)) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ownLoaded, posters?.join()]);
 
   const reset = () => {
     resetPicks(product.id);

@@ -1,4 +1,5 @@
 // Derived WebP renditions of the artwork, uploaded to R2:
+//   tiny    (240px,  tiny/)     — very small spots: hero wall tiles, search, order walls.
 //   thumb   (480px,  thumbs/)   — product cards, which show ~200px stickers.
 //   display (1024px, display/)  — hero and product-page art: sharp on the
 //     biggest stage at 2× pixel density, a fraction of the full PNG's weight.
@@ -11,9 +12,11 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { imageSrc } from "./img";
 import { r2Client, r2Config } from "./r2";
 
+export const TINY_MAX_PX = 240;
 export const THUMB_MAX_PX = 480;
 export const DISPLAY_MAX_PX = 1024;
 const RENDITIONS = {
+  tiny: { maxPx: TINY_MAX_PX, quality: 72, prefix: "tiny" },
   thumb: { maxPx: THUMB_MAX_PX, quality: 80, prefix: "thumbs" },
   display: { maxPx: DISPLAY_MAX_PX, quality: 82, prefix: "display" },
 } as const;
@@ -83,6 +86,8 @@ async function makeRendition(imageUrl: string, kind: Rendition): Promise<string 
   }
 }
 
+/** Smallest picture, for tiny spots. */
+export const makeTiny = (imageUrl: string) => makeRendition(imageUrl, "tiny");
 /** Small card thumbnail. */
 export const makeThumb = (imageUrl: string) => makeRendition(imageUrl, "thumb");
 /** Mid-size hero / product-page art. */

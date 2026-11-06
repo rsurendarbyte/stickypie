@@ -1277,6 +1277,78 @@ html[data-lite]:not([data-lite="net"]) .sticker-wall-down {
   animation: none;
 }
 
+/* Hero avatar slide: three cards fanned out in front of the wall.
+   .hero-fan is the point the cards turn around; each slot is rotated around it
+   and pushed out by --r. Sizes run on --u, 1% of the art box's height (less on
+   a narrow box), so the fan fits every device. */
+.hero-fans {
+  position: absolute;
+  inset: 0;
+  container-type: size;
+}
+/* a soft light behind the fan lifts it off the wall of same-size tiles */
+.hero-fans::before {
+  content: "";
+  position: absolute;
+  inset: -12% -6%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.82) 55%, transparent);
+}
+.hero-fan {
+  --u: min(1cqh, 0.66cqw);
+  --w: 54;
+  --h: 81;
+  --r: 56;
+  --step: 22deg;
+  position: absolute;
+  left: 50cqw;
+  top: calc(50cqh + 90 * var(--u));
+  width: 0;
+  height: 0;
+}
+.hero-fan-slot {
+  position: absolute;
+  left: calc(var(--w) * var(--u) / -2);
+  bottom: 0;
+  width: calc(var(--w) * var(--u));
+  height: calc(var(--h) * var(--u));
+  transform-origin: 50% 100%;
+  transform: rotate(calc((var(--i) - (var(--n) - 1) / 2) * var(--step)))
+    translateY(calc(var(--r) * var(--u) * -1));
+  animation: hero-fan-open 0.7s cubic-bezier(0.2, 0.8, 0.3, 1.05) backwards;
+  animation-delay: calc(var(--i) * 45ms);
+}
+/* From a closed stack; the end point is the slot's own transform, so with no
+   animation (lite mode, reduced motion) the fan simply stands open. */
+@keyframes hero-fan-open {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--r) * var(--u) * -1));
+  }
+}
+.hero-fan-card {
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.3, 1.05);
+}
+.hero-fan-card.is-up {
+  transform: translateY(-7%);
+}
+@media (hover: hover) {
+  .hero-fan-slot:hover {
+    z-index: 3 !important; /* over the inline order, so a side card comes to the front */
+  }
+  .hero-fan-card:hover {
+    transform: translateY(-9%) scale(1.03);
+    transition-duration: 0.25s;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-fan-slot {
+    animation: none;
+  }
+  .hero-fan-card {
+    transition: none;
+  }
+}
+
 /* Sticker wall: now and then a sticker peels — its top-right corner folds
    back along a diagonal, showing the white backing paper in the sticker's own
    die-cut shape, then smooths down again. --pk is how far it has peeled (0–1
@@ -1969,4 +2041,45 @@ html[data-lite]:not([data-lite="net"]) .wall-slot.is-up {
     animation: none;
     opacity: 0;
   }
+}
+
+/* The zoom slider on the own poster fit screen: --at is how far along it is. */
+.fit-zoom {
+  appearance: none;
+  height: 36px;
+  background: transparent;
+  cursor: pointer;
+}
+.fit-zoom::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--color-brand) var(--at), rgba(16, 24, 40, 0.14) var(--at));
+}
+.fit-zoom::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(16, 24, 40, 0.14);
+}
+.fit-zoom::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-brand);
+}
+.fit-zoom::-webkit-slider-thumb {
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  margin-top: -10px;
+  border: 3px solid var(--color-brand);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(16, 24, 40, 0.25);
+}
+.fit-zoom::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 3px solid var(--color-brand);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(16, 24, 40, 0.25);
 }

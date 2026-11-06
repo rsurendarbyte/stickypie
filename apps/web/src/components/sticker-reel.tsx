@@ -16,7 +16,7 @@ import CartStepper from "./cart-stepper";
 import PageLink from "./page-link";
 import LabelModal from "./label-modal";
 import FinishPicker from "./finish-picker";
-import WallSizeMap, { WallPosterSheet, WallReset, WallViewSwitch, type WallView } from "./wall-size-map";
+import WallSizeMap, { OwnPosterButton, WallPosterSheet, WallReset, WallViewSwitch, type WallView } from "./wall-size-map";
 import WallStage from "./wall-stage";
 import WallTip from "./wall-tip";
 import { toCartProduct, useLineFinish, useSizeChoice } from "./size-picker";
@@ -277,6 +277,8 @@ function ReelItem({
   const [zoom, setZoom] = useState(false);
   const [wallView, setWallView] = useState<WallView>("wall");
   const [spot, setSpot] = useState<number | null>(null);
+  const [choosing, setChoosing] = useState(false);
+  const ownFile = useRef<HTMLInputElement>(null);
   // The wall while it's being arranged: it reaches the shopper's picks and the cart on Done.
   const [draft, setDraft] = useState<string[] | null>(null);
   const arranging = draft !== null;
@@ -310,6 +312,12 @@ function ReelItem({
     if (draft && draft.join() !== (picks ?? product.packItems).join()) setPosters(product, draft);
     setDraft(null);
   }
+
+  const chooseOwn = (i: number) => {
+    setChoosing(false);
+    setSpot(i);
+    ownFile.current?.click();
+  };
 
   const emptySpot = (i: number) =>
     arranging ? setDraft((now) => now && now.map((id, n) => (n === i ? "" : id))) : pickPoster(product, i, "");
@@ -373,14 +381,24 @@ function ReelItem({
             {checked && wallView === "wall" && !arranging && <WallTip />}
             <div className={`size-full ${wallView !== "wall" ? "invisible" : ""}`}>
             {/* The set as sold draws at once from the page's own posters. A shopper's own picks, and changing them, wait for the checked catalog. */}
-            {picks && !checked ? <span className="block size-full animate-pulse rounded-2xl bg-panel" /> : <WallStage bare priority product={product} posters={posters} onRemove={checked ? emptySpot : undefined} onAdd={checked ? setSpot : undefined} onSwap={checked ? (a, b) => setDraft((now) => now && swapSpots(now, a, b)) : undefined} arranging={arranging} onArrange={checked ? () => setDraft(picks ?? product.packItems) : undefined} src={product.displayUrl ?? product.imageUrl} alt={product.name} className={out ? "opacity-50 saturate-50" : ""} />}
+            {picks && !checked ? <span className="block size-full animate-pulse rounded-2xl bg-panel" /> : <WallStage bare priority product={product} posters={posters} onRemove={checked ? emptySpot : undefined} onAdd={checked ? setSpot : undefined} onSwap={checked ? (a, b) => setDraft((now) => now && swapSpots(now, a, b)) : undefined} arranging={arranging} onArrange={checked ? () => setDraft(picks ?? product.packItems) : undefined} onFit={checked ? setSpot : undefined} onChoose={choosing ? chooseOwn : undefined} src={product.displayUrl ?? product.imageUrl} alt={product.name} className={out ? "opacity-50 saturate-50" : ""} />}
             </div>
             </div>
             {/* below the wall, so nothing sits on a poster or its close button */}
             <div className="relative shrink-0" onPointerUp={(e) => e.stopPropagation()}>
               {/* stays in the layout while arranging, so the wall doesn't change size under the finger */}
+              <div className={`flex justify-end px-1.5 pb-1.5 ${arranging || !checked || out || wallView !== "wall" ? "invisible" : ""}`}>
+                <OwnPosterButton choosing={choosing} onChange={setChoosing} glass />
+              </div>
               <div className={`flex items-start justify-between gap-1 px-1.5 pb-1 ${arranging ? "invisible" : ""}`}>
-                <WallViewSwitch view={wallView} onChange={setWallView} glass />
+                <WallViewSwitch
+                  view={wallView}
+                  onChange={(view) => {
+                    setWallView(view);
+                    setChoosing(false);
+                  }}
+                  glass
+                />
                 <div className="flex shrink-0 gap-1.5">{actions}</div>
               </div>
             </div>
@@ -410,6 +428,7 @@ function ReelItem({
           spot={spot}
           onPick={(at, id) => (arranging ? setDraft((now) => now && now.map((old, n) => (n === at ? id : old))) : pickPoster(product, at, id))}
           onClose={() => setSpot(null)}
+          fileInput={ownFile}
         />
       )}
 

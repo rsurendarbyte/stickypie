@@ -4,10 +4,10 @@ import SmartImg from "./smart-img";
 import PageLink from "./page-link";
 import ImageZoom from "./image-zoom";
 import { isInternalTag, isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel, wallSize } from "@/lib/poster";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BadgeCheck, Car, ChevronsUpDown, Frame, Gift, PackageX, Ruler, Sparkles, Truck } from "lucide-react";
 import type { Product } from "@stickypie/shared";
-import { LOW_STOCK_THRESHOLD, discountPercent, formatINR, packPosterSizes, packSizeSummary, posterSizeLabel } from "@stickypie/shared";
+import { LOW_STOCK_THRESHOLD, OWN_POSTER_NAME, discountPercent, formatINR, isOwnPoster, packPosterSizes, packSizeSummary, posterSizeLabel } from "@stickypie/shared";
 import { pickPoster, swapPosters, useWallLine } from "@/lib/wall-picks";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
 import { useSkinSeed } from "@/lib/skin-seed";
@@ -21,10 +21,11 @@ import ProductCardSkeleton from "./product-card-skeleton";
 import ProductDetails from "./product-details";
 import ProductReviews, { RatingSummary } from "./product-reviews";
 import ProductPurchase from "./product-purchase";
-import LazyRail from "./lazy-rail";
-import { rememberPackPosters } from "@/lib/poster-images";
+import LazyRail, { WALL_CARD_WIDTH } from "./lazy-rail";
+import { wallEffect } from "@/lib/wall-effects";
+import { posterImage, rememberPackPosters } from "@/lib/poster-images";
 import FinishPicker from "./finish-picker";
-import WallSizeMap, { WallPosterSheet, WallViewSwitch, usePosterCatalog, type WallView } from "./wall-size-map";
+import WallSizeMap, { OwnPosterButton, WallPosterSheet, WallViewSwitch, usePosterCatalog, type WallView } from "./wall-size-map";
 import WallStage from "./wall-stage";
 import WallTip from "./wall-tip";
 import SizePicker, { useLineFinish, useSizeChoice } from "./size-picker";
@@ -64,7 +65,8 @@ export default function ProductDetailClient({
 
   const rotate = rotationFor(product.slug);
   // Same sticker sheet / cutting mat look as the home hero — new every load.
-  const skin = cardSkinFor(product.slug, useSkinSeed());
+  const seed = useSkinSeed();
+  const skin = cardSkinFor(product.slug, seed);
   const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product);
   const off = discountPercent(price, compareAtPrice);
   const out = product.stock === 0;
@@ -80,6 +82,8 @@ export default function ProductDetailClient({
   const [zoom, setZoom] = useState(false);
   const [wallView, setWallView] = useState<WallView>("wall");
   const [spot, setSpot] = useState<number | null>(null);
+  const [choosing, setChoosing] = useState(false);
+  const ownFile = useRef<HTMLInputElement>(null);
   const { posters: picks } = useWallLine(product, price);
   const posterCatalog = usePosterCatalog();
   // What's inside follows the shopper's picks.
@@ -88,6 +92,10 @@ export default function ProductDetailClient({
         const own = packPosters.find((p) => p.id === id);
         const p = posterCatalog.find((c) => c.id === id);
         const inches = packPosterSizes(product)[i] ?? 6;
+        if (isOwnPoster(id)) {
+          const imageUrl = posterImage(id);
+          return imageUrl ? [{ id, slug: id, name: OWN_POSTER_NAME, imageUrl, active: false, inches }] : [];
+        }
         if (own) return [{ ...own, inches }];
         return p ? [{ id: p.id, slug: p.slug, name: p.name, imageUrl: p.thumbUrl ?? p.imageUrl, active: true, inches }] : [];
       })
@@ -201,6 +209,16 @@ export default function ProductDetailClient({
                 onRemove={checked ? (i) => pickPoster(product, i, "") : undefined}
                 onAdd={checked ? setSpot : undefined}
                 onSwap={checked ? (a, b) => swapPosters(product, a, b) : undefined}
+                onFit={checked ? setSpot : undefined}
+                onChoose={
+                  choosing
+                    ? (i) => {
+                        setChoosing(false);
+                        setSpot(i);
+                        ownFile.current?.click();
+                      }
+                    : undefined
+                }
                 src={product.displayUrl ?? product.imageUrl}
                 alt={product.name}
                 className={out || unavailable ? "opacity-50 saturate-50" : ""}
@@ -232,9 +250,16 @@ export default function ProductDetailClient({
           )}
         </div>
         {wall && (
-          <div className="mt-2 flex justify-center">
-            <WallViewSwitch view={wallView} onChange={setWallView} />
-            <WallPosterSheet product={product} posters={picks} spot={spot} onClose={() => setSpot(null)} />
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+            <WallViewSwitch
+              view={wallView}
+              onChange={(view) => {
+                setWallView(view);
+                setChoosing(false);
+              }}
+            />
+            {checked && !out && !unavailable && wallView === "wall" && <OwnPosterButton choosing={choosing} onChange={setChoosing} />}
+            <WallPosterSheet product={product} posters={picks} spot={spot} onClose={() => setSpot(null)} fileInput={ownFile} />
           </div>
         )}
         {/* Below the art, so it never covers it or the size ruler. Phones skip it to keep
@@ -323,8 +348,13 @@ export default function ProductDetailClient({
 
           <ul className="mt-4 grid max-w-md grid-cols-2 gap-2 text-xs text-fog">
             <li className="flex items-center gap-2">
-              <BadgeCheck className="size-4 text-mint" /> {poster ? "300 GSM poster paper" : <>Die-cut, peel &amp; stick</>}
+              <BadgeCheck className="size-4 text-mint" /> {poster ? "270 GSM glossy photo paper" : <>Die-cut, peel &amp; stick</>}
             </li>
+            {poster && (
+              <li className="col-span-2 flex items-center gap-2">
+                <BadgeCheck className="size-4 text-mint" /> Studio quality, scratch resistant, German RC paper
+              </li>
+            )}
             <li className="flex items-center gap-2">
               {poster ? (
                 <>
@@ -392,12 +422,19 @@ export default function ProductDetailClient({
         <div className="mt-6 -mx-4 sm:-mx-8">
           <LazyRail
             eager={false}
+            wide={isPack}
             title="More like this"
             href={category ? `/stickers/${category.slug}` : "/stickers"}
           >
             {relatedLoaded
-              ? moreLikeThis.map((p) => <ProductCard key={p.id} product={p} />)
-              : Array.from({ length: 5 }, (_, i) => <ProductCardSkeleton key={i} index={i} />)}
+              ? moreLikeThis.map((p) =>
+                  isPack ? (
+                    <ProductCard key={p.id} product={p} width={WALL_CARD_WIDTH} wallEffect={wallEffect(0, seed)} />
+                  ) : (
+                    <ProductCard key={p.id} product={p} />
+                  ),
+                )
+              : Array.from({ length: 5 }, (_, i) => <ProductCardSkeleton key={i} index={i} {...(isPack ? { width: WALL_CARD_WIDTH } : {})} />)}
           </LazyRail>
         </div>
       )}

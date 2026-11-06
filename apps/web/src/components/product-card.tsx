@@ -2,7 +2,7 @@
 
 import PageLink from "./page-link";
 import { useState } from "react";
-import { Check, Frame, Ruler, ShoppingBag } from "lucide-react";
+import { Check, Frame, ImagePlus, Ruler, ShoppingBag } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR } from "@stickypie/shared";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
@@ -294,7 +294,15 @@ function PackCard({ product, width, wallEffect = "sweep" }: { product: Product; 
         <PageLink href={`/sticker/${product.slug}`} className="block after:absolute after:inset-0">
           <p className="truncate font-display text-[15px] leading-tight font-bold text-snow">{packTitle(product.name)}</p>
         </PageLink>
-        {design.posterCount && <p className="mt-0.5 truncate text-[11px] text-fog">{product.packItems.length} posters</p>}
+        <div className="mt-0.5 flex items-center justify-between gap-2">
+          {design.posterCount && <p className="min-w-0 truncate text-[11px] text-fog">{product.packItems.length} posters</p>}
+          {/* beside the text: every wall fills its picture differently, so no spot on it stays clear */}
+          {wall && !out && (
+            <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-mint/10 px-2 py-0.5 text-[10px] font-bold whitespace-nowrap text-mint ring-1 ring-mint/25">
+              <ImagePlus className="size-3" /> Add your own photo
+            </span>
+          )}
+        </div>
         {design.posterSizes && <p className="truncate text-[11px] font-semibold text-fog">{wallPosterSizes(product)}</p>}
       </div>
 

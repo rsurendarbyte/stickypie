@@ -22,6 +22,8 @@ export type Product = {
   imageUrl: string;
   /** Small WebP for cards (made by the admin); null → use imageUrl. */
   thumbUrl: string | null;
+  /** 240px WebP for very small spots; null until built (use thumbUrl). */
+  tinyUrl: string | null;
   /** Mid-size WebP for the hero / product page art; null → use imageUrl. */
   displayUrl: string | null;
   tags: string[];
@@ -92,7 +94,14 @@ export type OrderItem = {
 };
 
 /** One poster of an ordered poster pack. */
-export type PackPoster = { name: string; imageUrl: string; /** Longest side, inches (2:3: 6 = 4 × 6 in, 9 = 6 × 9 in). */ inches: number };
+export type PackPoster = {
+  name: string;
+  imageUrl: string;
+  /** Longest side, inches (2:3: 6 = 4 × 6 in, 9 = 6 × 9 in). */
+  inches: number;
+  /** A picture the shopper added themselves, not one of ours. */
+  own?: boolean;
+};
 
 export type CustomerInfo = {
   name: string;
@@ -183,6 +192,7 @@ export type ProductInput = {
   packItems?: string[];
   packSizes?: number[];
   thumbUrl?: string | null;
+  tinyUrl?: string | null;
   displayUrl?: string | null;
 };
 
@@ -241,6 +251,7 @@ import type { StoreSettings } from "./shipping";
 import type { FeatureFlags } from "./features";
 import type { HomeRail } from "./home-rails";
 import type { HomePage } from "./home-page";
+import type { WallCosts } from "./wall-costs";
 import type { Festival } from "./festivals";
 import type { ContactInput, ContactMessage, NewReviewInput, Review, ReviewStatus } from "./feedback";
 import type { Coupon, NewCouponInput } from "./thanks";
@@ -274,6 +285,8 @@ export interface DataDriver {
   markOrderFailed(id: string, note?: string | null): Promise<Order>;
   /** Fulfillment transitions only: paid→packed→shipped→delivered. */
   /** Courier details are saved when marking an order shipped. */
+  /** Deletes the pictures of an order's own posters; the order keeps their names and sizes. */
+  clearOwnPosters(id: string): Promise<void>;
   updateOrderStatus(
     id: string,
     status: "packed" | "shipped" | "delivered",
@@ -315,6 +328,8 @@ export interface DataDriver {
   /** The hero and the page's sections (DEFAULT_HOME_PAGE until edited). */
   getHomePage(): Promise<HomePage>;
   updateHomePage(page: HomePage): Promise<HomePage>;
+  getWallCosts(): Promise<WallCosts>;
+  updateWallCosts(costs: WallCosts): Promise<WallCosts>;
   /** Festivals & special days (DEFAULT_FESTIVALS until edited). */
   getFestivals(): Promise<Festival[]>;
   updateFestivals(festivals: Festival[]): Promise<Festival[]>;

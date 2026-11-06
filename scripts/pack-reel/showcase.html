@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Product Reel Studio · StickyPie</title>
+<style>
+  :root { --bg: #fdf6f1; --panel: #fff; --ink: #1d1816; --muted: #6e625c; --line: #eadfd7; --brand: #f9530a; --yellow: #ffc834; --mint: #12a150; --red: #d92d20; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 28px 20px 210px; }
+  h1 { margin: 0; font-size: 28px; letter-spacing: -0.02em; }
+  h1 span { color: var(--brand); }
+  .lead { margin: 4px 0 20px; color: var(--muted); }
+  h2 { font-size: 17px; margin: 28px 0 10px; display: flex; align-items: center; gap: 10px; }
+  h2 .n { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 13px; flex: none; }
+  h2 small { color: var(--muted); font-weight: 400; }
+  h3 { font-size: 13px; margin: 16px 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .grow { flex: 1; }
+  button, .upload { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 7px 12px; }
+  button:hover { border-color: #cdbfb5; }
+  input[type=search], input[type=text] { font: inherit; border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; background: #fff; min-width: 220px; }
+  .styles { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 12px; }
+  .style { position: relative; text-align: left; padding: 0; overflow: hidden; border: 2px solid var(--line); border-radius: 14px; background: #fff; }
+  .style.on { border-color: var(--brand); box-shadow: 0 0 0 3px #f9530a26; }
+  .style video, .style .ph { display: block; width: 100%; aspect-ratio: 9/14; object-fit: cover; object-position: top; background: #eee6df; }
+  .style .ph { display: grid; place-items: center; color: var(--muted); font-size: 12px; }
+  .style b { display: block; padding: 8px 10px 0; }
+  .style small { display: block; padding: 0 10px 10px; color: var(--muted); font-size: 12px; line-height: 1.35; }
+  .style .tick { position: absolute; top: 8px; right: 8px; width: 24px; height: 24px; border-radius: 50%; background: var(--brand); color: #fff; display: none; place-items: center; font-weight: 700; }
+  .style.on .tick { display: grid; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .chips button { border-radius: 999px; padding: 5px 12px; font-size: 13px; font-weight: 600; }
+  .chips button.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .items { display: grid; grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 10px; }
+  .item { position: relative; padding: 0; text-align: left; overflow: hidden; border: 2px solid var(--line); border-radius: 14px; background: #fff; }
+  .item img { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; background: #f7f3ee; padding: 6px; }
+  .item span.meta { display: block; padding: 6px 8px 8px; }
+  .item b { display: block; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item small { color: var(--muted); font-size: 12px; }
+  .item.on { border-color: var(--brand); box-shadow: 0 0 0 3px #f9530a26; }
+  .item .num { position: absolute; top: 7px; left: 7px; width: 26px; height: 26px; border-radius: 50%; background: var(--brand); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+  .bar { position: fixed; left: 0; right: 0; bottom: 0; background: #fffffff5; backdrop-filter: blur(8px); border-top: 1px solid var(--line); }
+  .bar .in { max-width: 1180px; margin: 0 auto; padding: 10px 20px; }
+  .tray { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; min-height: 8px; }
+  .tray div { position: relative; flex: none; width: 58px; height: 58px; border: 1px solid var(--line); border-radius: 10px; background: #f7f3ee; cursor: grab; }
+  .tray img { width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+  .tray button { position: absolute; top: -1px; right: -1px; width: 20px; height: 20px; padding: 0; border-radius: 50%; border: 0; background: var(--ink); color: #fff; font-size: 12px; line-height: 20px; }
+  .make { background: var(--yellow); border: 0; font-weight: 700; padding: 12px 22px; border-radius: 12px; font-size: 16px; box-shadow: 0 3px 0 #d9a21f; }
+  .make:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+  .jobs { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+  .job { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .job video { display: block; width: 100%; aspect-ratio: 9/16; background: #111; }
+  .job .wait { aspect-ratio: 9/16; display: grid; place-items: center; text-align: center; color: var(--muted); background: #f7f1ec; padding: 16px; }
+  .job .info { padding: 9px 11px 11px; }
+  .job .info b { display: block; font-size: 14px; }
+  .job .info small { color: var(--muted); }
+  .job .dl { display: flex; gap: 8px; margin-top: 8px; }
+  .job .dl a { flex: 1; text-align: center; text-decoration: none; color: var(--ink); border: 1px solid var(--line); border-radius: 9px; padding: 6px 0; font-size: 13px; font-weight: 600; }
+  .job .dl button { color: var(--red); padding: 6px 10px; font-size: 13px; font-weight: 600; border-radius: 9px; }
+  .job .dl a.main { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .spin { width: 34px; height: 34px; border: 4px solid #eadfd7; border-top-color: var(--brand); border-radius: 50%; animation: spin 0.9s linear infinite; margin: 0 auto 10px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  pre { white-space: pre-wrap; font-size: 11px; color: var(--red); margin: 6px 0 0; max-height: 120px; overflow: auto; }
+  .empty { color: var(--muted); padding: 10px 0; }
+  .cap textarea { width: 100%; height: 130px; margin-top: 8px; resize: vertical; font: 12px/1.45 -apple-system, BlinkMacSystemFont, sans-serif; border: 1px solid var(--line); border-radius: 9px; padding: 7px 8px; background: #fbf8f5; color: var(--ink); }
+  .cap textarea + button { display: block; margin-bottom: 4px; }
+  .cap button { padding: 5px 10px; font-size: 13px; font-weight: 600; }
+  .cap button.copied { background: var(--mint); color: #fff; border-color: var(--mint); }
+  .note { color: var(--muted); font-size: 13px; }
+  #timing { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+  #timing input[type=number] { font: inherit; width: 72px; border: 1px solid var(--line); border-radius: 8px; padding: 5px 7px; }
+  .line { display: flex; height: 26px; border-radius: 8px; overflow: hidden; margin-bottom: 10px; background: #f7f1ec; }
+  .line span { display: grid; place-items: center; overflow: hidden; min-width: 2px; font-size: 11px; font-weight: 700; color: #fff; border-right: 1px solid #fff; }
+  .times { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; margin-top: 10px; }
+  .times div { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 5px 8px; min-width: 0; }
+  .times img { width: 38px; height: 38px; object-fit: contain; flex: none; }
+  .times b { flex: 1; min-width: 0; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .times button { width: 30px; height: 30px; padding: 0; flex: none; }
+  .warn { color: var(--red); }
+  #clipbox { background: #fff; border: 1px dashed #cdbfb5; border-radius: 12px; padding: 12px; margin-top: 10px; }
+  @media (max-width: 600px) { input[type=text], input[type=search] { min-width: 0; width: 100%; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Product Reel <span>Studio</span></h1>
+  <p class="lead">Sell several products in one reel: stickers, posters and walls together. Made for Instagram Reels and YouTube Shorts: 9:16, under a minute, words kept clear of the app buttons. No sound, so add a trending one in the app.</p>
+
+  <h2><span class="n">1</span> Pick a template <small>— hover to play the sample</small></h2>
+  <h3>UGC templates</h3>
+  <div class="styles" id="ugc"></div>
+  <h3>Animated</h3>
+  <div class="styles" id="styles"></div>
+
+  <h2><span class="n">2</span> Your words</h2>
+  <div class="row">
+    <input type="text" id="hook" maxlength="90" class="grow" />
+    <input type="text" id="offer" maxlength="60" class="grow" placeholder="Offer on the last screen, e.g. a sale you're running (optional)" />
+    <label class="row"><input type="checkbox" id="prices" checked /> Show prices and savings</label>
+  </div>
+  <div id="clipbox" hidden>
+    <div class="row">
+      <label class="upload"><input type="file" id="clip" accept="video/*,image/*" hidden /> Add your video or photo</label>
+      <span class="note" id="clipname">Phone video or photo. Up to 20 seconds of a video is used, cropped to 9:16.</span>
+    </div>
+  </div>
+
+  <h2><span class="n">3</span> Pick products <small>— in the order they should show; drag in the tray to change it</small></h2>
+  <div class="chips" id="kinds"></div>
+  <div class="chips" id="cats"></div>
+  <div class="row" style="margin-bottom:12px">
+    <input type="search" id="q" placeholder="Search products…" />
+    <button id="lucky">Pick 6 at random from these</button>
+    <button id="walls">Pick 4 walls</button>
+    <button id="none">Clear</button>
+    <span class="grow"></span>
+    <small id="count" class="note"></small>
+  </div>
+  <div class="items" id="items"><p class="empty">Loading products from the shop…</p></div>
+
+  <h2><span class="n">4</span> Set the timing <small>— how long each product stays before the next</small></h2>
+  <div id="timing">
+    <div class="line" id="line"></div>
+    <div class="row">
+      <label class="row">All products <input type="number" id="allsecs" min="0.3" max="10" step="0.1" placeholder="auto" /> s</label>
+      <label class="row" id="introrow">Opening <input type="number" id="intro" min="0" max="4" step="0.1" /> s</label>
+      <label class="row">End screen <input type="number" id="end" min="2" max="10" step="0.5" /> s</label>
+      <button id="autotime">Back to automatic</button>
+      <span class="grow"></span>
+      <b id="total"></b>
+    </div>
+    <div class="times" id="times"></div>
+  </div>
+
+  <div id="making" hidden>
+    <h2><span class="n">5</span> Making now</h2>
+    <div class="jobs" id="jobs"></div>
+  </div>
+
+  <h2><span class="n">✓</span> Your reels <small>— newest first, each with its Instagram caption</small></h2>
+  <div class="jobs" id="library"></div>
+  <p class="empty" id="nolib">Reels you make show up here, ready to play, copy the caption and download.</p>
+</main>
+
+<div class="bar"><div class="in">
+  <div class="tray" id="tray"></div>
+  <div class="row">
+    <div class="grow" id="summary"></div>
+    <button class="make" id="make" disabled>Make reel</button>
+  </div>
+</div></div>
+
+<script>
+const UGC = [
+  { id: "pov", name: "POV", text: "Jump cuts with a POV line, phone-shot look.", hook: "POV: your room glow-up starts at {low}" },
+  { id: "picks", name: "Top picks", text: "A numbered list builds up under each product.", hook: "{n} picks from {low}" },
+  { id: "parcel", name: "Parcel", text: "A parcel opens and the products come out one by one.", hook: "Your next parcel, from {low}" },
+  { id: "thisorthat", name: "This or that", text: "Two products at a time, comment 1 or 2.", hook: "Which one? Comment 1 or 2" },
+  { id: "wishlist", name: "Wishlist", text: "A phone notes page, products ticked off.", hook: "Wishlist, from {low}" },
+  { id: "myclip", name: "My clip", text: "Your own video or photo, with product cards over it.", hook: "Look what {low} gets you" },
+];
+const ANIMATED = [
+  { id: "walltour", name: "Wall tour", text: "Wall after wall, each one's posters going up on its own paint. Best with Walls.", hook: "Pick your wall, from {low}" },
+  { id: "spotlight", name: "Spotlight", text: "Each product springs in on its own colour.", hook: "New drops from {low}" },
+  { id: "slap", name: "Slap", text: "Products slap down with a thud until the screen is full.", hook: "New drops from {low}" },
+  { id: "carousel", name: "Carousel", text: "A 3D carousel turns on a dark stage.", hook: "New drops from {low}" },
+  { id: "swipe", name: "Swipe deck", text: "Shop cards swiped away one by one.", hook: "New drops from {low}" },
+  { id: "beat", name: "Beat", text: "Fast cuts on brand colours; great with a beat.", hook: "New drops from {low}" },
+  { id: "scroll", name: "Scroll wall", text: "Tilted columns of products roll past each other.", hook: "New drops from {low}" },
+];
+const ALL = [...UGC, ...ANIMATED];
+// Each template's automatic seconds per product (same sums as showcase.py).
+const fit = (v, low, high) => Math.max(low, Math.min(high, v));
+const AUTO = {
+  spotlight: (n) => fit(13 / n, 0.95, 1.7), slap: (n) => fit(8 / n, 0.42, 0.8), carousel: (n) => fit(12 / n, 1, 1.6),
+  swipe: (n) => fit(12 / n, 0.95, 1.5), beat: (n) => fit(8 / n, 0.48, 0.72), scroll: (n) => fit(n * 0.9, 6, 10) / n,
+  walltour: (n) => fit(16 / n, 1.9, 2.8), pov: (n) => fit(12 / n, 1, 1.5), picks: (n) => fit(13 / n, 1.1, 1.7),
+  parcel: (n) => fit(13 / n, 1.15, 1.7), thisorthat: (n) => fit(12 / Math.ceil(n / 2), 1.6, 2.3) / 2,
+  wishlist: (n) => fit(8.5 / n, 0.7, 1), myclip: (n) => 12 / n,
+};
+const LINE = ["#f9530a", "#1d1816", "#12a150", "#2878c8", "#e12d78", "#a15c00"];
+const KINDS = [["all", "All"], ["sticker", "Stickers"], ["poster", "Posters"], ["wall", "Walls"]];
+const MAX = 16;
+
+let products = [];
+let reels = [];
+let style = localStorage.getItem("product-reel-style") || "pov";
+let kind = "all", cat = "all", clip = null;
+const picked = [];
+const times = {}; // slug -> seconds; none means automatic
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const inr = (n) => "₹" + Number(n).toLocaleString("en-IN");
+const bySlug = (s) => products.find((p) => p.slug === s);
+const styleOf = (id) => ALL.find((s) => s.id === id);
+const lowest = () => (picked.length ? Math.min(...picked.map((s) => bySlug(s)?.price ?? Infinity)) : 8);
+const defaultHook = () => styleOf(style).hook.replace("{n}", Math.max(picked.length, 2)).replace("{low}", inr(lowest()));
+
+function drawStyles() {
+  const card = (s) => {
+    const sample = reels.find((r) => r.info?.style === s.id);
+    const media = sample ? `<video muted loop playsinline preload="metadata" src="/reels/${sample.file}.mp4#t=2"></video>` : `<div class="ph">no sample yet</div>`;
+    return `<button class="style ${s.id === style ? "on" : ""}" data-style="${s.id}">${media}<span class="tick">✓</span><b>${s.name}</b><small>${esc(s.text)}</small></button>`;
+  };
+  $("ugc").innerHTML = UGC.map(card).join("");
+  $("styles").innerHTML = ANIMATED.map(card).join("");
+  document.querySelectorAll(".style").forEach((el) => {
+    const v = el.querySelector("video");
+    el.onclick = () => { style = el.dataset.style; localStorage.setItem("product-reel-style", style); drawStyles(); summary(); };
+    if (v) { el.onmouseenter = () => { v.currentTime = 0; v.play().catch(() => {}); }; el.onmouseleave = () => v.pause(); }
+  });
+  $("hook").placeholder = defaultHook();
+  $("clipbox").hidden = style !== "myclip";
+}
+
+function shown() {
+  const q = $("q").value.trim().toLowerCase();
+  return products.filter((p) => (kind === "all" || p.kind === kind) && (cat === "all" || p.categories.includes(cat)) && (!q || p.name.toLowerCase().includes(q)));
+}
+
+function drawChips() {
+  $("kinds").innerHTML = KINDS.map(([id, title]) => {
+    const n = id === "all" ? products.length : products.filter((p) => p.kind === id).length;
+    return `<button class="${id === kind ? "on" : ""}" data-kind="${id}">${title} ${n}</button>`;
+  }).join("");
+  const here = products.filter((p) => kind === "all" || p.kind === kind);
+  const cats = [...new Set(here.flatMap((p) => p.categories))].sort();
+  if (cat !== "all" && !cats.includes(cat)) cat = "all";
+  $("cats").innerHTML = ["all", ...cats].map((c) => `<button class="${c === cat ? "on" : ""}" data-cat="${esc(c)}">${c === "all" ? "Every category" : esc(c)}</button>`).join("");
+  document.querySelectorAll("[data-kind]").forEach((el) => (el.onclick = () => { kind = el.dataset.kind; drawChips(); drawItems(); }));
+  document.querySelectorAll("[data-cat]").forEach((el) => (el.onclick = () => { cat = el.dataset.cat; drawChips(); drawItems(); }));
+}
+
+function drawItems() {
+  const list = shown();
+  $("items").innerHTML = list.map((p) => {
+    const at = picked.indexOf(p.slug);
+    return `<button class="item ${at >= 0 ? "on" : ""}" data-slug="${p.slug}">
+      <img src="${esc(p.thumb || "")}" alt="" loading="lazy" />
+      ${at >= 0 ? `<span class="num">${at + 1}</span>` : ""}
+      <span class="meta"><b>${esc(p.name)}</b><small>${inr(p.price)}</small></span>
+    </button>`;
+  }).join("") || `<p class="empty">No product matches.</p>`;
+  document.querySelectorAll(".item").forEach((el) => (el.onclick = () => toggle(el.dataset.slug)));
+  $("count").textContent = `${list.length} of ${products.length} products`;
+}
+
+function toggle(slug) {
+  const at = picked.indexOf(slug);
+  if (at >= 0) picked.splice(at, 1);
+  else if (picked.length < MAX) picked.push(slug);
+  else return alert(`A reel holds up to ${MAX} products.`);
+  drawItems(); summary();
+}
+
+const round1 = (v) => Math.round(v * 10) / 10;
+const isUgc = () => UGC.some((s) => s.id === style);
+const autoSecs = () => round1(AUTO[style](Math.max(picked.length, 2)));
+const introSecs = () => (isUgc() ? 0 : $("intro").value === "" ? 1.1 : Number($("intro").value));
+const endSecs = () => ($("end").value === "" ? 4 : Number($("end").value));
+const onScreen = (slug) => times[slug] ?? autoSecs();
+
+function drawTiming() {
+  $("introrow").style.display = isUgc() ? "none" : "";
+  $("intro").placeholder = "1.1"; $("end").placeholder = "4";
+  $("allsecs").placeholder = `auto ${autoSecs()}`;
+  $("times").innerHTML = picked.map((s, i) => {
+    const p = bySlug(s);
+    return `<div data-slug="${s}"><span class="note">${i + 1}</span><img src="${esc(p?.thumb || "")}" alt="" /><b>${esc(p?.name || s)}</b>
+      <button data-step="-0.5" aria-label="Shorter">−</button>
+      <input type="number" min="0.3" max="10" step="0.1" value="${times[s] ?? ""}" placeholder="${autoSecs()}" aria-label="Seconds" />
+      <button data-step="0.5" aria-label="Longer">+</button></div>`;
+  }).join("") || `<p class="empty" style="margin:0">Pick products to set their times.</p>`;
+  document.querySelectorAll("#times div").forEach((el) => {
+    const slug = el.dataset.slug;
+    const box = el.querySelector("input");
+    const set = (v) => { if (v === null) delete times[slug]; else times[slug] = round1(fit(v, 0.3, 10)); drawLine(); };
+    box.onchange = () => { set(box.value === "" ? null : Number(box.value)); box.value = times[slug] ?? ""; };
+    el.querySelectorAll("button").forEach((b) => (b.onclick = () => { set(onScreen(slug) + Number(b.dataset.step)); box.value = times[slug]; }));
+  });
+  drawLine();
+}
+
+function drawLine() {
+  const parts = [];
+  if (introSecs()) parts.push(["Open", introSecs(), "#6e625c"]);
+  picked.forEach((s, i) => parts.push([String(i + 1), onScreen(s), LINE[i % LINE.length]]));
+  parts.push(["End", endSecs(), "#6e625c"]);
+  const total = parts.reduce((sum, p) => sum + p[1], 0) + (style === "parcel" ? 1 : 0);
+  $("line").innerHTML = picked.length ? parts.map(([label, secs, color]) => `<span style="flex:${secs} 0 0;background:${color}" title="${secs} s">${label}</span>`).join("") : "";
+  $("total").innerHTML = picked.length ? `About ${round1(total)} s${total > 60 ? ` <span class="warn">· long for a reel</span>` : ""}` : "";
+}
+
+function drawTray() {
+  $("tray").innerHTML = picked.map((s, i) => `<div draggable="true" data-i="${i}"><img src="${esc(bySlug(s)?.thumb || "")}" alt="" /><button aria-label="Remove">×</button></div>`).join("");
+  let from = null;
+  document.querySelectorAll("#tray div").forEach((el) => {
+    const i = Number(el.dataset.i);
+    el.querySelector("button").onclick = () => toggle(picked[i]);
+    el.ondragstart = () => (from = i);
+    el.ondragover = (e) => e.preventDefault();
+    el.ondrop = () => {
+      if (from === null || from === i) return;
+      picked.splice(i, 0, picked.splice(from, 1)[0]);
+      drawItems(); summary();
+    };
+  });
+}
+
+function summary() {
+  drawTray();
+  drawTiming();
+  $("hook").placeholder = defaultHook();
+  const needClip = style === "myclip" && !clip;
+  $("make").disabled = picked.length < 2 || needClip;
+  $("make").textContent = "Make reel";
+  $("summary").innerHTML = picked.length < 2
+    ? "Pick at least 2 products."
+    : needClip ? "Add your video or photo in step 2." : `<b>${styleOf(style).name}</b> · ${picked.length} products`;
+}
+
+function drawLibrary() {
+  $("nolib").style.display = reels.length ? "none" : "";
+  $("library").innerHTML = reels.map((r) => {
+    const v = Math.round(r.made);
+    const info = r.info ?? {};
+    const what = (info.products ?? []).slice(0, 3).join(", ") + ((info.products?.length ?? 0) > 3 ? ` + ${info.products.length - 3} more` : "");
+    return `<div class="job" data-file="${r.file}">
+      <video controls playsinline preload="none" poster="/reels/${r.file}-cover.jpg?v=${v}" src="/reels/${r.file}.mp4?v=${v}"></video>
+      <div class="info"><b>${esc(styleOf(info.style)?.name || r.file)}</b><small>${esc(what)}</small>
+        <div class="cap"><textarea readonly data-from="caption">Loading…</textarea><button data-copy>Copy Insta caption</button><textarea readonly data-from="shorts">Loading…</textarea><button data-copy>Copy Shorts text</button></div>
+        <div class="dl"><a class="main" href="/reels/${r.file}.mp4?download=1">Download video</a><a href="/reels/${r.file}-cover.jpg?download=1">Cover</a><button data-edit style="color:var(--ink)">Edit</button><button data-delete>Delete</button></div>
+      </div></div>`;
+  }).join("");
+  document.querySelectorAll("#library .job").forEach((el) => {
+    const file = el.dataset.file;
+    el.querySelectorAll("textarea").forEach((ta) => {
+      fetch(`/reels/${file}-${ta.dataset.from}.txt?v=${Date.now()}`).then((r) => (r.ok ? r.text() : "Not made for this reel.")).then((x) => (ta.value = x));
+      const copy = ta.nextElementSibling;
+      const label = copy.textContent;
+      copy.onclick = async () => {
+        try { await navigator.clipboard.writeText(ta.value); } catch { ta.select(); document.execCommand("copy"); }
+        copy.textContent = "Copied ✓"; copy.classList.add("copied");
+        setTimeout(() => { copy.textContent = label; copy.classList.remove("copied"); }, 1600);
+      };
+    });
+    el.querySelector("[data-edit]").onclick = () => editReel(reels.find((r) => r.file === file));
+    el.querySelector("[data-delete]").onclick = async (e) => {
+      if (!confirm("Delete this reel with its cover and caption? This can't be undone.")) return;
+      e.target.textContent = "Deleting…"; e.target.disabled = true;
+      const res = await fetch("/api/delete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ file }) });
+      if (!res.ok) { alert((await res.json()).error || "Couldn't delete it"); e.target.textContent = "Delete"; e.target.disabled = false; return; }
+      await loadReels(); drawStyles(); drawLibrary();
+    };
+  });
+}
+
+// Puts a finished reel's choices back on the page; Make then makes a new reel from them.
+function editReel(reel) {
+  const info = reel.info ?? {};
+  if (!info.slugs?.length) return alert("This reel was made before reels could be edited. Pick its products again.");
+  style = info.style; localStorage.setItem("product-reel-style", style);
+  picked.length = 0;
+  for (const key of Object.keys(times)) delete times[key];
+  info.slugs.forEach((slug, i) => {
+    if (!bySlug(slug)) return;
+    picked.push(slug);
+    if (info.times?.[i]) times[slug] = info.times[i];
+  });
+  $("hook").value = info.hook ?? "";
+  $("offer").value = info.offer ?? "";
+  $("prices").checked = info.prices !== false;
+  $("intro").value = info.intro ?? "";
+  $("end").value = info.end ?? "";
+  drawStyles(); drawItems(); summary();
+  $("timing").scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+async function loadReels() {
+  reels = (await (await fetch("/api/reels")).json()).sort((a, b) => b.made - a.made);
+}
+
+function drawJobs(all) {
+  const jobs = all.filter((j) => j.state !== "done");
+  $("making").hidden = !jobs.length;
+  $("jobs").innerHTML = jobs.slice().reverse().map((j) => {
+    const name = styleOf(j.style)?.name || j.style;
+    const top = j.state === "making" ? `<div class="wait"><div><div class="spin"></div><span>Making… ${Math.round((Date.now() - j.started) / 1000)}s</span></div></div>`
+      : j.state === "waiting" ? `<div class="wait">Waiting for the reel before it</div>` : `<div class="wait" style="color:var(--red)">Something went wrong</div>`;
+    const log = j.state === "failed" ? `<pre>${esc(j.log.trim().split("\n").slice(-6).join("\n"))}</pre>` : "";
+    return `<div class="job">${top}<div class="info"><b>${esc(name)}</b><small>${j.slugs.length} products</small>${log}</div></div>`;
+  }).join("");
+}
+
+let lastJobs = "";
+async function poll() {
+  try {
+    const jobs = await (await fetch("/api/jobs")).json();
+    const key = JSON.stringify(jobs.map((j) => [j.id, j.state]));
+    if (key !== lastJobs) { await loadReels(); drawStyles(); drawLibrary(); lastJobs = key; }
+    if (jobs.some((j) => j.state !== "done")) drawJobs(jobs); else $("making").hidden = true;
+  } catch {}
+  setTimeout(poll, 1000);
+}
+
+$("clip").onchange = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  $("clipname").textContent = `Uploading ${file.name}…`;
+  const res = await fetch(`/api/clip?name=${encodeURIComponent(file.name)}`, { method: "POST", body: file });
+  const out = await res.json();
+  if (!res.ok) { $("clipname").textContent = out.error; return; }
+  clip = out.clip;
+  $("clipname").textContent = `${file.name} ✓`;
+  summary();
+};
+$("make").onclick = async () => {
+  $("make").disabled = true;
+  const body = { slugs: picked, style, hook: $("hook").value, offer: $("offer").value, prices: $("prices").checked, clip, times: picked.map((s) => times[s] ?? null), intro: $("intro").value, end: $("end").value };
+  const res = await fetch("/api/make", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) alert((await res.json()).error || "Could not start");
+  summary();
+  $("making").hidden = false;
+  $("making").scrollIntoView({ behavior: "smooth", block: "start" });
+};
+$("q").oninput = drawItems;
+$("intro").oninput = $("end").oninput = drawLine;
+$("allsecs").onchange = () => {
+  if ($("allsecs").value === "") return;
+  picked.forEach((s) => (times[s] = round1(fit(Number($("allsecs").value), 0.3, 10))));
+  drawTiming();
+};
+$("autotime").onclick = () => {
+  for (const key of Object.keys(times)) delete times[key];
+  $("allsecs").value = $("intro").value = $("end").value = "";
+  drawTiming();
+};
+$("none").onclick = () => { picked.length = 0; drawItems(); summary(); };
+$("walls").onclick = () => {
+  const pool = products.filter((p) => p.kind === "wall").sort(() => Math.random() - 0.5).slice(0, 4);
+  picked.length = 0; picked.push(...pool.map((p) => p.slug));
+  style = "walltour"; localStorage.setItem("product-reel-style", style);
+  drawStyles(); drawItems(); summary();
+};
+$("lucky").onclick = () => {
+  const pool = shown().sort(() => Math.random() - 0.5).slice(0, 6);
+  picked.length = 0; picked.push(...pool.map((p) => p.slug));
+  drawItems(); summary();
+};
+
+(async () => {
+  await loadReels();
+  drawStyles();
+  try {
+    products = await (await fetch("/api/products")).json();
+    if (!Array.isArray(products)) throw new Error(products.error);
+    drawChips();
+    drawItems();
+  } catch (e) {
+    $("items").innerHTML = `<p class="empty">Couldn't load products from the shop (${esc(e.message)}). Check the internet and reload.</p>`;
+  }
+  summary();
+  drawLibrary();
+  poll();
+})();
+</script>
+</body>
+</html>

@@ -17,6 +17,7 @@ import type {
 import { DEFAULT_STORE_SETTINGS, type StoreSettings } from "../shipping";
 import { rowToFeatures, type FeatureFlags } from "../features";
 import { rowToHomePage, type HomePage } from "../home-page";
+import { rowToWallCosts, type WallCosts } from "../wall-costs";
 import { DEFAULT_HOME_RAILS, type HomeRail } from "../home-rails";
 import { DEFAULT_FESTIVALS, type Festival } from "../festivals";
 import { inCategory } from "../utils";
@@ -30,6 +31,7 @@ type StoreShape = {
   settings?: StoreSettings;
   features?: FeatureFlags;
   homePage?: HomePage;
+  wallCosts?: WallCosts;
   homeRails?: HomeRail[];
   festivals?: Festival[];
   contactMessages?: ContactMessage[];
@@ -71,6 +73,7 @@ function buildSeedStore(): StoreShape {
       sizes: [],
       aspectRatio: null,
       thumbUrl: null,
+      tinyUrl: null,
       displayUrl: null,
       createdAt: created,
       updatedAt: created,
@@ -207,6 +210,7 @@ export function createLocalDriver(filePath: string): DataDriver {
         ...input,
         categoryId: input.categoryIds[0] ?? null,
         thumbUrl: input.thumbUrl ?? null,
+        tinyUrl: input.tinyUrl ?? null,
         displayUrl: input.displayUrl ?? null,
         packItems: input.packItems ?? [],
         packSizes: input.packSizes ?? [],
@@ -367,6 +371,9 @@ export function createLocalDriver(filePath: string): DataDriver {
       persist(store);
       return order;
     },
+
+    // Demo orders have no stored own posters.
+    async clearOwnPosters() {},
 
     async updateOrderStatus(id, status, shipment) {
       const allowedFrom: Record<string, OrderStatus> = {
@@ -533,6 +540,17 @@ export function createLocalDriver(filePath: string): DataDriver {
       store.features = flags;
       persist(store);
       return flags;
+    },
+
+    async getWallCosts() {
+      return rowToWallCosts(load().wallCosts);
+    },
+
+    async updateWallCosts(costs: WallCosts) {
+      const store = load();
+      store.wallCosts = costs;
+      persist(store);
+      return rowToWallCosts(costs);
     },
 
     async getHomePage() {

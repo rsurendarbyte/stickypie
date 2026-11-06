@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Move, Plus, X } from "lucide-react";
+import { Move, Plus, Upload, X } from "lucide-react";
 import type { Product } from "@stickypie/shared";
-import { packPosterSizes } from "@stickypie/shared";
+import { isOwnPoster, packPosterSizes } from "@stickypie/shared";
 import { wallBackground, wallSpots } from "@/lib/poster";
 import { posterImage } from "@/lib/poster-images";
 import { useWallDrag } from "@/lib/use-wall-drag";
@@ -63,6 +63,8 @@ function markSeen(id: string) {
  * `onRemove` / `onAdd`: a close button on each poster, and an add button on an emptied spot.
  * `onSwap`: posters can be dragged onto each other, or onto an emptied spot.
  * `arranging` / `onArrange`: the swipe view's mode for that, turned on by a long hold.
+ * `onFit`: a "Yours" tag on the shopper's own posters, to fit the picture again.
+ * `onChoose`: every spot becomes a button, while the shopper picks which one to change.
  */
 export default function WallStage({
   product,
@@ -79,6 +81,8 @@ export default function WallStage({
   onSwap,
   arranging = false,
   onArrange,
+  onFit,
+  onChoose,
   className = "",
 }: {
   product: Product;
@@ -96,11 +100,15 @@ export default function WallStage({
   onSwap?: (from: number, to: number) => void;
   arranging?: boolean;
   onArrange?: () => void;
+  onFit?: (spot: number) => void;
+  onChoose?: (spot: number) => void;
   className?: string;
 }) {
   const spots = wallSpots(product);
   const ids = posters ?? product.packItems;
   const urls = spots.map((_, i) => posterImage(ids[i]));
+  // An own poster's picture comes from the browser's storage, so it can be a moment late.
+  const own = (i: number) => isOwnPoster(ids[i] ?? "");
   const box = useRef<HTMLDivElement>(null);
   // Measured instead of the wall itself, which an effect may have scaled up or turned.
   const frame = useRef<HTMLDivElement>(null);
@@ -170,9 +178,9 @@ export default function WallStage({
   }, [src, spots.length, seen]);
 
   // An older pack's picture is a collage, so posters can't be cut from it.
-  const noCut = product.tags.includes("wall collage") && urls.some((url, i) => ids[i] && !url);
+  const noCut = product.tags.includes("wall collage") && urls.some((url, i) => ids[i] && !url && !own(i));
   // A poster cut from the set's picture only fits its own spot, so all of them must be real.
-  const movable = spots.length > 0 && urls.every((url, i) => url || !ids[i]);
+  const movable = spots.length > 0 && urls.every((url, i) => url || !ids[i] || own(i));
   useWallDrag(box, movable ? onSwap : undefined, ids.join(), onArrange && { on: arranging, start: onArrange });
   if (noCut) {
     return <img src={src} alt={alt} loading="lazy" decoding="async" className={`size-full object-contain ${className}`} />;
@@ -262,7 +270,7 @@ export default function WallStage({
             className={`wall-print absolute inset-0 overflow-hidden ${effect === "pull" && i === big ? "wall-print--first" : ""} ${state}`}
             data-size={effect ? (posterSizes[i] === 9 ? "6×9" : "4×6") : undefined}
             style={
-              urls[i]
+              urls[i] || own(i)
                 ? { ...fxVars(s, i), animationDelay: delay(stagger(i)) }
                 : {
                     ...fxVars(s, i),
@@ -274,6 +282,21 @@ export default function WallStage({
             }
           >
             {urls[i] && <img src={urls[i]!} alt="" draggable={false} loading={priority ? undefined : "lazy"} decoding="async" className="size-full object-cover" />}
+            {own(i) && onFit && (
+              <button
+                type="button"
+                data-wall-control
+                aria-label={`Fit your poster on spot ${i + 1}`}
+                onPointerUp={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFit(i);
+                }}
+                className="absolute bottom-0 left-0 z-[2] p-0.5"
+              >
+                <span className="block rounded-[3px] bg-[rgba(16,24,40,0.74)] px-1 text-[10px] leading-[15px] font-bold text-white">Yours</span>
+              </button>
+            )}
             {onRemove && (
               <button
                 type="button"
@@ -299,6 +322,23 @@ export default function WallStage({
               </span>
             )}
           </span>
+          )}
+          {onChoose && (
+            <button
+              type="button"
+              data-wall-control
+              aria-label={`Replace poster ${i + 1} with your own`}
+              onPointerUp={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                onChoose(i);
+              }}
+              className="absolute inset-0 z-[3] grid place-items-center bg-[rgba(16,24,40,0.28)] ring-2 ring-white ring-inset"
+            >
+              <span className="grid size-8 place-items-center rounded-full bg-white text-snow shadow-md">
+                <Upload className="size-4" strokeWidth={3} />
+              </span>
+            </button>
           )}
         </span>
       ))}

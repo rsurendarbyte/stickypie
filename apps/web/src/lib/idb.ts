@@ -5,6 +5,8 @@
 const DB_NAME = "stickypie";
 const STORE = "kv";
 
+const OPEN_TIMEOUT_MS = 1500;
+
 let dbPromise: Promise<IDBDatabase> | null = null;
 
 function openDb(): Promise<IDBDatabase> {
@@ -14,6 +16,9 @@ function openDb(): Promise<IDBDatabase> {
     req.onupgradeneeded = () => req.result.createObjectStore(STORE);
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
+    // A stuck open (another tab, a browser bug) never calls back: give up, or the
+    // whole shop would wait on a cache it can do without.
+    setTimeout(() => reject(new Error("IndexedDB timed out")), OPEN_TIMEOUT_MS);
   }).catch((err) => {
     dbPromise = null;
     throw err;

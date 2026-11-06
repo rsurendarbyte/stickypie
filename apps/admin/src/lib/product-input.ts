@@ -1,6 +1,6 @@
 import { imageAspectFromBytes, withSizePricing, type ProductInputParsed } from "@stickypie/shared";
 import { imageSrc } from "./img";
-import { makeDisplay, makeThumb } from "./thumbs";
+import { makeDisplay, makeThumb, makeTiny } from "./thumbs";
 
 /** Reads the artwork's width / height from the image file header. */
 export async function fetchImageAspect(imageUrl: string): Promise<number | null> {
@@ -26,7 +26,7 @@ export async function fetchImageAspect(imageUrl: string): Promise<number | null>
  */
 export async function prepareProductInput<T extends Partial<ProductInputParsed>>(
   input: T,
-  existing?: { imageUrl: string; thumbUrl: string | null; displayUrl?: string | null } | null
+  existing?: { imageUrl: string; thumbUrl: string | null; tinyUrl?: string | null; displayUrl?: string | null } | null
 ): Promise<T> {
   let next = withSizePricing(input);
   if (next.imageUrl && next.aspectRatio == null) {
@@ -40,6 +40,12 @@ export async function prepareProductInput<T extends Partial<ProductInputParsed>>
       next = rest as T;
     } else {
       next = { ...next, thumbUrl: await makeThumb(imageUrl) };
+    }
+    if (sameImage && existing?.tinyUrl) {
+      const { tinyUrl: _keep, ...rest } = next;
+      next = rest as T;
+    } else {
+      next = { ...next, tinyUrl: await makeTiny(imageUrl) };
     }
     if (sameImage && existing?.displayUrl) {
       const { displayUrl: _keep, ...rest } = next;

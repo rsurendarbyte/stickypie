@@ -257,7 +257,7 @@ async function saveSetup(setup, tags, rows, done) {
   const row = {
     slug,
     name: `${setup.title} — ${done.sizes.length} Mini Poster Pack`,
-    description: `A ready wall setup of ${done.sizes.length} posters, about ${done.feet} on your wall, printed on 300 GSM poster paper. Glue dots or double-sided tape included.`,
+    description: `A ready wall setup of ${done.sizes.length} posters, about ${done.feet} on your wall, printed on 270 GSM glossy photo paper. Glue dots or double-sided tape included.`,
     image_url: await put(`packs/${slug}-${ts}.jpg`, master, "image/jpeg"),
     aspect_ratio: W / H,
     category_ids: [category.id],
@@ -266,7 +266,7 @@ async function saveSetup(setup, tags, rows, done) {
     pack_sizes: done.sizes,
     tags: ["poster pack", "wall setup", `wall size:${done.feet}`, `wall paint:${done.paint.join(",")}`, `wall spots:${done.places}`, ...(setup.theme ? [`wall theme:${setup.theme}`] : []), ...tags],
   };
-  for (const [column, maxPx, quality, prefix] of [["thumb_url", 480, 80, "thumbs"], ["display_url", 1024, 82, "display"]]) {
+  for (const [column, maxPx, quality, prefix] of [["tiny_url", 240, 72, "tiny"], ["thumb_url", 480, 80, "thumbs"], ["display_url", 1024, 82, "display"]]) {
     const webp = await sharp(master).resize(maxPx, maxPx, { fit: "inside" }).webp({ quality }).toBuffer();
     row[column] = await put(`${prefix}/${slug}-${maxPx}-${ts}.webp`, webp, "image/webp");
   }

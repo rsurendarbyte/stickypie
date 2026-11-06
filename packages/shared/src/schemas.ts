@@ -34,8 +34,9 @@ export const customSpecSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("wall"),
     layout: z.string().min(1).max(30),
-    posters: z.array(z.string().uuid()).min(1).max(40),
+    posters: z.array(z.union([z.string().uuid(), z.string().regex(/^own:[0-9a-f-]{36}$/)])).min(1).max(40),
     set: z.string().uuid().optional(),
+    own: z.record(z.string(), z.string().url().max(400)).optional(),
   }),
   // One style per page — checkout also checks them against the book on sale.
   z.object({
@@ -134,6 +135,7 @@ export const productInputSchema = z.object({
     .default([]),
   aspectRatio: z.number().positive().max(100).nullable().default(null),
   thumbUrl: z.string().trim().max(500).nullable().optional(),
+  tinyUrl: z.string().trim().max(500).nullable().optional(),
   displayUrl: z.string().trim().max(500).nullable().optional(),
 });
 
@@ -271,4 +273,10 @@ export const storeSettingsSchema = z.object({
     .min(1, "Offer is at least 1%")
     .max(50, "Offer is at most 50%")
     .default(10),
+  ownPosterDays: z
+    .number({ invalid_type_error: "Enter the days to keep own posters" })
+    .int("Whole days only")
+    .min(0, "Days can't be negative")
+    .max(365, "Keep them for 365 days at most")
+    .default(7),
 });

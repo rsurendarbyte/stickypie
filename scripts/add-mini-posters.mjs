@@ -21,6 +21,7 @@ const IMAGE_HOST = "https://stickers.stickypie.in";
 const RESULTS = path.join(root, "prod_stickers/2x3-ai");
 const CORNER = 0.0327; // corner radius as a share of width, measured on the existing masters
 const RENDITIONS = [
+  { column: "tiny_url", maxPx: 240, quality: 72, prefix: "tiny" },
   { column: "thumb_url", maxPx: 480, quality: 80, prefix: "thumbs" },
   { column: "display_url", maxPx: 1024, quality: 82, prefix: "display" },
 ];

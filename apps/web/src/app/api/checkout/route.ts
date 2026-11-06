@@ -25,11 +25,14 @@ import {
   packSizeSummary,
   finishLabel,
   isMiniPosterProduct,
+  isOwnPoster,
+  OWN_POSTER_NAME,
   wallLayout,
   type NewOrderInput,
   type Order,
   type PosterFinish,
 } from "@stickypie/shared";
+import { isOwnPosterFile } from "@/lib/custom-files";
 import { getDriver } from "@/lib/data";
 import { checkIndianAddress } from "@/lib/india-address";
 import { cashfreeConfigured, checkoutGateway, paymentSimulatorAllowed, razorpayConfigured } from "@/lib/mode";
@@ -269,11 +272,20 @@ export async function POST(req: Request) {
         { status: 409 }
       );
     }
-    const found = new Map((await driver.getProductsByIds(spec.posters)).map((p) => [p.id, p]));
-    const posters: { name: string; imageUrl: string; inches: number }[] = [];
+    const found = new Map((await driver.getProductsByIds(spec.posters.filter((id) => !isOwnPoster(id)))).map((p) => [p.id, p]));
+    const posters: { name: string; imageUrl: string; inches: number; own?: boolean }[] = [];
     let price = 0;
     for (const [i, id] of spec.posters.entries()) {
       const inches = spots[i];
+      // The shopper's own picture: already stored, so only its address is checked here.
+      if (isOwnPoster(id)) {
+        const imageUrl = spec.own?.[id];
+        if (!set || !imageUrl || !isOwnPosterFile(imageUrl)) {
+          return NextResponse.json({ error: "Your own poster didn't reach us. Please try again.", code: "wall_changed" }, { status: 409 });
+        }
+        posters.push({ name: OWN_POSTER_NAME, imageUrl, inches, own: true });
+        continue;
+      }
       const poster = found.get(id);
       const priced = poster?.isActive && poster.stock !== 0 && isMiniPosterProduct(poster) ? priceForSize(poster, inches) : null;
       if (!poster || !priced) {
@@ -313,6 +325,7 @@ export async function POST(req: Request) {
     );
   }
   // An earlier order with exactly these lines (double click, back from the gateway…).
+  const posterFiles = (posters?: { imageUrl: string }[] | null) => (posters ?? []).map((p) => p.imageUrl.split("/").pop()).join();
   const sameItems = (o: Order) =>
     o.items.length === orderItems.length &&
     orderItems.every((i) =>
@@ -322,7 +335,9 @@ export async function POST(req: Request) {
           (x.sizeInches ?? null) === i.sizeInches &&
           (x.sizeLabel ?? null) === (i.sizeLabel ?? null) &&
           x.quantity === i.quantity &&
-          x.unitPrice === i.unitPrice
+          x.unitPrice === i.unitPrice &&
+          // A wall with other posters on it is another order, at the same price.
+          posterFiles(x.packPosters) === posterFiles(i.packPosters)
       )
     );
   // Thank-you offer the admin approved for this customer (their account email):

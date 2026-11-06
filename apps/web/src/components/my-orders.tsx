@@ -24,8 +24,13 @@ import {
   orderCode,
   rowToOrder,
 } from "@stickypie/shared";
+import { useLiveCatalog } from "@/lib/live-catalog";
+import { orderWallPosters } from "@/lib/poster";
 import { authClient } from "@/lib/shopper-auth";
+import OrderWallThumb from "./order-wall-thumb";
 import StickerLoader from "./sticker-loader";
+
+const NO_CATALOG = { categories: [], products: [] };
 
 type Filter = "all" | "topay" | "active" | "delivered" | "closed";
 
@@ -300,6 +305,7 @@ function OrderCard({ order }: { order: Order }) {
     order.items.some((i) => i.isCustom && !i.customFile);
   const names = order.items.map((i) => i.name);
   const thumbs = order.items.slice(0, 3);
+  const { products } = useLiveCatalog(NO_CATALOG);
 
   return (
     <Link
@@ -323,22 +329,26 @@ function OrderCard({ order }: { order: Order }) {
 
       <div className="mt-2.5 flex items-center gap-3">
         <div className="flex shrink-0 -space-x-2.5">
-          {thumbs.map((item) => (
-            <span
-              key={item.id}
-              className="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] size-10 place-items-center rounded-xl bg-ink p-1 ring-2 ring-white sm:size-11"
-            >
-              {item.imageUrl ? (
-                <img
-                  src={item.imageUrl}
-                  alt=""
-                  className="size-full object-contain"
-                />
-              ) : (
-                <ImageUp className="size-4.5 text-fog" />
-              )}
-            </span>
-          ))}
+          {thumbs.map((item) => {
+            const wall = orderWallPosters(item, products.find((p) => p.id === item.productId));
+            if (wall) return <OrderWallThumb key={item.id} posters={wall} className="size-14 rounded-xl bg-ink ring-2 ring-white sm:size-16" />;
+            return (
+              <span
+                key={item.id}
+                className="grid grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] size-10 place-items-center rounded-xl bg-ink p-1 ring-2 ring-white sm:size-11"
+              >
+                {item.imageUrl ? (
+                  <img loading="lazy" decoding="async"
+                    src={item.imageUrl}
+                    alt=""
+                    className="size-full object-contain"
+                  />
+                ) : (
+                  <ImageUp className="size-4.5 text-fog" />
+                )}
+              </span>
+            );
+          })}
           {order.items.length > 3 && (
             <span className="grid size-10 place-items-center rounded-xl bg-panel text-xs font-bold text-fog ring-2 ring-white sm:size-11">
               +{order.items.length - 3}

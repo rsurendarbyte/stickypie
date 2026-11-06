@@ -13,6 +13,11 @@ export function rememberPackPosters(posters: { id: string; imageUrl: string }[])
   for (const p of posters) images.set(p.id, p.imageUrl);
 }
 
+/** A poster that isn't in the catalogue: the shopper's own picture. */
+export function rememberPoster(id: string, url: string) {
+  images.set(id, url);
+}
+
 export function posterImage(id: string): string | null {
   return images.get(id) ?? null;
 }

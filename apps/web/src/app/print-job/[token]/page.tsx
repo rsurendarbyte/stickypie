@@ -40,7 +40,7 @@ export default async function PrintJobPage({ params }: { params: Promise<{ token
       avatarPacks: spec?.kind === "avatar" ? spec.pages : null,
       posters: i.packPosters?.map((p) => ({ name: p.name, inches: p.inches })) ?? null,
       // Older mini poster orders say nothing and were sold as vinyl.
-      paper: !!i.packPosters?.length || /300 GSM/.test(i.sizeLabel ?? ""),
+      paper: !!i.packPosters?.length || /\b(270|300) GSM/.test(i.sizeLabel ?? ""),
     };
   });
 

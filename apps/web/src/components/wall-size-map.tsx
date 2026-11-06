@@ -1,15 +1,17 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { Search } from "lucide-react";
+import { ImagePlus, Search, Upload, X } from "lucide-react";
 import type { Product } from "@stickypie/shared";
-import { packPosterSizes } from "@stickypie/shared";
+import { CUSTOM_STICKER_TYPES, isOwnPoster, packPosterSizes } from "@stickypie/shared";
 import { useLiveCatalog } from "@/lib/live-catalog";
+import { addOwnPoster, ownPoster, type PosterFit } from "@/lib/own-posters";
 import { isMiniPoster, isPosterPack, wallPosterSizes, wallSpots } from "@/lib/poster";
 import { posterImage, rememberPosters } from "@/lib/poster-images";
 import { pickPoster, useWallLine } from "@/lib/wall-picks";
 import LabelModal from "./label-modal";
+import OwnPosterFit from "./own-poster-fit";
 
 /** The two faces of a wall set's picture. */
 export type WallView = "wall" | "map";
@@ -85,7 +87,7 @@ export default function WallSizeMap({ product, posters }: { product: Product; po
                     containerType: "inline-size",
                   }}
                 >
-                  {posterImage(ids[i]) && <img src={posterImage(ids[i])!} alt="" draggable={false} className="wall-tile-art absolute inset-0 size-full object-cover" />}
+                  {posterImage(ids[i]) && <img loading="lazy" decoding="async" src={posterImage(ids[i])!} alt="" draggable={false} className="wall-tile-art absolute inset-0 size-full object-cover" />}
                   <span className="absolute inset-0 grid place-items-center">
                     <span className={`rounded-full px-[0.55em] py-[0.3em] font-display leading-none font-bold whitespace-nowrap ${big(i) ? "bg-snow text-white" : "bg-white text-snow"}`} style={{ fontSize: "clamp(8px, 15cqw, 18px)" }}>
                       {big(i) ? "6×9 in" : "4×6 in"}
@@ -129,6 +131,31 @@ export function WallViewSwitch({ view, onChange, glass = false }: { view: WallVi
         </button>
       ))}
     </div>
+  );
+}
+
+/** The way in to adding a picture of your own: choose the poster it replaces, and it asks for the file. */
+export function OwnPosterButton({ choosing, onChange, glass = false }: { choosing: boolean; onChange: (choosing: boolean) => void; glass?: boolean }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={choosing}
+      onPointerUp={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        onChange(!choosing);
+      }}
+      className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-xs font-bold whitespace-nowrap ${choosing ? "bg-snow text-white" : glass ? "reel-glass text-snow" : "border border-line bg-white text-snow"}`}
+    >
+      {choosing ? (
+        <X className="size-3.5" strokeWidth={3} />
+      ) : (
+        <span className="-ml-1.5 grid size-6 place-items-center rounded-full bg-brand text-white">
+          <Upload className="size-3.5" strokeWidth={3} />
+        </span>
+      )}
+      {choosing ? "Tap the poster to replace" : "Add your own poster"}
+    </button>
   );
 }
 
@@ -182,16 +209,24 @@ export function WallPosterSheet({
   spot,
   onPick = (at, id) => pickPoster(product, at, id),
   onClose,
+  fileInput,
 }: {
   product: Product;
   posters: string[] | null;
   spot: number | null;
   onPick?: (spot: number, posterId: string) => void;
   onClose: () => void;
+  /** The file picker, for a page that opens it straight from a poster on its wall. */
+  fileInput?: React.RefObject<HTMLInputElement | null>;
 }) {
   const catalog = usePosterCatalog();
   const [query, setQuery] = useState("");
+  // The picture being placed, from the shopper's files or from their poster already on the spot.
+  const [fitting, setFitting] = useState<{ source: Blob; start?: PosterFit } | null>(null);
+  const ownFile = useRef<HTMLInputElement>(null);
+  const file = fileInput ?? ownFile;
   const ids = posters ?? product.packItems;
+  const onSpot = spot === null ? "" : ids[spot] ?? "";
   const inches = spot === null ? 6 : (packPosterSizes(product)[spot] ?? 6);
   // An emptied spot still suggests posters like the one it held.
   const current = spot === null ? undefined : catalog.find((p) => p.id === (ids[spot] || product.packItems[spot]));
@@ -208,17 +243,62 @@ export function WallPosterSheet({
     onClose();
   };
 
+  // Opened on the shopper's own poster, it goes straight to fitting it. Kept while the sheet closes, so it peels off as it was.
+  useEffect(() => {
+    if (spot === null) return;
+    setFitting(null);
+    if (!isOwnPoster(onSpot)) return;
+    let live = true;
+    void ownPoster(onSpot).then((poster) => live && poster && setFitting({ source: poster.source, start: poster.fit }));
+    return () => {
+      live = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spot]);
+
   // On the page itself, above the cart strip and the buy buttons (like the image zoom).
   const inBrowser = useSyncExternalStore(noSubscribe, () => true, () => false);
   if (!inBrowser) return null;
 
   return createPortal(
     <div className="relative z-[2147483000]">
+    {/* Always here: a tap on a wall opens the file picker in the same moment as the sheet. */}
+    <input
+      ref={file}
+      type="file"
+      accept={CUSTOM_STICKER_TYPES.join(",")}
+      aria-label="Your own poster"
+      className="sr-only"
+      onChange={(e) => {
+        const picked = e.target.files?.[0];
+        e.target.value = "";
+        if (picked) setFitting({ source: picked });
+      }}
+    />
     <LabelModal open={spot !== null} onClose={close} labelledBy="wall-pick-title" placement="bottom" className="max-w-lg p-4">
-      <h2 id="wall-pick-title" className="font-display text-lg font-bold">
-        Choose a poster
-        <span className="ml-2 text-sm font-semibold text-fog">{inches === 9 ? "6×9 in" : "4×6 in"}</span>
-      </h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 id="wall-pick-title" className="font-display text-lg font-bold">
+          {fitting ? "Fit your poster" : "Choose a poster"}
+          <span className="ml-2 text-sm font-semibold text-fog">{inches === 9 ? "6×9 in" : "4×6 in"}</span>
+        </h2>
+        <button type="button" aria-label="Close" onClick={close} className="-my-1 -mr-1 grid size-9 shrink-0 place-items-center rounded-full bg-panel text-snow">
+          <X className="size-4" strokeWidth={3} />
+        </button>
+      </div>
+      {fitting ? (
+        <OwnPosterFit
+          source={fitting.source}
+          start={fitting.start}
+          inches={inches}
+          onOther={() => file.current?.click()}
+          onPut={async (art, fit) => {
+            const id = await addOwnPoster({ art, source: fitting.source, fit });
+            if (spot !== null) onPick(spot, id);
+            close();
+          }}
+        />
+      ) : (
+      <>
       <label className="mt-2 flex items-center gap-2 rounded-xl border border-line bg-white px-3 py-2">
         <Search className="size-4 shrink-0 text-fog" />
         <input
@@ -229,6 +309,12 @@ export function WallPosterSheet({
         />
       </label>
       <div className="mt-3 grid max-h-[58dvh] grid-cols-3 gap-2 overflow-y-auto pb-2 sm:grid-cols-4">
+        <button type="button" onClick={() => file.current?.click()} className="flex min-w-0 flex-col self-start text-left">
+          <span className="grid aspect-[2/3] w-full place-items-center rounded-md border-2 border-dashed border-brand bg-brand/5 text-brand">
+            <ImagePlus className="size-6" />
+          </span>
+          <span className="mt-1 block w-full truncate text-[11px] leading-tight font-semibold text-brand">Your own</span>
+        </button>
         {list.map((p) => (
           <button
             key={p.id}
@@ -246,6 +332,8 @@ export function WallPosterSheet({
         ))}
         {list.length === 0 && <p className="col-span-full py-6 text-center text-sm text-fog">No posters match that.</p>}
       </div>
+      </>
+      )}
     </LabelModal>
     </div>,
     document.body

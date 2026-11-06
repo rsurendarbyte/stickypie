@@ -45,6 +45,15 @@
       ],
       "port": 8766,
       "autoPort": false
+    },
+    {
+      "name": "product-reel-studio",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "scripts/pack-reel/showcase.mjs"
+      ],
+      "port": 8767,
+      "autoPort": false
     }
   ]
 }

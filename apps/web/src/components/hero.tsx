@@ -6,7 +6,7 @@ import PageLink from "./page-link";
 import { isMiniPoster, isPosterPack, isRegional, isRegionalName, posterSetName, sizeChipLabel, wallPosterSizes, wallSize, wallSpots } from "@/lib/poster";
 import { rememberPosters } from "@/lib/poster-images";
 import WallStage from "./wall-stage";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   ArrowRight,
   BadgeCheck,
@@ -39,7 +39,6 @@ import { cardSkinFor, tileFor } from "@/lib/palette";
 import { useDaySeed, useSkinSeed } from "@/lib/skin-seed";
 import AddToCartButton from "./add-to-cart-button";
 import AvatarArt from "./avatar-art";
-import { STYLE_DESIGNS, StickerArt, type ArtDesign } from "./custom-rail";
 import PriceWait from "./price-wait";
 import { useSizeChoice } from "./size-picker";
 import TrueSizePreview from "./true-size-preview";
@@ -50,7 +49,8 @@ import {
   useStoreSettings,
 } from "@/lib/live-catalog";
 import { readInterest, type Interest } from "@/lib/interest";
-import { useLite } from "@/lib/lite";
+import { useLite, useSlowNetwork } from "@/lib/lite";
+import { FAN_SIZES, NOT_IN_HERO, fanScript, fanSrc, wallTileSrc, type FanPoster } from "@/lib/hero-fan";
 
 /** Rotating hero: the featured sticker is staged on a big tilted product card. */
 export default function Hero({
@@ -58,6 +58,7 @@ export default function Hero({
   packs = [],
   categories,
   moments = [],
+  fanPosters = [],
 }: {
   products: Product[];
   /** Wall poster sets: a few of them take turns between the sticker slides. */
@@ -65,12 +66,14 @@ export default function Hero({
   categories: Category[];
   /** What's on now (festivals around today, soonest/admin order first) and their stickers. */
   moments?: { label: string; products: Product[] }[];
+  /** Posters built into the page, for the fan's first draw. */
+  fanPosters?: FanPoster[];
 }) {
   const features = useFeatures();
   const settings = useStoreSettings();
   const seed = useSkinSeed();
   const daySeed = useDaySeed();
-  const { products: catalog } = useLiveCatalog({
+  const { products: catalog, loaded: catalogLoaded } = useLiveCatalog({
     categories: [],
     products: [],
   });
@@ -81,7 +84,7 @@ export default function Hero({
   const home = useHomePage();
   // The hero speaks to all of India: nothing tied to one state or city (those keep their own rows).
   const regionId = categories.find((c) => c.slug === "cities-states")?.id;
-  const national = (p: Product) => !home.hideRegional || !isRegional(p, regionId);
+  const national = (p: Product) => (!home.hideRegional || !isRegional(p, regionId)) && !NOT_IN_HERO.test(p.name);
   const shop = (catalog.length ? catalog : products).filter(national);
   const wallSets = packs.filter(national);
   const { picks, packPicks, momentOf } = heroPicks(
@@ -104,7 +107,9 @@ export default function Hero({
   });
   for (const p of queue) productSlides.push({ kind: "product", product: p });
   // The slides and their order come from the admin (Home page).
-  const book = features.avatarStickers ? avatarBook(settings) : null;
+  // Until the catalogue arrives the avatar slide stands ready, so the hero is on the
+  // first paint: the words and the fan need nothing from it.
+  const book = features.avatarStickers || !catalogLoaded ? avatarBook(settings) : null;
   const slides: Slide[] = home.slides
     .filter((s) => s.visible)
     .flatMap((s): Slide[] => {
@@ -206,7 +211,7 @@ export default function Hero({
               )}
             />
           ) : (
-            <AvatarBookWall key="book-wall" styles={settings.avatarStyles} packs={wallSets} />
+            <AvatarBookWall key="book-wall" styles={settings.avatarStyles} shop={shop} />
           )}
           {/* white wash behind the words: from below on phones, from the left on anything wider */}
           <div
@@ -230,7 +235,7 @@ export default function Hero({
             (the wall is the backdrop), so the words slide up into it — a shift only, the
             hero keeps its height and the page below never jumps between slides. */}
         <div
-          className={`pointer-events-auto relative z-10 order-2 grid max-w-2xl md:order-1 ${onWall ? "sm:max-md:-translate-y-[min(42svh,28.8rem)]" : ""}`}
+          className={`pointer-events-auto relative z-10 order-2 grid max-w-2xl md:order-1 ${onWall && slide.kind !== "avatar" ? "sm:max-md:-translate-y-[min(42svh,28.8rem)]" : ""}`}
         >
           {/* Phones: a soft frosted fade behind the text, so the picture above
               melts away under it instead of clashing with the badge. */}
@@ -306,7 +311,7 @@ export default function Hero({
 
         {/* Artwork, floating on the mat */}
         <div
-          className={`relative z-0 order-1 mx-auto w-full max-w-[360px] sm:max-w-xl md:order-2 ${onWall ? "pointer-events-none [&_button]:pointer-events-auto" : ""} md:mx-0 md:max-w-none`}
+          className={`relative z-0 order-1 mx-auto w-full max-w-[360px] sm:max-w-xl md:order-2 ${onWall ? "pointer-events-none [&_a]:pointer-events-auto [&_button]:pointer-events-auto" : ""} md:mx-0 md:max-w-none`}
         >
           {/* product-tinted wash behind the art (not on the wall slides: it fogs the wall) */}
           {!onWall && (
@@ -346,6 +351,8 @@ export default function Hero({
                 />
                 )}
               </PageLink>
+            ) : slide.kind === "avatar" ? (
+              <AvatarFan styles={settings.avatarStyles} shop={shop} snapshot={fanPosters} />
             ) : null}
           </div>
 
@@ -396,8 +403,8 @@ function SlideFacts({ items }: { items: Product[] }) {
   // Rounded down to a friendly "100+" style number.
   const count = items.length >= 20 ? `${Math.floor(items.length / 10) * 10}+` : `${items.length}`;
   return (
-    <p className="mt-3 text-sm font-semibold text-snow sm:mt-5">
-      {count} designs · from <span className="font-display text-gold">{formatINR(from)}</span>
+    <p className="mt-3 flex items-baseline gap-1.5 text-sm font-semibold text-snow sm:mt-5 sm:text-base">
+      {count} designs · from <span className="font-display text-2xl font-bold text-gold sm:text-3xl">{formatINR(from)}</span>
     </p>
   );
 }
@@ -724,7 +731,7 @@ function BrandSlideArt({ stickers }: { stickers: Product[] }) {
                       // poster's width so it lifts a neat corner on a rectangle
                       <span className="wall-peel wall-peel-poster relative size-full">
                         <img
-                          src={p.thumbUrl ?? p.imageUrl}
+                          {...wallTileSrc(p)}
                           alt=""
                           loading="lazy"
                           decoding="async"
@@ -736,7 +743,7 @@ function BrandSlideArt({ stickers }: { stickers: Product[] }) {
                           className="wall-peel-shadow absolute inset-0"
                         >
                           <img
-                            src={p.thumbUrl ?? p.imageUrl}
+                            {...wallTileSrc(p)}
                             alt=""
                             loading="lazy"
                             decoding="async"
@@ -750,7 +757,7 @@ function BrandSlideArt({ stickers }: { stickers: Product[] }) {
                       // peeling corner as its backing paper (see .wall-peel)
                       <span className="wall-peel relative size-full">
                         <img
-                          src={p.thumbUrl ?? p.imageUrl}
+                          {...wallTileSrc(p)}
                           alt=""
                           loading="lazy"
                           decoding="async"
@@ -762,7 +769,7 @@ function BrandSlideArt({ stickers }: { stickers: Product[] }) {
                           className="wall-peel-shadow absolute inset-0"
                         >
                           <img
-                            src={p.thumbUrl ?? p.imageUrl}
+                            {...wallTileSrc(p)}
                             alt=""
                             loading="lazy"
                             decoding="async"
@@ -843,66 +850,225 @@ function ProductSlideCopy({
   );
 }
 
-function shuffled<T>(list: readonly T[]): T[] {
+function shuffled<T>(list: readonly T[], random: () => number): T[] {
   const out = [...list];
   for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(random() * (i + 1));
     [out[i], out[j]] = [out[j], out[i]];
   }
   return out;
 }
 
+const FAN_POSTERS = 3;
+let fanTurns = 0;
+/** A new card lifts out of the fan this often, and stays up this long. */
+const FAN_LIFT_EVERY_MS = 2400;
+const FAN_LIFT_FOR_MS = 1500;
+
 /**
- * Avatar slide backdrop: a wall of style tiles filling the hero, moving like
- * the first slide's sticker wall, in a new random order every visit. Each tile
- * is one style's card picture (a girl's or a boy's avatar sticker, from admin →
- * Avatar sheets) with the style's name, or a drawn stand-in avatar for a style
- * with no card picture yet.
+ * Lifts one fan card now and then. Only a transform, on a timer, so the fans
+ * cost nothing between lifts (see useWallPeels for why nothing here loops).
  */
-/** Wall tiles show their sticker the same ways as the "Make your own" cards (A, C, D, E). */
-const WALL_DESIGNS: ArtDesign[] = ["frame", ...STYLE_DESIGNS];
+function useFanLifts(box: React.RefObject<HTMLDivElement | null>) {
+  const lite = useLite();
+  useEffect(() => {
+    if (lite || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let drop = 0;
+    const timer = setInterval(() => {
+      const cards = box.current?.getElementsByClassName("hero-fan-card");
+      if (!cards?.length || document.hidden) return;
+      const card = cards[Math.floor(Math.random() * cards.length)];
+      card.classList.add("is-up");
+      drop = window.setTimeout(() => card.classList.remove("is-up"), FAN_LIFT_FOR_MS);
+    }, FAN_LIFT_EVERY_MS);
+    return () => {
+      clearInterval(timer);
+      clearTimeout(drop);
+    };
+  }, [box, lite]);
+}
 
-type WallTile =
-  | { kind: "avatar"; label: string; url: string | null }
-  | { kind: "pack"; label: string; url: string; slug: string };
+/** Soft colours behind the AI style cards, so a white sticker stands out. */
+const FAN_TINTS = ["#ffe6d2,#fff3c4", "#e2ebff,#f3e3ff", "#d9f4e6,#e2f1ff"];
 
-function AvatarBookWall({ styles, packs }: { styles: AvatarStyle[]; packs: Product[] }) {
+/** What the avatar slide shows, for this visit: posters, for the fan in front and
+ *  the wall behind it, and AI styles for the wall. */
+function avatarSlidePicks(styles: AvatarStyle[], shop: Product[], seed: number) {
+  const random = seededRandom(seed);
+  return {
+    posters: wallItems(shop, true, seed),
+    picks: shuffled(styles, random).map((s, i) => ({
+      label: s.label,
+      url: s.covers.length ? s.covers[Math.floor(random() * s.covers.length)] : null,
+      tint: FAN_TINTS[i % FAN_TINTS.length],
+      mood: i % 4,
+    })),
+  };
+}
+type StylePick = ReturnType<typeof avatarSlidePicks>["picks"][number];
+
+/** A poster-shaped AI style card: its name over the sticker, on a soft colour. */
+function StyleCard({ style }: { style: StylePick }) {
+  return (
+    <Link
+      href="/avatar-stickers"
+      tabIndex={-1}
+      aria-label={`Make your avatar stickers in ${style.label}`}
+      style={{ background: `linear-gradient(160deg,${style.tint})` }}
+      className="wall-poster flex size-full flex-col overflow-hidden p-[6%]"
+    >
+      <span className="block truncate text-center text-[clamp(9px,0.85vw,13px)] leading-tight font-bold text-snow">
+        {style.label}
+      </span>
+      <span className="min-h-0 flex-1">
+        {style.url ? (
+          <img
+            src={style.url}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            fetchPriority="low"
+            className="size-full object-contain drop-shadow-[0_6px_10px_rgba(16,24,40,0.25)]"
+          />
+        ) : (
+          // a drawn stand-in until the admin uploads a card picture
+          <AvatarArt style={style.label} mood={style.mood} className="size-full rounded-[22%] border-[3px] border-white shadow-sm" />
+        )}
+      </span>
+    </Link>
+  );
+}
+
+function PosterCard({ poster }: { poster: Product }) {
+  return (
+    <Link
+      href={`/sticker/${poster.slug}`}
+      tabIndex={-1}
+      aria-label={poster.name}
+      className="wall-poster block size-full overflow-hidden"
+    >
+      <img
+        {...wallTileSrc(poster)}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        fetchPriority="low"
+        className="block size-full rounded-[6px] bg-[#f4f1ec] object-cover"
+      />
+    </Link>
+  );
+}
+
+declare global {
+  interface Window {
+    __heroFan?: number;
+  }
+}
+let fanStart: number | null = null;
+const noChange = () => () => {};
+/** Null on the server and while hydrating: the page's own script has placed the pictures. */
+function useFanStart() {
+  return useSyncExternalStore(
+    noChange,
+    () => (fanStart ??= window.__heroFan ?? Math.floor(Math.random() * 1000)),
+    () => null,
+  );
+}
+
+/** Avatar slide art, in front of the wall: three posters in a small fan. */
+function AvatarFan({ styles, shop, snapshot }: { styles: AvatarStyle[]; shop: Product[]; snapshot: FanPoster[] }) {
+  const box = useRef<HTMLDivElement>(null);
+  useFanLifts(box);
+  const seed = useSkinSeed();
+  const start = useFanStart();
+  const slow = useSlowNetwork();
+  // The fan is drawn afresh each time the slide comes round: the next three posters.
+  const [turn] = useState(() => (typeof window === "undefined" ? 0 : fanTurns++));
+  const live = shop.length ? avatarSlidePicks(styles, shop, seed || 1).posters : [];
+  // Its first draw comes from the page itself, so it never waits for the catalogue.
+  const first = turn === 0 && snapshot.length > 0;
+  const pool: FanPoster[] = first ? snapshot : live;
+  const onSale = new Set(live.map((p) => p.id));
+  const base = first ? (start ?? 0) : turn * FAN_POSTERS;
+  const cards = Array.from({ length: Math.min(FAN_POSTERS, pool.length) }, (_, i) => {
+    const poster = pool[(base + i) % pool.length];
+    // built into the page at the last deploy, so it may have gone off sale since
+    return first && live.length && !onSale.has(poster.id) ? live[i % live.length] : poster;
+  });
+  // The next three are ready before the slide comes back.
+  const liveCount = live.length;
+  useEffect(() => {
+    if (slow || !liveCount) return;
+    for (let i = 0; i < FAN_POSTERS; i++) {
+      const { src, srcSet } = fanSrc(live[(fanTurns * FAN_POSTERS + i) % liveCount]);
+      const next = new Image();
+      if (srcSet) {
+        next.sizes = FAN_SIZES;
+        next.srcset = srcSet;
+      }
+      next.src = src;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per fan, when the list is known
+  }, [slow, liveCount]);
+  if (!cards.length) return null;
+  const placed = start !== null;
+  return (
+    <div ref={box} className="hero-fans">
+      <div className="hero-fan" style={{ "--n": cards.length } as React.CSSProperties}>
+        {cards.map((poster, i) => {
+          const { src, srcSet } = fanSrc(poster);
+          return (
+            // the middle card on top
+            <div key={i} className="hero-fan-slot" style={{ "--i": i, zIndex: i === 1 ? 2 : 1 } as React.CSSProperties}>
+              <Link
+                data-fan=""
+                suppressHydrationWarning
+                href={placed ? `/sticker/${poster.slug}` : "/wall-posters"}
+                tabIndex={-1}
+                aria-label={placed ? poster.name : "Wall posters"}
+                className="hero-fan-card wall-poster block size-full overflow-hidden shadow-[0_20px_36px_-14px_rgba(16,24,40,0.6)]"
+              >
+                <img
+                  suppressHydrationWarning
+                  {...(placed ? { src, srcSet, sizes: srcSet ? FAN_SIZES : undefined } : {})}
+                  alt=""
+                  decoding="async"
+                  fetchPriority="high"
+                  className="block size-full rounded-[6px] bg-[#f4f1ec] object-cover"
+                />
+              </Link>
+            </div>
+          );
+        })}
+        {first && !placed && <script dangerouslySetInnerHTML={{ __html: fanScript(snapshot) }} />}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Avatar slide backdrop: the same moving wall as the other wall slides, its
+ * tiles all one size: mini posters, every third one an AI style.
+ */
+function AvatarBookWall({ styles, shop }: { styles: AvatarStyle[]; shop: Product[] }) {
   const box = useRef<HTMLDivElement>(null);
   const size = useWallSize(box);
-  // Shuffled in the browser only (the wall isn't drawn on the server anyway).
-  const [pools, setPools] = useState<{ avatars: WallTile[]; sets: WallTile[] }>({ avatars: [], sets: [] });
-  useEffect(() => {
-    // Every card picture, plus a drawn stand-in for each style that has none.
-    const real = styles.flatMap((s) =>
-      s.covers.map((url) => ({ kind: "avatar" as const, label: s.label, url })),
-    );
-    const drawn = styles
-      .filter((s) => !s.covers.length)
-      .map((s) => ({ kind: "avatar" as const, label: s.label, url: null }));
-    const sets = packs.map((p) => ({
-      kind: "pack" as const,
-      label: posterSetName(p.name).replace(/\s+Wall Setup$/i, ""),
-      url: p.thumbUrl ?? p.imageUrl,
-      slug: p.slug,
-    }));
-    // phones: a dozen different pictures of each is plenty for the small wall
-    const few = window.innerWidth < 640 ? 12 : Infinity;
-    setPools({ avatars: shuffled([...real, ...drawn]).slice(0, few), sets: shuffled(sets).slice(0, few) });
-  }, [styles, packs]);
-  // One column of AI stickers, then two columns of wall poster sets, and again
-  // (only AI stickers when there are no sets, and the other way round).
-  const kindOf = (c: number) =>
-    !pools.sets.length ? pools.avatars : !pools.avatars.length ? pools.sets : c % 3 === 0 ? pools.avatars : pools.sets;
+  const seed = useSkinSeed();
+  const slow = useSlowNetwork();
+  const { posters, picks } = avatarSlidePicks(styles, shop, seed || 1);
+  // Phones: a dozen different pictures is plenty.
+  const few = size && size.cols * size.perCol < 90 ? 12 : Infinity;
+  const wallPosters = posters.slice(0, few);
   const columns =
-    size && (pools.avatars.length || pools.sets.length)
-      ? Array.from({ length: size.cols }, (_, c) => {
-          const pool = kindOf(c);
-          const per = Math.ceil(size.perCol * 0.8) + 1;
-          return Array.from({ length: per }, (_, k) => ({
-            page: pool[(c * 5 + k * 3) % pool.length],
-            n: c * 31 + k * 17,
-          }));
-        })
+    // a slow connection keeps the fan and skips the wall behind it
+    seed && size && wallPosters.length && !slow
+      ? Array.from({ length: size.cols }, (_, c) =>
+          Array.from({ length: size.perCol }, (_, k) =>
+            picks.length && (c + k) % 3 === 0
+              ? { style: picks[(c * 5 + k) % picks.length] }
+              : { poster: wallPosters[(c * 7 + k * 4) % wallPosters.length] },
+          ),
+        )
       : [];
   return (
     <div
@@ -915,61 +1081,17 @@ function AvatarBookWall({ styles, packs }: { styles: AvatarStyle[]; packs: Produ
             <div
               className={c % 2 ? "sticker-wall-down" : "sticker-wall-up"}
               style={{
-                animationDuration: `${((44 + (c % 4) * 7) * col.length) / 5}s`,
+                animationDuration: `${((44 + (c % 4) * 7) * col.length) / 7}s`,
               }}
             >
+              {/* the one child keeps the browser from restyling every tile, each
+                  frame, along with the moving column above it */}
               <div className="flex flex-col gap-3 sm:gap-4">
-              {[...col, ...col].map(({ page, n }, k) => (
-                <Link
-                  key={k}
-                  href={page.kind === "pack" ? `/sticker/${page.slug}` : "/avatar-stickers"}
-                  tabIndex={-1}
-                  aria-label={page.kind === "pack" ? `${page.label} wall poster set` : "Make your avatar sticker packs"}
-                  className={`block overflow-hidden rounded-xl bg-white shadow-[0_12px_26px_-14px_rgba(16,24,40,0.4)] ring-1 ring-black/5 transition-transform duration-200 hover:scale-[1.04] ${
-                    k % 3 === 1 ? "rotate-2" : k % 3 === 2 ? "-rotate-1" : ""
-                  }`}
-                >
-                  {page.kind === "pack" ? (
-                    // a wall poster set: the whole picture, nothing cut off
-                    <img
-                      src={page.url}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                      fetchPriority="low"
-                      className="block aspect-square w-full bg-[#f4f1ec] object-contain"
-                    />
-                  ) : page.url ? (
-                    // the same picture designs as the "Make your own" cards: A, C, D, E mixed
-                    <StickerArt
-                      design={WALL_DESIGNS[n % WALL_DESIGNS.length]}
-                      pictures={
-                        <img
-                          src={page.url}
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                          fetchPriority="low"
-                          className="col-start-1 row-start-1 h-full min-h-0 w-full object-contain drop-shadow-[0_6px_10px_rgba(16,24,40,0.25)]"
-                        />
-                      }
-                    />
-                  ) : (
-                    <span className="block aspect-square bg-gradient-to-br from-brand-soft to-[#eef6ff] p-[7%]">
-                      {/* a drawn stand-in until the admin uploads a card picture */}
-                      <AvatarArt
-                        style={page.label}
-                        mood={n % 4}
-                        className="size-full rounded-[22%] border-[3px] border-white shadow-sm"
-                      />
-                    </span>
-                  )}
-                  <span className="block truncate px-2 py-1.5 text-[clamp(9px,0.9vw,12px)] font-bold text-snow">
-                    {page.label}
-                    {page.kind === "pack" && <span className="font-semibold text-brand"> · wall set</span>}
-                  </span>
-                </Link>
-              ))}
+                {[...col, ...col].map((tile, k) => (
+                  <div key={k} className="aspect-[4/5] transition-transform duration-200 hover:scale-[1.06]">
+                    {tile.style ? <StyleCard style={tile.style} /> : <PosterCard poster={tile.poster!} />}
+                  </div>
+                ))}
               </div>
             </div>
           </div>

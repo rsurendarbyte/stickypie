@@ -30,6 +30,7 @@ export default function StoreSettingsForm({ initial }: { initial: StoreSettings 
   const router = useRouter();
   const { toast } = useToast();
   const [minOrder, setMinOrder] = useState(String(initial.minOrder));
+  const [ownPosterDays, setOwnPosterDays] = useState(String(initial.ownPosterDays));
   const [pincode, setPincode] = useState(initial.originPincode ?? "");
   const [state, setState] = useState(initial.originState ?? "");
   const [rates, setRates] = useState<Record<ShippingZone, string>>({
@@ -69,6 +70,7 @@ export default function StoreSettingsForm({ initial }: { initial: StoreSettings 
       avatarStyles: initial.avatarStyles,
       // Saved on the Offers page.
       thanksPercent: initial.thanksPercent,
+      ownPosterDays: num(ownPosterDays),
       minOrder: num(minOrder),
       originPincode: pincode.trim() || null,
       originState: state || null,
@@ -195,6 +197,13 @@ export default function StoreSettingsForm({ initial }: { initial: StoreSettings 
           onChange={(e) => setMinOrder(digits(e.target.value))}
           inputMode="numeric"
           hint="Sticker subtotal, before shipping"
+        />
+        <TextField
+          label="Keep own posters (days)"
+          value={ownPosterDays}
+          onChange={(e) => setOwnPosterDays(digits(e.target.value))}
+          inputMode="numeric"
+          hint="After delivery, then deleted. 0 = on delivery"
         />
         <TextField
           label="Dispatch PIN code"

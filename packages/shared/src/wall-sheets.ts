@@ -108,13 +108,26 @@ function fillWithStock(sheet: Piece[], job: Piece[], size: PackSheet, next: { tu
   return best;
 }
 
+/** The room posters get on a sheet. */
+function sheetSpace(paper: Paper, area: CutArea, bleed = 0): PackSheet {
+  const cut = cutBox(paper, area);
+  return { w: cut.w, h: cut.h, margin: MARK_CLEAR, gap: Math.max(MIN_GAP, bleed * 2) };
+}
+
+/** Sheets needed for posters of these sizes (longest side in inches), or null if one doesn't fit. */
+export function sheetsNeeded(inches: number[], paper: Paper, area: CutArea): number | null {
+  const pieces = inches.map((long) => ({ w: (long * MM_PER_IN * 2) / 3, h: long * MM_PER_IN }));
+  const sheets = packTight(pieces, sheetSpace(paper, area));
+  return sheets.flat().length < pieces.length ? null : sheets.length;
+}
+
 /**
  * Lays pieces on as few sheets as possible, inside the cut area. `bleed` needs
  * room between posters. With `stock`, leftover space takes extra posters.
  */
 export function layOut(pieces: Piece[], paper: Paper, area: CutArea, bleed = 0, stock = false): Placed[][] {
   const cut = cutBox(paper, area);
-  const size = { w: cut.w, h: cut.h, margin: MARK_CLEAR, gap: Math.max(MIN_GAP, bleed * 2) };
+  const size = sheetSpace(paper, area, bleed);
   const sheets = packTight(pieces, size);
   if (sheets.flat().length < pieces.length) throw new Error("A poster doesn't fit inside the cut area. Make the margins smaller.");
   const next = { turn: 0 };
