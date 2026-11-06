@@ -1,13 +1,12 @@
 // Shop traffic for the admin's Analytics page, from Cloudflare's GraphQL API:
 //  - Web Analytics (the cookie-free beacon on stickypie.in): visits, page views,
 //    top pages, where people came from, countries, devices. Real browsers only.
-//  - Zone traffic: unique visitors per day (by IP — includes bots).
 //  - Workers: requests per day against the free plan's 100,000/day limit.
-// Needs CF_ANALYTICS_TOKEN (a token with Account Analytics: Read and
-// Zone Analytics: Read). Account and zone ids are not secret.
+// Needs CF_ANALYTICS_TOKEN (a token with Account Analytics: Read). The account
+// id is not secret. Cloudflare can't count unique people, so that number comes
+// from our own counter (./product-views).
 
 const ACCOUNT_ID = process.env.CF_ACCOUNT_ID ?? "be62304a5f41702ad535c19c683d42c5";
-const ZONE_ID = process.env.CF_ZONE_ID ?? "66caacd08a3f124706b19bac6a641a96";
 const HOST = "stickypie.in";
 export const FREE_DAILY_REQUESTS = 100_000;
 
@@ -35,7 +34,6 @@ export type Ranked = { name: string; value: number };
 export type Analytics = {
   visits: number;
   views: number;
-  uniquesPerDay: number;
   bars: Bar[];
   pages: Ranked[];
   sources: Ranked[];
@@ -92,7 +90,6 @@ export async function getAnalytics(range: Range): Promise<Analytics> {
         devices: RumRow[];
         usage: Array<{ sum: { requests: number }; dimensions: { date: string } }>;
       }>;
-      zones: Array<{ days: Array<{ uniq: { uniques: number }; dimensions: { date: string } }> }>;
     };
   }>(`{ viewer {
     accounts(filter:{accountTag:"${ACCOUNT_ID}"}) {
@@ -103,13 +100,9 @@ export async function getAnalytics(range: Range): Promise<Analytics> {
       devices: ${top("deviceType")}
       usage: workersInvocationsAdaptive(limit:50, filter:{date_geq:"${utcDate(usageFrom)}"}, orderBy:[date_ASC]) { sum { requests } dimensions { date } }
     }
-    zones(filter:{zoneTag:"${ZONE_ID}"}) {
-      days: httpRequests1dGroups(limit:31, filter:{date_geq:"${utcDate(start)}"}) { uniq { uniques } dimensions { date } }
-    }
   } }`);
 
   const acc = data.viewer.accounts[0];
-  const zone = data.viewer.zones[0];
 
   // Bars: by hour for today, by day (India time) for longer ranges.
   const bars = new Map<string, Bar>();
@@ -142,11 +135,6 @@ export async function getAnalytics(range: Range): Promise<Analytics> {
     views += row.count;
   }
 
-  const uniqueDays = zone?.days ?? [];
-  const uniquesPerDay = uniqueDays.length
-    ? Math.round(uniqueDays.reduce((n, d) => n + d.uniq.uniques, 0) / uniqueDays.length)
-    : 0;
-
   const rank = (rows: RumRow[] | undefined, dim: string, by: "visits" | "views", name: (v: string) => string) =>
     (rows ?? [])
       .map((r) => ({ name: name(r.dimensions[dim] ?? ""), value: by === "visits" ? r.sum.visits : r.count }))
@@ -159,7 +147,6 @@ export async function getAnalytics(range: Range): Promise<Analytics> {
   return {
     visits,
     views,
-    uniquesPerDay,
     bars: [...bars.values()],
     pages: rank(acc?.pages, "requestPath", "views", (p) => p || "/"),
     sources: rank(acc?.sources, "refererHost", "visits", (h) => (h ? h.replace(/^www\./, "") : "Direct / apps")).filter((s) => s.name !== HOST),
