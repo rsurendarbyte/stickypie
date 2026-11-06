@@ -70,8 +70,7 @@ export default function WallPosterEditor({
   }
 
   const choices = pool(pickCategory)
-    .filter((p) => !items.includes(p.id) && p.name.toLowerCase().includes(query.trim().toLowerCase()))
-    .slice(0, 60);
+    .filter((p) => !items.includes(p.id) && p.name.toLowerCase().includes(query.trim().toLowerCase()));
 
   async function save() {
     setSaving(true);
@@ -212,7 +211,8 @@ export default function WallPosterEditor({
                       </option>
                     ))}
                 </SelectField>
-                <div className="mt-2 grid max-h-80 grid-cols-4 gap-1.5 overflow-y-auto pr-1">
+                <p className="mt-2 text-xs text-fog">{choices.length} posters, scroll to see them all</p>
+                <div className="mt-1.5 grid max-h-[60vh] grid-cols-4 gap-1.5 overflow-y-auto pr-1">
                   {choices.map((p) => (
                     <button
                       key={p.id}
