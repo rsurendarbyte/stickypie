@@ -37,13 +37,16 @@ export async function listCarts(): Promise<Cart[]> {
   const ids = [...new Set(carts.flatMap((c) => c.items.flatMap((l) => lineProduct(l) ?? [])))];
   const driver = await getAdminDriver();
   const products = new Map((ids.length ? await driver.getProductsByIds(ids) : []).map((p) => [p.id, p]));
-  return carts.map((c) => ({
-    ...c,
-    items: c.items.map((l) => {
+  return carts.map((c) => {
+    const items = c.items.map((l) => {
       const product = products.get(lineProduct(l) ?? "");
-      return { ...l, thumb: product?.thumbUrl ?? product?.imageUrl ?? null };
-    }),
-  }));
+      // A waiting cart keeps the price from when it was filled, but one-price items
+      // (wall sets) would be charged today's. Ordered carts stay as they were sold.
+      const price = c.status === "pending" && product?.sizes.length === 0 ? product.price : l.price;
+      return { ...l, price, thumb: product?.thumbUrl ?? product?.imageUrl ?? null };
+    });
+    return { ...c, items, value: c.status === "pending" ? items.reduce((sum, l) => sum + l.qty * l.price, 0) : c.value };
+  });
 }
 
 /** For the Orders page: 0 if the count can't be read, it's only a shortcut. */

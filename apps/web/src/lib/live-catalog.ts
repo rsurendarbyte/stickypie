@@ -217,6 +217,13 @@ export type LiveCatalog = Catalog & {
   retry: () => void;
 };
 
+/** These products as they are now, for one small request (the shopper's saved cart). */
+export async function liveProducts(ids: string[]): Promise<Product[]> {
+  if (!liveCatalogEnabled || ids.length === 0) return [];
+  const rows = await rest(`products?id=in.(${ids.join(",")})&select=*`);
+  return rows.map(rowToProduct);
+}
+
 /** Categories + on-sale products. */
 export function useLiveCatalog(initial: Catalog): LiveCatalog {
   const { bundle, failed, retry } = useBundle();
