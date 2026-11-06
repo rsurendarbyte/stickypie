@@ -41,12 +41,13 @@ export default function Footer({ demoMode }: { demoMode: boolean }) {
     <footer className="border-t border-line bg-ink2">
       <div className="grid w-full gap-10 px-4 py-12 sm:px-8 md:grid-cols-[1.4fr_1fr_1fr_1fr_1fr] lg:px-12 2xl:px-20">
         <div>
-          <p className="flex items-center gap-2.5 font-display text-2xl font-semibold">
-            <img src="/icons/icon-192.png" alt="" width={36} height={36} className="size-9 rounded-[11px]" />
-            <span>
-              Sticky<span className="text-logo">Pie</span>
-            </span>
-          </p>
+          <img
+            src="/icons/logo-wide.webp"
+            alt="StickyPie"
+            width={960}
+            height={323}
+            className="h-16 w-auto drop-shadow-[0_1px_2px_rgba(21,22,30,0.2)]"
+          />
           <p className="mt-2 max-w-xs text-sm text-fog">
             Stick your style. Premium die-cut vinyl stickers for rides, lids and laptops,
             and wall posters for everywhere in between.

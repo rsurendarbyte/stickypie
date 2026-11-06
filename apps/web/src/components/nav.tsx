@@ -98,27 +98,31 @@ export default function Nav() {
           )}
           <Link
             href="/"
-            className={`shrink-0 items-center gap-2.5 ${backPage ? "hidden sm:flex" : "flex"}`}
+            aria-label="StickyPie home"
+            className={`shrink-0 items-center ${backPage ? "hidden sm:flex" : "flex"}`}
           >
-            <span
-              aria-hidden
-              className="peel peel-gentle size-8 -rotate-6 sm:size-9 transition-transform duration-300 hover:rotate-0"
-            >
-              <span className="peel-face">
-                <img
-                  src="/icons/icon-192.png"
-                  alt=""
-                  width={36}
-                  height={36}
-                  className="size-8 rounded-[10px] sm:size-9 sm:rounded-[11px]"
-                />
+            <span className="relative block aspect-[960/323] h-[50px] drop-shadow-[0_1px_2px_rgba(21,22,30,0.2)] sm:h-[60px]">
+              <img
+                src="/icons/logo-wide-base.webp"
+                alt=""
+                width={960}
+                height={323}
+                className="block size-full"
+              />
+              <span aria-hidden className="peel peel-gentle peel-logo">
+                <span className="peel-face">
+                  <img
+                    src="/icons/logo-mark.webp"
+                    alt=""
+                    width={270}
+                    height={267}
+                    className="size-full"
+                  />
+                </span>
+                <span className="peel-flap-wrap">
+                  <span className="peel-flap block" />
+                </span>
               </span>
-              <span className="peel-flap-wrap">
-                <span className="peel-flap block" />
-              </span>
-            </span>
-            <span className="font-display text-[22px] leading-none font-semibold tracking-tight">
-              Sticky<span className="text-logo">Pie</span>
             </span>
           </Link>
 
