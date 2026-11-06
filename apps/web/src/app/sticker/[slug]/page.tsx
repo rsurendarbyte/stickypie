@@ -68,7 +68,7 @@ export default async function ProductPage({
   const at = siblings.findIndex((p) => p.id === product.id);
   const pick = (i: number) => {
     const p = siblings[(i + siblings.length) % siblings.length];
-    return { id: p.id, slug: p.slug, name: p.name, imageUrl: p.imageUrl };
+    return { id: p.id, slug: p.slug, name: p.name, imageUrl: p.displayUrl ?? p.imageUrl };
   };
   const steps =
     at >= 0 && siblings.length > 1

@@ -1,11 +1,13 @@
-// Makes the small WebP card image for every product that doesn't have one yet.
+// Makes the derived WebP images for every product that's missing one:
+//   thumb   (480px,  thumbs/)   → products.thumb_url   (cards)
+//   display (1024px, display/)  → products.display_url (hero, product page)
 //
 //   npm run thumbs:build            → dev database
 //   npm run thumbs:build -- --prod  → production database
 //
 // Uploads to the R2 bucket configured in apps/admin/.env.local (same settings
-// as the admin's automatic thumbnails, apps/admin/src/lib/thumbs.ts) and sets
-// products.thumb_url. Safe to re-run: products that already have one are skipped.
+// as the admin's automatic renditions, apps/admin/src/lib/thumbs.ts). Safe to
+// re-run: renditions a product already has are kept.
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -15,7 +17,10 @@ const require = createRequire(path.join(root, "apps/admin/package.json"));
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 const sharp = require("sharp");
 
-const THUMB_MAX_PX = 480;
+const RENDITIONS = [
+  { column: "thumb_url", maxPx: 480, quality: 80, prefix: "thumbs" },
+  { column: "display_url", maxPx: 1024, quality: 82, prefix: "display" },
+];
 const { url, key } = loadTargetEnv();
 
 const admin = Object.fromEntries(
@@ -52,39 +57,50 @@ async function artwork(imageUrl) {
 }
 
 const products = await (
-  await fetch(`${url}/rest/v1/products?select=id,name,image_url,thumb_url&thumb_url=is.null`, { headers })
+  await fetch(
+    `${url}/rest/v1/products?select=id,name,image_url,thumb_url,display_url&or=(thumb_url.is.null,display_url.is.null)`,
+    { headers }
+  )
 ).json();
-console.log(`${products.length} product(s) need a thumbnail`);
+if (!Array.isArray(products)) throw new Error(`products query failed: ${JSON.stringify(products).slice(0, 200)}`);
+console.log(`${products.length} product(s) missing a rendition`);
 
 let done = 0;
 for (const p of products) {
   try {
+    const missing = RENDITIONS.filter((r) => p[r.column] == null);
     const source = await artwork(p.image_url);
-    const webp = await sharp(source)
-      .resize(THUMB_MAX_PX, THUMB_MAX_PX, { fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 80, alphaQuality: 90 })
-      .toBuffer();
-    const base = (p.image_url.split("/").pop() ?? "sticker").replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9-]+/g, "-");
-    const objectKey = `thumbs/${base}-${THUMB_MAX_PX}-${Date.now()}.webp`;
-    await r2.send(
-      new PutObjectCommand({
-        Bucket: admin.R2_BUCKET,
-        Key: objectKey,
-        Body: webp,
-        ContentType: "image/webp",
-        CacheControl: "public, max-age=31536000, immutable",
-      })
-    );
+    const patch = {};
+    const sizesLog = [];
+    for (const { column, maxPx, quality, prefix } of missing) {
+      const webp = await sharp(source)
+        .resize(maxPx, maxPx, { fit: "inside", withoutEnlargement: true })
+        .webp({ quality, alphaQuality: 90 })
+        .toBuffer();
+      const base = (p.image_url.split("/").pop() ?? "sticker").replace(/\.[^.]+$/, "").replace(/[^a-zA-Z0-9-]+/g, "-");
+      const objectKey = `${prefix}/${base}-${maxPx}-${Date.now()}.webp`;
+      await r2.send(
+        new PutObjectCommand({
+          Bucket: admin.R2_BUCKET,
+          Key: objectKey,
+          Body: webp,
+          ContentType: "image/webp",
+          CacheControl: "public, max-age=31536000, immutable",
+        })
+      );
+      patch[column] = `${publicUrl}/${objectKey}`;
+      sizesLog.push(`${prefix} ${Math.round(webp.length / 1024)} KB`);
+    }
     const res = await fetch(`${url}/rest/v1/products?id=eq.${p.id}`, {
       method: "PATCH",
       headers,
-      body: JSON.stringify({ thumb_url: `${publicUrl}/${objectKey}` }),
+      body: JSON.stringify(patch),
     });
     if (!res.ok) throw new Error(`save failed ${res.status}`);
     done++;
-    console.log(`  ✔ ${p.name}  ${Math.round(source.length / 1024)} KB → ${Math.round(webp.length / 1024)} KB`);
+    console.log(`  ✔ ${p.name}  ${Math.round(source.length / 1024)} KB → ${sizesLog.join(", ")}`);
   } catch (err) {
     console.log(`  ✘ ${p.name}: ${err instanceof Error ? err.message : err}`);
   }
 }
-console.log(`✔ ${done}/${products.length} thumbnails made.`);
+console.log(`✔ ${done}/${products.length} products completed.`);

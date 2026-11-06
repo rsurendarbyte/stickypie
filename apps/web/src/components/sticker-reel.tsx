@@ -373,7 +373,7 @@ function ReelItem({
             {checked && wallView === "wall" && !arranging && <WallTip />}
             <div className={`size-full ${wallView !== "wall" ? "invisible" : ""}`}>
             {/* The set as sold draws at once from the page's own posters. A shopper's own picks, and changing them, wait for the checked catalog. */}
-            {picks && !checked ? <span className="block size-full animate-pulse rounded-2xl bg-panel" /> : <WallStage bare priority product={product} posters={posters} onRemove={checked ? emptySpot : undefined} onAdd={checked ? setSpot : undefined} onSwap={checked ? (a, b) => setDraft((now) => now && swapSpots(now, a, b)) : undefined} arranging={arranging} onArrange={checked ? () => setDraft(picks ?? product.packItems) : undefined} src={product.imageUrl} alt={product.name} className={out ? "opacity-50 saturate-50" : ""} />}
+            {picks && !checked ? <span className="block size-full animate-pulse rounded-2xl bg-panel" /> : <WallStage bare priority product={product} posters={posters} onRemove={checked ? emptySpot : undefined} onAdd={checked ? setSpot : undefined} onSwap={checked ? (a, b) => setDraft((now) => now && swapSpots(now, a, b)) : undefined} arranging={arranging} onArrange={checked ? () => setDraft(picks ?? product.packItems) : undefined} src={product.displayUrl ?? product.imageUrl} alt={product.name} className={out ? "opacity-50 saturate-50" : ""} />}
             </div>
             </div>
             {/* below the wall, so nothing sits on a poster or its close button */}
@@ -388,7 +388,7 @@ function ReelItem({
         ) : (
         <img
           // a set's wall stands straight and big, at the sharper size: the posters must read
-          src={pack ? product.imageUrl : (product.thumbUrl ?? product.imageUrl)}
+          src={pack ? (product.displayUrl ?? product.imageUrl) : (product.thumbUrl ?? product.imageUrl)}
           alt={product.name}
           draggable={false}
           className={`max-h-full max-w-full object-contain ${pack ? "rounded-xl shadow-[0_18px_40px_-18px_rgba(16,24,40,0.5)]" : `animate-float ${poster ? "poster-print" : "sticker-cut"}`} ${out ? "opacity-50 saturate-50" : ""}`}

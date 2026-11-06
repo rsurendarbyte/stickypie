@@ -201,13 +201,13 @@ export default function ProductDetailClient({
                 onRemove={checked ? (i) => pickPoster(product, i, "") : undefined}
                 onAdd={checked ? setSpot : undefined}
                 onSwap={checked ? (a, b) => swapPosters(product, a, b) : undefined}
-                src={product.imageUrl}
+                src={product.displayUrl ?? product.imageUrl}
                 alt={product.name}
                 className={out || unavailable ? "opacity-50 saturate-50" : ""}
               />
             ) : (
               <SmartImg
-                full={product.imageUrl}
+                full={product.displayUrl ?? product.imageUrl}
                 thumb={product.thumbUrl}
                 alt={product.name}
                 priority

@@ -336,7 +336,7 @@ export default function Hero({
                   <WallStage bare priority product={product} src={product.thumbUrl ?? product.imageUrl} alt={product.name} />
                 ) : (
                 <SmartImg
-                  full={product.imageUrl}
+                  full={product.displayUrl ?? product.imageUrl}
                   thumb={product.thumbUrl}
                   alt={product.name}
                   priority

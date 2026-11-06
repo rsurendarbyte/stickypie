@@ -71,6 +71,7 @@ function buildSeedStore(): StoreShape {
       sizes: [],
       aspectRatio: null,
       thumbUrl: null,
+      displayUrl: null,
       createdAt: created,
       updatedAt: created,
     };
@@ -206,6 +207,7 @@ export function createLocalDriver(filePath: string): DataDriver {
         ...input,
         categoryId: input.categoryIds[0] ?? null,
         thumbUrl: input.thumbUrl ?? null,
+        displayUrl: input.displayUrl ?? null,
         packItems: input.packItems ?? [],
         packSizes: input.packSizes ?? [],
         createdAt: ts,

@@ -6,9 +6,9 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { packPosterSizes, type DataDriver, type Product } from "@stickypie/shared";
 import { imageSrc } from "./img";
 import { r2Client, r2Config } from "./r2";
-import { makeThumb } from "./thumbs";
 import { arrangeWall } from "./wall-layout";
 import { wallName } from "./wall-names";
+import { makeDisplay, makeThumb } from "./thumbs";
 
 const NOT_FOR_WALLS = /festival|diwali/i;
 const HAND_PICK_ONLY = /tvk/i;
@@ -59,7 +59,7 @@ async function repaint(wall: Product, changes: { index: number; poster: Product 
       const [x, y, w, h] = spots![index].split(",").map(Number);
       // A touch larger than its spot, past the art's rounded corners, so none of the old poster shows.
       const [spotW, spotH] = [px(w), px(h)];
-      const input = await sharp(await download(poster.imageUrl))
+      const input = await sharp(await download(poster.displayUrl ?? poster.imageUrl))
         .resize(Math.round(spotW * 1.07), Math.round(spotH * 1.07), { fit: "cover" })
         .extract({ left: Math.round(spotW * 0.035), top: Math.round(spotH * 0.035), width: spotW, height: spotH })
         .toBuffer();
@@ -84,7 +84,7 @@ async function repaint(wall: Product, changes: { index: number; poster: Product 
   const imageUrl = `${r2.publicUrl}/${key}`;
   // One retry: R2 uploads drop now and then, and a wall with no thumb loads its full picture on every card.
   const thumbUrl = (await makeThumb(imageUrl)) ?? (await makeThumb(imageUrl));
-  return { imageUrl, thumbUrl, ...tags };
+  return { imageUrl, thumbUrl, displayUrl: await makeDisplay(imageUrl), ...tags };
 }
 
 /**
