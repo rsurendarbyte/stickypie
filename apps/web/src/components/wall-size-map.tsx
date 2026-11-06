@@ -180,11 +180,13 @@ export function WallPosterSheet({
   product,
   posters,
   spot,
+  onPick = (at, id) => pickPoster(product, at, id),
   onClose,
 }: {
   product: Product;
   posters: string[] | null;
   spot: number | null;
+  onPick?: (spot: number, posterId: string) => void;
   onClose: () => void;
 }) {
   const catalog = usePosterCatalog();
@@ -232,7 +234,7 @@ export function WallPosterSheet({
             key={p.id}
             type="button"
             onClick={() => {
-              if (spot !== null) pickPoster(product, spot, p.id);
+              if (spot !== null) onPick(spot, p.id);
               close();
             }}
             className="flex min-w-0 flex-col self-start text-left"

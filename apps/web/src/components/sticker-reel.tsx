@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, ChevronUp, Info, LayoutList, RotateCcw, Ruler, Share2, ShoppingBag, Truck, ZoomIn } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ChevronUp, Info, LayoutList, RotateCcw, Ruler, Share2, ShoppingBag, Truck, ZoomIn } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { POSTER_ADHESIVE, POSTER_PAPER, belowMinimum, discountPercent, formatINR, inCategory, packPosterSizes, packSizeSummary } from "@stickypie/shared";
 import { useCatalogChecked, useLiveCatalog, useStoreSettings } from "@/lib/live-catalog";
 import { rememberPackPosters, rememberPosters } from "@/lib/poster-images";
-import { pickPoster, swapPosters, useWallLine } from "@/lib/wall-picks";
+import { pickPoster, setPosters, swapSpots, useWallLine } from "@/lib/wall-picks";
 import { cardSkinFor } from "@/lib/palette";
 import { isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel } from "@/lib/poster";
 import { useSkinSeed } from "@/lib/skin-seed";
@@ -277,6 +277,10 @@ function ReelItem({
   const [zoom, setZoom] = useState(false);
   const [wallView, setWallView] = useState<WallView>("wall");
   const [spot, setSpot] = useState<number | null>(null);
+  // The wall while it's being arranged: it reaches the shopper's picks and the cart on Done.
+  const [draft, setDraft] = useState<string[] | null>(null);
+  const arranging = draft !== null;
+  const posters = draft ?? picks;
   const [pops, setPops] = useState<{ id: number; x: number; y: number }[]>([]);
   const lastTap = useRef<{ t: number; x: number; y: number } | null>(null);
 
@@ -291,6 +295,7 @@ function ReelItem({
 
   // Double-tap the art = add to cart (like a heart on Instagram).
   function onArtTap(e: React.PointerEvent) {
+    if (arranging) return;
     const now = Date.now();
     const prev = lastTap.current;
     if (prev && now - prev.t < 320 && Math.hypot(e.clientX - prev.x, e.clientY - prev.y) < 40) {
@@ -300,6 +305,14 @@ function ReelItem({
       lastTap.current = { t: now, x: e.clientX, y: e.clientY };
     }
   }
+
+  function finishArranging() {
+    if (draft && draft.join() !== (picks ?? product.packItems).join()) setPosters(product, draft);
+    setDraft(null);
+  }
+
+  const emptySpot = (i: number) =>
+    arranging ? setDraft((now) => now && now.map((id, n) => (n === i ? "" : id))) : pickPoster(product, i, "");
 
   async function share() {
     const url = `${location.origin}/sticker/${product.slug}`;
@@ -357,15 +370,18 @@ function ReelItem({
                 <WallSizeMap product={product} posters={picks} />
               </div>
             )}
-            {checked && wallView === "wall" && <WallTip />}
+            {checked && wallView === "wall" && !arranging && <WallTip />}
             <div className={`size-full ${wallView !== "wall" ? "invisible" : ""}`}>
-            {!checked ? <span className="block size-full animate-pulse rounded-2xl bg-panel" /> : <WallStage bare product={product} posters={picks} onRemove={(i) => pickPoster(product, i, "")} onAdd={setSpot} onSwap={(a, b) => swapPosters(product, a, b)} src={product.displayUrl ?? product.imageUrl} alt={product.name} className={out ? "opacity-50 saturate-50" : ""} />}
+            {!checked ? <span className="block size-full animate-pulse rounded-2xl bg-panel" /> : <WallStage bare product={product} posters={posters} onRemove={emptySpot} onAdd={setSpot} onSwap={(a, b) => setDraft((now) => now && swapSpots(now, a, b))} arranging={arranging} onArrange={() => setDraft(picks ?? product.packItems)} src={product.displayUrl ?? product.imageUrl} alt={product.name} className={out ? "opacity-50 saturate-50" : ""} />}
             </div>
             </div>
             {/* below the wall, so nothing sits on a poster or its close button */}
-            <div className="flex shrink-0 items-start justify-between gap-1 px-1.5 pb-1" onPointerUp={(e) => e.stopPropagation()}>
-              <WallViewSwitch view={wallView} onChange={setWallView} glass />
-              <div className="flex shrink-0 gap-1.5">{actions}</div>
+            <div className="relative shrink-0" onPointerUp={(e) => e.stopPropagation()}>
+              {/* stays in the layout while arranging, so the wall doesn't change size under the finger */}
+              <div className={`flex items-start justify-between gap-1 px-1.5 pb-1 ${arranging ? "invisible" : ""}`}>
+                <WallViewSwitch view={wallView} onChange={setWallView} glass />
+                <div className="flex shrink-0 gap-1.5">{actions}</div>
+              </div>
             </div>
           </div>
         ) : (
@@ -386,13 +402,38 @@ function ReelItem({
         ))}
       </div>
 
-      {pack && <WallPosterSheet product={product} posters={picks} spot={spot} onClose={() => setSpot(null)} />}
+      {pack && (
+        <WallPosterSheet
+          product={product}
+          posters={posters}
+          spot={spot}
+          onPick={(at, id) => (arranging ? setDraft((now) => now && now.map((old, n) => (n === at ? id : old))) : pickPoster(product, at, id))}
+          onClose={() => setSpot(null)}
+        />
+      )}
 
       {/* Side rail */}
       {!wall && <div className="absolute right-3 bottom-[248px] flex flex-col items-center gap-3">{actions}</div>}
 
       {/* Buy bar — always on screen */}
-      <div className="reel-glass-bar rounded-t-[28px] px-4 pt-3.5 pb-[calc(0.9rem+env(safe-area-inset-bottom,0px))]">
+      <div className="reel-glass-bar relative rounded-t-[28px] px-4 pt-3.5 pb-[calc(0.9rem+env(safe-area-inset-bottom,0px))]">
+        {/* Over the buy bar, not in place of it, so the wall doesn't change size under the finger */}
+        {arranging && (
+          <div className="absolute inset-0 z-10 flex flex-col justify-center gap-2.5 rounded-t-[28px] bg-snow px-4 pb-[env(safe-area-inset-bottom,0px)] text-white">
+            <div className="text-center">
+              <p className="font-display text-base leading-tight font-bold">Rearrange your wall</p>
+              <p className="text-xs leading-tight text-white/70">Drag a poster onto another to swap them</p>
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setDraft(null)} className="h-11 flex-1 rounded-full border border-white/40 text-sm font-bold text-white">
+                Cancel
+              </button>
+              <button type="button" onClick={finishArranging} className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full bg-white text-sm font-bold text-snow">
+                <Check className="size-4" strokeWidth={3} /> Done
+              </button>
+            </div>
+          </div>
+        )}
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
             {poster && (

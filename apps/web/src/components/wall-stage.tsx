@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { Plus, X } from "lucide-react";
+import { Move, Plus, X } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { packPosterSizes } from "@stickypie/shared";
 import { wallBackground, wallSpots } from "@/lib/poster";
@@ -59,6 +59,7 @@ function markSeen(id: string) {
  * `posters`: the shopper's picks, in place of the set's own posters ("" = an emptied spot).
  * `onRemove` / `onAdd`: a close button on each poster, and an add button on an emptied spot.
  * `onSwap`: posters can be dragged onto each other, or onto an emptied spot.
+ * `arranging` / `onArrange`: the swipe view's mode for that, turned on by a long hold.
  */
 export default function WallStage({
   product,
@@ -72,6 +73,8 @@ export default function WallStage({
   onRemove,
   onAdd,
   onSwap,
+  arranging = false,
+  onArrange,
   className = "",
 }: {
   product: Product;
@@ -85,6 +88,8 @@ export default function WallStage({
   onRemove?: (spot: number) => void;
   onAdd?: (spot: number) => void;
   onSwap?: (from: number, to: number) => void;
+  arranging?: boolean;
+  onArrange?: () => void;
   className?: string;
 }) {
   const spots = wallSpots(product);
@@ -159,7 +164,7 @@ export default function WallStage({
   const noCut = product.tags.includes("wall collage") && urls.some((url, i) => ids[i] && !url);
   // A poster cut from the set's picture only fits its own spot, so all of them must be real.
   const movable = spots.length > 0 && urls.every((url, i) => url || !ids[i]);
-  useWallDrag(box, movable ? onSwap : undefined, ids.join());
+  useWallDrag(box, movable ? onSwap : undefined, ids.join(), onArrange && { on: arranging, start: onArrange });
   if (noCut) {
     return <img src={src} alt={alt} loading="lazy" decoding="async" className={`size-full object-contain ${className}`} />;
   }
@@ -210,7 +215,7 @@ export default function WallStage({
             }
           : (wallBackground(product) ?? undefined)
       }
-      className={`relative ${bare ? "" : "size-full overflow-hidden"} ${effect ? `wall-fx wall-fx-${effect} wall-tags ${state}` : ""} ${className}`}
+      className={`relative ${bare ? "" : "size-full overflow-hidden"} ${arranging ? "wall-arranging" : ""} ${effect ? `wall-fx wall-fx-${effect} wall-tags ${state}` : ""} ${className}`}
     >
       {spots.map((s, i) => (
         <span
@@ -276,6 +281,13 @@ export default function WallStage({
                   <X className="size-3" strokeWidth={3} />
                 </span>
               </button>
+            )}
+            {arranging && (
+              <span aria-hidden className="absolute right-0.5 bottom-0.5 z-[2] grid size-6 place-items-center">
+                <span className="grid size-[18px] place-items-center rounded-full bg-[rgba(16,24,40,0.74)] text-white">
+                  <Move className="size-3" strokeWidth={2.5} />
+                </span>
+              </span>
             )}
           </span>
           )}
