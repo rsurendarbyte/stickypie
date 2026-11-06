@@ -16,6 +16,7 @@ import {
 import type { Category, Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, formatINR } from "@stickypie/shared";
 import { imageDownloadHref, imageSrc } from "@/lib/img";
+import { onWallsMessage, wallName } from "@/lib/wall-names";
 import { useToast } from "./toast";
 
 function Switch({
@@ -308,6 +309,11 @@ export default function ProductsTable({
   }
 
   async function remove(product: Product) {
+    const walls = products.filter((p) => p.packItems.includes(product.id)).map((p) => wallName(p.name));
+    if (walls.length) {
+      toast(`Can't delete "${product.name}". ${onWallsMessage(walls)}`, "error");
+      return;
+    }
     if (!confirm(`Delete "${product.name}"? This cannot be undone.`)) return;
     const res = await fetch(`/api/products/${product.id}`, {
       method: "DELETE",
@@ -320,9 +326,8 @@ export default function ProductsTable({
       );
       return;
     }
-    const { swaps = [] } = await res.json().catch(() => ({}));
     setProducts((prev) => prev.filter((p) => p.id !== product.id));
-    toast(`Deleted "${product.name}"${swaps.length ? `, replaced in ${swaps.length} wall set${swaps.length === 1 ? "" : "s"}` : ""}`);
+    toast(`Deleted "${product.name}"`);
     router.refresh();
   }
 

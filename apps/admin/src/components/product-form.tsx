@@ -16,6 +16,7 @@ import {
   slugify,
 } from "@stickypie/shared";
 import { imageDownloadHref, imageSrc } from "@/lib/img";
+import { onWallsMessage, wallCount, wallList } from "@/lib/wall-names";
 import CategoryPicker from "./category-picker";
 import { CheckField, TextAreaField, TextField } from "./field";
 import { useToast } from "./toast";
@@ -26,9 +27,12 @@ type SizeRow = { inches: number; on: boolean; price: string; compareAt: string }
 export default function ProductForm({
   categories,
   product,
+  walls = [],
 }: {
   categories: Category[];
   product?: Product;
+  /** The walls holding this poster. */
+  walls?: string[];
 }) {
   const router = useRouter();
   const { toast } = useToast();
@@ -49,6 +53,7 @@ export default function ProductForm({
   // A wall's data tags (layout, paint, theme) stay out of this box: they hold commas and are saved as they are.
   const [tags, setTags] = useState(product?.tags.filter((t) => !isWallDataTag(t)).join(", ") ?? "");
   const [imageUrl, setImageUrl] = useState(product?.imageUrl ?? "");
+  const newImageOnWalls = walls.length > 0 && imageUrl.trim() !== product?.imageUrl;
   const [tracked, setTracked] = useState(product ? product.stock !== null : true);
   const [stock, setStock] = useState(
     product && product.stock !== null ? String(product.stock) : "25"
@@ -221,6 +226,7 @@ export default function ProductForm({
       return;
     }
     setErrors({});
+    if (newImageOnWalls && !confirm(`This poster is on ${wallCount(walls.length)}: ${wallList(walls)}.\n\nSaving will update all of them.`)) return;
     setSaving(true);
     try {
       const res = await fetch(editing ? `/api/products/${product!.id}` : "/api/products", {
@@ -231,7 +237,9 @@ export default function ProductForm({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Save failed");
-      toast(editing ? "Product updated" : "Product created");
+      const { redrawn = 0, failed = [] } = (data.walls ?? {}) as { redrawn?: number; failed?: string[] };
+      if (failed.length) toast(`Poster saved. Use Refresh wall picture on ${wallList(failed)}`, "error");
+      else toast(redrawn ? `Product updated and ${wallCount(redrawn)} redrawn` : editing ? "Product updated" : "Product created");
       router.push("/products");
       router.refresh();
     } catch (err) {
@@ -242,6 +250,10 @@ export default function ProductForm({
 
   async function remove() {
     if (!product) return;
+    if (walls.length) {
+      toast(`Can't delete this poster. ${onWallsMessage(walls)}`, "error");
+      return;
+    }
     if (!confirm(`Delete "${product.name}"? This cannot be undone.`)) return;
     const res = await fetch(`/api/products/${product.id}`, { method: "DELETE" });
     if (!res.ok) {
@@ -249,8 +261,7 @@ export default function ProductForm({
       toast(typeof data.error === "string" ? data.error : "Delete failed", "error");
       return;
     }
-    const { swaps = [] } = await res.json().catch(() => ({}));
-    toast(`Product deleted${swaps.length ? `, replaced in ${swaps.length} wall set${swaps.length === 1 ? "" : "s"}` : ""}`);
+    toast("Product deleted");
     router.push("/products");
     router.refresh();
   }
@@ -506,6 +517,11 @@ export default function ProductForm({
           </div>
           {errors.imageUrl && (
             <span className="mt-1.5 block text-xs text-brand">{errors.imageUrl}</span>
+          )}
+          {walls.length > 0 && (
+            <p className="mt-1.5 text-xs text-gold">
+              On {wallCount(walls.length)}: {wallList(walls)}. A new image updates them too.
+            </p>
           )}
 
           <div className="mt-3 flex gap-2">
