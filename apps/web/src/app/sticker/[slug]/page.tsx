@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { preconnect, preload } from "react-dom";
 import JsonLd from "@/components/json-ld";
 import { MetaViewContent } from "@/components/meta-track";
 import ProductDetailClient from "@/components/product-detail-client";
 import StickerReel from "@/components/sticker-reel";
 import { ProductAbout } from "@/components/seo-blocks";
 import ProductAboutChoice from "@/components/product-about-choice";
-import { isMiniPoster, isPosterPack } from "@/lib/poster";
+import { isMiniPoster, isPosterPack, isWallSetup } from "@/lib/poster";
 import { productSnapshot } from "@/lib/catalog-snapshot";
 import { getDriver } from "@/lib/data";
 import {
@@ -88,6 +89,11 @@ export default async function ProductPage({
         })
       )
     : [];
+  // A wall is drawn from these, so the browser starts on them before any JS runs.
+  if (isWallSetup(product) && packPosters.length) {
+    preconnect(new URL(packPosters[0].imageUrl).origin);
+    for (const poster of packPosters) preload(poster.imageUrl, { as: "image", fetchPriority: "high" });
+  }
   const structuredData = productStructuredData(product, category, reviews);
   const categoryNames = product.categoryIds.map((id) => categories.find((c) => c.id === id)?.name).filter((n): n is string => !!n);
   const details = productDetails(product, categoryNames);

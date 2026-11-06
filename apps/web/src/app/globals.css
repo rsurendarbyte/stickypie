@@ -1578,6 +1578,11 @@ html[data-no-save] img:not(a[href] img) {
 .wall-print.is-done {
   opacity: 1;
 }
+/* The wall a page is about shows without waiting for its JS; the hang is for when JS gets there first. */
+.wall-reveal .wall-print:not(.is-up):not(.is-done) {
+  animation: wall-reveal 0.3s ease forwards;
+  animation-delay: 1.5s !important;
+}
 .wall-slot.is-done {
   opacity: 0;
 }
@@ -1921,11 +1926,17 @@ html[data-lite]:not([data-lite="net"]) :is(.wall-tip-glass, .wall-tip-glass::aft
 html[data-lite]:not([data-lite="net"]) .wall-fx {
   transform: none;
 }
-html[data-lite]:not([data-lite="net"]) .wall-print.is-up {
+html[data-lite]:not([data-lite="net"]) .wall-print.is-up,
+html[data-lite]:not([data-lite="net"]) .wall-reveal .wall-print {
   opacity: 1;
 }
 html[data-lite]:not([data-lite="net"]) .wall-slot.is-up {
   opacity: 0;
+}
+@keyframes wall-reveal {
+  to {
+    opacity: 1;
+  }
 }
 @keyframes wall-hang {
   from {

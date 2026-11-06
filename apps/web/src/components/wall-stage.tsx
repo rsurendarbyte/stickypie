@@ -17,6 +17,9 @@ import type { WallEffect } from "@/lib/wall-effects";
  */
 const hungAt = new Map<string, number>();
 const HANG_MS = 4000;
+/** The wall goes up once this share of its pictures is in, or after READY_MS at the latest. */
+const READY_SHARE = 0.5;
+const READY_MS = 1000;
 
 /**
  * Walls that have gone up on each page, for this browser tab. Shop links are full
@@ -68,6 +71,7 @@ export default function WallStage({
   sizes,
   srcSet,
   bare = false,
+  priority = false,
   effect,
   posters,
   onRemove,
@@ -83,6 +87,8 @@ export default function WallStage({
   srcSet?: string;
   sizes?: string;
   bare?: boolean;
+  /** The wall this page is about: its posters load straight away, not when near the screen. */
+  priority?: boolean;
   effect?: WallEffect;
   posters?: string[] | null;
   onRemove?: (spot: number) => void;
@@ -112,14 +118,17 @@ export default function WallStage({
     let live = true;
     const go = () => {
       if (!hungAt.has(product.id)) {
-        hungAt.set(product.id, performance.now());
+        // Slow JS: the page already revealed the posters itself, so don't hang them again.
+        const print = el.querySelector(".wall-print");
+        const shown = print && getComputedStyle(print).opacity !== "0";
+        hungAt.set(product.id, performance.now() - (shown ? HANG_MS + 1 : 0));
         markSeen(product.id);
       }
       setAge(performance.now() - hungAt.get(product.id)!);
     };
     const start = () => {
       const needed = [...new Set(urls.map((url) => url ?? src))];
-      let left = needed.length;
+      let left = Math.ceil(needed.length * READY_SHARE);
       const loaded = () => {
         if (--left <= 0 && live) go();
       };
@@ -129,7 +138,7 @@ export default function WallStage({
         picture.src = url;
       }
       // a slow picture never holds up the wall
-      window.setTimeout(() => live && go(), 2500);
+      window.setTimeout(() => live && go(), READY_MS);
     };
     // A banner or detail page is already on screen, so it starts at once. A copy
     // that isn't showing (the swipe view behind the page) waits until it is.
@@ -215,7 +224,7 @@ export default function WallStage({
             }
           : (wallBackground(product) ?? undefined)
       }
-      className={`relative ${bare ? "" : "size-full overflow-hidden"} ${arranging ? "wall-arranging" : ""} ${effect ? `wall-fx wall-fx-${effect} wall-tags ${state}` : ""} ${className}`}
+      className={`relative ${bare ? "" : "size-full overflow-hidden"} ${priority ? "wall-reveal" : ""} ${arranging ? "wall-arranging" : ""} ${effect ? `wall-fx wall-fx-${effect} wall-tags ${state}` : ""} ${className}`}
     >
       {spots.map((s, i) => (
         <span
@@ -264,7 +273,7 @@ export default function WallStage({
                   }
             }
           >
-            {urls[i] && <img src={urls[i]!} alt="" draggable={false} className="size-full object-cover" />}
+            {urls[i] && <img src={urls[i]!} alt="" draggable={false} loading={priority ? undefined : "lazy"} decoding="async" className="size-full object-cover" />}
             {onRemove && (
               <button
                 type="button"
