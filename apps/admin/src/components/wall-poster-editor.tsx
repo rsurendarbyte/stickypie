@@ -9,7 +9,7 @@ import { imageSrc } from "@/lib/img";
 import { SelectField } from "./field";
 import { useToast } from "./toast";
 
-type Poster = { id: string; name: string; image: string; categoryIds: string[] };
+type Poster = { id: string; name: string; image: string; categoryIds: string[]; handPickOnly: boolean };
 
 const shortName = (name: string) => name.replace(/\s*—?\s*Mini Poster$/i, "");
 
@@ -56,10 +56,11 @@ export default function WallPosterEditor({
   const size = (i: number) => ((wall.packSizes[i] ?? 6) > 6 ? "6×9" : "4×6");
   const used = useMemo(() => new Set(posters.flatMap((p) => p.categoryIds)), [posters]);
   const pool = (id: string) => (id ? posters.filter((p) => p.categoryIds.includes(id)) : posters);
+  const randomPool = (id: string) => pool(id).filter((p) => !p.handPickOnly);
 
   function randomize() {
     const stay = new Set(kept);
-    const fresh = pool(category)
+    const fresh = randomPool(category)
       .filter((p) => !stay.has(p.id))
       .map((p) => ({ p, key: Math.random() }))
       .sort((a, b) => a.key - b.key)
@@ -170,12 +171,12 @@ export default function WallPosterEditor({
             {picking === null ? (
               <div className="space-y-2">
                 <SelectField label="Randomize from" value={category} onChange={(e) => setCategory(e.target.value)}>
-                  <option value="">All posters ({posters.length})</option>
+                  <option value="">All posters ({randomPool("").length})</option>
                   {categories
                     .filter((c) => used.has(c.id))
                     .map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.name} ({pool(c.id).length})
+                        {c.name} ({randomPool(c.id).length})
                       </option>
                     ))}
                 </SelectField>
