@@ -29,9 +29,12 @@ export default async function StickersPage() {
       <JsonLd data={itemListStructuredData(products)} />
       <Suspense
         fallback={
-          <div className="grid min-h-[40vh] place-items-center">
-            <StickerLoader size={56} />
-          </div>
+          <>
+            <h1 className="font-display text-2xl font-bold sm:text-4xl">All stickers</h1>
+            <div className="grid min-h-[40vh] place-items-center">
+              <StickerLoader size={56} />
+            </div>
+          </>
         }
       >
         <BrowseClient initial={{ categories, products: productSnapshot(products) }} />

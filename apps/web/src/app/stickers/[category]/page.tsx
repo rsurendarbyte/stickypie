@@ -7,7 +7,7 @@ import BrowseClient from "@/components/browse-client";
 import StickerLoader from "@/components/sticker-loader";
 import { productSnapshot } from "@/lib/catalog-snapshot";
 import { getDriver } from "@/lib/data";
-import { CategoryAbout } from "@/components/seo-blocks";
+import { CategoryAbout, PosterTopics, ProductLinks } from "@/components/seo-blocks";
 import { categoryIntro, itemListStructuredData } from "@/lib/seo";
 import { absoluteUrl, pageMetadata } from "@/lib/site";
 
@@ -54,12 +54,16 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
   if (!category) notFound();
   const products = await getDriver().listProducts({ activeOnly: true });
   const inThis = products.filter((p) => inCategory(p, category.id));
+  const posters = /poster/i.test(category.name);
+  const heading = category.slug === "poster-packs" ? "Wall posters" : categoryTitle(category.name);
 
   const breadcrumbLd = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Stickers", item: absoluteUrl("/stickers") },
+      posters
+        ? { "@type": "ListItem", position: 1, name: "Wall Posters", item: absoluteUrl("/wall-posters") }
+        : { "@type": "ListItem", position: 1, name: "Stickers", item: absoluteUrl("/stickers") },
       { "@type": "ListItem", position: 2, name: category.name, item: absoluteUrl(categoryPath(category.slug)) },
     ],
   };
@@ -69,14 +73,20 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
       <JsonLd data={[breadcrumbLd, itemListStructuredData(inThis)]} />
       <Suspense
         fallback={
-          <div className="grid min-h-[40vh] place-items-center">
-            <StickerLoader size={56} />
-          </div>
+          // The page's own HTML: the grid is drawn in the browser, so the heading search engines read is here.
+          <>
+            <h1 className="font-display text-2xl font-bold sm:text-4xl">{heading}</h1>
+            <div className="grid min-h-[40vh] place-items-center">
+              <StickerLoader size={56} />
+            </div>
+          </>
         }
       >
         <BrowseClient initial={{ categories, products: productSnapshot(products) }} categorySlug={category.slug} />
       </Suspense>
       <CategoryAbout heading={`About our ${categoryTitle(category.name).toLowerCase()}`} text={categoryIntro(category, inThis.length)} />
+      {posters && <PosterTopics className="mt-4" />}
+      <ProductLinks heading={`All ${categoryTitle(category.name).toLowerCase()}`} products={inThis} />
     </div>
   );
 }

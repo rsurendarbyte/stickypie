@@ -3,7 +3,7 @@ import { categoryPath, inCategory } from "@stickypie/shared";
 import { getDriver } from "@/lib/data";
 import { generateStaticParams as legalSlugs } from "./legal/[slug]/page";
 import { absoluteUrl, isProductionSite } from "@/lib/site";
-import { SURFACES, allLandings } from "@/lib/surfaces";
+import { POSTER_SURFACES, SURFACES, allLandings } from "@/lib/surfaces";
 
 // Built once at deploy and served as a free static file; stickers added from
 // the admin app appear with the next deploy.
@@ -20,6 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl("/avatar-stickers"), changeFrequency: "monthly" as const, priority: 0.9 },
     { url: absoluteUrl("/qr-code-stickers"), changeFrequency: "monthly" as const, priority: 0.8 },
     { url: absoluteUrl("/name-stickers"), changeFrequency: "monthly" as const, priority: 0.8 },
+    ...POSTER_SURFACES.map((s, i) => ({ url: absoluteUrl(`/${s.slug}`), changeFrequency: "weekly" as const, priority: i === 0 ? 1 : 0.9 })),
     ...SURFACES.map((s) => ({ url: absoluteUrl(`/${s.slug}`), changeFrequency: "weekly" as const, priority: 0.9 })),
     { url: absoluteUrl("/contact"), changeFrequency: "yearly", priority: 0.3 },
     ...legalSlugs().map(({ slug }) => ({
@@ -37,7 +38,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       driver.getFestivals(),
     ]);
     // Festival pages (admin → Festivals), kept all year.
-    for (const page of allLandings(festivals, categories).slice(SURFACES.length)) {
+    for (const page of allLandings(festivals, categories).filter((s) => s.when)) {
       pages.push({ url: absoluteUrl(`/${page.slug}`), changeFrequency: "weekly", priority: 0.9 });
     }
     // Category pages that have stickers on sale.
