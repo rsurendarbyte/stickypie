@@ -1,6 +1,7 @@
 "use client";
 
 import { syncCart } from "@/lib/cart-sync";
+import { liveProducts } from "@/lib/live-catalog";
 import { trackMeta } from "@/lib/meta-pixel";
 import {
   createContext,
@@ -11,7 +12,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { CUSTOM_PRODUCT_PREFIX, type CartCustomSpec, type CustomKind, type PosterFinish } from "@stickypie/shared";
+import { CUSTOM_PRODUCT_PREFIX, priceForSize, type CartCustomSpec, type CustomKind, type PosterFinish, type Product } from "@stickypie/shared";
 
 export type CartItem = {
   productId: string;
@@ -97,6 +98,19 @@ function oneLinePerWall(items: CartItem[]): CartItem[] {
   });
 }
 
+/** The catalogue product that sets a line's price: none for custom stickers, a wall set for its customized line. */
+function pricedBy(item: CartItem): string | undefined {
+  if (item.customSpec?.kind === "wall") return item.customSpec.set;
+  return item.custom ? undefined : item.productId;
+}
+
+/** Today's price for a line, what checkout will charge; the saved one if it can't tell. */
+function todaysPrice(item: CartItem, products: Map<string, Product>): number {
+  const product = products.get(pricedBy(item) ?? "");
+  if (!product) return item.price;
+  return item.custom ? product.price : (priceForSize(product, item.size)?.price ?? item.price);
+}
+
 function clampQty(qty: number, stock: number | null): number {
   const max = stock === null ? 99 : Math.min(stock, 99);
   return Math.max(1, Math.min(qty, Math.max(max, 1)));
@@ -114,9 +128,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (raw) {
         // Carts saved before sizes existed have no size fields.
         const saved = JSON.parse(raw) as Array<Partial<CartItem> & { productId: string }>;
-        setItems(
-          oneLinePerWall(saved.map((item) => ({ ...item, size: item.size ?? null, sizeLabel: item.sizeLabel ?? null }) as CartItem))
-        );
+        const restored = oneLinePerWall(saved.map((item) => ({ ...item, size: item.size ?? null, sizeLabel: item.sizeLabel ?? null }) as CartItem));
+        setItems(restored);
+        // A saved cart holds the prices from when it was filled: bring them up to today's.
+        liveProducts([...new Set(restored.flatMap((item) => pricedBy(item) ?? []))])
+          .then((products) => {
+            const live = new Map(products.map((p) => [p.id, p]));
+            setItems((all) =>
+              all.some((item) => todaysPrice(item, live) !== item.price)
+                ? all.map((item) => ({ ...item, price: todaysPrice(item, live) }))
+                : all
+            );
+          })
+          .catch(() => {});
       }
     } catch {
       // ignore corrupt storage
