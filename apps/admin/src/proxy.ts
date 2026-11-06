@@ -10,12 +10,17 @@ import {
 
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
-/** Supabase session cookies (sb-<project>-auth-token, incl. chunked .0/.1 parts). */
+/**
+ * This project's Supabase session cookies (sb-<project>-auth-token, incl. chunked
+ * .0/.1 parts). Only ours: localhost cookies are shared across ports, so the dev
+ * and prod admins see each other's logins and must not delete them.
+ */
 function authCookies(request: NextRequest): string[] {
+  const project = new URL(supabaseUrl()!).hostname.split(".")[0];
   return request.cookies
     .getAll()
     .map((c) => c.name)
-    .filter((name) => /^sb-.+-auth-token/.test(name));
+    .filter((name) => name.startsWith(`sb-${project}-auth-token`));
 }
 
 export async function proxy(request: NextRequest) {
@@ -69,16 +74,25 @@ export async function proxy(request: NextRequest) {
     staleSession = ((!user && rejected) || notAdmin) && authCookies(request).length > 0;
   }
 
+  // A refresh above replaced the login's tokens; a response that isn't `response`
+  // must carry them too, or the browser keeps a token that is about to stop working.
+  const withSession = (res: NextResponse) => {
+    response.cookies.getAll().forEach((cookie) => res.cookies.set(cookie));
+    return res;
+  };
+
   if (!authed && !isLogin) {
-    const res = isApi
-      ? NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-      : NextResponse.redirect(new URL("/login", request.url));
+    const res = withSession(
+      isApi
+        ? NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        : NextResponse.redirect(new URL("/login", request.url))
+    );
     if (staleSession) authCookies(request).forEach((name) => res.cookies.delete(name));
     return res;
   }
   if (staleSession) authCookies(request).forEach((name) => response.cookies.delete(name));
   if (authed && isLogin) {
-    return NextResponse.redirect(new URL("/", request.url));
+    return withSession(NextResponse.redirect(new URL("/", request.url)));
   }
   return response;
 }
