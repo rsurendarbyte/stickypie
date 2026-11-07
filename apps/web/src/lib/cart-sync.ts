@@ -9,6 +9,7 @@ import type { CartItem } from "@/components/cart-context";
 
 const TOKEN_KEY = "stickypie.cart.token";
 const SENT_KEY = "stickypie.cart.sent";
+const PLACED_KEY = "stickypie.cart.placed";
 const WAIT_MS = 1500;
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -38,6 +39,18 @@ function toLines(items: CartItem[]) {
   }));
 }
 
+/** Once a visit, the shop notes roughly where this cart came from (see /api/cart-place). */
+function notePlace(token: string) {
+  if (sessionStorage.getItem(PLACED_KEY) === token) return;
+  sessionStorage.setItem(PLACED_KEY, token);
+  void fetch("/api/cart-place", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+    keepalive: true,
+  }).catch(() => {});
+}
+
 async function send(lines: ReturnType<typeof toLines>, sent: string) {
   const token = cartToken();
   if (!token) return;
@@ -54,8 +67,14 @@ async function send(lines: ReturnType<typeof toLines>, sent: string) {
   });
   // Unsaved changes go again with the next change or page load.
   if (!res.ok) return;
-  if (lines.length) localStorage.setItem(SENT_KEY, sent);
-  else localStorage.removeItem(SENT_KEY);
+  if (lines.length) {
+    localStorage.setItem(SENT_KEY, sent);
+    notePlace(token);
+  } else {
+    localStorage.removeItem(SENT_KEY);
+    // emptying a cart deletes its row, so the next one needs noting again
+    sessionStorage.removeItem(PLACED_KEY);
+  }
 }
 
 let timer: ReturnType<typeof setTimeout> | undefined;

@@ -120,6 +120,7 @@ function docs(biz: Business): Record<string, LegalDoc> {
             "Orders: your phone number, delivery addresses (including any you save for later), the items you order and the order history.",
             "Payments: a payment reference and status from our payment partner. Card, UPI and bank details are entered on the payment partner's secure window and never reach us.",
             "Messages and reviews: anything you send through the contact form, and reviews with any photo you add.",
+            "Approximate location: when you add something to your cart, we note the city and state your internet connection points to, so we can see where shoppers are. It isn't your exact location, we don't keep your IP address, and it's deleted with the cart after 30 days without a change.",
             "On your device: your cart, saved preferences and a copy of the catalogue (to make pages load faster) are kept in your browser's local storage. We don't use advertising or tracking cookies.",
           ],
         },
@@ -298,7 +299,7 @@ export default async function LegalPage({ params }: { params: Promise<{ slug: st
           </section>
         ))}
       </div>
-      <p className="mt-12 text-xs text-fog/60">Last updated: 22 October 2026</p>
+      <p className="mt-12 text-xs text-fog/60">Last updated: 7 November 2026</p>
     </div>
   );
 }
