@@ -26,8 +26,8 @@ const RENDITIONS = [
   { column: "display_url", maxPx: 1024, quality: 82, prefix: "display" },
 ];
 const SIZES = [
-  { inches: 6, price: 80, compare_at_price: 150 },
-  { inches: 9, price: 199, compare_at_price: 350 },
+  { inches: 6, price: 60, compare_at_price: 150 },
+  { inches: 9, price: 120, compare_at_price: 350 },
 ];
 const USES = ["car", "bike", "laptop", "bottle", "helmet", "fridge", "wall", "poster", "mini poster"];
 
