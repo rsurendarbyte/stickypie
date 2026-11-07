@@ -23,7 +23,7 @@ function CartCard({ cart }: { cart: Cart }) {
           )}
           {cart.name && cart.email && <p className="truncate text-xs text-fog">{cart.email}</p>}
           <p className="mt-0.5 text-xs text-fog" title={formatDateTime(cart.updated_at)}>
-            Updated {timeAgo(cart.updated_at)}
+            {cart.place && <>{cart.place} · </>}Updated {timeAgo(cart.updated_at)}
           </p>
         </div>
         <div className="shrink-0 text-right">

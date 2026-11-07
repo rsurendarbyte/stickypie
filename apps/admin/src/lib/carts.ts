@@ -13,6 +13,8 @@ export type Cart = {
   items: CartLine[];
   item_count: number;
   value: number;
+  /** Roughly where it came from: "Chennai, Tamil Nadu". Null for older carts. */
+  place: string | null;
   user_id: string | null;
   order_id: string | null;
   order_status: OrderStatus | null;
