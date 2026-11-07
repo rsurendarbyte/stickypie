@@ -35,7 +35,7 @@ export default async function EditProductPage({
             wall={product}
             posters={all
               .filter((p) => isPickable(p) || product.packItems.includes(p.id))
-              .map((p) => ({ id: p.id, name: p.name, image: p.thumbUrl ?? p.imageUrl, categoryIds: p.categoryIds, handPickOnly: isPickable(p) && !isCandidate(p) }))}
+              .map((p) => ({ id: p.id, name: p.name, image: p.thumbUrl ?? p.imageUrl, printImage: p.imageUrl, categoryIds: p.categoryIds, handPickOnly: isPickable(p) && !isCandidate(p) }))}
             categories={categories}
             openOrders={open.map((o) => ({ id: o.id, code: orderCode(o.id) }))}
           />

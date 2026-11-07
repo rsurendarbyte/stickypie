@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
-import { Dices, Loader2, Lock, LockOpen, Plus, Replace, RotateCcw, Search, X } from "lucide-react";
+import { Dices, Download, Loader2, Lock, LockOpen, Plus, Replace, RotateCcw, Search, X } from "lucide-react";
 import { packPosterSizes, type Category, type Product } from "@stickypie/shared";
-import { imageSrc } from "@/lib/img";
+import { imageDownloadHref, imageSrc } from "@/lib/img";
 import { arrangeWall } from "@/lib/wall-layout";
 import { SelectField } from "./field";
 import { useToast } from "./toast";
 
-type Poster = { id: string; name: string; image: string; categoryIds: string[]; handPickOnly: boolean };
+type Poster = { id: string; name: string; image: string; printImage: string; categoryIds: string[]; handPickOnly: boolean };
 
 const shortName = (name: string) => name.replace(/\s*—?\s*Mini Poster$/i, "");
 
@@ -148,6 +148,24 @@ export default function WallPosterEditor({
   const choices = pool(pickCategory)
     .filter((p) => !items.includes(p.id) && p.name.toLowerCase().includes(query.trim().toLowerCase()));
 
+  /** The full-size file for printing, named with the poster's size on this wall. */
+  function printHref(id: string, i: number) {
+    const poster = byId.get(id);
+    return poster ? imageDownloadHref(poster.printImage, `${shortName(poster.name)} ${size(i).replace("×", "x")}`) : "";
+  }
+
+  async function downloadAll() {
+    const links = items.map(printHref).filter(Boolean);
+    toast(`Downloading ${links.length} posters. Allow multiple downloads if your browser asks`);
+    for (const href of links) {
+      const a = document.createElement("a");
+      a.href = href;
+      a.download = "";
+      a.click();
+      await new Promise((done) => setTimeout(done, 500));
+    }
+  }
+
   async function save() {
     setSaving(true);
     try {
@@ -210,6 +228,18 @@ export default function WallPosterEditor({
           {poster && <img src={imageSrc(poster.image)} alt={poster.name} draggable={false} className="size-full object-cover" />}
           <span className="absolute inset-x-0 bottom-0 bg-black/60 py-px text-center text-[9px] font-bold text-white">{size(i)}</span>
         </button>
+        {poster && (
+          <a
+            href={printHref(id, i)}
+            download
+            data-tile-control
+            aria-label={`Download poster ${i + 1} to print`}
+            title="Download full size to print"
+            className="absolute right-0.5 bottom-0.5 grid size-5 place-items-center rounded-full bg-black/60 text-white/80 hover:bg-brand hover:text-white"
+          >
+            <Download className="size-3" />
+          </a>
+        )}
         {!locked && (
           <button
             type="button"
@@ -245,6 +275,13 @@ export default function WallPosterEditor({
             Click a poster to change it, or drag it onto another to swap them. Removing a poster leaves its spot empty to fill again. Taking a spot off the wall or adding a poster rearranges it and redraws its picture, but the price stays until you change it. Use the lock to keep a poster when randomizing.
           </p>
         </div>
+        <button
+          type="button"
+          onClick={downloadAll}
+          className="inline-flex h-9 items-center gap-2 rounded-xl border border-line px-3 text-sm font-semibold hover:border-brand/50 hover:text-brand"
+        >
+          <Download className="size-4" /> Download all to print
+        </button>
       </div>
 
       {locked && (
