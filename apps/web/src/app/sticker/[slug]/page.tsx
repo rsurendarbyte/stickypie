@@ -94,7 +94,8 @@ export default async function ProductPage({
     preconnect(new URL(packPosters[0].imageUrl).origin);
     for (const poster of packPosters) preload(poster.imageUrl, { as: "image", fetchPriority: "high" });
   }
-  const structuredData = productStructuredData(product, category, reviews);
+  const { rates } = await driver.getSettings();
+  const structuredData = productStructuredData(product, category, reviews, rates);
   const categoryNames = product.categoryIds.map((id) => categories.find((c) => c.id === id)?.name).filter((n): n is string => !!n);
   const details = productDetails(product, categoryNames);
 

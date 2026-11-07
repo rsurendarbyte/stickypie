@@ -2,7 +2,7 @@
 // Words people actually search for in India ("car stickers", "laptop
 // stickers", "vinyl stickers", "peel and stick") are woven into
 // real, readable text — never hidden or stuffed.
-import type { Category, Product, PublicReview } from "@stickypie/shared";
+import type { Category, Product, PublicReview, StoreSettings } from "@stickypie/shared";
 import { POSTER_ADHESIVE, POSTER_PAPER, categoryPath, formatINR, packPosterSizes, packSizeSummary, type PosterFinish } from "@stickypie/shared";
 import { SITE_NAME, absoluteUrl } from "./site";
 import { siteUrl } from "./mode";
@@ -424,15 +424,23 @@ const BASE_FAQ: Faq[] = [
   },
 ];
 
-const SHIPPING_DETAILS = {
+// The fee goes by zone and Google can't take zones inside India, so it gets the
+// cheapest to dearest zone (admin → Settings). Before GST, same as the offer price.
+const shippingDetails = (rates: StoreSettings["rates"]) => ({
   "@type": "OfferShippingDetails",
+  shippingRate: {
+    "@type": "MonetaryAmount",
+    minValue: Math.min(...Object.values(rates)),
+    maxValue: Math.max(...Object.values(rates)),
+    currency: "INR",
+  },
   shippingDestination: { "@type": "DefinedRegion", addressCountry: "IN" },
   deliveryTime: {
     "@type": "ShippingDeliveryTime",
     handlingTime: { "@type": "QuantitativeValue", minValue: HANDLING_DAYS.min, maxValue: HANDLING_DAYS.max, unitCode: "DAY" },
     transitTime: { "@type": "QuantitativeValue", minValue: TRANSIT_DAYS.min, maxValue: TRANSIT_DAYS.max, unitCode: "DAY" },
   },
-};
+});
 
 // Printed to order: damaged / wrong items are replaced free, other returns aren't taken.
 const RETURN_POLICY = {
@@ -445,7 +453,8 @@ const RETURN_POLICY = {
 export function productStructuredData(
   product: Product,
   mainCategory: Category | null,
-  reviews: PublicReview[]
+  reviews: PublicReview[],
+  shippingRates: StoreSettings["rates"]
 ) {
   const url = absoluteUrl(`/sticker/${product.slug}`);
   const availability =
@@ -461,7 +470,7 @@ export function productStructuredData(
     itemCondition: "https://schema.org/NewCondition",
     availability,
     seller: { "@type": "Organization", name: SITE_NAME },
-    shippingDetails: SHIPPING_DETAILS,
+    shippingDetails: shippingDetails(shippingRates),
     hasMerchantReturnPolicy: RETURN_POLICY,
   };
   // One offer per size, each with its own price — what Google Shopping and AI
@@ -471,6 +480,8 @@ export function productStructuredData(
     ...offerBase,
     ...(s.inches ? { name: `${s.inches} inch`, sku: `${product.slug}-${s.inches}in` } : {}),
     price: s.price,
+    // Last edit, not created date: a price can't have changed since then.
+    validFrom: product.updatedAt,
     priceValidUntil,
   }));
 
