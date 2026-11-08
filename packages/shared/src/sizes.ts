@@ -11,14 +11,14 @@ export function isMiniPosterProduct(product: { slug?: string; tags?: string[] } 
   return !!product && (!!product.slug?.endsWith("-mini-poster") || !!product.tags?.some((t) => t.toLowerCase() === "mini poster"));
 }
 /** What posters are, wherever the shop describes them: paper, not sticker vinyl. */
-export const POSTER_PAPER = "270 GSM glossy photo paper";
+export const POSTER_PAPER = "premium poster paper";
 /** Posters have no sticky back, so every poster order comes with these. */
 export const POSTER_ADHESIVE = "glue dots or double-sided tape";
 /** A mini poster is sold as a wall poster (paper) or a sticker (vinyl); wall sets are paper only. */
 export type PosterFinish = "poster" | "sticker";
 /** How the choice reads on the order line, so printing knows the material. */
 export function finishLabel(finish: PosterFinish): string {
-  return finish === "sticker" ? "Vinyl sticker" : "270 GSM poster";
+  return finish === "sticker" ? "Vinyl sticker" : "Wall poster";
 }
 /** An order line printed on poster paper: a pack, or a mini poster not bought as a sticker. */
 export function isPosterItem(item: { name: string; sizeLabel?: string | null; packPosters?: unknown[] | null }): boolean {

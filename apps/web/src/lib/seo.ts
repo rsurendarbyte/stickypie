@@ -601,7 +601,7 @@ export function storeStructuredData(supportEmail: string) {
     image: absoluteUrl("/icons/icon-512.png"),
     slogan: "Stick your style",
     description:
-      "StickyPie (stickypie.in) is an online sticker and wall poster shop in India: die-cut vinyl stickers and decals for cars, bikes, laptops and helmets, 270 GSM wall posters and wall poster sets, AI avatar stickers of you and custom stickers.",
+      "StickyPie (stickypie.in) is an online sticker and wall poster shop in India: die-cut vinyl stickers and decals for cars, bikes, laptops and helmets, premium wall posters and wall poster sets, AI avatar stickers of you and custom stickers.",
     disambiguatingDescription:
       "StickyPie is the Indian online sticker and wall poster shop at stickypie.in — not the StickyPie gaze-based marking menu from AR/VR research.",
     brand: { "@type": "Brand", name: SITE_NAME, url: siteUrl(), logo: absoluteUrl("/icons/icon-512.png") },

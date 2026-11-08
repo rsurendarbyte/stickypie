@@ -173,7 +173,7 @@ export function StoreAbout({ faq }: { faq: Faq[] }) {
         >
           wall posters
         </Link>{" "}
-        are printed on 270 GSM glossy photo paper, one at a time or as ready sets that
+        are printed on premium poster paper, one at a time or as ready sets that
         cover a whole wall, with glue dots or double-sided tape included.
       </p>
       <PosterTopics className="mt-4" />
