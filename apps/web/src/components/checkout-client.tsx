@@ -12,13 +12,11 @@ import {
   ChevronDown,
   Gift,
   Lock,
-  MailCheck,
   MapPin,
   PackageCheck,
   Plus,
   ShieldCheck,
   Truck,
-  X,
 } from "lucide-react";
 import {
   INDIAN_STATES,
@@ -34,10 +32,8 @@ import {
 import { useStoreSettings } from "@/lib/live-catalog";
 import {
   authClient,
-  finishSignup,
   signIn,
   signOut,
-  startSignup,
   useShopper,
 } from "@/lib/shopper-auth";
 import { openPayment } from "@/lib/open-payment";
@@ -55,12 +51,11 @@ import AddressTypePicker, { AddressTypeBadge } from "./address-type-picker";
 import CartThumb, { WallPicksNote } from "./cart-thumb";
 import { hasOwnPosters, sendOwnPosters, withOwnPosters, type PosterSend } from "@/lib/own-posters";
 import OwnPosterSend from "./own-poster-send";
-import { lineKey, useCart } from "./cart-context";
+import { lineKey, useCart, type CartItem } from "./cart-context";
 import { cartToken } from "@/lib/cart-sync";
 import CartStepper from "./cart-stepper";
 import { useMyOffer } from "./my-offer";
 import { CheckField, PasswordField, SelectField, TextField } from "./field";
-import LabelModal from "./label-modal";
 import StickerLoader, { PageLoader } from "./sticker-loader";
 
 type FormState = {
@@ -86,6 +81,28 @@ const EMPTY: FormState = {
 };
 
 const CUSTOMER_KEY = "stickypie.customer.v1";
+
+/** "1 poster pack", "2 poster packs · 3 stickers": what's in the cart, by kind. */
+function countLabel(items: CartItem[]): string {
+  const kinds: [string, number][] = [
+    ["poster pack", 0],
+    ["poster", 0],
+    ["sticker", 0],
+  ];
+  for (const item of items) {
+    const at =
+      item.customKind === "wall" || /-(wall-setup|poster-pack)$/.test(item.slug)
+        ? 0
+        : /-mini-poster$/.test(item.slug) && item.finish !== "sticker"
+          ? 1
+          : 2;
+    kinds[at][1] += item.qty;
+  }
+  return kinds
+    .filter(([, n]) => n > 0)
+    .map(([noun, n]) => `${n} ${noun}${n === 1 ? "" : "s"}`)
+    .join(" · ");
+}
 
 export default function CheckoutClient() {
   const { items, count, subtotal } = useCart();
@@ -121,50 +138,11 @@ export default function CheckoutClient() {
   const [sending, setSending] = useState<PosterSend[] | null>(null);
   const payForm = useRef<HTMLFormElement>(null);
   const shopper = useShopper();
-  const [authMode, setAuthMode] = useState<"create" | "signin">("create");
+  // Guests pay with just their email; an account is only for signing in.
+  const [authMode, setAuthMode] = useState<"guest" | "signin">("guest");
   const [password, setPassword] = useState("");
   const [authError, setAuthError] = useState<string | null>(null);
-  // New accounts confirm their email with a 6-digit code before paying.
-  const [codeSentTo, setCodeSentTo] = useState<string | null>(null);
-  const [code, setCode] = useState("");
-  const [resendIn, setResendIn] = useState(0);
-  const [sendingCode, setSendingCode] = useState(false);
-  const [codeOpen, setCodeOpen] = useState(false);
-  const needsAccount = shopper.enabled && !shopper.email;
-  const awaitingCode =
-    needsAccount &&
-    authMode === "create" &&
-    codeSentTo !== null &&
-    codeSentTo === form.email.trim().toLowerCase();
-
-  useEffect(() => {
-    if (resendIn <= 0) return;
-    const t = setTimeout(() => setResendIn((n) => n - 1), 1000);
-    return () => clearTimeout(t);
-  }, [resendIn]);
-
-  async function resendCode() {
-    setAuthError(null);
-    setSendingCode(true);
-    try {
-      const result = await startSignup(
-        form.email.trim().toLowerCase(),
-        password,
-      );
-      if ("codeSent" in result) {
-        setResendIn(60);
-        setCode("");
-      } else {
-        setCodeSentTo(null);
-      }
-    } catch (err) {
-      setAuthError(
-        err instanceof Error ? err.message : "Couldn't send the code.",
-      );
-    } finally {
-      setSendingCode(false);
-    }
-  }
+  const needsSignIn = shopper.enabled && !shopper.email && authMode === "signin";
   const [pin, setPin] = useState<{
     status: "idle" | "checking" | "ok" | "notfound" | "unavailable";
     label?: string;
@@ -334,15 +312,8 @@ export default function CheckoutClient() {
       }));
       return;
     }
-    if (
-      needsAccount &&
-      (authMode === "create" ? password.length < 8 : !password)
-    ) {
-      setAuthError(
-        authMode === "create"
-          ? "Choose a password of at least 8 characters."
-          : "Enter your password.",
-      );
+    if (needsSignIn && !password) {
+      setAuthError("Enter your password.");
       return;
     }
 
@@ -354,51 +325,19 @@ export default function CheckoutClient() {
 
     setSubmitting(true);
 
-    // Quick onboarding: sign in, or create the account (after the emailed
-    // code confirms the address), then pay.
+    // Signed in already, or signing in now: the order goes on the account.
+    // A guest sends no token and the order opens from this browser.
     let token: string | null = null;
-    if (shopper.enabled) {
+    if (shopper.enabled && (shopper.email || needsSignIn)) {
       try {
-        let session;
-        if (!needsAccount) {
-          session = (await authClient()!.auth.getSession()).data.session;
-        } else if (authMode === "signin") {
-          session = await signIn(parsed.data.email, password);
-        } else if (!awaitingCode) {
-          const result = await startSignup(parsed.data.email, password);
-          if ("codeSent" in result) {
-            // Wait for the shopper to type the code from their email.
-            setCodeSentTo(parsed.data.email);
-            setCode("");
-            setResendIn(60);
-            setCodeOpen(true);
-            setSubmitting(false);
-            return;
-          }
-          session = result.session; // returning shopper, right password
-        } else {
-          if (!/^\d{6}$/.test(code.trim())) {
-            if (codeOpen)
-              setAuthError("Enter the 6-digit code from your email.");
-            setCodeOpen(true);
-            setSubmitting(false);
-            return;
-          }
-          session = await finishSignup(
-            parsed.data.email,
-            password,
-            parsed.data.name,
-            code.trim(),
-          );
-          setCodeSentTo(null);
-          setCodeOpen(false);
-        }
+        const session = needsSignIn
+          ? await signIn(parsed.data.email, password)
+          : (await authClient()!.auth.getSession()).data.session;
         token = session?.access_token ?? null;
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Could not sign you in.";
         setAuthError(message);
-        if (/already exists/i.test(message)) setAuthMode("signin");
         setSubmitting(false);
         return;
       }
@@ -539,8 +478,8 @@ export default function CheckoutClient() {
     Boolean(savedChoice) && !Object.values(errors).some(Boolean);
 
   const payLabel = (compact: boolean) =>
-    needsAccount
-      ? `${authMode === "create" ? (awaitingCode ? "Verify" : "Create account") : "Sign in"} & pay${compact ? "" : ` ${formatINR(total)}`}`
+    needsSignIn
+      ? `Sign in & pay${compact ? "" : ` ${formatINR(total)}`}`
       : compact
         ? "Pay securely"
         : `Pay ${formatINR(total)} securely`;
@@ -640,7 +579,7 @@ export default function CheckoutClient() {
                     role="tablist"
                     className="grid grid-cols-2 rounded-xl border border-line bg-ink p-1 text-sm font-semibold"
                   >
-                    {(["create", "signin"] as const).map((mode) => (
+                    {(["guest", "signin"] as const).map((mode) => (
                       <button
                         key={mode}
                         type="button"
@@ -656,8 +595,8 @@ export default function CheckoutClient() {
                             : "text-fog hover:text-snow"
                         }`}
                       >
-                        {mode === "create"
-                          ? "I'm new here"
+                        {mode === "guest"
+                          ? "Guest checkout"
                           : "I have an account"}
                       </button>
                     ))}
@@ -667,27 +606,23 @@ export default function CheckoutClient() {
                       type: "email",
                       autoComplete: "email",
                     })}
-                    <PasswordField
-                      label={
-                        authMode === "create" ? "Create a password" : "Password"
-                      }
-                      value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value);
-                        setAuthError(null);
-                      }}
-                      autoComplete={
-                        authMode === "create"
-                          ? "new-password"
-                          : "current-password"
-                      }
-                      hint={
-                        authMode === "create"
-                          ? "8+ characters — to track your order"
-                          : undefined
-                      }
-                    />
+                    {authMode === "signin" && (
+                      <PasswordField
+                        label="Password"
+                        value={password}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          setAuthError(null);
+                        }}
+                        autoComplete="current-password"
+                      />
+                    )}
                   </div>
+                  {authMode === "guest" && (
+                    <p className="mt-1.5 text-xs text-fog">
+                      For your receipt. No account or password needed.
+                    </p>
+                  )}
                   {authMode === "signin" && (
                     <a
                       href="/account?forgot"
@@ -989,7 +924,7 @@ export default function CheckoutClient() {
                 Order summary
               </span>
               <span className="block text-xs text-fog">
-                {count} sticker{count === 1 ? "" : "s"}
+                {countLabel(items)}
                 {items.length > 1 && (
                   <span className="hidden sm:inline">
                     {" "}
@@ -1136,7 +1071,7 @@ export default function CheckoutClient() {
                 {quote ? "Total" : "Total + shipping"}
                 <span className="hidden sm:inline">
                   {" "}
-                  · {count} sticker{count === 1 ? "" : "s"}
+                  · {countLabel(items)}
                   {quote ? ` · incl. shipping + GST` : ""}
                 </span>
               </p>
@@ -1161,113 +1096,8 @@ export default function CheckoutClient() {
         </div>
       </form>
 
-      {/* ── Email code pop-up (new accounts) ───────────────────────────── */}
       <OwnPosterSend rows={sending} onRetry={() => payForm.current?.requestSubmit()} onClose={() => setSending(null)} />
 
-      <LabelModal
-        open={awaitingCode && codeOpen}
-        onClose={() => {
-          setCodeOpen(false);
-          setAuthError(null);
-        }}
-        labelledBy="code-title"
-        className="max-w-sm p-6 text-center"
-      >
-        <div>
-          <div className="flex justify-end">
-            <button
-              type="button"
-              aria-label="Close"
-              onClick={() => {
-                setCodeOpen(false);
-                setAuthError(null);
-              }}
-              className="-mt-2 -mr-2 grid size-9 place-items-center rounded-full text-fog transition-colors hover:bg-snow/5 hover:text-snow"
-            >
-              <X className="size-5" />
-            </button>
-          </div>
-          <span className="pie-gradient mx-auto -mt-4 grid size-14 place-items-center rounded-2xl text-white shadow-lg shadow-brand/25">
-            <MailCheck className="size-7" />
-          </span>
-          <h2 id="code-title" className="mt-4 font-display text-2xl font-bold">
-            Check your email
-          </h2>
-          <p className="mt-1.5 text-sm text-fog">
-            We sent a 6-digit code to
-            <br />
-            <b className="break-all text-snow">{codeSentTo}</b>
-          </p>
-          <input
-            value={code}
-            onChange={(e) => {
-              setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
-              setAuthError(null);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                (
-                  document.getElementById(
-                    "checkout-form",
-                  ) as HTMLFormElement | null
-                )?.requestSubmit();
-              }
-            }}
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            placeholder="••••••"
-            aria-label="6-digit code"
-            autoFocus
-            className="mt-5 h-14 w-full rounded-2xl border border-line bg-ink2 px-4 text-center font-display text-2xl font-bold tracking-[0.5em] outline-none focus:border-brand/60 focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--color-brand)_12%,transparent)]"
-          />
-          {authError && (
-            <p className="mt-2 text-xs font-medium text-brand">{authError}</p>
-          )}
-          <button
-            type="submit"
-            form="checkout-form"
-            disabled={submitting || code.length !== 6}
-            className="peel-btn peel-btn--brand mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold disabled:opacity-50"
-          >
-            {submitting ? (
-              <StickerLoader size={18} variant="onBrand" />
-            ) : (
-              <Lock className="size-4" />
-            )}
-            {submitting ? "Verifying…" : `Verify & pay ${formatINR(total)}`}
-          </button>
-          <div className="mt-4 flex items-center justify-between text-xs">
-            <button
-              type="button"
-              onClick={resendCode}
-              disabled={resendIn > 0 || sendingCode}
-              className="font-semibold text-brand hover:underline disabled:text-fog disabled:no-underline"
-            >
-              {sendingCode
-                ? "Sending…"
-                : resendIn > 0
-                  ? `Resend in ${resendIn}s`
-                  : "Send a new code"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setCodeSentTo(null);
-                setCode("");
-                setCodeOpen(false);
-                setAuthError(null);
-              }}
-              className="font-semibold text-fog hover:text-snow"
-            >
-              Use a different email
-            </button>
-          </div>
-          <p className="mt-3 text-[11px] text-fog">
-            Can&apos;t find it? Check spam or promotions.
-          </p>
-        </div>
-      </LabelModal>
     </div>
   );
 }

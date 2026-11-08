@@ -471,6 +471,7 @@ function ReelItem({
                 {off !== null && <span className="ml-1 font-bold text-mint">{off}% off</span>}
               </p>
             )}
+            <p className="mt-0.5 text-[10px] text-fog">{settings.business.gstRate > 0 ? "+ GST + shipping" : "+ shipping"}</p>
           </div>
         </div>
         {poster && !pack && (

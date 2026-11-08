@@ -22,6 +22,11 @@ function CartCard({ cart }: { cart: Cart }) {
             <p className="font-semibold">{shopper}</p>
           )}
           {cart.name && cart.email && <p className="truncate text-xs text-fog">{cart.email}</p>}
+          {cart.phone && (
+            <a href={`tel:${cart.phone}`} className="block truncate text-xs text-fog hover:text-brand">
+              {cart.phone}
+            </a>
+          )}
           <p className="mt-0.5 text-xs text-fog" title={formatDateTime(cart.updated_at)}>
             {cart.place && <>{cart.place} · </>}Updated {timeAgo(cart.updated_at)}
           </p>
@@ -54,7 +59,12 @@ function CartCard({ cart }: { cart: Cart }) {
       </ul>
 
       <div className="mt-3 flex items-center gap-2">
-        {cart.status === "pending" ? (
+        {cart.status === "pending" && cart.order_id ? (
+          // Filled in the checkout and started an order, but hasn't paid.
+          <span className="inline-block rounded-full border border-brand/30 bg-brand/10 px-2.5 py-0.5 text-[11px] font-semibold text-brand">
+            Reached payment · not paid
+          </span>
+        ) : cart.status === "pending" ? (
           <span className="inline-block rounded-full border border-gold/30 bg-gold/10 px-2.5 py-0.5 text-[11px] font-semibold text-gold">
             Pending
           </span>
@@ -63,7 +73,7 @@ function CartCard({ cart }: { cart: Cart }) {
         ) : (
           <span className="text-xs text-fog">Ordered</span>
         )}
-        {cart.order_id && cart.status === "ordered" && (
+        {cart.order_id && (
           <Link href={`/orders/${cart.order_id}`} className="text-xs font-semibold text-snow hover:text-brand">
             {orderCode(cart.order_id)}
           </Link>

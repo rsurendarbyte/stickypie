@@ -2,18 +2,25 @@ import { NextResponse } from "next/server";
 import { CUSTOM_UPLOAD_STATUSES } from "@stickypie/shared";
 import { getDriver } from "@/lib/data";
 import { UploadError, storeCustomFile } from "@/lib/custom-files";
+import { holdsGuestOrder } from "@/lib/guest-order";
 import { shopperFromRequest } from "@/lib/shopper";
 
 
-/** The order's owner uploads or replaces a custom sticker's artwork after paying (multipart: itemId + file). */
+/**
+ * The order's owner uploads or replaces a custom sticker's artwork after paying
+ * (multipart: itemId + file): the signed-in shopper, or for a guest order the
+ * browser holding its key.
+ */
 export async function POST(req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const shopper = await shopperFromRequest(req);
-  if (!shopper) return NextResponse.json({ error: "Please sign in first." }, { status: 401 });
   const { id } = await ctx.params;
-
   const driver = getDriver();
   const order = await driver.getOrder(id);
-  if (!order || order.userId !== shopper.id) {
+  if (!order) return NextResponse.json({ error: "Order not found." }, { status: 404 });
+  if (order.userId) {
+    const shopper = await shopperFromRequest(req);
+    if (!shopper) return NextResponse.json({ error: "Please sign in first." }, { status: 401 });
+    if (order.userId !== shopper.id) return NextResponse.json({ error: "Order not found." }, { status: 404 });
+  } else if (!(await holdsGuestOrder(order))) {
     return NextResponse.json({ error: "Order not found." }, { status: 404 });
   }
   if (!(CUSTOM_UPLOAD_STATUSES as readonly string[]).includes(order.status)) {

@@ -38,7 +38,7 @@ function upload(
   orderId: string,
   itemId: string,
   file: Blob,
-  token: string,
+  token: string | null,
   onProgress: (pct: number) => void
 ): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -47,7 +47,8 @@ function upload(
     form.append("file", file instanceof File ? file : new File([file], "design", { type: file.type }));
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `/api/orders/${orderId}/custom-file`);
-    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    // A guest order goes by its httpOnly cookie instead.
+    if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
     xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(Math.round((e.loaded / e.total) * 100));
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) return resolve();
@@ -70,18 +71,21 @@ function upload(
 export default function CustomOrderUpload({
   orderId,
   orderUserId,
+  guest = false,
   firstName,
   items,
 }: {
   orderId: string;
   orderUserId: string | null;
+  /** This browser holds the guest order's key (no account to sign in with). */
+  guest?: boolean;
   firstName: string;
   items: Item[];
 }) {
   const shopper = useShopper();
   const router = useRouter();
   const token = shopper.session?.access_token ?? null;
-  const owner = Boolean(shopper.session && shopper.session.user.id === orderUserId);
+  const owner = guest || Boolean(shopper.session && shopper.session.user.id === orderUserId);
   const [states, setStates] = useState<Record<string, ItemState>>(() =>
     Object.fromEntries(items.map((i) => [i.id, i.hasFile ? { kind: "done" } : { kind: "checking" }]))
   );
@@ -91,7 +95,7 @@ export default function CustomOrderUpload({
   const set = (id: string, state: ItemState) => setStates((prev) => ({ ...prev, [id]: state }));
 
   async function send(item: Item, file: Blob) {
-    if (!token) return;
+    if (!token && !guest) return;
     set(item.id, { kind: "uploading", progress: 0 });
     try {
       await upload(orderId, item.id, file, token, (progress) => set(item.id, { kind: "uploading", progress }));
@@ -104,7 +108,7 @@ export default function CustomOrderUpload({
 
   // Find the designs saved on this device, then send them one by one.
   useEffect(() => {
-    if (!owner || !token || running.current) return;
+    if (!owner || (!token && !guest) || running.current) return;
     running.current = true;
     void (async () => {
       const queue: { item: Item; file: Blob }[] = [];

@@ -1,6 +1,7 @@
 // Server-only: identify the signed-in shopper behind an API request.
 // The browser sends its Supabase access token as `Authorization: Bearer …`;
 // Supabase Auth confirms it and tells us who it belongs to.
+import { holdsGuestOrder } from "./guest-order";
 import { supabaseConfigured, supabaseUrl } from "./mode";
 
 export type Shopper = { id: string; email: string };
@@ -64,14 +65,19 @@ export async function isAdminToken(token: string): Promise<boolean> {
 }
 
 /**
- * Who is looking at an order: the signed-in shopper who placed it ("owner"),
- * an admin previewing it ("admin"), or nobody allowed (null).
+ * Who is looking at an order: the signed-in shopper who placed it, or the
+ * browser / link holding a guest order's key ("owner"), an admin previewing
+ * it ("admin"), or nobody allowed (null).
  * Demo mode (no accounts) keeps orders open.
  */
-export async function orderViewer(order: { userId: string | null }): Promise<"owner" | "admin" | null> {
+export async function orderViewer(
+  order: { id: string; userId: string | null },
+  linkKey?: string
+): Promise<"owner" | "admin" | null> {
   if (!accountsEnabled()) return "owner";
   const shopper = await shopperFromCookies();
   if (shopper && order.userId && shopper.id === order.userId) return "owner";
+  if (await holdsGuestOrder(order, linkKey)) return "owner";
   const { cookies } = await import("next/headers");
   const adminToken = (await cookies()).get(ADMIN_VIEW_COOKIE)?.value ?? "";
   if (adminToken && (await isAdminToken(adminToken))) return "admin";
@@ -79,6 +85,6 @@ export async function orderViewer(order: { userId: string | null }): Promise<"ow
 }
 
 /** Who may see an order's details: its shopper, or an admin previewing it. */
-export async function canViewOrder(order: { userId: string | null }): Promise<boolean> {
-  return (await orderViewer(order)) !== null;
+export async function canViewOrder(order: { id: string; userId: string | null }, linkKey?: string): Promise<boolean> {
+  return (await orderViewer(order, linkKey)) !== null;
 }
