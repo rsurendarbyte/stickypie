@@ -75,7 +75,9 @@ export default function Sidebar({
         </div>
         <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain px-3 pb-2">
           {NAV.map(({ href, label, icon: Icon }) => (
-            <Link key={href} href={href} className={linkClass(href)}>
+            // No background preloading: each one ran the admin sign-in checks
+            // against Supabase for every menu item on every page load.
+            <Link key={href} href={href} prefetch={false} className={linkClass(href)}>
               <Icon className="size-4.5" />
               {label}
               {badge(href)}

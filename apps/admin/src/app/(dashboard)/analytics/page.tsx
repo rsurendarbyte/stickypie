@@ -21,30 +21,28 @@ export default async function AnalyticsPage({ searchParams }: { searchParams: Pr
   const { range: asked } = await searchParams;
   const range: Range = RANGES.some((r) => r.id === asked) ? (asked as Range) : "7d";
 
-  let data: Analytics | null = null;
-  let error = "";
-  if (analyticsConfigured()) {
-    try {
-      data = await getAnalytics(range);
-    } catch (e) {
-      error = e instanceof Error ? e.message : "Couldn't reach Cloudflare.";
-    }
-  }
-
-  let visitors: number | null = null;
-  try {
-    visitors = await getUniqueVisitors(range);
-  } catch {
-    // shown as a dash in its card
-  }
-
-  let viewed: ProductViews | null = null;
-  let viewedError = "";
-  try {
-    viewed = await getProductViews(range);
-  } catch (e) {
-    viewedError = e instanceof Error ? e.message : "Couldn't load sticker views.";
-  }
+  // The three sources don't depend on each other: load them side by side.
+  const [traffic, people, views] = await Promise.allSettled([
+    analyticsConfigured() ? getAnalytics(range) : Promise.resolve(null),
+    getUniqueVisitors(range),
+    getProductViews(range),
+  ]);
+  const data: Analytics | null = traffic.status === "fulfilled" ? traffic.value : null;
+  const error =
+    traffic.status === "rejected"
+      ? traffic.reason instanceof Error
+        ? traffic.reason.message
+        : "Couldn't reach Cloudflare."
+      : "";
+  // shown as a dash in its card
+  const visitors: number | null = people.status === "fulfilled" ? people.value : null;
+  const viewed: ProductViews | null = views.status === "fulfilled" ? views.value : null;
+  const viewedError =
+    views.status === "rejected"
+      ? views.reason instanceof Error
+        ? views.reason.message
+        : "Couldn't load sticker views."
+      : "";
 
   return (
     <div className="w-full">
