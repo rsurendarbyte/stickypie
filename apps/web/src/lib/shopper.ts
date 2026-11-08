@@ -4,7 +4,8 @@
 import { holdsGuestOrder } from "./guest-order";
 import { supabaseConfigured, supabaseUrl } from "./mode";
 
-export type Shopper = { id: string; email: string };
+/** confirmed: Supabase has the email as confirmed (code at sign-up), so it's theirs. */
+export type Shopper = { id: string; email: string; confirmed: boolean };
 
 /** Accounts need Supabase; demo mode (local JSON store) stays guest-only. */
 export function accountsEnabled(): boolean {
@@ -39,9 +40,13 @@ async function shopperFromToken(token: string): Promise<Shopper | null> {
     cache: "no-store",
   });
   if (!res.ok) return null;
-  const user = (await res.json().catch(() => null)) as { id?: string; email?: string } | null;
+  const user = (await res.json().catch(() => null)) as {
+    id?: string;
+    email?: string;
+    email_confirmed_at?: string | null;
+  } | null;
   if (!user?.id || !user.email) return null;
-  return { id: user.id, email: user.email.toLowerCase() };
+  return { id: user.id, email: user.email.toLowerCase(), confirmed: Boolean(user.email_confirmed_at) };
 }
 
 /**

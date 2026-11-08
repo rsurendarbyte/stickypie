@@ -22,6 +22,7 @@ import OrderReviews from "@/components/order-reviews";
 import OrderTracking from "@/components/order-tracking";
 import OrderWallThumb from "@/components/order-wall-thumb";
 import OrderSignIn from "@/components/order-sign-in";
+import GuestAccountBox from "@/components/guest-account-box";
 import GuestOrderLink from "@/components/guest-order-link";
 import PaymentPending from "@/components/payment-pending";
 import { latestPaymentAttempt, reconcileOrderPayment } from "@/lib/payments";
@@ -183,6 +184,9 @@ export default async function OrderPage({
       )}
 
       {guestKey && !adminView && <GuestOrderLink url={`${absoluteUrl(`/order/${order.id}`)}?k=${guestKey}`} />}
+      {guestKey && !adminView && paid && (
+        <GuestAccountBox orderId={order.id} email={order.email} name={order.customerName} />
+      )}
 
       {fromCard && (
         <CardFeedback

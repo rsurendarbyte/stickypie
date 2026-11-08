@@ -2,6 +2,7 @@
 
 import Link from "@/components/page-link";
 import ShopLinks from "@/components/shop-links";
+import { ORDERS_CLAIMED } from "@/components/auth-cookie-sync";
 import { useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
@@ -148,6 +149,13 @@ function shortDate(iso: string): string {
 export default function MyOrders({ email, userId }: { email: string; userId: string }) {
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Guest orders that just joined this account: load again.
+  const [round, setRound] = useState(0);
+  useEffect(() => {
+    const again = () => setRound((n) => n + 1);
+    window.addEventListener(ORDERS_CLAIMED, again);
+    return () => window.removeEventListener(ORDERS_CLAIMED, again);
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -169,7 +177,7 @@ export default function MyOrders({ email, userId }: { email: string; userId: str
     return () => {
       alive = false;
     };
-  }, [email, userId]);
+  }, [email, userId, round]);
 
   if (error) return <p className="mt-6 text-sm text-brand">{error}</p>;
   if (!orders) {

@@ -438,6 +438,19 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
       return null;
     },
 
+    async claimGuestOrders(email, userId) {
+      // Exact match, any case: older guest orders kept the email as typed.
+      const exact = email.replace(/[\\%_]/g, (c) => `\\${c}`);
+      const { data, error } = await client
+        .from("orders")
+        .update({ user_id: userId })
+        .is("user_id", null)
+        .ilike("email", exact)
+        .select("id");
+      if (error) throw friendly(error);
+      return data?.length ?? 0;
+    },
+
     async listPendingOrdersForUser(userId, sinceIso) {
       const { data, error } = await client
         .from("orders")

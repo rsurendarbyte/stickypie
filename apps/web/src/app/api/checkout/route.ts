@@ -78,6 +78,9 @@ export async function POST(req: Request) {
     customer = { ...customer, email: shopper.email };
   }
 
+  // Emails match accounts in lower case (a guest's orders join their account later).
+  customer = { ...customer, email: customer.email.toLowerCase() };
+
   // India only: the PIN must be a real Indian PIN in the chosen state.
   const where = await checkIndianAddress(customer.pincode, customer.state);
   if (!where.ok) {
