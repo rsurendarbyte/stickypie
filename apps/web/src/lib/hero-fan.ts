@@ -4,8 +4,8 @@
 import type { Category, Product } from "@stickypie/shared";
 import { isMiniPoster, isPosterPack } from "./poster";
 
-/** Smoking: still on sale, but never put forward on the banner. */
-export const NOT_IN_HERO = /cigar|mala da|rajinikanth red and gold/i;
+/** Smoking and guns (checked by eye, not all say so in the name): still on sale, but never put forward on the banner. */
+export const NOT_IN_HERO = /cigar|mala da|rajinikanth red and gold|boss dog|ajith kumar racing collage|masked heist/i;
 
 export type FanPoster = Pick<Product, "id" | "slug" | "name" | "thumbUrl" | "displayUrl" | "imageUrl">;
 
@@ -25,7 +25,7 @@ export function wallTileSrc(p: Pick<Product, "tinyUrl" | "thumbUrl" | "imageUrl"
     : { src };
 }
 
-/** A dozen posters to start the fan from, categories taking turns. */
+/** Every poster the fan may show, each category spread evenly through the list so neighbours differ. */
 export function fanSnapshot(products: Product[], categories: Category[]): FanPoster[] {
   const regionId = categories.find((c) => c.slug === "cities-states")?.id;
   const groups = new Map<string, Product[]>();
@@ -34,17 +34,11 @@ export function fanSnapshot(products: Product[], categories: Category[]): FanPos
     const key = p.categoryId ?? "none";
     groups.set(key, [...(groups.get(key) ?? []), p]);
   }
-  const queues = [...groups.values()];
-  const out: FanPoster[] = [];
-  while (out.length < 12 && queues.some((q) => q.length)) {
-    for (const q of queues) {
-      const p = q.shift();
-      if (p && out.length < 12) {
-        out.push({ id: p.id, slug: p.slug, name: p.name, thumbUrl: p.thumbUrl, displayUrl: p.displayUrl, imageUrl: p.imageUrl });
-      }
-    }
-  }
-  return out;
+  // the k-th of n posters in a category sits at (k + 0.5) / n of the way along
+  return [...groups.values()]
+    .flatMap((g) => g.map((p, k) => ({ p, at: (k + 0.5) / g.length })))
+    .sort((a, b) => a.at - b.at)
+    .map(({ p }) => ({ id: p.id, slug: p.slug, name: p.name, thumbUrl: p.thumbUrl, displayUrl: p.displayUrl, imageUrl: p.imageUrl }));
 }
 
 /**

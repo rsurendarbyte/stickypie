@@ -23,7 +23,7 @@ export type JobItem = {
   avatarPacks: number | null;
   /** Poster packs: each poster's name and size (file n = poster n); every poster goes on the sheets. */
   posters: { name: string; inches: number }[] | null;
-  /** Printed on 270 GSM glossy photo paper, on its own sheets; everything else is vinyl. */
+  /** Printed on premium poster paper, on its own sheets; everything else is vinyl. */
   paper: boolean;
 };
 
@@ -116,7 +116,7 @@ export default function PrintJob({
   const posters = onSheets.filter((i) => i.paper && !i.drawn);
   const groups = [
     { key: "vinyl", stock: VINYL_STOCK, title: "Stickers", items: items.filter((i) => !i.paper) },
-    { key: "paper", stock: "270 GSM glossy photo paper", title: "Wall posters", items: items.filter((i) => i.paper) },
+    { key: "paper", stock: "Premium poster paper", title: "Wall posters", items: items.filter((i) => i.paper) },
   ].filter((g) => g.items.length > 0);
 
   useEffect(() => {
@@ -211,7 +211,7 @@ export default function PrintJob({
       <p className="mt-1 text-sm text-fog">
         {[
           count(stickers) > 0 && `${count(stickers)} sticker${count(stickers) === 1 ? "" : "s"} on vinyl`,
-          count(posters) > 0 && `${count(posters)} poster${count(posters) === 1 ? "" : "s"} on 270 GSM photo paper`,
+          count(posters) > 0 && `${count(posters)} poster${count(posters) === 1 ? "" : "s"} on premium poster paper`,
         ]
           .filter(Boolean)
           .join(" · ")}

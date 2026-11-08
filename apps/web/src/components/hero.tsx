@@ -50,7 +50,7 @@ import {
 } from "@/lib/live-catalog";
 import { readInterest, type Interest } from "@/lib/interest";
 import { useLite, useSlowNetwork } from "@/lib/lite";
-import { FAN_SIZES, NOT_IN_HERO, fanScript, fanSrc, wallTileSrc, type FanPoster } from "@/lib/hero-fan";
+import { FAN_SIZES, NOT_IN_HERO, fanScript, fanSnapshot, fanSrc, wallTileSrc, type FanPoster } from "@/lib/hero-fan";
 
 /** Rotating hero: the featured sticker is staged on a big tilted product card. */
 export default function Hero({
@@ -352,7 +352,7 @@ export default function Hero({
                 )}
               </PageLink>
             ) : slide.kind === "avatar" ? (
-              <AvatarFan styles={settings.avatarStyles} shop={shop} snapshot={fanPosters} />
+              <AvatarFan shop={shop} snapshot={fanPosters} />
             ) : null}
           </div>
 
@@ -976,31 +976,35 @@ function useFanStart() {
 }
 
 /** Avatar slide art, in front of the wall: three posters in a small fan. */
-function AvatarFan({ styles, shop, snapshot }: { styles: AvatarStyle[]; shop: Product[]; snapshot: FanPoster[] }) {
+function AvatarFan({ shop, snapshot }: { shop: Product[]; snapshot: FanPoster[] }) {
   const box = useRef<HTMLDivElement>(null);
   useFanLifts(box);
-  const seed = useSkinSeed();
   const start = useFanStart();
   const slow = useSlowNetwork();
   // The fan is drawn afresh each time the slide comes round: the next three posters.
   const [turn] = useState(() => (typeof window === "undefined" ? 0 : fanTurns++));
-  const live = shop.length ? avatarSlidePicks(styles, shop, seed || 1).posters : [];
-  // Its first draw comes from the page itself, so it never waits for the catalogue.
-  const first = turn === 0 && snapshot.length > 0;
-  const pool: FanPoster[] = first ? snapshot : live;
-  const onSale = new Set(live.map((p) => p.id));
-  const base = first ? (start ?? 0) : turn * FAN_POSTERS;
-  const cards = Array.from({ length: Math.min(FAN_POSTERS, pool.length) }, (_, i) => {
-    const poster = pool[(base + i) % pool.length];
-    // built into the page at the last deploy, so it may have gone off sale since
-    return first && live.length && !onSale.has(poster.id) ? live[i % live.length] : poster;
-  });
+  // Every turn walks the same list of all the posters, from this visit's random start,
+  // so none comes back until every one has been shown. The list is built into the page,
+  // so the first draw never waits for the catalogue.
+  const pool: FanPoster[] = snapshot.length ? snapshot : fanSnapshot(shop, []);
+  // built into the page at the last deploy, so some may have gone off sale since
+  const onSale = new Set(shop.map((p) => p.id));
+  const showable = (p: FanPoster) => !shop.length || onSale.has(p.id);
+  const take = (from: number) => {
+    const out: FanPoster[] = [];
+    for (let i = 0; i < pool.length && out.length < FAN_POSTERS; i++) {
+      const p = pool[(from + i) % pool.length];
+      if (showable(p)) out.push(p);
+    }
+    return out;
+  };
+  const cards = take((start ?? 0) + turn * FAN_POSTERS);
   // The next three are ready before the slide comes back.
-  const liveCount = live.length;
+  const poolCount = pool.length;
   useEffect(() => {
-    if (slow || !liveCount) return;
-    for (let i = 0; i < FAN_POSTERS; i++) {
-      const { src, srcSet } = fanSrc(live[(fanTurns * FAN_POSTERS + i) % liveCount]);
+    if (slow || !poolCount) return;
+    for (const poster of take((start ?? 0) + fanTurns * FAN_POSTERS)) {
+      const { src, srcSet } = fanSrc(poster);
       const next = new Image();
       if (srcSet) {
         next.sizes = FAN_SIZES;
@@ -1009,7 +1013,7 @@ function AvatarFan({ styles, shop, snapshot }: { styles: AvatarStyle[]; shop: Pr
       next.src = src;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per fan, when the list is known
-  }, [slow, liveCount]);
+  }, [slow, poolCount, shop.length]);
   if (!cards.length) return null;
   const placed = start !== null;
   return (
@@ -1040,7 +1044,7 @@ function AvatarFan({ styles, shop, snapshot }: { styles: AvatarStyle[]; shop: Pr
             </div>
           );
         })}
-        {first && !placed && <script dangerouslySetInnerHTML={{ __html: fanScript(snapshot) }} />}
+        {turn === 0 && snapshot.length > 0 && !placed && <script dangerouslySetInnerHTML={{ __html: fanScript(snapshot) }} />}
       </div>
     </div>
   );

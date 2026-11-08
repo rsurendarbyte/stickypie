@@ -352,13 +352,8 @@ export default function ProductDetailClient({
 
           <ul className="mt-4 grid max-w-md grid-cols-2 gap-2 text-xs text-fog">
             <li className="flex items-center gap-2">
-              <BadgeCheck className="size-4 text-mint" /> {poster ? "270 GSM glossy photo paper" : <>Die-cut, peel &amp; stick</>}
+              <BadgeCheck className="size-4 text-mint" /> {poster ? "Premium poster paper" : <>Die-cut, peel &amp; stick</>}
             </li>
-            {poster && (
-              <li className="col-span-2 flex items-center gap-2">
-                <BadgeCheck className="size-4 text-mint" /> Studio quality, scratch resistant, German RC paper
-              </li>
-            )}
             <li className="flex items-center gap-2">
               {poster ? (
                 <>

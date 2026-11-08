@@ -37,7 +37,7 @@ export async function GET() {
   const lines: string[] = [
     `# ${SITE_NAME}`,
     "",
-    `> ${SITE_NAME} (stickypie.in) is an online sticker and wall poster shop in India. It sells wall posters (${facts.wallSets} ready wall poster sets and ${facts.posters} single mini posters on 270 GSM glossy photo paper) and die-cut vinyl stickers and decals for cars, bikes, laptops, helmets and water bottles — ${facts.designs} designs${from ? ` from ${from}` : ""} — plus ${facts.avatar ? "AI avatar stickers made from your selfie, " : ""}custom stickers printed from your own design, QR code stickers and name stickers. Ships across India.`,
+    `> ${SITE_NAME} (stickypie.in) is an online sticker and wall poster shop in India. It sells wall posters (${facts.wallSets} ready wall poster sets and ${facts.posters} single mini posters on premium poster paper) and die-cut vinyl stickers and decals for cars, bikes, laptops, helmets and water bottles — ${facts.designs} designs${from ? ` from ${from}` : ""} — plus ${facts.avatar ? "AI avatar stickers made from your selfie, " : ""}custom stickers printed from your own design, QR code stickers and name stickers. Ships across India.`,
     "",
     `Not to be confused with "StickyPie", a gaze-based marking menu from AR/VR research: ${SITE_NAME} at stickypie.in is a sticker and wall poster shop.`,
     "",

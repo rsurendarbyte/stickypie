@@ -96,7 +96,7 @@ export default async function OrderDetailPage({
           <h2 className="font-display text-lg font-semibold">Items</h2>
           {order.items.some(isPosterItem) && (
             <p className="mt-2 rounded-lg bg-gold/15 px-3 py-2 text-xs font-semibold text-gold">
-              Has posters: print on 270 GSM photo paper and pack glue dots or double-sided tape.
+              Has posters: print on premium poster paper and pack glue dots or double-sided tape.
             </p>
           )}
           <ul className="mt-4 space-y-3">

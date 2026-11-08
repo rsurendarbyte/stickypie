@@ -208,7 +208,7 @@ export const POSTER_SURFACES: Surface[] = [
     noun: "wall",
     title: "Wall Posters Online in India – Poster Sets & Mini Posters",
     description:
-      "Buy wall posters online in India: ready wall poster sets and single mini posters of cars, bikes, film stars, cricket, travel and more, on 270 GSM glossy photo paper.",
+      "Buy wall posters online in India: ready wall poster sets and single mini posters of cars, bikes, film stars, cricket, travel and more, on premium poster paper.",
     intro: `Ready wall poster sets and single mini posters for your bedroom, hostel room, office or garage. ${POSTER_BASICS} Pick a set that's already matched, or swap any poster in it for one you like more.`,
     tags: ["mini poster", "poster pack"],
     categories: [],
@@ -231,7 +231,7 @@ export const POSTER_SURFACES: Surface[] = [
     noun: "car",
     title: "Car Posters Online in India – Car Wall Posters & Sets",
     description:
-      "Buy car posters online in India: wall poster sets and mini posters of classic cars, JDM legends, supercars and 4x4s on 270 GSM glossy photo paper.",
+      "Buy car posters online in India: wall poster sets and mini posters of classic cars, JDM legends, supercars and 4x4s on premium poster paper.",
     intro: `Classic cars, JDM legends, supercars, muscle cars and 4x4 builds for a petrolhead's wall. ${POSTER_BASICS}`,
     tags: ["wall theme:cars", "classic car", "race car", "muscle car", "sports car", "retro car", "jdm", "porsche", "ferrari", "bmw", "mustang", "toyota", "volkswagen", "4x4", "f1", "formula 1"],
     categories: [],
@@ -255,7 +255,7 @@ export const POSTER_SURFACES: Surface[] = [
     noun: "bike",
     title: "Bike Posters Online in India – Motorcycle Wall Posters",
     description:
-      "Buy bike posters online in India: motorcycle wall poster sets and mini posters, from cafe racers to Royal Enfield, on 270 GSM glossy photo paper.",
+      "Buy bike posters online in India: motorcycle wall poster sets and mini posters, from cafe racers to Royal Enfield, on premium poster paper.",
     intro: `Motorcycles, cafe racers, Royal Enfield and ride-ready adventure scenes for a rider's wall. ${POSTER_BASICS}`,
     tags: ["wall theme:ride", "motorcycle", "biker", "royal enfield", "cafe racer", "motocross"],
     categories: [],
@@ -279,7 +279,7 @@ export const POSTER_SURFACES: Surface[] = [
     noun: "cinema",
     title: "Tamil Cinema Posters Online – Rajinikanth & Vijay Wall Posters",
     description:
-      "Buy Tamil cinema posters online in India: Rajinikanth, Thalapathy Vijay and Kollywood wall posters and wall sets on 270 GSM glossy photo paper.",
+      "Buy Tamil cinema posters online in India: Rajinikanth, Thalapathy Vijay and Kollywood wall posters and wall sets on premium poster paper.",
     intro: `Kollywood on your wall: Rajinikanth, Thalapathy Vijay and more of Tamil cinema's biggest names. ${POSTER_BASICS}`,
     tags: ["tamil cinema", "kollywood", "rajinikanth", "thalapathy"],
     categories: [],
@@ -307,7 +307,7 @@ export const POSTER_SURFACES: Surface[] = [
     noun: "sports",
     title: "Sports Posters Online in India – Cricket & Football Wall Posters",
     description:
-      "Buy sports posters online in India: Virat Kohli, MS Dhoni, Ronaldo, cricket and football wall posters and wall sets on 270 GSM glossy photo paper.",
+      "Buy sports posters online in India: Virat Kohli, MS Dhoni, Ronaldo, cricket and football wall posters and wall sets on premium poster paper.",
     intro: `Cricket and football heroes for your wall, from Virat Kohli and MS Dhoni to Cristiano Ronaldo. ${POSTER_BASICS}`,
     tags: ["cricket", "football", "virat kohli", "ms dhoni", "cristiano ronaldo", "csk"],
     categories: [],
@@ -331,7 +331,7 @@ export const POSTER_SURFACES: Surface[] = [
     noun: "motivation",
     title: "Motivational Posters Online in India – Quote Wall Posters",
     description:
-      "Buy motivational posters online in India: quote wall posters and wall sets for your study table, office or gym, on 270 GSM glossy photo paper.",
+      "Buy motivational posters online in India: quote wall posters and wall sets for your study table, office or gym, on premium poster paper.",
     intro: `Quotes and reminders for your study table, office or gym wall. ${POSTER_BASICS}`,
     tags: ["wall theme:motivational", "motivational", "quote", "hustle"],
     categories: [],
@@ -355,7 +355,7 @@ export const POSTER_SURFACES: Surface[] = [
     noun: "devotional",
     title: "Devotional Posters Online in India – God Wall Posters",
     description:
-      "Buy devotional posters online in India: Shiva, Ganesha, Krishna and Buddha wall posters and wall sets on 270 GSM glossy photo paper.",
+      "Buy devotional posters online in India: Shiva, Ganesha, Krishna and Buddha wall posters and wall sets on premium poster paper.",
     intro: `Shiva, Ganesha, Krishna, Buddha and more, for your pooja corner or living room. ${POSTER_BASICS}`,
     tags: ["wall theme:devotional", "devotional", "shiva", "mahadev", "ganesha", "krishna", "buddha", "spiritual"],
     categories: [],
@@ -379,7 +379,7 @@ export const POSTER_SURFACES: Surface[] = [
     noun: "travel",
     title: "Travel Posters Online in India – City & Road Trip Wall Posters",
     description:
-      "Buy travel posters online in India: city, mountain, beach and road trip wall posters and wall sets on 270 GSM glossy photo paper.",
+      "Buy travel posters online in India: city, mountain, beach and road trip wall posters and wall sets on premium poster paper.",
     intro: `Cities, mountains, beaches and road trips, from Indian favourites to places on your list. ${POSTER_BASICS}`,
     tags: ["wall theme:travel", "wall theme:india", "travel", "road trip", "paris", "mumbai", "mountains", "beach"],
     categories: [],
@@ -403,7 +403,7 @@ export const POSTER_SURFACES: Surface[] = [
     noun: "retro",
     title: "Retro Posters Online in India – Vintage Style Wall Posters",
     description:
-      "Buy retro posters online in India: vintage style wall posters and wall sets on 270 GSM glossy photo paper, shipped across India.",
+      "Buy retro posters online in India: vintage style wall posters and wall sets on premium poster paper, shipped across India.",
     intro: `Old-school colours and vintage style for any room. ${POSTER_BASICS}`,
     tags: ["wall theme:retro", "retro", "vintage"],
     categories: [],

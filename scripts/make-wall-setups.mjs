@@ -257,7 +257,7 @@ async function saveSetup(setup, tags, rows, done) {
   const row = {
     slug,
     name: `${setup.title} — ${done.sizes.length} Mini Poster Pack`,
-    description: `A ready wall setup of ${done.sizes.length} posters, about ${done.feet} on your wall, printed on 270 GSM glossy photo paper. Glue dots or double-sided tape included.`,
+    description: `A ready wall setup of ${done.sizes.length} posters, about ${done.feet} on your wall, printed on premium poster paper. Glue dots or double-sided tape included.`,
     image_url: await put(`packs/${slug}-${ts}.jpg`, master, "image/jpeg"),
     aspect_ratio: W / H,
     category_ids: [category.id],
