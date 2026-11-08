@@ -23,6 +23,8 @@ export type Cart = {
   ordered_at: string | null;
   email: string | null;
   name: string | null;
+  /** From the order a guest started at checkout (guests have no account to name them). */
+  phone: string | null;
 };
 
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
@@ -33,6 +35,14 @@ export async function listCarts(): Promise<Cart[]> {
   const { data, error } = await db.rpc("admin_carts");
   if (error) throw new Error(error.message);
   const carts = (data ?? []) as Cart[];
+
+  // A guest who reached payment typed their name, email and phone on the order.
+  const orderIds = [...new Set(carts.flatMap((c) => (c.order_id && !c.name ? [c.order_id] : [])))];
+  const fromOrder = new Map<string, { customer_name: string; email: string; phone: string }>();
+  if (orderIds.length) {
+    const { data: rows } = await db.from("orders").select("id, customer_name, email, phone").in("id", orderIds);
+    for (const r of rows ?? []) fromOrder.set(r.id, r);
+  }
 
   // Pictures come from the catalogue, by product id (a customized wall's line id holds its wall's).
   const lineProduct = (line: CartLine) => line.id?.match(UUID)?.[0] ?? null;
@@ -47,7 +57,15 @@ export async function listCarts(): Promise<Cart[]> {
       const price = c.status === "pending" && product?.sizes.length === 0 ? product.price : l.price;
       return { ...l, price, thumb: product?.thumbUrl ?? product?.imageUrl ?? null };
     });
-    return { ...c, items, value: c.status === "pending" ? items.reduce((sum, l) => sum + l.qty * l.price, 0) : c.value };
+    const o = c.order_id ? fromOrder.get(c.order_id) : undefined;
+    return {
+      ...c,
+      name: c.name ?? o?.customer_name ?? null,
+      email: c.email ?? o?.email ?? null,
+      phone: o?.phone ?? null,
+      items,
+      value: c.status === "pending" ? items.reduce((sum, l) => sum + l.qty * l.price, 0) : c.value,
+    };
   });
 }
 

@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { UploadError, storeCustomFile } from "@/lib/custom-files";
-import { accountsEnabled, shopperFromRequest } from "@/lib/shopper";
 
-/** Stores one of the shopper's own wall posters as they press Pay (multipart: file). The order refers to it by its URL. */
+/**
+ * Stores one of the shopper's own wall posters as they press Pay (multipart: file).
+ * The order refers to it by its URL. Open to guests too, like checkout itself.
+ */
 export async function POST(req: Request) {
-  if (accountsEnabled() && !(await shopperFromRequest(req))) {
-    return NextResponse.json({ error: "Please sign in first." }, { status: 401 });
-  }
   const form = await req.formData().catch(() => null);
   const file = form?.get("file");
   if (!(file instanceof File)) return NextResponse.json({ error: "Choose a picture." }, { status: 400 });

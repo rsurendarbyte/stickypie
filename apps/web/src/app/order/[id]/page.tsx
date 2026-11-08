@@ -22,11 +22,13 @@ import OrderReviews from "@/components/order-reviews";
 import OrderTracking from "@/components/order-tracking";
 import OrderWallThumb from "@/components/order-wall-thumb";
 import OrderSignIn from "@/components/order-sign-in";
+import GuestOrderLink from "@/components/guest-order-link";
 import PaymentPending from "@/components/payment-pending";
 import { latestPaymentAttempt, reconcileOrderPayment } from "@/lib/payments";
 import { getDriver } from "@/lib/data";
 import { orderWallPosters } from "@/lib/poster";
-import { orderViewer } from "@/lib/shopper";
+import { guestOrderKey } from "@/lib/guest-order";
+import { accountsEnabled, orderViewer } from "@/lib/shopper";
 import { PRIVATE_PAGE_ROBOTS, absoluteUrl } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -45,24 +47,25 @@ export default async function OrderPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ fb?: string }>;
+  searchParams: Promise<{ fb?: string; k?: string }>;
 }) {
   const { id } = await params;
-  const { fb } = await searchParams;
+  const { fb, k } = await searchParams;
   const driver = getDriver();
   let order = await driver.getOrder(id);
   if (!order) notFound();
 
   // Only the signed-in shopper who placed it sees the order. The thank-you
   // card's QR (valid key) opens just the feedback box, nothing else.
-  const viewer = await orderViewer(order);
+  // A guest order: the key in this browser's cookie or in its order link.
+  const viewer = await orderViewer(order, k);
   // Admin "View as customer": same page, but nothing that acts as the shopper
   // (no purchase pixel, no clearing this browser's cart).
   const adminView = viewer === "admin";
   if (!viewer) {
     const firstName = order.customerName.trim().split(/\s+/)[0] ?? "";
     if (!(PAID_LIKE.has(order.status) && sameToken(fb, order.feedbackToken))) {
-      return <OrderSignIn path={`/order/${order.id}`} code={orderCode(order.id)} />;
+      return <OrderSignIn path={`/order/${order.id}`} code={orderCode(order.id)} guest={!order.userId} />;
     }
     const [first] = await driver.listOrderReviews(order.id);
     return (
@@ -76,12 +79,16 @@ export default async function OrderPage({
         />
         <p className="text-center text-sm text-fog">
           Want to see your order?{" "}
-          <Link
-            href={`/account?next=${encodeURIComponent(`/order/${order.id}`)}`}
-            className="font-semibold text-brand hover:underline"
-          >
-            Sign in
-          </Link>
+          {order.userId ? (
+            <Link
+              href={`/account?next=${encodeURIComponent(`/order/${order.id}`)}`}
+              className="font-semibold text-brand hover:underline"
+            >
+              Sign in
+            </Link>
+          ) : (
+            "Open your order link."
+          )}
         </p>
       </div>
     );
@@ -133,6 +140,8 @@ export default async function OrderPage({
     const [first] = await driver.listOrderReviews(order.id);
     if (first) cardDone = { rating: first.rating, body: first.body };
   }
+  // Guest orders carry their key in every link out of this page.
+  const guestKey = accountsEnabled() && !order.userId ? guestOrderKey(order.id) : null;
   const customUploadStep =
     order.items.some(needsUpload) &&
     (CUSTOM_UPLOAD_STATUSES as readonly string[]).includes(order.status);
@@ -173,6 +182,8 @@ export default async function OrderPage({
         </>
       )}
 
+      {guestKey && !adminView && <GuestOrderLink url={`${absoluteUrl(`/order/${order.id}`)}?k=${guestKey}`} />}
+
       {fromCard && (
         <CardFeedback
           orderId={order.id}
@@ -187,6 +198,7 @@ export default async function OrderPage({
         <CustomOrderUpload
           orderId={order.id}
           orderUserId={order.userId}
+          guest={Boolean(guestKey) && !adminView}
           firstName={order.customerName.split(" ")[0]}
           items={order.items
             .filter(needsUpload)
@@ -277,7 +289,7 @@ export default async function OrderPage({
             <span className="text-fog">· {order.invoiceNumber}</span>
           </p>
           <Link
-            href={`/order/${order.id}/invoice`}
+            href={`/order/${order.id}/invoice${guestKey ? `?k=${guestKey}` : ""}`}
             className="inline-flex items-center gap-2 rounded-xl border border-brand/40 bg-brand/5 px-4 py-2 text-sm font-semibold text-brand transition-colors hover:bg-brand/10"
           >
             <FileText className="size-4" /> Download GST invoice

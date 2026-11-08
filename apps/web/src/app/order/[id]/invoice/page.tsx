@@ -17,13 +17,20 @@ const money = (n: number) =>
 const date = (iso: string) =>
   new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Kolkata" });
 
-export default async function InvoicePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function InvoicePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ k?: string }>;
+}) {
   const { id } = await params;
+  const { k } = await searchParams;
   const driver = getDriver();
   const [order, settings] = await Promise.all([driver.getOrder(id), driver.getSettings()]);
   if (!order) notFound();
-  // Only the shopper who placed the order.
-  if (!(await canViewOrder(order))) {
+  // Only the shopper who placed the order (a guest order: its key).
+  if (!(await canViewOrder(order, k))) {
     return <OrderSignIn path={`/order/${order.id}/invoice`} code={orderCode(order.id)} />;
   }
 

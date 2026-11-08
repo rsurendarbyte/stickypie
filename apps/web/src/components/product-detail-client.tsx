@@ -11,7 +11,7 @@ import { LOW_STOCK_THRESHOLD, OWN_POSTER_NAME, discountPercent, formatINR, isOwn
 import { pickPoster, swapPosters, useWallLine } from "@/lib/wall-picks";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
 import { useSkinSeed } from "@/lib/skin-seed";
-import { recordProductView, useFeatures, useLiveProduct, useRelatedProducts, watchImageSaves } from "@/lib/live-catalog";
+import { recordProductView, useFeatures, useLiveProduct, useRelatedProducts, useStoreSettings, watchImageSaves } from "@/lib/live-catalog";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
 import { rememberInterest } from "@/lib/interest";
 import BackButton from "./back-button";
@@ -70,6 +70,7 @@ export default function ProductDetailClient({
   const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product);
   const off = discountPercent(price, compareAtPrice);
   const out = product.stock === 0;
+  const settings = useStoreSettings();
   const [trueSize, setTrueSize] = useState(false);
   const [artEl, setArtEl] = useState<HTMLImageElement | null>(null);
   const features = useFeatures();
@@ -290,6 +291,9 @@ export default function ProductDetailClient({
                 {formatINR(compareAtPrice)}
               </span>
             )}
+            <span className="text-xs text-fog">
+              {settings.business.gstRate > 0 ? "+ GST + shipping" : "+ shipping"}
+            </span>
           </div>
 
           {unavailable ? (

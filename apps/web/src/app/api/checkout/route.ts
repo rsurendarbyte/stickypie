@@ -33,6 +33,7 @@ import {
   type PosterFinish,
 } from "@stickypie/shared";
 import { isOwnPosterFile } from "@/lib/custom-files";
+import { GUEST_ORDERS_COOKIE, guestCookieOptions, withGuestOrder } from "@/lib/guest-order";
 import { getDriver } from "@/lib/data";
 import { checkIndianAddress } from "@/lib/india-address";
 import { cashfreeConfigured, checkoutGateway, paymentSimulatorAllowed, razorpayConfigured } from "@/lib/mode";
@@ -60,11 +61,12 @@ export async function POST(req: Request) {
     const first = parsed.error.issues[0];
     return NextResponse.json({ error: first?.message ?? "Invalid input" }, { status: 400 });
   }
-  // Orders are placed from a shopper account (demo mode stays guest-only).
+  // A signed-in shopper orders on their account; anyone else orders as a guest
+  // (the order then opens from this browser's cookie or its order link).
   let userId: string | null = null;
   let customer = parsed.data.customer;
   const { items } = parsed.data;
-  if (accountsEnabled()) {
+  if (accountsEnabled() && req.headers.get("authorization")) {
     const shopper = await shopperFromRequest(req);
     if (!shopper) {
       return NextResponse.json(
@@ -343,7 +345,8 @@ export async function POST(req: Request) {
   // Thank-you offer the admin approved for this customer (their account email):
   // applied by itself, once. Skipped while a different unpaid order of theirs
   // is still holding it, so one offer can't be paid for twice.
-  let offer = bestOffer(await driver.listOpenCouponsFor(customer.email));
+  // Guests type any email, so offers wait for the account they were made for.
+  let offer = userId ? bestOffer(await driver.listOpenCouponsFor(customer.email)) : null;
   if (offer && userId) {
     const since = new Date(Date.now() - 60 * 60_000).toISOString();
     const holding = (await driver.listPendingOrdersForUser(userId, since)).some(
@@ -402,12 +405,23 @@ export async function POST(req: Request) {
   });
   await linkCart(order.id);
 
+  // A guest's browser keeps the order's key, so its order page opens after paying.
+  const placed = async (body: unknown) => {
+    const res = NextResponse.json(body);
+    if (!userId) {
+      const { cookies } = await import("next/headers");
+      const current = (await cookies()).get(GUEST_ORDERS_COOKIE)?.value;
+      res.cookies.set(GUEST_ORDERS_COOKIE, withGuestOrder(current, order.id), guestCookieOptions);
+    }
+    return res;
+  };
+
   if (provider === "simulator") {
-    return NextResponse.json({ mode: "simulator", url: `/pay/simulator?order=${order.id}` });
+    return placed({ mode: "simulator", url: `/pay/simulator?order=${order.id}` });
   }
 
   try {
-    return NextResponse.json(await openNewPayment(order));
+    return placed(await openNewPayment(order));
   } catch (err) {
     console.error(`[checkout] ${provider} order creation failed:`, err);
     await driver
