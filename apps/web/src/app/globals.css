@@ -1326,7 +1326,26 @@ html[data-lite]:not([data-lite="net"]) .sticker-wall-down {
   }
 }
 .hero-fan-card {
+  position: relative;
+  background: #f4f1ec;
   transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.3, 1.05);
+}
+/* The 240px tiny picture, blurred, while the sharp one loads (a few KB, so it lands
+   first even on a slow phone). Without transitions (lite mode) the sharp one just appears. */
+.hero-fan-blur {
+  position: absolute;
+  inset: 0;
+  background: center / cover no-repeat;
+  filter: blur(10px);
+  transform: scale(1.12);
+}
+.hero-fan-img {
+  position: relative;
+  opacity: 0;
+  transition: opacity 0.4s ease-out;
+}
+.hero-fan-img[data-loaded] {
+  opacity: 1;
 }
 .hero-fan-card.is-up {
   transform: translateY(-7%);

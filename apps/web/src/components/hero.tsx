@@ -50,7 +50,7 @@ import {
 } from "@/lib/live-catalog";
 import { readInterest, type Interest } from "@/lib/interest";
 import { useLite, useSlowNetwork } from "@/lib/lite";
-import { FAN_SIZES, NOT_IN_HERO, fanScript, fanSnapshot, fanSrc, wallTileSrc, type FanPoster } from "@/lib/hero-fan";
+import { FAN_SIZES, NOT_IN_HERO, fanOrder, fanScript, fanSrc, wallTileSrc, type FanPoster } from "@/lib/hero-fan";
 
 /** Rotating hero: the featured sticker is staged on a big tilted product card. */
 export default function Hero({
@@ -352,7 +352,7 @@ export default function Hero({
                 )}
               </PageLink>
             ) : slide.kind === "avatar" ? (
-              <AvatarFan shop={shop} snapshot={fanPosters} />
+              <AvatarFan shop={shop} snapshot={fanPosters} categories={categories} />
             ) : null}
           </div>
 
@@ -961,49 +961,63 @@ function PosterCard({ poster }: { poster: Product }) {
 
 declare global {
   interface Window {
-    __heroFan?: number;
+    __heroFan?: string;
   }
 }
-let fanStart: number | null = null;
 const noChange = () => () => {};
-/** Null on the server and while hydrating: the page's own script has placed the pictures. */
+/** The poster this visit's fan started from ("" when the page's script didn't run);
+ *  null on the server and while hydrating: the page's own script has placed the pictures. */
 function useFanStart() {
-  return useSyncExternalStore(
-    noChange,
-    () => (fanStart ??= window.__heroFan ?? Math.floor(Math.random() * 1000)),
-    () => null,
+  return useSyncExternalStore(noChange, () => window.__heroFan ?? "", () => null);
+}
+/** Where the fan starts in the list when the page's script didn't pick it. */
+let fanRandom: number | null = null;
+
+/** A fan card's sharp picture: hidden until it has loaded, then fades in over the blur.
+ *  The page's own script may have loaded it before React took over. */
+function FanImage({ src, srcSet }: { src?: string; srcSet?: string }) {
+  const img = useRef<HTMLImageElement>(null);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    if (img.current?.complete && img.current.naturalWidth) setLoaded(true);
+  }, [src]);
+  return (
+    <img
+      ref={img}
+      suppressHydrationWarning
+      {...(src ? { src, srcSet, sizes: srcSet ? FAN_SIZES : undefined } : {})}
+      onLoad={() => setLoaded(true)}
+      data-loaded={loaded || undefined}
+      alt=""
+      decoding="async"
+      fetchPriority="high"
+      className="hero-fan-img block size-full rounded-[6px] object-cover"
+    />
   );
 }
 
 /** Avatar slide art, in front of the wall: three posters in a small fan. */
-function AvatarFan({ shop, snapshot }: { shop: Product[]; snapshot: FanPoster[] }) {
+function AvatarFan({ shop, snapshot, categories }: { shop: Product[]; snapshot: FanPoster[]; categories: Category[] }) {
   const box = useRef<HTMLDivElement>(null);
   useFanLifts(box);
   const start = useFanStart();
   const slow = useSlowNetwork();
   // The fan is drawn afresh each time the slide comes round: the next three posters.
   const [turn] = useState(() => (typeof window === "undefined" ? 0 : fanTurns++));
-  // Every turn walks the same list of all the posters, from this visit's random start,
-  // so none comes back until every one has been shown. The list is built into the page,
-  // so the first draw never waits for the catalogue.
-  const pool: FanPoster[] = snapshot.length ? snapshot : fanSnapshot(shop, []);
-  // built into the page at the last deploy, so some may have gone off sale since
-  const onSale = new Set(shop.map((p) => p.id));
-  const showable = (p: FanPoster) => !shop.length || onSale.has(p.id);
-  const take = (from: number) => {
-    const out: FanPoster[] = [];
-    for (let i = 0; i < pool.length && out.length < FAN_POSTERS; i++) {
-      const p = pool[(from + i) % pool.length];
-      if (showable(p)) out.push(p);
-    }
-    return out;
-  };
-  const cards = take((start ?? 0) + turn * FAN_POSTERS);
+  // Every turn walks one list of all the posters, from this visit's start, so none
+  // comes back until every one has been shown. The list comes from the catalogue; until
+  // it loads, the few first fans built into the page stand in.
+  const pool: FanPoster[] = shop.length ? fanOrder(shop, categories) : snapshot;
+  const found = start ? pool.findIndex((p) => p.slug === start) : -1;
+  const from = found >= 0 ? found : start === null ? 0 : Math.floor((fanRandom ??= Math.random()) * pool.length);
+  const take = (at: number) =>
+    Array.from({ length: Math.min(FAN_POSTERS, pool.length) }, (_, i) => pool[(at + i) % pool.length]);
+  const cards = take(from + turn * FAN_POSTERS);
   // The next three are ready before the slide comes back.
   const poolCount = pool.length;
   useEffect(() => {
     if (slow || !poolCount) return;
-    for (const poster of take((start ?? 0) + fanTurns * FAN_POSTERS)) {
+    for (const poster of take(from + fanTurns * FAN_POSTERS)) {
       const { src, srcSet } = fanSrc(poster);
       const next = new Image();
       if (srcSet) {
@@ -1013,7 +1027,7 @@ function AvatarFan({ shop, snapshot }: { shop: Product[]; snapshot: FanPoster[] 
       next.src = src;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per fan, when the list is known
-  }, [slow, poolCount, shop.length]);
+  }, [slow, poolCount, from]);
   if (!cards.length) return null;
   const placed = start !== null;
   return (
@@ -1032,14 +1046,15 @@ function AvatarFan({ shop, snapshot }: { shop: Product[]; snapshot: FanPoster[] 
                 aria-label={placed ? poster.name : "Wall posters"}
                 className="hero-fan-card wall-poster block size-full overflow-hidden shadow-[0_20px_36px_-14px_rgba(16,24,40,0.6)]"
               >
-                <img
+                {/* the tiny picture, blurred, shows first; the sharp one fades in over it */}
+                <span
+                  data-fan-blur=""
+                  aria-hidden
                   suppressHydrationWarning
-                  {...(placed ? { src, srcSet, sizes: srcSet ? FAN_SIZES : undefined } : {})}
-                  alt=""
-                  decoding="async"
-                  fetchPriority="high"
-                  className="block size-full rounded-[6px] bg-[#f4f1ec] object-cover"
+                  style={placed && poster.tinyUrl ? { backgroundImage: `url(${poster.tinyUrl})` } : undefined}
+                  className="hero-fan-blur"
                 />
+                <FanImage key={placed ? poster.id : "first"} src={placed ? src : undefined} srcSet={placed ? srcSet : undefined} />
               </Link>
             </div>
           );
