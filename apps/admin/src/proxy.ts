@@ -7,6 +7,7 @@ import {
   supabaseConfigured,
   supabaseUrl,
 } from "@/lib/auth";
+import { isAdminUser } from "@/lib/admin-check";
 
 type CookieToSet = { name: string; value: string; options?: CookieOptions };
 
@@ -50,21 +51,17 @@ export async function proxy(request: NextRequest) {
         },
       }
     );
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
+    // Checked here with the project's cached public key (refreshing an expired
+    // login if needed), not a round trip to Supabase Auth on every request.
+    const { data: auth, error } = await supabase.auth.getClaims();
+    const user = auth?.claims.sub ? { id: auth.claims.sub } : null;
     // Signed in is not enough: only accounts in admin_users get past this gate
     // (a shop customer's login must never open the admin, not even its pages).
     let notAdmin = false;
     if (user) {
-      const { data: adminRow, error: adminError } = await supabase
-        .from("admin_users")
-        .select("user_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      authed = Boolean(adminRow);
-      notAdmin = !adminRow && !adminError; // a definite "no", not a failed lookup
+      const { admin, failed } = await isAdminUser(supabase, user.id);
+      authed = admin;
+      notAdmin = !admin && !failed; // a definite "no", not a failed lookup
     }
     // Expired/revoked login (e.g. signed out elsewhere, or a session from the
     // other environment): drop its cookies so every later request doesn't retry it.

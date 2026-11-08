@@ -38,17 +38,20 @@ export async function listCarts(): Promise<Cart[]> {
 
   // A guest who reached payment typed their name, email and phone on the order.
   const orderIds = [...new Set(carts.flatMap((c) => (c.order_id && !c.name ? [c.order_id] : [])))];
-  const fromOrder = new Map<string, { customer_name: string; email: string; phone: string }>();
-  if (orderIds.length) {
-    const { data: rows } = await db.from("orders").select("id, customer_name, email, phone").in("id", orderIds);
-    for (const r of rows ?? []) fromOrder.set(r.id, r);
-  }
-
   // Pictures come from the catalogue, by product id (a customized wall's line id holds its wall's).
   const lineProduct = (line: CartLine) => line.id?.match(UUID)?.[0] ?? null;
   const ids = [...new Set(carts.flatMap((c) => c.items.flatMap((l) => lineProduct(l) ?? [])))];
   const driver = await getAdminDriver();
-  const products = new Map((ids.length ? await driver.getProductsByIds(ids) : []).map((p) => [p.id, p]));
+  const [orderRows, found] = await Promise.all([
+    orderIds.length
+      ? db.from("orders").select("id, customer_name, email, phone").in("id", orderIds).then((r) => r.data ?? [])
+      : [],
+    ids.length ? driver.getProductsByIds(ids) : [],
+  ]);
+  const fromOrder = new Map<string, { customer_name: string; email: string; phone: string }>(
+    orderRows.map((r) => [r.id, r])
+  );
+  const products = new Map(found.map((p) => [p.id, p]));
   return carts.map((c) => {
     const items = c.items.map((l) => {
       const product = products.get(lineProduct(l) ?? "");
