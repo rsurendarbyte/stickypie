@@ -438,6 +438,10 @@ export function createLocalDriver(filePath: string): DataDriver {
       persist(store);
     },
 
+    async claimGuestOrders() {
+      return 0;
+    },
+
     async listPendingOrdersForUser(userId, sinceIso) {
       return load()
         .orders.filter(

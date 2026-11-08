@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import type { Session } from "@supabase/supabase-js";
 import { authClient } from "@/lib/shopper-auth";
+
+/** Fired on window once guest orders moved onto the signed-in account. */
+export const ORDERS_CLAIMED = "sp:orders-claimed";
 
 /** Must match SHOPPER_COOKIE in lib/shopper.ts (server-only file). */
 const COOKIE = "sp_at";
@@ -18,20 +23,47 @@ export function writeAuthCookie(token: string | null, expiresAt?: number) {
 }
 
 /**
+ * Once a visit per account: guest orders placed with its email join it
+ * (the server checks the email is confirmed).
+ */
+async function claimGuestOrders(session: Session): Promise<number> {
+  const key = `sp_claimed:${session.user.id}`;
+  try {
+    if (sessionStorage.getItem(key)) return 0;
+    sessionStorage.setItem(key, "1");
+  } catch {
+    // private mode: ask anyway
+  }
+  const res = await fetch("/api/account/claim-orders", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  }).catch(() => null);
+  const data = res?.ok ? await res.json().catch(() => null) : null;
+  return typeof data?.claimed === "number" ? data.claimed : 0;
+}
+
+/**
  * Keeps the cookie in step with the browser session (sign in, token refresh,
- * sign out), so server pages like an order know who is looking.
+ * sign out), so server pages like an order know who is looking. A guest who
+ * signs in finds their guest orders on the account.
  */
 export default function AuthCookieSync() {
+  const router = useRouter();
   useEffect(() => {
     const c = authClient();
     if (!c) return;
-    c.auth.getSession().then(({ data }) =>
-      writeAuthCookie(data.session?.access_token ?? null, data.session?.expires_at)
-    );
-    const { data } = c.auth.onAuthStateChange((_event, session) =>
-      writeAuthCookie(session?.access_token ?? null, session?.expires_at)
-    );
+    const sync = (session: Session | null) => {
+      writeAuthCookie(session?.access_token ?? null, session?.expires_at);
+      if (!session) return;
+      void claimGuestOrders(session).then((claimed) => {
+        if (!claimed) return;
+        window.dispatchEvent(new Event(ORDERS_CLAIMED));
+        router.refresh();
+      });
+    };
+    c.auth.getSession().then(({ data }) => sync(data.session));
+    const { data } = c.auth.onAuthStateChange((_event, session) => sync(session));
     return () => data.subscription.unsubscribe();
-  }, []);
+  }, [router]);
   return null;
 }
