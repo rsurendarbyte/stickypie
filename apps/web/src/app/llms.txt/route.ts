@@ -48,7 +48,7 @@ export async function GET() {
           `- Page: ${absoluteUrl("/wall-posters")}`,
           `- What: wall posters printed to order on ${POSTER_PAPER}, with ${POSTER_ADHESIVE} included, in 4 × 6 in and 6 × 9 in.`,
           `- Ready wall poster sets: ${facts.wallSets}${facts.wallSetFrom !== null ? `, from ${formatINR(facts.wallSetFrom)} for the whole set` : ""}. Any poster in a set can be swapped for another at the same price.`,
-          `- Single mini posters: ${facts.posters}${facts.posterFrom !== null ? `, from ${formatINR(facts.posterFrom)}` : ""}, each as a wall poster, a vinyl sticker or a puzzle poster.`,
+          `- Single mini posters: ${facts.posters}${facts.posterFrom !== null ? `, from ${formatINR(facts.posterFrom)}` : ""}, each as a wall poster or a puzzle poster.`,
           `- [Puzzle posters](${absoluteUrl("/puzzle-posters")}): any mini poster printed as 9 cards that join into one big poster, 12 × 18 in for ${formatINR(PUZZLE_POSTER_PRICES[6])} or 18 × 27 in for ${formatINR(PUZZLE_POSTER_PRICES[9])}. Each poster has a free online 9-tile puzzle; solving it gives ${puzzlePercent}% off the puzzle posters in one order (puzzle posters only) for 24 hours.`,
           ...POSTER_SURFACES.slice(1).filter((s) => !s.puzzle).flatMap((s) => {
             const count = stickersForSurface(s, products, categories).matched.length;
@@ -91,7 +91,7 @@ export async function GET() {
     `- [Custom stickers](${absoluteUrl("/custom-stickers")}): print your own design, QR code or name`,
     `- [QR code stickers](${absoluteUrl("/qr-code-stickers")})`,
     `- [Name & text stickers](${absoluteUrl("/name-stickers")})`,
-    ...(facts.posters ? [`- [Mini posters](${absoluteUrl(categoryPath("mini-posters"))}): ${facts.posters} mini posters, each as a wall poster on ${POSTER_PAPER} (${POSTER_ADHESIVE} included) or as a vinyl sticker`] : []),
+    ...(facts.posters ? [`- [Mini posters](${absoluteUrl(categoryPath("mini-posters"))}): ${facts.posters} mini posters, each as a wall poster on ${POSTER_PAPER} (${POSTER_ADHESIVE} included) or as a 9-card puzzle poster`] : []),
     `- [Contact](${absoluteUrl("/contact")})`,
     `- [Shipping policy](${absoluteUrl("/legal/shipping")}) · [Refunds & cancellations](${absoluteUrl("/legal/refunds")})`,
     "",

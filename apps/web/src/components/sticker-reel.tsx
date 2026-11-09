@@ -157,8 +157,10 @@ function Reel({
     if (!p) return;
     // a puzzle poster: its poster page as a puzzle poster (the game has its own page, /puzzle/)
     const puzzle = isPuzzleEntry(p);
-    const path = puzzle ? `/sticker/${p.slug}?finish=puzzle` : `/sticker/${p.slug}`;
-    if ((puzzle ? location.pathname + location.search : location.pathname) !== path) history.replaceState(history.state, "", path);
+    const path = puzzle ? `/sticker/${p.slug}/puzzle` : `/sticker/${p.slug}`;
+    // the poster this page opened on keeps its own address (its /puzzle page stays the puzzle page)
+    const opened = p.slug === initial.slug && location.pathname.startsWith(`/sticker/${p.slug}`);
+    if (location.pathname !== path && !opened) history.replaceState(history.state, "", path);
     document.title = puzzle ? `Can you solve ${p.name}? · StickyPie` : `${p.name} · StickyPie`;
   }, [active, list]);
 

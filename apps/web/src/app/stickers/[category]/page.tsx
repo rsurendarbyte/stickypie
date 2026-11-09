@@ -42,7 +42,7 @@ export async function generateMetadata({
   return pageMetadata({
     title: `${title} — Buy Online in India`,
     description: /mini poster/i.test(category.name)
-      ? `Shop ${title.toLowerCase()} at StickyPie: each as a wall poster or a vinyl sticker. Ships across India.`
+      ? `Shop ${title.toLowerCase()} at StickyPie: each as a wall poster or a 9-card puzzle poster. Ships across India.`
       : /poster/i.test(category.name)
       ? `Shop ${title.toLowerCase()} at StickyPie: wall posters on premium poster paper, glue dots or double-sided tape included. Ships across India.`
       : `Shop ${title.toLowerCase()} at StickyPie: die-cut vinyl in several sizes for cars, bikes, laptops and more. Ships across India.`,
@@ -92,7 +92,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
       </Suspense>
       <CategoryAbout
         heading={`About our ${categoryTitle(category.name).toLowerCase()}`}
-        text={`${categoryIntro(category, inThis.length)}${singles.length ? ` Want just one? Pick from ${singles.length} single posters, each as a wall poster or a vinyl sticker.` : ""}`}
+        text={`${categoryIntro(category, inThis.length)}${singles.length ? ` Want just one? Pick from ${singles.length} single posters, each as a wall poster or a 9-card puzzle poster.` : ""}`}
       />
       {posters && <PosterTopics className="mt-4" />}
       <ProductLinks heading={`All ${categoryTitle(category.name).toLowerCase()}`} products={inThis} />
