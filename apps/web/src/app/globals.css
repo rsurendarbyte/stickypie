@@ -2426,6 +2426,9 @@ html[data-lite]:not([data-lite="net"]) .puzzle-landed {
 /* the board (and its progress bar) as big as fits: limited by the width, or by
    the height less the bar and the frame's padding (3.25rem), whichever is less */
 .puzzle-fit {
+  /* older phone browsers (no container units): a guess from the screen height,
+     less the top bar, stats and buttons around the board */
+  width: min(100%, 32rem, calc((100vh - 20rem) * var(--ratio) + 1.25rem));
   width: min(100cqw, 32rem, calc((100cqh - 3.25rem) * var(--ratio) + 1.25rem));
 }
 

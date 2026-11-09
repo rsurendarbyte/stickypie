@@ -289,7 +289,8 @@ export function PuzzleLoop({
     <div
       ref={setEl}
       aria-hidden
-      className="pointer-events-none absolute"
+      // isolate: the tiles' own layer order stays inside, never over buttons beside the poster
+      className="pointer-events-none absolute isolate"
       style={img !== undefined ? (box ?? { inset: 0 }) : { inset: 0 }}
     >
       {run && <Tiles src={src} slots={run.slots} split={run.split} lit={run.lit} />}
@@ -330,7 +331,7 @@ export function PuzzleSplit({ src, img }: { src: string; img: HTMLImageElement |
     };
   }, [el, box]);
   return (
-    <div ref={setEl} aria-hidden className="puzzle-split pointer-events-none absolute" style={box ?? { display: "none" }}>
+    <div ref={setEl} aria-hidden className="puzzle-split pointer-events-none absolute isolate" style={box ?? { display: "none" }}>
       {box && <Tiles src={src} slots={SOLVED} split trim />}
     </div>
   );
