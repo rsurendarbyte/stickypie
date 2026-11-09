@@ -22,12 +22,16 @@ export function usePuzzlePrize(): number | null {
 
 /** Asks the server for the prize after a solve; resolves to its expiry, or null. */
 export async function claimPuzzlePrize(): Promise<number | null> {
-  try {
-    const res = await fetch("/api/puzzle", { method: "POST" });
-    const data = (await res.json()) as { expires?: number };
-    window.dispatchEvent(new Event(CHANGED));
-    return res.ok && typeof data.expires === "number" ? data.expires : null;
-  } catch {
-    return null;
+  // a slow network mustn't leave "Unlocking your prize…" up for long: 6s a try, two tries
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetch("/api/puzzle", { method: "POST", signal: AbortSignal.timeout(6000) });
+      const data = (await res.json()) as { expires?: number };
+      window.dispatchEvent(new Event(CHANGED));
+      return res.ok && typeof data.expires === "number" ? data.expires : null;
+    } catch {
+      // timed out or offline: try once more
+    }
   }
+  return null;
 }

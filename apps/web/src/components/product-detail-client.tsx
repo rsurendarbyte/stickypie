@@ -35,6 +35,7 @@ import SizeRuler from "./size-ruler";
 import TrueSizePreview from "./true-size-preview";
 import { PuzzleButton, PuzzleLoop, PuzzleSplit, PuzzleTicket } from "./poster-puzzle";
 import { launchOf, launchPuzzle } from "@/lib/puzzle-launch";
+import { endPuzzleBoot, puzzleBooting } from "@/lib/puzzle-boot";
 import { setFinish } from "@/lib/poster-finish";
 import { posterShare, puzzleShare, share } from "@/lib/share";
 import { usePuzzleLead } from "@/lib/puzzle-mix";
@@ -105,17 +106,27 @@ export default function ProductDetailClient({
   // ?finish=puzzle (puzzle poster cards, Play & win) opens it as a puzzle poster.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (isSinglePoster(initial) && (startPuzzle || params.get("finish") === "puzzle" || params.has("puzzle"))) setFinish("puzzle");
+    if (isSinglePoster(initial) && (startPuzzle || puzzleBooting() || params.get("finish") === "puzzle" || params.has("puzzle"))) setFinish("puzzle");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // A card's Play & win (?puzzle=1) starts the game straight away, once per page
   // load: the live stock check can flip `puzzle` while loading, which must not
   // close and reopen it. The address keeps the flag (changing it remounts the page).
   useEffect(() => {
-    if (standIn || !isSinglePoster(initial) || !(startPuzzle || new URLSearchParams(window.location.search).has("puzzle"))) return;
+    if (standIn) return;
+    // a game link (lib/puzzle-boot.ts: an ad's ?finish=puzzle, ?puzzle=1, /puzzle/)
+    if (!isSinglePoster(initial) || !(startPuzzle || puzzleBooting() || new URLSearchParams(window.location.search).has("puzzle"))) {
+      endPuzzleBoot();
+      return;
+    }
     // after the router has settled its own history entry, or it drops the game's back step
     const t = window.setTimeout(() => launchPuzzle(launchOf(initial)), 300);
-    return () => window.clearTimeout(t);
+    // the still game screen never outstays a game that didn't open (offer off, say)
+    const done = window.setTimeout(endPuzzleBoot, 2500);
+    return () => {
+      window.clearTimeout(t);
+      window.clearTimeout(done);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [wallView, setWallView] = useState<WallView>("wall");
