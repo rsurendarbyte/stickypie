@@ -281,7 +281,7 @@ export default function ProductDetailClient({
             )}
             {puzzle && isPuzzle && <PuzzleSplit src={product.displayUrl ?? product.imageUrl} img={artEl} />}
             {puzzle && isPuzzle && <PuzzleLoop priority src={product.displayUrl ?? product.imageUrl} img={artEl} />}
-            {features.sizeRuler && !isPack && <SizeRuler img={artEl} inches={sizes.length > 0 ? size : null} aspectRatio={product.aspectRatio} />}
+            {features.sizeRuler && !isPack && <SizeRuler img={artEl} inches={sizes.length > 0 && size !== null ? (isPuzzle ? puzzleBuildInches(size) : size) : null} aspectRatio={product.aspectRatio} />}
           </ArtBlock>
           {wall && wallView !== "wall" && (
             <div className="absolute inset-0">
