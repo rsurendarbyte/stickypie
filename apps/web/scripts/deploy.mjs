@@ -196,7 +196,11 @@ if (!indexable) console.log("deploy: wrote noindex _headers for static assets");
 
 if (flags.includes("--build-only")) process.exit(0);
 const preview = flags.includes("--preview");
-status = run("npx", ["opennextjs-cloudflare", preview ? "preview" : "deploy", ...envArgs]);
+// The page cache goes to R2 a few pages at a time: OpenNext's default (25 at once)
+// overloads R2's upload worker on busy evenings and the deploy fails after 15
+// retries on one page. CACHE_CHUNK=<n> changes it.
+const cacheChunk = ["--cacheChunkSize", String(Number(process.env.CACHE_CHUNK) || 10)];
+status = run("npx", ["opennextjs-cloudflare", preview ? "preview" : "deploy", ...envArgs, ...(preview ? [] : cacheChunk)]);
 if (status !== 0 || preview) process.exit(status);
 
 // IndexNow: tell Bing (whose index ChatGPT search and Copilot use) and the other
