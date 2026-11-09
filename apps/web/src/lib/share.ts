@@ -1,5 +1,7 @@
 "use client";
 
+import { PUZZLE_PERCENT } from "@stickypie/shared";
+
 // Sharing a poster or its puzzle: the phone's own share sheet where there is one
 // (WhatsApp, Instagram, Messages…), else the shop's share sheet
 // (components/share-sheet.tsx) with WhatsApp, Facebook, X, Telegram and Copy link.
@@ -67,13 +69,13 @@ export function posterShare(p: Poster, path: string): ShareItem {
 }
 
 /** Sharing a poster's puzzle, with the sharer's time when they've solved it. */
-export function puzzleShare(p: { slug: string; name: string; image?: string | null }, solvedIn?: number): ShareItem {
+export function puzzleShare(p: { slug: string; name: string; image?: string | null }, solvedIn?: number, percent = PUZZLE_PERCENT): ShareItem {
   const name = posterName(p.name);
   return {
     title: `Can you solve ${name}?`,
     text: solvedIn
-      ? `I solved this poster puzzle in ${solvedIn}s 🧩 Can you beat me? Solve it and win 10% off on StickyPie!`
-      : `Can you solve this poster puzzle? 🧩 Fix the 9 pieces and win 10% off on StickyPie!`,
+      ? `I solved this poster puzzle in ${solvedIn}s 🧩 Can you beat me? Solve it and win ${percent}% off puzzle posters on StickyPie!`
+      : `Can you solve this poster puzzle? 🧩 Fix the 9 pieces and win ${percent}% off puzzle posters on StickyPie!`,
     url: shareUrl(`/puzzle/${p.slug}`),
     image: p.image ?? null,
   };

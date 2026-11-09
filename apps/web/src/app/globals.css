@@ -2583,11 +2583,3 @@ html[data-lite]:not([data-lite="net"]) .puzzle-win-rays {
   }
 }
 
-/* A game link's still game screen (components/puzzle-boot.tsx): only while
-   the page is booting into the game (lib/puzzle-boot.ts). */
-.puzzle-boot {
-  display: none;
-}
-html[data-puzzle-boot] .puzzle-boot {
-  display: flex;
-}

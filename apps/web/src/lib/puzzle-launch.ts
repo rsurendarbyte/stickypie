@@ -1,9 +1,9 @@
 "use client";
 
-// Opens the poster puzzle game right where the shopper is (a card, the hero
-// fan), with no page load: the picture is the one already on screen, so the
-// board shows at once even on a slow network. One game for the whole site,
-// drawn by components/puzzle-launcher.tsx.
+// The poster puzzle game has its own page, /puzzle/<slug> (app/puzzle/[slug]):
+// every Play & win goes there. That page opens the site's one game (drawn by
+// components/puzzle-launcher.tsx) as the page itself, and its HTML already
+// shows the game screen (components/puzzle-boot.tsx), so it draws at once.
 import { useSyncExternalStore } from "react";
 
 /** What the game needs to start: the poster, and a picture already in the browser. */
@@ -18,7 +18,14 @@ export type PuzzleLaunch = {
   aspectRatio?: number | null;
   /** Card size picked on the page (Add to cart after a win uses it). */
   size?: number | null;
+  /** Drawn as the /puzzle/ page itself: closing leaves the page. */
+  page?: boolean;
 };
+
+/** The game's own page for a poster (and the card size picked, if any). */
+export function puzzleHref(slug: string, size?: number | null): string {
+  return `/puzzle/${slug}${size ? `?size=${size}` : ""}`;
+}
 
 type PosterLike = { id: string; slug: string; name: string; imageUrl: string; thumbUrl?: string | null; displayUrl?: string | null; aspectRatio?: number | null };
 
@@ -37,14 +44,27 @@ export function launchOf(p: PosterLike, shown?: string | null): PuzzleLaunch {
 let current: PuzzleLaunch | null = null;
 const listeners = new Set<() => void>();
 
+/** Play & win: off to the game's own page. */
 export function launchPuzzle(poster: PuzzleLaunch) {
-  current = poster;
+  window.location.href = puzzleHref(poster.slug, poster.size);
+}
+
+/** The /puzzle/ page: opens the game as the page. */
+export function openPuzzlePage(poster: PuzzleLaunch) {
+  current = { ...poster, page: true };
   listeners.forEach((fn) => fn());
 }
 
+/** Closing the game page: back where the shopper came from in the shop, else the poster's page. */
 export function closePuzzle() {
-  current = null;
-  listeners.forEach((fn) => fn());
+  const poster = current;
+  if (!poster) return;
+  let fromShop = false;
+  try {
+    fromShop = !!document.referrer && new URL(document.referrer).host === location.host && history.length > 1;
+  } catch {}
+  if (fromShop) history.back();
+  else location.href = `/sticker/${poster.slug}?finish=puzzle`;
 }
 
 function subscribe(fn: () => void) {
@@ -82,7 +102,7 @@ export function useHeroPuzzle(): PuzzleLaunch | null {
   );
 }
 
-/** A plain click on a Play link: open the game here instead of following it. */
+/** A plain click on a Play link: off to the game page (with the size picked). */
 export function playHere(e: React.MouseEvent, poster: PuzzleLaunch) {
   if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
   e.preventDefault();

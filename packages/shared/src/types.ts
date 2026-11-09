@@ -331,6 +331,9 @@ export interface DataDriver {
   updateHomeRails(rails: HomeRail[]): Promise<HomeRail[]>;
   /** The hero and the page's sections (DEFAULT_HOME_PAGE until edited). */
   getHomePage(): Promise<HomePage>;
+  /** The poster puzzle prize's percent off (admin → Features). */
+  getPuzzlePercent(): Promise<number>;
+  updatePuzzlePercent(percent: number): Promise<number>;
   updateHomePage(page: HomePage): Promise<HomePage>;
   getWallCosts(): Promise<WallCosts>;
   updateWallCosts(costs: WallCosts): Promise<WallCosts>;

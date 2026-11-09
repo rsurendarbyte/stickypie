@@ -1,7 +1,7 @@
 "use client";
 
 import ProductCard from "./product-card";
-import { usePuzzleLead } from "@/lib/puzzle-mix";
+import { asPuzzleEntry, usePuzzleLead } from "@/lib/puzzle-mix";
 import ProductCardSkeleton from "./product-card-skeleton";
 import VirtualGrid from "./virtual-grid";
 import { useLiveCatalog, type Catalog } from "@/lib/live-catalog";
@@ -23,7 +23,10 @@ function PosterGrid({ surface, posters }: { surface: Surface; posters: Product[]
   const seed = useDaySeed();
   const walls = posters.filter(isPosterPack);
   // a puzzle poster card first
-  const singles = usePuzzleLead()(posters.filter((p) => !isPosterPack(p)));
+  const lead = usePuzzleLead();
+  const loose = posters.filter((p) => !isPosterPack(p));
+  // the puzzle posters page: every poster as its puzzle poster card
+  const singles = surface.puzzle ? loose.map((p, i) => asPuzzleEntry(p, i)) : lead(loose);
   return (
     <div className="@container">
       {walls.length > 0 && (
@@ -36,7 +39,7 @@ function PosterGrid({ surface, posters }: { surface: Surface; posters: Product[]
       )}
       {singles.length > 0 && (
         <>
-          <h2 className="mt-14 font-display text-xl font-bold">Single {posterLabel(surface)}</h2>
+          {!surface.puzzle && <h2 className="mt-14 font-display text-xl font-bold">Single {posterLabel(surface)}</h2>}
           <VirtualGrid items={singles} getKey={(p) => p.id} render={(p) => <ProductCard product={p} width="w-full" />} className={POSTER_GRID} />
         </>
       )}

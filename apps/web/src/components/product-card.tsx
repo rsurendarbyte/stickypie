@@ -9,8 +9,8 @@ import { cardSkinFor, rotationFor } from "@/lib/palette";
 import WallStage from "./wall-stage";
 import type { WallEffect } from "@/lib/wall-effects";
 import { isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel, wallBackground, wallPosterSizes } from "@/lib/poster";
-import { useHomePage } from "@/lib/live-catalog";
-import { PuzzleLoop, PuzzlePlayLink, SplitPicture } from "./poster-puzzle";
+import { useHomePage, usePuzzlePercent } from "@/lib/live-catalog";
+import { PuzzleLoop, PuzzlePlayLink, SplitPicture, PuzzleTag } from "./poster-puzzle";
 import { isPuzzleEntry, isWidePuzzleEntry, puzzleProduct } from "@/lib/puzzle-mix";
 import { launchOf } from "@/lib/puzzle-launch";
 import { useSkinSeed } from "@/lib/skin-seed";
@@ -259,9 +259,7 @@ function PuzzleCard({ product, width }: { product: Product; width: string }) {
           </span>
         </span>
         {/* says "puzzle" even between its animations; static, so free */}
-        <span className="puzzle-cta absolute top-2 left-2 z-[5] inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
-          <Puzzle className="size-3" /> 9-piece puzzle
-        </span>
+        <PuzzleTag className="absolute top-2 left-2 z-[5]" />
       </PageLink>
       </div>
       <div className="px-3 pt-2.5">
@@ -288,6 +286,7 @@ function PuzzleCard({ product, width }: { product: Product; width: string }) {
  * picture, name, two lines, button), with the poster as its 9 cards and Play & win.
  */
 function PuzzleWallCard({ product, width }: { product: Product; width: string }) {
+  const pct = usePuzzlePercent();
   const { price } = useSizeChoice(product, "puzzle");
   const out = product.stock === 0;
   const { wallCard: design } = useHomePage();
@@ -316,9 +315,7 @@ function PuzzleWallCard({ product, width }: { product: Product; width: string })
           </span>
         </span>
         {/* says "puzzle" even between its animations; static, so free */}
-        <span className="puzzle-cta absolute top-2 left-2 z-[5] inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
-          <Puzzle className="size-3" /> 9-piece puzzle
-        </span>
+        <PuzzleTag className="absolute top-2 left-2 z-[5]" />
       </PageLink>
       </div>
 
@@ -332,7 +329,7 @@ function PuzzleWallCard({ product, width }: { product: Product; width: string })
             Puzzle poster · 9 cards · from <b className="text-gold">{formatINR(price)}</b>
           </span>
         </p>
-        <p className="truncate text-[11px] font-semibold text-fog">Solve it in ~30 sec, get 10% off your order</p>
+        <p className="truncate text-[11px] font-semibold text-fog">Solve it in ~30 sec, get {pct}% off puzzle posters</p>
       </div>
       <div className="mt-2 px-1.5 pb-1.5">
         <PuzzlePlayLink poster={launchOf(product)} className="h-10 w-full" />

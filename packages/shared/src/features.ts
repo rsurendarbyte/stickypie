@@ -20,8 +20,8 @@ export const FEATURES = {
     default: true,
   },
   posterPuzzle: {
-    label: "Poster puzzle (10% off)",
-    description: "Mini poster cards and pages show the poster splitting into 9 tiles and solving itself; shoppers who solve it on the poster page get 10% off one order (once per phone and email, for 24 hours).",
+    label: "Poster puzzle prize",
+    description: "Puzzle poster cards solve themselves now and then; shoppers who solve a poster's puzzle get the prize below off the puzzle posters in one order (puzzle posters only, once per phone and email, for 24 hours).",
     default: true,
   },
 } as const satisfies Record<string, { label: string; description: string; default: boolean }>;

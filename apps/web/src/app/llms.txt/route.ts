@@ -3,7 +3,7 @@
 // ordering and shipping work, and every wall poster and sticker on sale with
 // its price per size and link. Built once at deploy and served as a free static file (AI
 // crawlers fetch it often); new stickers appear with the next deploy.
-import { POSTER_ADHESIVE, POSTER_PAPER, categoryPath, formatINR, inCategory } from "@stickypie/shared";
+import { POSTER_ADHESIVE, POSTER_PAPER, PUZZLE_POSTER_PRICES, categoryPath, formatINR, inCategory } from "@stickypie/shared";
 import { isMiniPoster, isPoster, isPosterPack, sizeChipLabel } from "@/lib/poster";
 import { getDriver } from "@/lib/data";
 import { POSTER_SURFACES, SURFACES, allLandings, stickersForSurface } from "@/lib/surfaces";
@@ -28,6 +28,7 @@ export async function GET() {
   ]);
   const festivalPages = allLandings(festivals, categories).filter((s) => s.when);
   const facts = await loadShopFacts();
+  const puzzlePercent = await driver.getPuzzlePercent();
   // store questions first, then the make-your-own ones not already asked
   const faq = storeFaq(facts);
   for (const item of [...wallPosterFaq(facts), ...avatarFaq(facts), ...customFaq(facts)]) if (!faq.some((f) => f.q === item.q)) faq.push(item);
@@ -47,8 +48,9 @@ export async function GET() {
           `- Page: ${absoluteUrl("/wall-posters")}`,
           `- What: wall posters printed to order on ${POSTER_PAPER}, with ${POSTER_ADHESIVE} included, in 4 × 6 in and 6 × 9 in.`,
           `- Ready wall poster sets: ${facts.wallSets}${facts.wallSetFrom !== null ? `, from ${formatINR(facts.wallSetFrom)} for the whole set` : ""}. Any poster in a set can be swapped for another at the same price.`,
-          `- Single mini posters: ${facts.posters}${facts.posterFrom !== null ? `, from ${formatINR(facts.posterFrom)}` : ""}, each as a wall poster or a vinyl sticker.`,
-          ...POSTER_SURFACES.slice(1).flatMap((s) => {
+          `- Single mini posters: ${facts.posters}${facts.posterFrom !== null ? `, from ${formatINR(facts.posterFrom)}` : ""}, each as a wall poster, a vinyl sticker or a puzzle poster.`,
+          `- [Puzzle posters](${absoluteUrl("/puzzle-posters")}): any mini poster printed as 9 cards that join into one big poster, 12 × 18 in for ${formatINR(PUZZLE_POSTER_PRICES[6])} or 18 × 27 in for ${formatINR(PUZZLE_POSTER_PRICES[9])}. Each poster has a free online 9-tile puzzle; solving it gives ${puzzlePercent}% off the puzzle posters in one order (puzzle posters only) for 24 hours.`,
+          ...POSTER_SURFACES.slice(1).filter((s) => !s.puzzle).flatMap((s) => {
             const count = stickersForSurface(s, products, categories).matched.length;
             return count ? [`- [${s.name}](${absoluteUrl(`/${s.slug}`)}): ${count} wall posters and sets`] : [];
           }),

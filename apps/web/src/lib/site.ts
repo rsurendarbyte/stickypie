@@ -98,3 +98,10 @@ export const PRIVATE_PAGE_ROBOTS: Metadata["robots"] = {
 export function jsonLd(data: unknown): string {
   return JSON.stringify(data).replace(/</g, "\\u003c");
 }
+
+/**
+ * A category page with fewer products than this is kept out of Google (noindex,
+ * left out of the sitemap): a page with one or two products reads as an empty
+ * page ("soft 404"). It comes back by itself once the category grows.
+ */
+export const MIN_INDEXED_CATEGORY = 3;

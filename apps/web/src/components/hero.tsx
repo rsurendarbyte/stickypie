@@ -1088,7 +1088,7 @@ function AvatarFan({ shop, snapshot, categories }: { shop: Product[]; snapshot: 
         })}
         {turn === 0 && snapshot.length > 0 && !placed && <script dangerouslySetInnerHTML={{ __html: fanScript(snapshot) }} />}
       </div>
-      {/* under the fan: play the middle poster's puzzle for 10% off */}
+      {/* under the fan: play the middle poster's puzzle for the prize */}
       {/* under the fan (also in the Wall posters card) */}
       {placed && cards[1] && features.posterPuzzle && <PuzzlePlayLink poster={launchOf(cards[1], cards[1].tinyUrl ?? undefined)} live className="hero-fan-play h-9 px-3.5 shadow-lg md:h-11 md:px-5" />}
     </div>
@@ -1259,9 +1259,10 @@ function AvatarSlideCopy({ book, catalog, copy }: { book: AvatarBook; catalog: P
                 setGoing(true);
             }}
             aria-busy={going || undefined}
-            className="peel-btn mt-2 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl px-2 text-[13px] font-bold sm:mt-3 sm:h-11 sm:text-sm"
+            // one line always (the words come from admin): smaller on narrow phones, never wrapped
+            className="peel-btn mt-2 inline-flex h-10 min-w-0 items-center justify-center gap-1.5 overflow-hidden rounded-xl px-2 text-[clamp(11px,3.3vw,13px)] font-bold whitespace-nowrap sm:mt-3 sm:h-11 sm:text-sm"
           >
-            {copy.stickerButton}{" "}
+            <span className="truncate">{copy.stickerButton}</span>
             {going && <Loader2 className="size-4 animate-spin" />}
           </PageLink>
         </div>
@@ -1290,9 +1291,9 @@ function AvatarSlideCopy({ book, catalog, copy }: { book: AvatarBook; catalog: P
           )}
           <PageLink
             href="/stickers/poster-packs"
-            className={`peel-btn inline-flex h-10 items-center justify-center gap-1.5 rounded-xl px-2 text-[13px] font-bold sm:h-11 sm:text-sm ${heroPuzzle && features.posterPuzzle ? "mt-2" : "mt-2 sm:mt-3"}`}
+            className={`peel-btn inline-flex h-10 min-w-0 items-center justify-center gap-1.5 overflow-hidden rounded-xl px-2 text-[clamp(11px,3.3vw,13px)] font-bold whitespace-nowrap sm:h-11 sm:text-sm ${heroPuzzle && features.posterPuzzle ? "mt-2" : "mt-2 sm:mt-3"}`}
           >
-            {copy.wallButton}
+            <span className="truncate">{copy.wallButton}</span>
           </PageLink>
         </div>
       </div>

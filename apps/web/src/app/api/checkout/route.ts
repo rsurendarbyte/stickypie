@@ -19,7 +19,6 @@ import {
   bestOffer,
   couponDiscount,
   PUZZLE_CODE,
-  PUZZLE_PERCENT,
   shippingFor,
   priceForSize,
   sizeLabel,
@@ -368,16 +367,23 @@ export async function POST(req: Request) {
     );
     if (holding) offer = null;
   }
-  // Poster puzzle prize (signed cookie): used when it beats the thank-you offer,
-  // once per phone and email (a paid order with this code ends it).
+  // Poster puzzle prize (signed cookie): its percent comes off the puzzle posters
+  // in the order only, never the rest. Used when that saves more than the
+  // thank-you offer (which is on the whole order), once per phone and email (a
+  // paid order with this code ends it); an order without a puzzle poster leaves
+  // it unused. The percent is admin's (Features), read now.
+  const puzzlePercent = await driver.getPuzzlePercent();
+  const puzzleSubtotal = orderItems.filter((item) => /puzzle poster/i.test(item.sizeLabel ?? "")).reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+  const offerAmount = offer ? couponDiscount(subtotal, offer.percent) : 0;
   const puzzle =
-    (!offer || offer.percent < PUZZLE_PERCENT) &&
+    puzzleSubtotal > 0 &&
+    couponDiscount(puzzleSubtotal, puzzlePercent) > offerAmount &&
     (await puzzlePrizeFromRequest()) !== null &&
     (await driver.getFeatures()).posterPuzzle &&
     !(await driver.discountCodeUsed(PUZZLE_CODE, customer));
-  const discount = puzzle ? { code: PUZZLE_CODE, percent: PUZZLE_PERCENT } : offer;
+  const discount = puzzle ? { code: PUZZLE_CODE, percent: puzzlePercent } : offer;
   const discountCode = discount?.code ?? null;
-  const discountAmount = discount ? couponDiscount(subtotal, discount.percent) : 0;
+  const discountAmount = puzzle ? couponDiscount(puzzleSubtotal, puzzlePercent) : offerAmount;
   // Always charged, by distance from the dispatch PIN code (zones set in the admin).
   const shippingFee = shippingFor(settings, customer.pincode, customer.state).fee;
   // GST is added on top of sticker prices (after the discount) + shipping (rate from admin → Settings).

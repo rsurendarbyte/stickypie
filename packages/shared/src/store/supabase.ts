@@ -29,7 +29,7 @@ import {
   type NewReviewInput,
   type ReviewStatus,
 } from "../feedback";
-import { rowToCoupon, type NewCouponInput } from "../thanks";
+import { rowToCoupon, type NewCouponInput, puzzlePercentFrom } from "../thanks";
 
 function friendly(error: { code?: string; message: string }): Error {
   if (error.code === "23505") {
@@ -586,6 +586,22 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
         .single();
       if (error) throw error;
       return rowToWallCosts(data.features?.wallCosts);
+    },
+
+    async getPuzzlePercent() {
+      const { data, error } = await client.from("store_settings").select("features").eq("id", 1).maybeSingle();
+      return puzzlePercentFrom(error ? null : data?.features);
+    },
+
+    async updatePuzzlePercent(percent: number) {
+      const { data, error } = await client
+        .from("store_settings")
+        .update({ features: { ...(await savedFeatures()), puzzlePercent: percent } })
+        .eq("id", 1)
+        .select("features")
+        .single();
+      if (error) throw friendly(error);
+      return puzzlePercentFrom(data.features);
     },
 
     async getHomePage() {

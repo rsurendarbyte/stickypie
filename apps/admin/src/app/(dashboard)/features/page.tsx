@@ -7,7 +7,7 @@ export const metadata = { title: "Features" };
 
 export default async function FeaturesPage() {
   const driver = await getAdminDriver();
-  const features = await driver.getFeatures();
+  const [features, puzzlePercent] = await Promise.all([driver.getFeatures(), driver.getPuzzlePercent()]);
 
   return (
     <div className="mx-auto w-full max-w-[760px]">
@@ -17,7 +17,7 @@ export default async function FeaturesPage() {
         shop the next time a page loads.
       </p>
       <div className="mt-6">
-        <FeatureToggles initial={features} />
+        <FeatureToggles initial={features} puzzlePercent={puzzlePercent} />
       </div>
     </div>
   );

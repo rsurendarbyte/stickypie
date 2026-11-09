@@ -16,6 +16,7 @@ import type {
 } from "../types";
 import { DEFAULT_STORE_SETTINGS, type StoreSettings } from "../shipping";
 import { rowToFeatures, type FeatureFlags } from "../features";
+import { puzzlePercentFrom } from "../thanks";
 import { rowToHomePage, type HomePage } from "../home-page";
 import { rowToWallCosts, type WallCosts } from "../wall-costs";
 import { DEFAULT_HOME_RAILS, type HomeRail } from "../home-rails";
@@ -31,6 +32,7 @@ type StoreShape = {
   settings?: StoreSettings;
   features?: FeatureFlags;
   homePage?: HomePage;
+  puzzlePercent?: number;
   wallCosts?: WallCosts;
   homeRails?: HomeRail[];
   festivals?: Festival[];
@@ -566,6 +568,17 @@ export function createLocalDriver(filePath: string): DataDriver {
       store.wallCosts = costs;
       persist(store);
       return rowToWallCosts(costs);
+    },
+
+    async getPuzzlePercent() {
+      return puzzlePercentFrom(load());
+    },
+
+    async updatePuzzlePercent(percent: number) {
+      const store = load();
+      store.puzzlePercent = percent;
+      persist(store);
+      return puzzlePercentFrom(store);
     },
 
     async getHomePage() {

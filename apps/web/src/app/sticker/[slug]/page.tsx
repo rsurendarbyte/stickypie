@@ -7,8 +7,7 @@ import ProductDetailClient from "@/components/product-detail-client";
 import StickerReel from "@/components/sticker-reel";
 import { ProductAbout } from "@/components/seo-blocks";
 import ProductAboutChoice from "@/components/product-about-choice";
-import { isMiniPoster, isPosterPack, isSinglePoster, isWallSetup } from "@/lib/poster";
-import PuzzleBoot from "@/components/puzzle-boot";
+import { isMiniPoster, isPosterPack, isWallSetup } from "@/lib/poster";
 import { productSnapshot } from "@/lib/catalog-snapshot";
 import { getDriver } from "@/lib/data";
 import {
@@ -51,14 +50,7 @@ export async function generateMetadata({
   });
 }
 
-export default async function ProductPage({
-  params,
-  startPuzzle = false,
-}: {
-  params: Promise<{ slug: string }>;
-  /** /puzzle/<slug>: opens with the puzzle game running. */
-  startPuzzle?: boolean;
-}) {
+export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const driver = getDriver();
   const product = await driver.getProductBySlug(slug);
@@ -112,10 +104,6 @@ export default async function ProductPage({
         the page is still downloading (no flash of the page view underneath);
         a saved "page view" choice is applied in <head> (lib/view-script.ts).
         Outside the isolated wrapper below so it can cover the header. */}
-    {/* a game link draws the game screen at once (lib/puzzle-boot.ts) */}
-    {isSinglePoster(product) && (
-      <PuzzleBoot src={product.thumbUrl ?? product.imageUrl} name={product.name} ratio={product.aspectRatio && product.aspectRatio > 0.3 && product.aspectRatio < 3 ? product.aspectRatio : 2 / 3} />
-    )}
     <StickerReel
       initial={product}
       category={category ? { id: category.id, name: category.name, slug: category.slug } : null}
@@ -131,7 +119,6 @@ export default async function ProductPage({
         category={category?.name}
       />
       <ProductDetailClient
-        startPuzzle={startPuzzle}
         initial={product}
         category={category ? { name: category.name, slug: category.slug } : null}
         related={productSnapshot(related)}
