@@ -7,7 +7,7 @@ import { PosterTopics, ProductLinks } from "@/components/seo-blocks";
 import SurfaceGrid from "@/components/surface-grid";
 import { productSnapshot } from "@/lib/catalog-snapshot";
 import { getDriver } from "@/lib/data";
-import { formatINR } from "@stickypie/shared";
+import { POSTER_ADHESIVE, PUZZLE_POSTER_PRICES, formatINR } from "@stickypie/shared";
 import { itemListStructuredData, lowestPrice, posterTopicFaq, seoName, wallPosterFaq } from "@/lib/seo";
 import { loadShopFacts } from "@/lib/shop-facts";
 import { absoluteUrl, pageMetadata } from "@/lib/site";
@@ -68,10 +68,14 @@ export default async function SurfacePage({
   const popular = listed.slice(0, 12);
   const posters = surface.posters;
   const hub = surface.slug === "wall-posters";
-  const from = lowestPrice(matched);
+  const from = surface.puzzle ? Math.min(...Object.values(PUZZLE_POSTER_PRICES)) : lowestPrice(matched);
   // Poster prices move with the catalog, so those answers are built here.
-  const priceFaq = posters && !hub ? posterTopicFaq(posterLabel(surface), matched) : null;
-  const faq = [...surface.faq, ...(hub ? wallPosterFaq(await loadShopFacts()) : priceFaq ? [priceFaq] : [])];
+  const priceFaq = posters && !hub && !surface.puzzle ? posterTopicFaq(posterLabel(surface), matched) : null;
+  const faq = [
+    ...surface.faq,
+    ...(hub ? wallPosterFaq(await loadShopFacts()) : priceFaq ? [priceFaq] : []),
+    ...(surface.puzzle ? puzzlePosterFaq(await driver.getPuzzlePercent()) : []),
+  ];
 
   const structuredData = [
     {
@@ -224,4 +228,28 @@ export default async function SurfacePage({
       )}
     </div>
   );
+}
+
+/** The puzzle posters page's answers (prices and the prize come from the shop's settings). */
+function puzzlePosterFaq(percent: number): { q: string; a: string }[] {
+  const small = formatINR(PUZZLE_POSTER_PRICES[6]);
+  const big = formatINR(PUZZLE_POSTER_PRICES[9]);
+  return [
+    {
+      q: "What is a puzzle poster?",
+      a: "A mini poster printed as 9 cards that fit together into one big poster. Lay the cards out 3 by 3 on your wall and they join into a single picture: 9 cards of 4 × 6 in make a 12 × 18 in poster, and 9 cards of 6 × 9 in make an 18 × 27 in poster.",
+    },
+    {
+      q: "How much does a puzzle poster cost?",
+      a: `${small} for the 12 × 18 in puzzle poster (9 cards of 4 × 6 in) and ${big} for the 18 × 27 in puzzle poster (9 cards of 6 × 9 in), plus GST and shipping. Every mini poster on StickyPie can be ordered as a puzzle poster.`,
+    },
+    {
+      q: "How do I win the puzzle discount?",
+      a: `Open any puzzle poster and play its online puzzle: the poster is cut into 9 tiles and shuffled, and you swap tiles until it's whole again, usually in about 30 seconds. Solving it gives ${percent}% off the puzzle posters in one order for the next 24 hours, once per phone number and email. The prize is for puzzle posters only.`,
+    },
+    {
+      q: "How do I put a puzzle poster on the wall?",
+      a: `Each card comes with ${POSTER_ADHESIVE}. Start with the middle card, then add the cards around it so the edges line up.`,
+    },
+  ];
 }

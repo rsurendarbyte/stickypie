@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, ChevronUp, Info, LayoutList, RotateCcw, Ruler, Share2, ShoppingBag, Truck, ZoomIn } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { POSTER_ADHESIVE, POSTER_PAPER, belowMinimum, discountPercent, formatINR, inCategory, packPosterSizes, packSizeSummary } from "@stickypie/shared";
-import { useCatalogChecked, useFeatures, useLiveCatalog, useStoreSettings } from "@/lib/live-catalog";
+import { useCatalogChecked, useFeatures, useLiveCatalog, useStoreSettings, usePuzzlePercent } from "@/lib/live-catalog";
 import { isPuzzleEntry, puzzleProduct, withPuzzles } from "@/lib/puzzle-mix";
 import { rememberPackPosters, rememberPosters } from "@/lib/poster-images";
 import { pickPoster, setPosters, swapSpots, useWallLine } from "@/lib/wall-picks";
@@ -155,10 +155,10 @@ function Reel({
   useEffect(() => {
     const p = list[active];
     if (!p) return;
-    // a puzzle poster's own link (shares as the puzzle, opens the game)
+    // a puzzle poster: its poster page as a puzzle poster (the game has its own page, /puzzle/)
     const puzzle = isPuzzleEntry(p);
-    const path = puzzle ? `/puzzle/${p.slug}` : `/sticker/${p.slug}`;
-    if (location.pathname !== path) history.replaceState(history.state, "", path);
+    const path = puzzle ? `/sticker/${p.slug}?finish=puzzle` : `/sticker/${p.slug}`;
+    if ((puzzle ? location.pathname + location.search : location.pathname) !== path) history.replaceState(history.state, "", path);
     document.title = puzzle ? `Can you solve ${p.name}? · StickyPie` : `${p.name} · StickyPie`;
   }, [active, list]);
 
@@ -279,6 +279,7 @@ function ReelItem({
   /** A puzzle poster dropped into the swipe view: always sold as the puzzle. */
   puzzleCard?: boolean;
 }) {
+  const puzzlePercent = usePuzzlePercent();
   const checked = useCatalogChecked();
   const { add, items, subtotal } = useCart();
   const settings = useStoreSettings();
@@ -352,7 +353,7 @@ function ReelItem({
   function share() {
     void shareItem(
       finish === "puzzle"
-        ? puzzleShare({ slug: product.slug, name: product.name, image: product.thumbUrl ?? product.imageUrl })
+        ? puzzleShare({ slug: product.slug, name: product.name, image: product.thumbUrl ?? product.imageUrl }, undefined, puzzlePercent)
         : posterShare(product, `/sticker/${product.slug}`)
     );
   }

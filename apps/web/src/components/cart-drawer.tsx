@@ -3,10 +3,11 @@
 import PageLink from "./page-link";
 import ShopLinks from "./shop-links";
 import { useEffect, useState } from "react";
-import { CheckCircle2, ShoppingBag, Trash2, Truck, X } from "lucide-react";
-import { belowMinimum, formatINR } from "@stickypie/shared";
+import { CheckCircle2, Gift, ShoppingBag, Trash2, Truck, X } from "lucide-react";
+import { belowMinimum, couponDiscount, formatINR } from "@stickypie/shared";
 import PriceWait from "./price-wait";
-import { useStoreSettings } from "@/lib/live-catalog";
+import { useFeatures, usePuzzlePercent, useStoreSettings } from "@/lib/live-catalog";
+import { usePuzzlePrize } from "@/lib/puzzle-prize";
 import CartThumb, { WallPicksNote } from "./cart-thumb";
 import { lineKey, useCart, itemHref } from "./cart-context";
 import QtyStepper from "./qty-stepper";
@@ -18,6 +19,16 @@ export default function CartDrawer() {
   useBackToClose(isOpen, closeCart);
   const settings = useStoreSettings();
   const shortBy = belowMinimum(settings, subtotal, items);
+  // A solved puzzle's prize (admin sets the percent): it comes off puzzle posters
+  // only, shown on those lines and in the total, so the cart's prices are the ones
+  // checkout charges (a bigger thank-you offer, if any, still wins there).
+  const prize = usePuzzlePrize();
+  const features = useFeatures();
+  const pct = usePuzzlePercent();
+  const off = prize !== null && features.posterPuzzle ? pct : 0;
+  const offOn = (item: { finish?: string }) => off > 0 && item.finish === "puzzle";
+  const less = (amount: number, item: { finish?: string }) => (offOn(item) ? amount - couponDiscount(amount, off) : amount);
+  const discount = couponDiscount(items.filter(offOn).reduce((sum, i) => sum + i.price * i.qty, 0), off);
   // "open" = sticking on, "closing" = peeling off, then gone.
   const [phase, setPhase] = useState<"closed" | "open" | "closing">("closed");
   useEffect(() => {
@@ -56,8 +67,8 @@ export default function CartDrawer() {
 
   return (
     <div
-      // above the phone sticker reel (z-[70])
-      className="pointer-events-none fixed inset-0 z-[75]"
+      // above the phone sticker reel (z-[70]) and the puzzle game page (z-[80])
+      className="pointer-events-none fixed inset-0 z-[85]"
       aria-hidden={!isOpen}
     >
       {/* Phone only: light scrim behind the sheet; tap to close. */}
@@ -95,7 +106,7 @@ export default function CartDrawer() {
             <p className="font-display text-lg font-semibold">
               Your cart{" "}
               <span className="text-sm font-normal text-fog">
-                ({count} {count === 1 ? "sticker" : "stickers"})
+                ({count} {count === 1 ? "item" : "items"})
               </span>
             </p>
             <button
@@ -157,17 +168,18 @@ export default function CartDrawer() {
                           </button>
                         </div>
                         <p className="mt-0.5 text-xs text-fog">
-                          {item.customKind === "avatar" ? (
-
-                            <span className="font-medium text-snow/80">{item.sizeLabel} · </span>
-
+                          {item.customKind === "avatar" || item.finish === "puzzle" ? (
+                            // a puzzle poster reads as one: "12×18 in puzzle · 9 cards of 4×6"
+                            <span className="font-medium text-snow/80">{item.finish === "puzzle" ? "Puzzle poster" : item.sizeLabel} · </span>
                           ) : (
 
                             item.size && <span className="font-medium text-snow/80">{item.size}″ · </span>
 
                           )}
-                          {formatINR(item.price)} {item.customKind === "avatar" ? "per set" : "each"}
+                          {offOn(item) && <span className="mr-1 line-through">{formatINR(item.price)}</span>}
+                          {formatINR(less(item.price, item))} {item.customKind === "avatar" ? "per set" : "each"}
                         </p>
+                        {item.finish === "puzzle" && item.sizeLabel && <p className="text-[11px] text-fog">{item.sizeLabel}</p>}
                         <WallPicksNote item={item} />
                         <div className="mt-2 flex items-center justify-between">
                           <QtyStepper
@@ -176,8 +188,9 @@ export default function CartDrawer() {
                             max={item.stock}
                             onChange={(next) => setQty(lineKey(item), next)}
                           />
-                          <p className="text-sm font-semibold">
-                            {formatINR(item.price * item.qty)}
+                          <p className="text-right text-sm font-semibold">
+                            {offOn(item) && <span className="mr-1.5 text-xs font-normal text-fog line-through">{formatINR(item.price * item.qty)}</span>}
+                            {formatINR(less(item.price * item.qty, item))}
                           </p>
                         </div>
                       </div>
@@ -227,6 +240,14 @@ export default function CartDrawer() {
                     <span>Subtotal</span>
                     <span className="text-snow">{formatINR(subtotal)}</span>
                   </div>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-fog">
+                      <span className="flex items-center gap-1.5">
+                        <Gift className="size-3.5 text-mint" /> Puzzle prize · {off}% off puzzle posters
+                      </span>
+                      <span className="font-medium text-mint">−{formatINR(discount)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-fog">
                     <span>Shipping</span>
                     <span className="text-xs">By distance, at checkout</span>
@@ -253,7 +274,7 @@ export default function CartDrawer() {
                     onClick={closeCart}
                     className="peel-btn peel-btn--brand mt-4 block w-full rounded-xl py-3 text-center text-sm font-bold"
                   >
-                    Checkout · {formatINR(subtotal)} + shipping & GST
+                    Checkout · {formatINR(subtotal - discount)} + shipping & GST
                   </PageLink>
                 )}
               </div>

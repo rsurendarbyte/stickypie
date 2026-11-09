@@ -10,7 +10,7 @@ import { getDriver } from "@/lib/data";
 import { isSinglePoster } from "@/lib/poster";
 import { CategoryAbout, PosterTopics, ProductLinks } from "@/components/seo-blocks";
 import { categoryIntro, itemListStructuredData } from "@/lib/seo";
-import { absoluteUrl, pageMetadata } from "@/lib/site";
+import { absoluteUrl, pageMetadata, MIN_INDEXED_CATEGORY } from "@/lib/site";
 
 // One SEO page per category: /stickers/cars, /stickers/memes… Prerendered at
 // build; categories added later from the admin render on demand.
@@ -38,6 +38,7 @@ export async function generateMetadata({
   const { category } = await findCategory(slug);
   if (!category) return {};
   const title = categoryTitle(category.name);
+  const count = (await getDriver().listProducts({ activeOnly: true })).filter((p) => inCategory(p, category.id)).length;
   return pageMetadata({
     title: `${title} — Buy Online in India`,
     description: /mini poster/i.test(category.name)
@@ -46,6 +47,8 @@ export async function generateMetadata({
       ? `Shop ${title.toLowerCase()} at StickyPie: wall posters on premium poster paper, glue dots or double-sided tape included. Ships across India.`
       : `Shop ${title.toLowerCase()} at StickyPie: die-cut vinyl in several sizes for cars, bikes, laptops and more. Ships across India.`,
     path: categoryPath(category.slug),
+    // too few products to be a useful result yet (see MIN_INDEXED_CATEGORY)
+    noindex: count < MIN_INDEXED_CATEGORY,
   });
 }
 

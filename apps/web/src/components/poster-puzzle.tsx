@@ -3,21 +3,20 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, Eye, Gift, Lightbulb, Puzzle, RotateCcw, Share2, ShoppingBag, X } from "lucide-react";
-import { PUZZLE_PERCENT, couponDiscount, formatINR } from "@stickypie/shared";
+import { couponDiscount, formatINR } from "@stickypie/shared";
 import { useBackToClose } from "@/lib/back-close";
-import { useFeatures } from "@/lib/live-catalog";
+import { useFeatures, usePuzzlePercent } from "@/lib/live-catalog";
 import { useLite, useSlowNetwork } from "@/lib/lite";
 import { claimPuzzlePrize, usePuzzlePrize } from "@/lib/puzzle-prize";
-import { endPuzzleBoot } from "@/lib/puzzle-boot";
 import { finishTurn, usePuzzleTurn } from "@/lib/puzzle-turns";
 import PageLink from "./page-link";
-import { playHere, type PuzzleLaunch } from "@/lib/puzzle-launch";
+import { playHere, puzzleHref, type PuzzleLaunch } from "@/lib/puzzle-launch";
 import { puzzleShare, share } from "@/lib/share";
 
 // Poster puzzle: any mini poster cut into a 3×3 grid. Cards and the poster page
 // play a short loop (split → shuffle → solve itself → whole again); the game on
 // the poster page shows the poster, shuffles it and lets the shopper swap tiles
-// back, for 10% off one order. One picture for all nine tiles, so no extra download.
+// back, for a prize off its puzzle posters. One picture for all nine tiles, so no extra download.
 
 /** slots[tile] = the grid cell (0–8, row by row) that tile sits in. */
 type Slots = number[];
@@ -339,8 +338,26 @@ export function PuzzleSplit({ src, img }: { src: string; img: HTMLImageElement |
 }
 
 /**
- * Play & win: the puzzle cards' main button (and the hero fan's): play the puzzle for 10% off (the poster page,
- * straight into the game) instead of Add to cart. Once won it says so.
+ * The label on a puzzle poster card: a little 3×3 grid (the 9 cards) and what it is.
+ * Static, so it costs nothing in a feed.
+ */
+export function PuzzleTag({ className = "" }: { className?: string }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-lg bg-white/95 py-1 pr-2 pl-1 shadow-[0_4px_12px_-4px_rgba(16,24,40,0.3)] ring-1 ring-black/5 ${className}`}>
+      <span aria-hidden className="puzzle-cta grid size-[18px] grid-cols-3 gap-px rounded-[5px] p-[3px]">
+        {Array.from({ length: 9 }, (_, i) => (
+          <i key={i} className={`rounded-[1px] ${i === 4 ? "bg-[#ffd23f]" : "bg-white/90"}`} />
+        ))}
+      </span>
+      <span className="text-[10px] leading-none font-bold tracking-wide text-snow uppercase">Puzzle</span>
+      <span className="text-[10px] leading-none font-semibold text-fog">9 pcs</span>
+    </span>
+  );
+}
+
+/**
+ * Play & win: the puzzle cards' main button (and the hero fan's): play the puzzle for the prize (the game's
+ * own page) instead of Add to cart. It keeps inviting a game after a win too.
  */
 export function PuzzlePlayLink({
   poster,
@@ -355,20 +372,18 @@ export function PuzzlePlayLink({
   /** Shine and wiggle: only for the few hero / page buttons, never every card. */
   live?: boolean;
 }) {
-  const prize = usePuzzlePrize();
+  const pct = usePuzzlePercent();
   return (
-    // opens the game right here (no page load); the link is for a new tab
+    // the game's own page (playHere keeps the tap from also opening the card around it)
     <PageLink
-      href={`/sticker/${poster.slug}?finish=puzzle&puzzle=1`}
+      href={puzzleHref(poster.slug)}
       onClick={(e) => playHere(e, poster)}
-      className={`puzzle-ticket relative z-10 flex items-center justify-center gap-1.5 overflow-hidden rounded-xl text-white ${prize ? "puzzle-ticket--won" : ""} ${live ? "puzzle-live" : ""} ${className}`}
+      className={`puzzle-ticket relative z-10 flex items-center justify-center gap-1.5 overflow-hidden rounded-xl text-white ${live ? "puzzle-live" : ""} ${className}`}
     >
-      {prize ? <Check className="size-4 shrink-0" strokeWidth={3} /> : <Puzzle className="puzzle-cta-icon size-4 shrink-0" />}
-      <span className={`font-bold whitespace-nowrap ${compact ? "text-[12px]" : "text-[13px]"}`}>
-        {prize ? (compact ? "Unlocked" : "10% unlocked ·") : "Play & win"}
-      </span>
+      <Puzzle className="puzzle-cta-icon size-4 shrink-0" />
+      <span className={`font-bold whitespace-nowrap ${compact ? "text-[12px]" : "text-[13px]"}`}>Play &amp; win</span>
       <span className={`puzzle-ticket-hl font-display font-bold whitespace-nowrap ${compact ? "text-[13px]" : "text-[15px]"}`}>
-        {prize ? "Play ▸" : compact ? "10%" : "10% OFF"}
+        {compact ? `${pct}%` : `${pct}% OFF`}
       </span>
       <span aria-hidden className="puzzle-strip-shine" />
     </PageLink>
@@ -442,22 +457,21 @@ export function PuzzleTicket({
   src,
   onPlay,
   price,
-  onAddToCart,
   className = "",
 }: {
   src: string;
   onPlay: () => void;
   price?: number;
-  onAddToCart?: () => void;
   className?: string;
 }) {
   const prize = usePuzzlePrize();
+  const pct = usePuzzlePercent();
   const features = useFeatures();
   const left = useCountdown(prize);
   if (!features.posterPuzzle) return null;
-  const off = price !== undefined ? price - couponDiscount(price, PUZZLE_PERCENT) : null;
+  const off = price !== undefined ? price - couponDiscount(price, pct) : null;
   return (
-    // the whole ticket opens the game; only Add to cart does something else
+    // the whole ticket opens the game
     <div
       onClick={onPlay}
       className={`puzzle-ticket puzzle-live relative flex max-w-md cursor-pointer overflow-hidden rounded-2xl text-left ${prize ? "puzzle-ticket--won" : ""} ${className}`}
@@ -465,7 +479,7 @@ export function PuzzleTicket({
       {/* stub: the live puzzle */}
       <button
         type="button"
-        aria-label={prize ? "Play the puzzle" : `Play the puzzle for ${PUZZLE_PERCENT}% off`}
+        aria-label={prize ? "Play the puzzle" : `Play the puzzle for ${pct}% off`}
         className="relative w-[5.6rem] shrink-0 bg-white/15 p-3"
       >
         <span className="block -rotate-3 rounded-[4px] bg-white p-[3px] shadow-[0_6px_14px_-4px_rgba(16,24,40,0.45)]">
@@ -483,24 +497,20 @@ export function PuzzleTicket({
             </span>
             <p className="text-[10px] font-bold tracking-[0.18em] text-white/80 uppercase">Your puzzle prize</p>
             <p className="font-display text-[26px] leading-none font-bold">
-              <span className="puzzle-ticket-hl">{PUZZLE_PERCENT}% OFF</span>
+              <span className="puzzle-ticket-hl">{pct}% OFF</span>
             </p>
             <p className="mt-1 text-[11px] text-white/85">
-              Whole order · ends in <span className="font-bold tabular-nums">{left}</span>
+              On puzzle posters · ends in <span className="font-bold tabular-nums">{left}</span>
             </p>
-            <div className="mt-2.5 flex items-center gap-2">
-              {onAddToCart && off !== null && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAddToCart();
-                  }}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-full bg-white px-3.5 text-xs font-bold text-brand shadow-sm active:scale-95"
-                >
-                  <ShoppingBag className="size-3.5" /> Add ·{" "}
-                  <span className="text-fog line-through">{formatINR(price!)}</span> {formatINR(off)}
-                </button>
+            {/* still a game: Play again (the page's own Add to cart sits right below) */}
+            <div className="mt-2.5 flex items-center gap-2.5">
+              <span className="inline-flex h-9 items-center gap-1 rounded-full bg-[#ffd23f] px-4 text-xs font-bold text-[#2a1a00] shadow-sm">
+                Play ▸
+              </span>
+              {off !== null && (
+                <span className="text-[11px] text-white/85">
+                  <span className="line-through opacity-70">{formatINR(price!)}</span> <b className="text-white">{formatINR(off)}</b>
+                </span>
               )}
             </div>
           </>
@@ -510,7 +520,7 @@ export function PuzzleTicket({
             <p className="font-display text-[22px] leading-[1.05] font-bold">
               Fix this poster,
               <br />
-              win <span className="puzzle-ticket-hl">{PUZZLE_PERCENT}% OFF</span>
+              win <span className="puzzle-ticket-hl">{pct}% OFF</span>
             </p>
             <p className="mt-1.5 flex items-center gap-2 text-[11px] text-white/85">
               <span>🧩 9 pieces</span>
@@ -538,6 +548,7 @@ export function PuzzleTicket({
  */
 export function PuzzleStrip({ src, onPlay }: { src: string; onPlay: () => void }) {
   const prize = usePuzzlePrize();
+  const pct = usePuzzlePercent();
   const features = useFeatures();
   const left = useCountdown(prize);
   if (!features.posterPuzzle) return null;
@@ -545,7 +556,7 @@ export function PuzzleStrip({ src, onPlay }: { src: string; onPlay: () => void }
     <button
       type="button"
       onClick={onPlay}
-      aria-label={prize ? `${PUZZLE_PERCENT}% off unlocked, open the puzzle` : `Play the puzzle for ${PUZZLE_PERCENT}% off`}
+      aria-label={prize ? `${pct}% off unlocked, open the puzzle` : `Play the puzzle for ${pct}% off`}
       className={`puzzle-ticket puzzle-strip puzzle-live relative mb-2 flex h-10 w-full items-center gap-2 overflow-hidden rounded-xl pr-1.5 text-left text-white ${prize ? "puzzle-ticket--won" : ""}`}
     >
       <span className="grid h-full w-10 shrink-0 place-items-center bg-white/15">
@@ -561,7 +572,7 @@ export function PuzzleStrip({ src, onPlay }: { src: string; onPlay: () => void }
       {prize ? (
         <>
           <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate leading-none">
-            <span className="puzzle-ticket-hl font-display text-base font-bold">{PUZZLE_PERCENT}% OFF</span>
+            <span className="puzzle-ticket-hl font-display text-base font-bold">{pct}% OFF</span>
             <span className="flex flex-col text-[11px] leading-tight font-bold">
               unlocked
               <span className="font-semibold text-white/80 tabular-nums">⏱ {left}</span>
@@ -574,7 +585,7 @@ export function PuzzleStrip({ src, onPlay }: { src: string; onPlay: () => void }
         <>
           <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate leading-none">
             <span className="text-[13px] font-bold">Fix it &amp; win</span>
-            <span className="puzzle-ticket-hl font-display text-base font-bold">{PUZZLE_PERCENT}% OFF</span>
+            <span className="puzzle-ticket-hl font-display text-base font-bold">{pct}% OFF</span>
           </span>
           <span className="puzzle-ticket-play shrink-0 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-brand">Play ▸</span>
         </>
@@ -590,6 +601,7 @@ export function PuzzleStrip({ src, onPlay }: { src: string; onPlay: () => void }
  */
 export function PuzzleButton({ onClick, src, className = "" }: { onClick: () => void; /** shows this poster as a live mini puzzle */ src?: string; className?: string }) {
   const prize = usePuzzlePrize();
+  const pct = usePuzzlePercent();
   const features = useFeatures();
   if (!features.posterPuzzle) return null;
   return (
@@ -608,8 +620,8 @@ export function PuzzleButton({ onClick, src, className = "" }: { onClick: () => 
         </span>
       )}
       <span className="leading-none">
-        <span className="block text-[9px] font-bold tracking-[0.16em] uppercase opacity-70">{prize ? "Unlocked" : "Play & win"}</span>
-        <span className="block font-display text-base font-bold">{PUZZLE_PERCENT}% OFF</span>
+        <span className="block text-[9px] font-bold tracking-[0.16em] uppercase opacity-70">Play &amp; win</span>
+        <span className="block font-display text-base font-bold">{pct}% OFF</span>
       </span>
     </button>
   );
@@ -627,6 +639,7 @@ export function PuzzleGame({
   price,
   onAddToCart,
   slug,
+  page = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -639,8 +652,10 @@ export function PuzzleGame({
   onAddToCart?: () => void;
   /** The poster's slug: "Challenge a friend" shares its puzzle link. */
   slug?: string;
+  /** Drawn as the /puzzle/ page itself: no sheet peeling in, and back leaves the page. */
+  page?: boolean;
 }) {
-  const challenge = (solvedIn?: number) => slug && void share(puzzleShare({ slug, name, image: src }, solvedIn));
+  const challenge = (solvedIn?: number) => slug && void share(puzzleShare({ slug, name, image: src }, solvedIn, pct));
   const [shown, setShown] = useState(open);
   const [closing, setClosing] = useState(false);
   const [phase, setPhase] = useState<Phase>("look");
@@ -657,8 +672,10 @@ export function PuzzleGame({
   const [hints, setHints] = useState(0);
   const [peek, setPeek] = useState(false);
   const prizeNow = usePuzzlePrize();
+  const pct = usePuzzlePercent();
   const prizeLeft = useCountdown(prizeNow);
-  useBackToClose(open, onClose);
+  // a pop-up adds a back step; the game page is a page, back just leaves it
+  useBackToClose(open && !page, onClose);
 
   // Stays mounted while the sheet peels off, like every pop-up in the shop.
   useEffect(() => {
@@ -680,7 +697,6 @@ export function PuzzleGame({
   // Each open (or "play again"): show it whole, then split and shuffle.
   useEffect(() => {
     if (!open) return;
-    endPuzzleBoot(); // the page's still copy of this screen (lib/puzzle-boot.ts) goes
     setPhase("look");
     setSlots(SOLVED);
     setPicked(null);
@@ -822,9 +838,9 @@ export function PuzzleGame({
       aria-modal="true"
       aria-label={`Puzzle: ${name}`}
       style={{ "--peel-max": `${window.innerWidth + window.innerHeight}px` } as React.CSSProperties}
-      className={`cart-label puzzle-screen fixed inset-0 z-[80] flex flex-col ${closing ? "screen-label--off pointer-events-none" : "screen-label--on"}`}
+      className={page ? "puzzle-screen fixed inset-0 z-[80] flex flex-col" : `cart-label puzzle-screen fixed inset-0 z-[80] flex flex-col ${closing ? "screen-label--off pointer-events-none" : "screen-label--on"}`}
     >
-      <span aria-hidden className="cart-label-flap" />
+      {!page && <span aria-hidden className="cart-label-flap" />}
       {/* top bar: what this is, and the way out */}
       <div className="relative z-[1] flex items-center gap-3 px-4 pt-3 pb-2 sm:px-6">
         <span className="puzzle-cta puzzle-live grid size-10 shrink-0 place-items-center rounded-xl text-white">
@@ -845,9 +861,9 @@ export function PuzzleGame({
       </div>
 
       {/* the board takes whatever room the controls leave, on any screen (see .puzzle-board-col) */}
-      <div className="relative z-[1] flex min-h-0 flex-1 flex-col items-center gap-3 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:gap-10">
+      <div className="relative z-[1] flex min-h-0 flex-1 flex-col items-center gap-3 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:mx-auto sm:w-full sm:max-w-5xl sm:flex-row sm:justify-center sm:gap-8 sm:px-8 sm:pb-6">
         {/* the board, on a frame */}
-        <div className="puzzle-board-col flex min-h-0 w-full flex-1 basis-0 flex-col items-center justify-center gap-2 sm:h-full" style={{ "--ratio": ratio } as React.CSSProperties}>
+        <div className="puzzle-board-col flex min-h-0 w-full flex-1 basis-0 flex-col items-center justify-center gap-2 sm:h-full sm:items-end" style={{ "--ratio": ratio } as React.CSSProperties}>
           {/* placed tiles, as nine dots, and how it's going */}
           <div className="puzzle-fit flex items-center gap-2">
             <div className="flex flex-1 gap-1" aria-label={`${placed} of 9 tiles in place`}>
@@ -898,11 +914,18 @@ export function PuzzleGame({
         </div>
 
         {/* side panel (under the board on phones): stats, tools, the prize */}
-        <div className="flex w-full max-w-[26rem] shrink-0 flex-col gap-2 sm:w-72 sm:gap-2.5">
-          {/* wider screens: how to play sits here, beside the board */}
-          <p className="hidden text-sm leading-snug font-semibold text-fog sm:block">
-            {phase === "won" ? "Solved!" : picked === null ? "Swipe a tile onto another, or tap two tiles to swap them." : "Now tap (or swipe) the tile to swap with."}
-          </p>
+        <div className="flex w-full max-w-[26rem] shrink-0 flex-col gap-2 sm:w-80 sm:gap-3 sm:rounded-3xl sm:bg-white/85 sm:p-5 sm:shadow-[0_24px_60px_-28px_rgba(16,24,40,0.35)] sm:ring-1 sm:ring-line">
+          {/* wider screens: the prize up top, then how to play, beside the board */}
+          <div className="hidden sm:block">
+            <p className="text-[11px] font-bold tracking-[0.18em] text-brand uppercase">Solve &amp; win</p>
+            <p className="mt-1 font-display text-3xl leading-none font-bold text-snow">
+              <span className="puzzle-ticket-hl">{pct}% OFF</span>
+            </p>
+            <p className="mt-2 text-sm leading-snug text-fog">
+              {phase === "won" ? "Solved! Your prize is ready." : picked === null ? "Swipe a tile onto another, or click two tiles to swap them." : "Now click (or swipe) the tile to swap with."}
+            </p>
+          </div>
+          <span aria-hidden className="hidden h-px bg-line sm:block" />
           <div className="grid grid-cols-3 gap-2">
             {[
               { label: "Time", value: `${seconds}s` },
@@ -944,14 +967,14 @@ export function PuzzleGame({
               <Lightbulb className="size-4 text-gold" /> Hint
             </button>
           </div>
-          {/* the prize waiting at the end */}
-          <div className={`puzzle-ticket puzzle-live relative flex items-center gap-2.5 overflow-hidden rounded-xl px-3 py-2.5 text-white ${prizeNow ? "puzzle-ticket--won" : ""}`}>
+          {/* the prize waiting at the end (wide screens say it up top, so only once won) */}
+          <div className={`puzzle-ticket puzzle-live relative flex items-center gap-2.5 overflow-hidden rounded-xl px-3 py-2.5 text-white ${prizeNow ? "puzzle-ticket--won" : "sm:hidden"}`}>
             <Gift className="size-5 shrink-0" />
             <p className="min-w-0 flex-1 text-[13px] leading-tight font-bold">
               {prizeNow ? (
-                <>Your <span className="puzzle-ticket-hl">{PUZZLE_PERCENT}% OFF</span> is active · ends in {prizeLeft}</>
+                <>Your <span className="puzzle-ticket-hl">{pct}% OFF</span> is active · ends in {prizeLeft}</>
               ) : (
-                <>Solve it to unlock <span className="puzzle-ticket-hl">{PUZZLE_PERCENT}% OFF</span> your order</>
+                <>Solve it to unlock <span className="puzzle-ticket-hl">{pct}% OFF</span> puzzle posters</>
               )}
             </p>
             <span aria-hidden className="puzzle-strip-shine" />
@@ -1022,7 +1045,7 @@ export function PuzzleGame({
               {prize === null ? (
                 <p className="mt-4 h-[5.25rem] text-sm text-fog">Unlocking your prize…</p>
               ) : prize === "none" ? (
-                <p className="mt-4 text-sm text-fog">The {PUZZLE_PERCENT}% offer has ended, but the poster still looks great.</p>
+                <p className="mt-4 text-sm text-fog">The {pct}% offer has ended, but the poster still looks great.</p>
               ) : (
                 // the prize as a coupon: notched, stamped
                 <div className="puzzle-win-up puzzle-ticket puzzle-ticket--won puzzle-win-coupon relative mt-4 overflow-hidden rounded-2xl px-4 py-3 text-left text-white" style={{ animationDelay: "1.1s" }}>
@@ -1031,15 +1054,15 @@ export function PuzzleGame({
                   </span>
                   <p className="text-[10px] font-bold tracking-[0.18em] text-white/80 uppercase">Your prize</p>
                   <p className="font-display text-[26px] leading-none font-bold">
-                    <span className="puzzle-ticket-hl">{PUZZLE_PERCENT}% OFF</span>
+                    <span className="puzzle-ticket-hl">{pct}% OFF</span>
                   </p>
                   {price !== undefined && (
                     <p className="mt-1.5 text-sm">
                       This puzzle poster <span className="line-through opacity-70">{formatINR(price)}</span>{" "}
-                      <b className="font-display text-lg">{formatINR(price - couponDiscount(price, PUZZLE_PERCENT))}</b>
+                      <b className="font-display text-lg">{formatINR(price - couponDiscount(price, pct))}</b>
                     </p>
                   )}
-                  <p className="mt-0.5 text-[11px] text-white/80">Whole order · at checkout by itself · until {endsAt(prize)}</p>
+                  <p className="mt-0.5 text-[11px] text-white/80">On puzzle posters · at checkout · until {endsAt(prize)}</p>
                 </div>
               )}
               {onAddToCart && prize !== "none" ? (
@@ -1047,12 +1070,13 @@ export function PuzzleGame({
                   type="button"
                   onClick={() => {
                     onAddToCart();
-                    onClose();
+                    // the game page stays: the cart opens over it (closing the cart comes back here)
+                    if (!page) onClose();
                   }}
                   className="peel-btn mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl text-base font-bold"
                 >
                   <ShoppingBag className="peel-icon size-5" /> Add to cart
-                  {typeof prize === "number" && price !== undefined ? ` · ${formatINR(price - couponDiscount(price, PUZZLE_PERCENT))}` : ""}
+                  {typeof prize === "number" && price !== undefined ? ` · ${formatINR(price - couponDiscount(price, pct))}` : ""}
                 </button>
               ) : (
                 <button type="button" onClick={onClose} className="peel-btn mt-4 inline-flex h-12 w-full items-center justify-center rounded-xl text-base font-bold">

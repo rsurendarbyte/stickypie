@@ -45,6 +45,7 @@ export default function PuzzleLauncher() {
   return (
     <PuzzleGame
       open={launch !== null}
+      page={last.page}
       onClose={closePuzzle}
       slug={last.slug}
       src={src}

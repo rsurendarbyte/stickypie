@@ -4,7 +4,7 @@
 // edited in the admin — add the tag "laptop" to a sticker and it appears on
 // /laptop-stickers.
 import { POSTER_ADHESIVE, POSTER_PAPER, festivalLongDate, type Category, type Festival, type Product } from "@stickypie/shared";
-import { isPoster, isPosterPack } from "./poster";
+import { isPoster, isPosterPack, isSinglePoster } from "./poster";
 
 export type Surface = {
   slug: string;
@@ -25,6 +25,8 @@ export type Surface = {
   when?: string;
   /** Poster pages: lists posters and wall sets only, never the other stickers. */
   posters?: boolean;
+  /** The puzzle posters page: every single mini poster, as a puzzle poster. */
+  puzzle?: boolean;
 };
 
 export const SURFACES: Surface[] = [
@@ -221,6 +223,30 @@ export const POSTER_SURFACES: Surface[] = [
       {
         heading: "Single mini posters",
         body: `Want just one? Every mini poster comes in 4 × 6 in or 6 × 9 in, as a wall poster on ${POSTER_PAPER} or as a vinyl sticker, whichever suits the spot you have in mind.`,
+      },
+    ],
+    faq: [],
+  },
+  {
+    slug: "puzzle-posters",
+    name: "Puzzle Posters",
+    noun: "puzzle",
+    title: "Puzzle Posters Online in India – 9-Piece Poster Puzzles",
+    description:
+      "Buy puzzle posters online in India: any mini poster printed as 9 cards that join into one big wall poster, 12 × 18 in or 18 × 27 in. Solve the puzzle online to win a discount.",
+    intro: `A puzzle poster is any of our mini posters printed as 9 cards that fit together into one big poster on your wall: 9 cards of 4 × 6 in make a 12 × 18 in poster, 9 cards of 6 × 9 in make an 18 × 27 in poster. Every card is printed on ${POSTER_PAPER}, with ${POSTER_ADHESIVE} included.`,
+    tags: [],
+    categories: [],
+    posters: true,
+    puzzle: true,
+    sections: [
+      {
+        heading: "How a puzzle poster works",
+        body: "You get 9 printed cards, each one piece of the poster. Lay them out 3 by 3 and stick them up side by side, and they join into one big poster, about three times the size of the mini poster.",
+      },
+      {
+        heading: "Play the puzzle online",
+        body: "Every puzzle poster has a free online puzzle: the poster is cut into 9 tiles and shuffled, and you swap tiles until it's whole again. It takes about 30 seconds, and solving it wins a discount on your order.",
       },
     ],
     faq: [],
@@ -474,6 +500,7 @@ export function stickersForSurface(
   const tags = new Set(surface.tags);
   const fits = (p: Product) =>
     p.tags.some((t) => tags.has(t.toLowerCase())) || (p.categoryIds ?? []).some((id) => catIds.has(id));
+  if (surface.puzzle) return { matched: products.filter(isSinglePoster), others: [] };
   if (surface.posters) return { matched: postersForSurface(products, fits), others: [] };
   const matched = products.filter(fits);
   const others = products.filter((p) => !fits(p));

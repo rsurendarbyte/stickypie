@@ -1,14 +1,16 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import ProductPage from "@/app/sticker/[slug]/page";
+import PuzzleBoot from "@/components/puzzle-boot";
+import PuzzlePageClient from "@/components/puzzle-page-client";
 import { isMiniPoster, isPosterPack } from "@/lib/poster";
 import { getDriver } from "@/lib/data";
 import { posterSharePath, puzzleSharePath, shareImageUrl } from "@/lib/share-links";
 import { pageMetadata } from "@/lib/site";
 
-// A shared poster puzzle: its own link preview ("Can you solve this poster?"),
-// then the poster's page with the game already running. Not indexed: search
-// lands on the poster page itself (the canonical).
+// A poster's puzzle game, as its own page: every Play & win comes here, and a
+// shared link gets its own preview ("Can you solve this poster?"). The HTML
+// already draws the game screen (PuzzleBoot); the game takes over when the
+// page's code is ready. Not indexed: search lands on the poster page (the canonical).
 export const revalidate = 600;
 
 export async function generateStaticParams() {
@@ -20,10 +22,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const product = await getDriver().getProductBySlug(slug);
   if (!product || !product.isActive) return { title: "Puzzle" };
+  const percent = await getDriver().getPuzzlePercent();
   const name = product.name.replace(/\s*(—\s*)?Mini Poster\s*$/i, "");
   return pageMetadata({
     title: `Can you solve this poster? 🧩 ${name}`,
-    description: `Put the 9 pieces of ${name} back together in about 30 seconds and win 10% off your StickyPie order.`,
+    description: `Put the 9 pieces of ${name} back together in about 30 seconds and win ${percent}% off puzzle posters on StickyPie.`,
     path: posterSharePath(product.slug),
     shareUrl: puzzleSharePath(product.slug),
     image: product.imageUrl,
@@ -36,5 +39,19 @@ export default async function PuzzlePage({ params }: { params: Promise<{ slug: s
   const { slug } = await params;
   const product = await getDriver().getProductBySlug(slug);
   if (!product || !product.isActive || !isMiniPoster(product) || isPosterPack(product)) notFound();
-  return <ProductPage params={params} startPuzzle />;
+  const ratio = product.aspectRatio && product.aspectRatio > 0.3 && product.aspectRatio < 3 ? product.aspectRatio : 2 / 3;
+  const poster = {
+    id: product.id,
+    slug: product.slug,
+    name: product.name,
+    src: product.thumbUrl ?? product.imageUrl,
+    sharp: product.displayUrl ?? product.imageUrl,
+    aspectRatio: product.aspectRatio ?? null,
+  };
+  return (
+    <>
+      <PuzzleBoot src={poster.src} name={product.name} ratio={ratio} />
+      <PuzzlePageClient poster={poster} />
+    </>
+  );
 }

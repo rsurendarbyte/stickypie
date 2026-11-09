@@ -29,6 +29,8 @@ import {
   inCategory,
   rowToCategory,
   rowToFeatures,
+  puzzlePercentFrom,
+  PUZZLE_PERCENT,
   rowToFestivals,
   rowToHomePage,
   rowToHomeRails,
@@ -67,6 +69,8 @@ type Bundle = Catalog & {
   rails: HomeRail[];
   festivals: Festival[];
   features: FeatureFlags;
+  /** The poster puzzle prize's percent off (admin → Features). */
+  puzzlePercent: number;
   homePage: HomePage;
   reviews: PublicReview[];
   /** Settings checked with the database on this page load (not just the saved copy). */
@@ -135,6 +139,7 @@ function publish(meta: any, catalog: CachedCatalog, fresh = true): Bundle {
     rails: rowToHomeRails(meta?.home_rails),
     festivals: rowToFestivals(meta?.festivals),
     features: rowToFeatures(meta?.features),
+    puzzlePercent: puzzlePercentFrom(meta?.features),
     homePage: rowToHomePage(meta?.features?.homePage),
   };
   memory = { bundle, at: Date.now() };
@@ -297,6 +302,12 @@ export function useFeatures(): FeatureFlags {
   if (!liveCatalogEnabled) return DEFAULT_FEATURES;
   if (bundle) return bundle.features;
   return failed ? DEFAULT_FEATURES : FEATURES_PENDING;
+}
+
+/** The poster puzzle prize's percent off, set in admin → Features. */
+export function usePuzzlePercent(): number {
+  const { bundle } = useBundle();
+  return bundle?.puzzlePercent ?? PUZZLE_PERCENT;
 }
 
 /** Home page layout from the admin (Home page). */

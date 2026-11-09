@@ -1,13 +1,13 @@
 import { Puzzle } from "lucide-react";
 
 /**
- * A still copy of the puzzle game's first screen, in the page's HTML: shown only
- * while html[data-puzzle-boot] is set (lib/puzzle-boot.ts), so a game link
- * draws the game at once, even before the page's code has loaded.
+ * A still copy of the puzzle game's first screen, in the page's HTML, so the
+ * game draws at once, even before the page's code has loaded. It sits under
+ * the game, which covers it once open.
  */
 export default function PuzzleBoot({ src, name, ratio }: { src: string; name: string; ratio: number }) {
   return (
-    <div aria-hidden className="puzzle-boot puzzle-screen fixed inset-0 z-[79] flex-col">
+    <div aria-hidden className="puzzle-screen fixed inset-0 z-[79] flex flex-col">
       <div className="flex items-center gap-3 px-4 pt-3 pb-2 sm:px-6">
         <span className="puzzle-cta grid size-10 shrink-0 place-items-center rounded-xl text-white">
           <Puzzle className="size-5" />

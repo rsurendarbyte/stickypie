@@ -97,10 +97,10 @@ export const DEFAULT_HOME_PAGE: HomePage = {
     titleBottom: "& wall posters",
     stickerTitle: "Stickers of you",
     stickerText: "Send a selfie, pick trending styles. {styles}+ styles on vinyl.",
-    stickerButton: "Make my stickers",
+    stickerButton: "Make stickers",
     wallTitle: "Wall posters",
     wallText: "Ready wall sets on premium poster paper. Glue dots included.",
-    wallButton: "Shop wall posters",
+    wallButton: "Shop posters",
     chips: ["Vinyl stickers", "Premium posters", "Glue dots included", "Ships across India"],
   },
   stickers: {

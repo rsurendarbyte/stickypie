@@ -4,7 +4,7 @@ import SmartImg from "./smart-img";
 import PageLink from "./page-link";
 import ImageZoom from "./image-zoom";
 import { isInternalTag, isMiniPoster, isPosterPack, isSinglePoster, isWallSetup, posterSetName, sizeChipLabel, wallSize } from "@/lib/poster";
-import { puzzleBuildInches } from "@stickypie/shared";
+import { puzzleBuildInches, PUZZLE_POSTER_PRICES } from "@stickypie/shared";
 import { useEffect, useRef, useState } from "react";
 import { BadgeCheck, Car, ChevronsUpDown, Frame, Gift, PackageX, Ruler, Share2, Sparkles, Truck } from "lucide-react";
 import type { Product } from "@stickypie/shared";
@@ -12,7 +12,7 @@ import { LOW_STOCK_THRESHOLD, OWN_POSTER_NAME, PUZZLE_CARDS, discountPercent, fo
 import { pickPoster, swapPosters, useWallLine } from "@/lib/wall-picks";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
 import { useSkinSeed } from "@/lib/skin-seed";
-import { recordProductView, useFeatures, useLiveProduct, useRelatedProducts, useStoreSettings, watchImageSaves } from "@/lib/live-catalog";
+import { recordProductView, useFeatures, useLiveProduct, useRelatedProducts, useStoreSettings, watchImageSaves, usePuzzlePercent } from "@/lib/live-catalog";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
 import { rememberInterest } from "@/lib/interest";
 import BackButton from "./back-button";
@@ -34,8 +34,7 @@ import { useCart } from "./cart-context";
 import SizeRuler from "./size-ruler";
 import TrueSizePreview from "./true-size-preview";
 import { PuzzleButton, PuzzleLoop, PuzzleSplit, PuzzleTicket } from "./poster-puzzle";
-import { launchOf, launchPuzzle } from "@/lib/puzzle-launch";
-import { endPuzzleBoot, puzzleBooting } from "@/lib/puzzle-boot";
+import { launchOf, launchPuzzle, puzzleHref } from "@/lib/puzzle-launch";
 import { setFinish } from "@/lib/poster-finish";
 import { posterShare, puzzleShare, share } from "@/lib/share";
 import { usePuzzleLead } from "@/lib/puzzle-mix";
@@ -50,7 +49,6 @@ export default function ProductDetailClient({
   steps,
   packPosters = [],
   standIn = false,
-  startPuzzle = false,
 }: {
   initial: Product;
   category: { name: string; slug: string } | null;
@@ -59,9 +57,8 @@ export default function ProductDetailClient({
   packPosters?: PackPosterLink[];
   /** Drawn by the loading screen until the server's page takes over (that one opens the game). */
   standIn?: boolean;
-  /** Reached by a shared puzzle link (/puzzle/<slug>): open as a puzzle poster, game running. */
-  startPuzzle?: boolean;
 }) {
+  const puzzlePercent = usePuzzlePercent();
   // Static snapshot first paint; live stock/price/availability from Supabase.
   const { product, unavailable, checked } = useLiveProduct(initial.slug, initial);
   useWindowScrollMemory(true);
@@ -103,30 +100,14 @@ export default function ProductDetailClient({
   const play = () => launchPuzzle({ ...launchOf(product), size: isPuzzle ? size : null });
   const { add, openCart } = useCart();
   const mixPuzzles = usePuzzleLead();
-  // ?finish=puzzle (puzzle poster cards, Play & win) opens it as a puzzle poster.
+  // ?finish=puzzle (puzzle poster cards) opens it as a puzzle poster. A Play &
+  // win link (?puzzle=1) goes to the game's own page, normally from <head>
+  // already (lib/puzzle-boot.ts); this is the fallback.
   useEffect(() => {
+    if (standIn || !isSinglePoster(initial)) return;
     const params = new URLSearchParams(window.location.search);
-    if (isSinglePoster(initial) && (startPuzzle || puzzleBooting() || params.get("finish") === "puzzle" || params.has("puzzle"))) setFinish("puzzle");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  // A card's Play & win (?puzzle=1) starts the game straight away, once per page
-  // load: the live stock check can flip `puzzle` while loading, which must not
-  // close and reopen it. The address keeps the flag (changing it remounts the page).
-  useEffect(() => {
-    if (standIn) return;
-    // a game link (lib/puzzle-boot.ts: an ad's ?finish=puzzle, ?puzzle=1, /puzzle/)
-    if (!isSinglePoster(initial) || !(startPuzzle || puzzleBooting() || new URLSearchParams(window.location.search).has("puzzle"))) {
-      endPuzzleBoot();
-      return;
-    }
-    // after the router has settled its own history entry, or it drops the game's back step
-    const t = window.setTimeout(() => launchPuzzle(launchOf(initial)), 300);
-    // the still game screen never outstays a game that didn't open (offer off, say)
-    const done = window.setTimeout(endPuzzleBoot, 2500);
-    return () => {
-      window.clearTimeout(t);
-      window.clearTimeout(done);
-    };
+    if (params.has("puzzle")) return void window.location.replace(puzzleHref(initial.slug));
+    if (params.get("finish") === "puzzle") setFinish("puzzle");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [wallView, setWallView] = useState<WallView>("wall");
@@ -235,7 +216,7 @@ export default function ProductDetailClient({
             onClick={() =>
               void share(
                 isPuzzle
-                  ? puzzleShare({ slug: product.slug, name: product.name, image: product.thumbUrl ?? product.imageUrl })
+                  ? puzzleShare({ slug: product.slug, name: product.name, image: product.thumbUrl ?? product.imageUrl }, undefined, puzzlePercent)
                   : posterShare(product, `/sticker/${product.slug}`)
               )
             }
@@ -390,11 +371,8 @@ export default function ProductDetailClient({
                 <PuzzleTicket
                   src={product.thumbUrl ?? product.imageUrl}
                   onPlay={play}
-                  price={price}
-                  onAddToCart={() => {
-                    add(toCartProduct(product, size, price));
-                    openCart();
-                  }}
+                  // the prize is for puzzle posters, so the ticket shows the puzzle poster's price
+                  price={PUZZLE_POSTER_PRICES[size ?? 6] ?? PUZZLE_POSTER_PRICES[6]}
                   className="mt-4"
                 />
               )}
@@ -410,7 +388,7 @@ export default function ProductDetailClient({
                     sizes={sizes}
                     value={size}
                     onChange={setSize}
-                    label={(inches) => (isPuzzle ? `${puzzleChipLabel(product, inches)} puzzle` : sizeChipLabel(product, inches))}
+                    label={(inches) => (isPuzzle ? puzzleChipLabel(product, inches) : sizeChipLabel(product, inches))}
                   />
                   {isPuzzle && size !== null && (
                     <p className="mt-2 text-xs text-fog">

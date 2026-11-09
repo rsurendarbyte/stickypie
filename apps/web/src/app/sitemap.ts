@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { categoryPath, inCategory } from "@stickypie/shared";
 import { getDriver } from "@/lib/data";
 import { generateStaticParams as legalSlugs } from "./legal/[slug]/page";
-import { absoluteUrl, isProductionSite } from "@/lib/site";
+import { absoluteUrl, isProductionSite, MIN_INDEXED_CATEGORY } from "@/lib/site";
 import { POSTER_SURFACES, SURFACES, allLandings } from "@/lib/surfaces";
 
 // Built once at deploy and served as a free static file; stickers added from
@@ -41,9 +41,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     for (const page of allLandings(festivals, categories).filter((s) => s.when)) {
       pages.push({ url: absoluteUrl(`/${page.slug}`), changeFrequency: "weekly", priority: 0.9 });
     }
-    // Category pages that have stickers on sale.
+    // Category pages with enough on sale to be worth a search result (see MIN_INDEXED_CATEGORY).
     for (const category of categories) {
-      if (!products.some((p) => inCategory(p, category.id))) continue;
+      if (products.filter((p) => inCategory(p, category.id)).length < MIN_INDEXED_CATEGORY) continue;
       pages.push({ url: absoluteUrl(categoryPath(category.slug)), changeFrequency: "weekly", priority: 0.85 });
     }
     for (const product of products) {

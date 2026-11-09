@@ -44,7 +44,17 @@ export function couponDiscount(subtotal: number, percent: number): number {
 
 /** Discount code on orders that used the poster puzzle prize (once per phone and email). */
 export const PUZZLE_CODE = "PUZZLE10";
+/** The prize's percent off when admin hasn't set one (admin → Features sets it, see puzzlePercentFrom). */
 export const PUZZLE_PERCENT = 10;
+/** The highest prize admin can set. */
+export const PUZZLE_PERCENT_MAX = 50;
+
+/** The puzzle prize's percent off, set in admin → Features (kept in store_settings.features). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function puzzlePercentFrom(features: any): number {
+  const n = Number(features?.puzzlePercent);
+  return Number.isFinite(n) && n >= 1 && n <= PUZZLE_PERCENT_MAX ? Math.round(n) : PUZZLE_PERCENT;
+}
 /** How long a solved puzzle's prize waits for checkout. */
 export const PUZZLE_HOURS = 24;
 /** Browser cookie holding a solved puzzle's prize ("expiry.signature"). */

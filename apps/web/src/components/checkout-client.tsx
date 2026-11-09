@@ -23,14 +23,13 @@ import {
   ZONE_LABELS,
   belowMinimum,
   couponDiscount,
-  PUZZLE_PERCENT,
   customerSchema,
   gstOnTop,
   formatINR,
   matchIndianState,
   shippingFor,
 } from "@stickypie/shared";
-import { useFeatures, useStoreSettings } from "@/lib/live-catalog";
+import { useFeatures, useStoreSettings, usePuzzlePercent } from "@/lib/live-catalog";
 import {
   authClient,
   signIn,
@@ -133,13 +132,20 @@ export default function CheckoutClient() {
     Partial<Record<keyof FormState, string>>
   >({});
   const [serverError, setServerError] = useState<string | null>(null);
-  // Thank-you offer the shop approved for this account, or a solved poster puzzle
-  // (whichever is bigger): the server applies it by itself.
+  // Thank-you offer the shop approved for this account (whole order), or a solved
+  // poster puzzle (its puzzle posters only), whichever saves more: the server
+  // works it out the same way and applies it by itself.
   const offer = useMyOffer();
   const puzzlePrize = usePuzzlePrize();
   const features = useFeatures();
-  const puzzle = puzzlePrize !== null && features.posterPuzzle && (!offer || offer.percent < PUZZLE_PERCENT);
-  const discount = puzzle ? { percent: PUZZLE_PERCENT } : offer;
+  const puzzlePercent = usePuzzlePercent();
+  const puzzleSubtotal = items.filter((i) => i.finish === "puzzle").reduce((sum, i) => sum + i.price * i.qty, 0);
+  const puzzle =
+    puzzlePrize !== null &&
+    features.posterPuzzle &&
+    puzzleSubtotal > 0 &&
+    couponDiscount(puzzleSubtotal, puzzlePercent) > (offer ? couponDiscount(subtotal, offer.percent) : 0);
+  const discount = puzzle ? { percent: puzzlePercent } : offer;
   const [submitting, setSubmitting] = useState(false);
   // Own posters on their way, as they leave the phone.
   const [sending, setSending] = useState<PosterSend[] | null>(null);
@@ -217,7 +223,10 @@ export default function CheckoutClient() {
     addressKnown && settings.loaded
       ? shippingFor(settings, form.pincode, form.state)
       : null;
-  const discountAmount = discount ? couponDiscount(subtotal, discount.percent) : 0;
+  const discountAmount = puzzle ? couponDiscount(puzzleSubtotal, puzzlePercent) : discount ? couponDiscount(subtotal, discount.percent) : 0;
+  /** Lines the offer comes off: the puzzle prize only touches puzzle posters, a thank-you offer every line. */
+  const offerOn = (item: { finish?: string }) => !!discount && (!puzzle || item.finish === "puzzle");
+  const lessOffer = (amount: number, item: { finish?: string }) => (offerOn(item) ? amount - couponDiscount(amount, discount!.percent) : amount);
   // GST on top of stickers (after any discount) + shipping — the same sum the server charges.
   const gst = gstOnTop(settings, subtotal - discountAmount, quote?.fee ?? 0);
   const total = subtotal - discountAmount + (quote?.fee ?? 0) + gst.amount;
@@ -962,22 +971,22 @@ export default function CheckoutClient() {
                       <p className="line-clamp-2 text-[13px] leading-snug font-semibold">
                         {item.name}
                       </p>
-                      <span className="shrink-0 text-sm font-bold tabular-nums">
-                        {formatINR(item.price * item.qty)}
+                      {/* the order's offer on every line, so each price matches what's charged */}
+                      <span className="shrink-0 text-right text-sm font-bold tabular-nums">
+                        {offerOn(item) && <span className="mr-1.5 text-xs font-normal text-fog line-through">{formatINR(item.price * item.qty)}</span>}
+                        {formatINR(lessOffer(item.price * item.qty, item))}
                       </span>
                     </div>
                     <p className="mt-0.5 text-[11px] text-fog">
-                      {item.customKind === "avatar" || item.customKind === "wall" ? (
-
-                        <span className="font-semibold text-snow/80">{item.sizeLabel} · </span>
-
+                      {item.customKind === "avatar" || item.customKind === "wall" || item.finish === "puzzle" ? (
+                        <span className="font-semibold text-snow/80">{item.finish === "puzzle" ? "Puzzle poster" : item.sizeLabel} · </span>
                       ) : (
-
                         item.size && <span className="font-semibold text-snow/80">{item.size}″ · </span>
-
                       )}
-                      {formatINR(item.price)} {item.customKind === "avatar" ? "per set" : "each"}
+                      {offerOn(item) && <span className="mr-1 line-through">{formatINR(item.price)}</span>}
+                      {formatINR(lessOffer(item.price, item))} {item.customKind === "avatar" ? "per set" : "each"}
                     </p>
+                    {item.finish === "puzzle" && item.sizeLabel && <p className="text-[11px] text-fog">{item.sizeLabel}</p>}
                     <WallPicksNote item={item} />
                     <CartStepper item={item} size="sm" className="mt-1.5" />
                   </div>
@@ -1011,7 +1020,7 @@ export default function CheckoutClient() {
                 <div className="flex items-center justify-between gap-3 text-fog">
                   <dt className="flex min-w-0 items-center gap-1.5">
                     <Gift className="size-3.5 shrink-0 text-mint" />
-                    <span className="truncate">{puzzle ? "Puzzle prize" : "Thank-you offer"} · {discount.percent}% off</span>
+                    <span className="truncate">{puzzle ? `Puzzle prize · ${discount.percent}% off puzzle posters` : `Thank-you offer · ${discount.percent}% off`}</span>
                   </dt>
                   <dd className="font-medium text-mint tabular-nums">
                     −{formatINR(discountAmount)}
