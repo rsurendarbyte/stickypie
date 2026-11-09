@@ -2420,12 +2420,13 @@ html[data-lite]:not([data-lite="net"]) .puzzle-landed {
 /* the game board's column: as big as the screen allows, the panel under it on
    phones and beside it on wider screens */
 .puzzle-board-col {
-  width: min(100%, 26rem, calc((100dvh - 20rem) * var(--ratio) + 1.5rem));
+  /* a size container: the board below measures the room it's actually given */
+  container-type: size;
 }
-@media (min-width: 640px) {
-  .puzzle-board-col {
-    width: min(40rem, calc((100dvh - 9.5rem) * var(--ratio) + 1.5rem));
-  }
+/* the board (and its progress bar) as big as fits: limited by the width, or by
+   the height less the bar and the frame's padding (3.25rem), whichever is less */
+.puzzle-fit {
+  width: min(100cqw, 32rem, calc((100cqh - 3.25rem) * var(--ratio) + 1.25rem));
 }
 
 /* a puzzle card's still picture: the poster whole with three cut lines each way,
