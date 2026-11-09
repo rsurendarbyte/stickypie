@@ -929,8 +929,11 @@ html[data-lite] .card-shine {
 [data-lite]:not([data-lite="net"]) .cart-tape-wrap .cart-tape {
   box-shadow: 0 6px 14px -6px rgba(16, 24, 40, 0.35);
 }
-/* Big blurred glow layers and frosted glass. */
-[data-lite]:not([data-lite="net"]) [class*="blur-["],
+/* Big blurred glow layers (decoration only) and frosted glass. The space /
+   start anchors keep backdrop-blur-[…] out: those are real content (the
+   puzzle win card's screen, every pop-up's backdrop), only their blur goes. */
+[data-lite]:not([data-lite="net"]) [class*=" blur-["],
+[data-lite]:not([data-lite="net"]) [class^="blur-["],
 [data-lite]:not([data-lite="net"]) [class*=" blur-3xl"],
 [data-lite]:not([data-lite="net"]) [class*=" blur-2xl"] {
   display: none !important;
