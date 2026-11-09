@@ -22,6 +22,11 @@ export type PuzzleLaunch = {
   page?: boolean;
 };
 
+/** A poster's page as a puzzle poster (drawn on Puzzle from the start). */
+export function puzzlePosterHref(slug: string): string {
+  return `/sticker/${slug}/puzzle`;
+}
+
 /** The game's own page for a poster (and the card size picked, if any). */
 export function puzzleHref(slug: string, size?: number | null): string {
   return `/puzzle/${slug}${size ? `?size=${size}` : ""}`;
@@ -64,7 +69,7 @@ export function closePuzzle() {
     fromShop = !!document.referrer && new URL(document.referrer).host === location.host && history.length > 1;
   } catch {}
   if (fromShop) history.back();
-  else location.href = `/sticker/${poster.slug}?finish=puzzle`;
+  else location.href = puzzlePosterHref(poster.slug);
 }
 
 function subscribe(fn: () => void) {

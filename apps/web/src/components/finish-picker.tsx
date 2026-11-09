@@ -1,19 +1,18 @@
 "use client";
 
-import { Frame, Puzzle, Sticker } from "lucide-react";
+import { Frame, Puzzle } from "lucide-react";
 import type { PosterFinish } from "@stickypie/shared";
 import { useFeatures } from "@/lib/live-catalog";
 import { setFinish, useFinish } from "@/lib/poster-finish";
 
 const OPTIONS: { id: PosterFinish; icon: typeof Frame; label: string; detail: string }[] = [
   { id: "poster", icon: Frame, label: "Wall poster", detail: "Premium paper, glue dots included" },
-  { id: "sticker", icon: Sticker, label: "Sticker", detail: "Vinyl, peel & stick" },
   { id: "puzzle", icon: Puzzle, label: "Puzzle", detail: "9 cards build one big poster" },
 ];
 
 /**
- * Mini posters: wall poster or sticker. `compact` is a small two-way switch for
- * the phone buy bar, so it shares one row with the sizes.
+ * Mini posters: wall poster or puzzle poster (no sticker). `compact` is a small
+ * two-way switch for the phone buy bar, so it shares one row with the sizes.
  */
 export default function FinishPicker({ compact = false }: { compact?: boolean }) {
   const finish = useFinish();
@@ -21,7 +20,7 @@ export default function FinishPicker({ compact = false }: { compact?: boolean })
   const options = OPTIONS.filter((o) => o.id !== "puzzle" || features.posterPuzzle);
   if (compact) {
     return (
-      <div role="radiogroup" aria-label="Wall poster, sticker or puzzle" className="flex shrink-0 rounded-xl bg-white/60 p-0.5 ring-1 ring-line">
+      <div role="radiogroup" aria-label="Wall poster or puzzle" className="flex shrink-0 rounded-xl bg-white/60 p-0.5 ring-1 ring-line">
         {options.map(({ id, icon: Icon, label }) => {
           const on = id === finish;
           return (
@@ -44,7 +43,7 @@ export default function FinishPicker({ compact = false }: { compact?: boolean })
     );
   }
   return (
-    <div role="radiogroup" aria-label="Wall poster, sticker or puzzle" className={`grid max-w-md gap-2 ${options.length > 2 ? "grid-cols-3" : "grid-cols-2"}`}>
+    <div role="radiogroup" aria-label="Wall poster or puzzle" className={`grid max-w-md gap-2 ${options.length > 2 ? "grid-cols-3" : "grid-cols-2"}`}>
       {options.map(({ id, icon: Icon, label, detail }) => {
         const on = id === finish;
         return (

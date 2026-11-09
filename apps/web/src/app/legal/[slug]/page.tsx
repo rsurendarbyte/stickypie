@@ -50,7 +50,7 @@ function docs(biz: Business): Record<string, LegalDoc> {
           heading: "Products",
           body: [
             "Our stickers are printed on vinyl and die-cut to shape.",
-            "Wall posters and wall poster sets are printed on premium poster paper, and glue dots or double-sided tape come with them. Mini posters can also be bought as vinyl stickers.",
+            "Wall posters and wall poster sets are printed on premium poster paper, and glue dots or double-sided tape come with them. Mini posters can also be bought as puzzle posters: 9 cards that join into one big poster.",
             "Sticker sizes are measured on the longest side; the other side follows the shape of the design, as shown in the size details on each product page.",
             "The “actual size” preview is a guide — how big it looks depends on your screen. Printed colours may vary slightly from what you see on screen.",
           ],

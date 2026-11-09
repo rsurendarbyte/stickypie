@@ -12,7 +12,7 @@ import { isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel, 
 import { useHomePage, usePuzzlePercent } from "@/lib/live-catalog";
 import { PuzzleLoop, PuzzlePlayLink, SplitPicture, PuzzleTag } from "./poster-puzzle";
 import { isPuzzleEntry, isWidePuzzleEntry, puzzleProduct } from "@/lib/puzzle-mix";
-import { launchOf } from "@/lib/puzzle-launch";
+import { launchOf, puzzlePosterHref } from "@/lib/puzzle-launch";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
@@ -77,7 +77,7 @@ function StickerCard({ product, width }: { product: Product; width: string }) {
       className={`group relative snap-start overflow-hidden rounded-2xl border border-line transition-all ${poster ? "bg-white" : ""} duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] ${width}`}
     >
       {/* Art stage — the sticker, plus only the NEW badge and the actual-size button */}
-      <div className="relative">
+      <div className="relative z-[1]">
       <PageLink href={`/sticker/${product.slug}`} className="block" tabIndex={-1} aria-hidden>
         {poster ? (
           <div className="poster-wall relative aspect-[4/5] overflow-hidden">
@@ -156,7 +156,8 @@ function StickerCard({ product, width }: { product: Product; width: string }) {
 
       {/* Info — fixed-height rows so every card lines up */}
       <div className="px-3 pt-2.5">
-        <PageLink href={`/sticker/${product.slug}`} className="block">
+        {/* covers the whole card: a tap anywhere opens it (controls sit above, z-[1]) */}
+        <PageLink href={`/sticker/${product.slug}`} className="block after:absolute after:inset-0">
           <p className="truncate text-[13px] font-medium text-snow/90">{poster ? posterTitle(product.name) : product.name}</p>
         </PageLink>
         <div className="mt-1 flex h-[18px] items-center gap-1.5 overflow-hidden text-[11px] whitespace-nowrap">
@@ -179,7 +180,7 @@ function StickerCard({ product, width }: { product: Product; width: string }) {
             )}
           </span>
         </div>
-        <div className="mt-2 flex h-7 items-center">
+        <div className="relative z-[1] mt-2 flex h-7 w-fit items-center">
           {sizes.length > 1 && !out && <SizePicker compact sizes={sizes} value={size} onChange={setSize} label={(inches) => sizeChipLabel(product, inches)} />}
         </div>
       </div>
@@ -197,7 +198,7 @@ function StickerCard({ product, width }: { product: Product; width: string }) {
       )}
 
       {/* Buy action: stepper once this size is in the cart, otherwise add-with-price */}
-      <div className="flex p-3 pt-2">
+      <div className="relative z-[1] flex p-3 pt-2">
         {inCart ? (
           // Stepper pinned left, price right — changing digits never shifts the buttons.
           <div className="flex h-10 w-full items-center justify-between gap-2 sm:h-11">
@@ -245,7 +246,7 @@ function StickerCard({ product, width }: { product: Product; width: string }) {
 function PuzzleCard({ product, width }: { product: Product; width: string }) {
   const { price } = useSizeChoice(product, "puzzle");
   const out = product.stock === 0;
-  const href = `/sticker/${product.slug}?finish=puzzle`;
+  const href = puzzlePosterHref(product.slug);
   const src = product.thumbUrl ?? product.imageUrl;
   const ratio = Math.max(product.aspectRatio ?? 2 / 3, POSTER_MIN_RATIO);
   return (
@@ -263,7 +264,8 @@ function PuzzleCard({ product, width }: { product: Product; width: string }) {
       </PageLink>
       </div>
       <div className="px-3 pt-2.5">
-        <PageLink href={href} className="block">
+        {/* covers the whole card: a tap anywhere opens the puzzle poster (Play & win sits above) */}
+        <PageLink href={href} className="block after:absolute after:inset-0">
           <p className="truncate text-[13px] font-medium text-snow/90">{posterTitle(product.name)}</p>
         </PageLink>
         <p className="mt-1 h-[18px] truncate text-[11px] text-fog">
@@ -290,7 +292,7 @@ function PuzzleWallCard({ product, width }: { product: Product; width: string })
   const { price } = useSizeChoice(product, "puzzle");
   const out = product.stock === 0;
   const { wallCard: design } = useHomePage();
-  const href = `/sticker/${product.slug}?finish=puzzle`;
+  const href = puzzlePosterHref(product.slug);
   const src = product.thumbUrl ?? product.imageUrl;
   const ratio = product.aspectRatio && product.aspectRatio > 0.3 ? product.aspectRatio : 2 / 3;
   return (
