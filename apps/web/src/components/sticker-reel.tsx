@@ -7,12 +7,13 @@ import type { Product } from "@stickypie/shared";
 import { POSTER_ADHESIVE, POSTER_PAPER, belowMinimum, discountPercent, formatINR, inCategory, packPosterSizes, packSizeSummary } from "@stickypie/shared";
 import { useCatalogChecked, useFeatures, useLiveCatalog, useStoreSettings, usePuzzlePercent } from "@/lib/live-catalog";
 import { isPuzzleEntry, puzzleProduct, withPuzzles } from "@/lib/puzzle-mix";
+import { relatedOrder } from "@/lib/related";
 import { rememberPackPosters, rememberPosters } from "@/lib/poster-images";
 import { pickPoster, setPosters, swapSpots, useWallLine } from "@/lib/wall-picks";
 import { cardSkinFor } from "@/lib/palette";
 import { isMiniPoster, isPosterPack, isSinglePoster, isWallSetup, posterSetName, sizeChipLabel } from "@/lib/poster";
 import { PuzzleLoop, PuzzleSplit, PuzzleStrip } from "./poster-puzzle";
-import { launchOf, launchPuzzle } from "@/lib/puzzle-launch";
+import { backGoesHome, launchOf, launchPuzzle } from "@/lib/puzzle-launch";
 import { posterShare, puzzleShare, share as shareItem } from "@/lib/share";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { PAGE_VIEW_ONCE_KEY } from "@/lib/view-script";
@@ -113,7 +114,7 @@ function Reel({
   const [active, setActive] = useState(0);
   const { products } = useLiveCatalog({ categories: [], products: [initial] });
   const features = useFeatures();
-  // where the puzzle posters fall: new on every visit
+  // where the puzzle posters fall, and the related order: new on every visit
   const [puzzleSeed] = useState(() => Math.floor(Math.random() * 1e9));
   rememberPosters(products);
   const { count, openCart } = useCart();
@@ -122,9 +123,13 @@ function Reel({
   const list = useMemo(() => {
     const current = products.find((p) => p.id === initial.id) ?? initial;
     const others = products.filter((p) => p.id !== initial.id);
-    const same = category ? others.filter((p) => inCategory(p, category.id)) : [];
-    const rest = others.filter((p) => !same.includes(p));
-    return withPuzzles([current, ...same, ...rest], puzzleSeed, features.posterPuzzle);
+    // most like this one first (fresh order each visit), not the newest drops
+    const same = relatedOrder(current, category ? others.filter((p) => inCategory(p, category.id)) : [], puzzleSeed);
+    const rest = relatedOrder(current, others.filter((p) => !same.includes(p)), puzzleSeed);
+    // puzzle posters drop in only between wall sets: a mini poster's swipe view
+    // stays plain mini posters (the shopper picks Puzzle on any of them), or the
+    // same poster would come round twice
+    return withPuzzles([current, ...same, ...rest], puzzleSeed, features.posterPuzzle && isPosterPack(current));
   }, [products, initial, category, puzzleSeed, features.posterPuzzle]);
   // the counter counts stickers only, not the puzzle posters between them
   const sameCount = useMemo(
@@ -182,6 +187,7 @@ function Reel({
   }, [active]);
 
   function back() {
+    if (backGoesHome(initial.slug)) return location.assign("/");
     const sameSite = document.referrer.startsWith(location.origin);
     if (sameSite && history.length > 1) history.back();
     else location.assign(category ? `/stickers/${category.slug}` : "/stickers");

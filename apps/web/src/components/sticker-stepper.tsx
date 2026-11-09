@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "@/components/page-link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 
 export type StepTarget = { slug: string; name: string; imageUrl: string };
@@ -10,7 +10,37 @@ export type Steps = {
   next: StepTarget;
   index: number;
   total: number;
+  /** This page (so Next can tell the next page where Previous goes). */
+  self?: StepTarget;
 };
+
+const FROM_KEY = "stickypie.step-from";
+
+/**
+ * The page view's steps made related: Next is the most alike poster (fresh each
+ * visit, see lib/related), Previous the one the shopper came from by Next,
+ * else the category order's previous.
+ */
+export function useRelatedSteps(
+  steps: Steps | null,
+  next: { slug: string; name: string; imageUrl: string; displayUrl?: string | null } | null,
+  self: { slug: string; name: string; imageUrl: string; displayUrl?: string | null }
+): Steps | null {
+  const [from, setFrom] = useState<StepTarget | null>(null);
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(FROM_KEY) ?? "null");
+      if (saved?.to === self.slug && saved.from?.slug) setFrom(saved.from);
+    } catch {}
+  }, [self.slug]);
+  const target = (p: { slug: string; name: string; imageUrl: string; displayUrl?: string | null }) => ({ slug: p.slug, name: p.name, imageUrl: p.displayUrl ?? p.imageUrl });
+  const nextSlug = next?.slug;
+  return useMemo(
+    () => (steps ? { ...steps, next: next ? target(next) : steps.next, prev: from ?? steps.prev, self: target(self) } : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [steps, nextSlug, from, self.slug]
+  );
+}
 
 const href = (t: StepTarget) => `/sticker/${t.slug}`;
 
@@ -26,6 +56,12 @@ export default function StickerStepper({ steps }: { steps: Steps }) {
   const [pending, setPending] = useState(false);
   const go = (t: StepTarget) => {
     setPending(true);
+    // Next: the next page's Previous comes back here
+    if (t === steps.next && steps.self) {
+      try {
+        sessionStorage.setItem(FROM_KEY, JSON.stringify({ to: t.slug, from: steps.self }));
+      } catch {}
+    }
     open(t);
   };
 
@@ -124,6 +160,11 @@ export function useStepSwipe(steps: Steps | null) {
       const dy = e.changedTouches[0].clientY - from.y;
       if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
       const t = dx < 0 ? steps.next : steps.prev;
+      if (t === steps.next && steps.self) {
+        try {
+          sessionStorage.setItem(FROM_KEY, JSON.stringify({ to: t.slug, from: steps.self }));
+        } catch {}
+      }
       open(t);
     },
   };

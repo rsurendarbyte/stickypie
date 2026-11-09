@@ -69,7 +69,27 @@ export function closePuzzle() {
     fromShop = !!document.referrer && new URL(document.referrer).host === location.host && history.length > 1;
   } catch {}
   if (fromShop) history.back();
-  else location.href = puzzlePosterHref(poster.slug);
+  else {
+    // came straight into the game (an ad, a shared link): the game page leaves
+    // history, and Back from the poster page goes home, not into the game again
+    try {
+      sessionStorage.setItem(GAME_EXIT, poster.slug);
+    } catch {}
+    location.replace(puzzlePosterHref(poster.slug));
+  }
+}
+
+const GAME_EXIT = "stickypie.game-exit";
+
+/** Back on a poster page reached by closing a game opened from outside the shop: true means go home. */
+export function backGoesHome(slug: string): boolean {
+  try {
+    if (sessionStorage.getItem(GAME_EXIT) !== slug) return false;
+    sessionStorage.removeItem(GAME_EXIT);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function subscribe(fn: () => void) {

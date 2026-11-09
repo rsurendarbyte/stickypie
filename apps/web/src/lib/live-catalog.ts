@@ -20,6 +20,7 @@
 //
 // RLS only exposes is_active products, so items taken off sale never reach the
 // browser. Demo mode (no Supabase env) keeps the server-rendered data.
+import { relatedOrder } from "./related";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import type { Category, FeatureFlags, Festival, HomePage, HomeRail, Product, PublicReview, StoreSettings } from "@stickypie/shared";
 import {
@@ -246,13 +247,15 @@ export function useLiveCatalog(initial: Catalog): LiveCatalog {
 export function useRelatedProducts(
   categoryId: string | null,
   excludeId: string,
-  initial: Product[]
+  initial: Product[],
+  seed = 0
 ): { products: Product[]; loaded: boolean } {
   const { bundle, failed } = useBundle();
   if (!liveCatalogEnabled) return { products: initial, loaded: true };
-  const products = bundle
-    ? bundle.products.filter((p) => p.id !== excludeId && inCategory(p, categoryId)).slice(0, 10)
-    : [];
+  const current = bundle?.products.find((p) => p.id === excludeId);
+  const pool = bundle ? bundle.products.filter((p) => p.id !== excludeId && inCategory(p, categoryId)) : [];
+  // the most alike first (fresh order each visit), not the newest drops
+  const products = (current ? relatedOrder(current, pool, seed) : pool).slice(0, 10);
   return { products, loaded: Boolean(bundle) || failed };
 }
 
