@@ -841,11 +841,12 @@ export function PuzzleGame({
         </button>
       </div>
 
-      <div className="relative z-[1] flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-4 pb-3 sm:flex-row sm:items-center sm:gap-10">
+      {/* the board takes whatever room the controls leave, on any screen (see .puzzle-board-col) */}
+      <div className="relative z-[1] flex min-h-0 flex-1 flex-col items-center gap-3 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:gap-10">
         {/* the board, on a frame */}
-        <div className="puzzle-board-col flex min-h-0 flex-col items-center gap-3" style={{ "--ratio": ratio } as React.CSSProperties}>
+        <div className="puzzle-board-col flex min-h-0 w-full flex-1 basis-0 flex-col items-center justify-center gap-2 sm:h-full" style={{ "--ratio": ratio } as React.CSSProperties}>
           {/* placed tiles, as nine dots, and how it's going */}
-          <div className="flex w-full items-center gap-2">
+          <div className="puzzle-fit flex items-center gap-2">
             <div className="flex flex-1 gap-1" aria-label={`${placed} of 9 tiles in place`}>
               {SOLVED.map((t) => (
                 <span key={t} className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${phase === "play" || phase === "won" ? (slots[t] === t ? "bg-[#0b9e6b]" : "bg-snow/10") : "bg-snow/10"}`} />
@@ -854,7 +855,7 @@ export function PuzzleGame({
             <span className="shrink-0 text-xs font-bold text-snow tabular-nums">{phase === "play" || phase === "won" ? placed : 0}/9</span>
           </div>
 
-          <div className="puzzle-frame relative w-full rounded-2xl p-2.5 sm:p-3">
+          <div className="puzzle-frame puzzle-fit relative rounded-2xl p-2.5 sm:p-3">
             <div className="relative w-full" style={{ aspectRatio: ratio }}>
               <div ref={board} className={`absolute inset-0 transition-transform duration-500 ${phase === "won" ? "puzzle-won" : ""}`}>
                 <Tiles
@@ -894,7 +895,7 @@ export function PuzzleGame({
         </div>
 
         {/* side panel (under the board on phones): stats, tools, the prize */}
-        <div className="flex w-full max-w-[26rem] flex-col gap-2.5 sm:w-72">
+        <div className="flex w-full max-w-[26rem] shrink-0 flex-col gap-2 sm:w-72 sm:gap-2.5">
           {/* wider screens: how to play sits here, beside the board */}
           <p className="hidden text-sm leading-snug font-semibold text-fog sm:block">
             {phase === "won" ? "Solved!" : picked === null ? "Swipe a tile onto another, or tap two tiles to swap them." : "Now tap (or swipe) the tile to swap with."}
@@ -981,7 +982,7 @@ export function PuzzleGame({
               />
             ))}
           </span>
-          <div className="puzzle-prize relative w-full max-w-sm overflow-hidden rounded-3xl bg-white text-center shadow-2xl">
+          <div className="puzzle-prize relative max-h-full w-full max-w-sm overflow-x-hidden overflow-y-auto rounded-3xl bg-white text-center shadow-2xl">
             {/* header: the solved poster drops onto a burst of light */}
             <div className="puzzle-win-head relative h-28">
               <span aria-hidden className="puzzle-win-rays absolute inset-0" />

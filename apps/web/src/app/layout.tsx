@@ -23,6 +23,7 @@ import { stickerCursorCss } from "@/lib/sticker-cursor";
 import PerfProbe from "@/components/perf-probe";
 import PuzzleLauncher from "@/components/puzzle-launcher";
 import ShareSheet from "@/components/share-sheet";
+import InstallApp from "@/components/install-app";
 import { LITE_SCRIPT } from "@/lib/lite-script";
 import { VIEW_SCRIPT } from "@/lib/view-script";
 import { siteUrl, supabaseConfigured } from "@/lib/mode";
@@ -112,6 +113,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <PerfProbe />
           <PuzzleLauncher />
           <ShareSheet />
+          <InstallApp />
           <SiteChrome>
             <MildBackground />
             <Nav />
