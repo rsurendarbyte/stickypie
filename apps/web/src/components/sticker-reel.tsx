@@ -432,7 +432,7 @@ function ReelItem({
           </div>
         ) : (
         // floats as one with the puzzle laid over it, so the tiles stay on the picture
-        <div className={`relative grid size-full grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center ${pack ? "" : "animate-float"}`}>
+        <div className={`relative isolate grid size-full grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center ${pack ? "" : "animate-float"}`}>
           <img
             ref={setArtEl}
             // a set's wall stands straight and big, at the sharper size: the posters must read
@@ -448,7 +448,7 @@ function ReelItem({
         )}
         {/* side rail: inside the picture area, so the buy bar can never cover it */}
         {!wall && (
-          <div className="absolute right-3 bottom-4 flex flex-col items-center gap-3" onPointerUp={(e) => e.stopPropagation()}>
+          <div className="absolute right-3 bottom-4 z-20 flex flex-col items-center gap-3" onPointerUp={(e) => e.stopPropagation()}>
             {actions}
           </div>
         )}
