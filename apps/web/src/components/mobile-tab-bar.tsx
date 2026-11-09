@@ -66,12 +66,13 @@ export default function MobileTabBar() {
     };
   }, [shown]);
 
-  if (!shown) return null;
-
   // Custom is in the bar from the first paint (it's on by default); it only
   // drops out once the settings have loaded and say it's off. Waiting for them
   // first made the bar redraw from 4 tabs to 5 on every page — a jump.
+  // (Read before the early return: a hook after it would break React's hook order.)
   const { loaded: settingsLoaded } = useStoreSettings();
+
+  if (!shown) return null;
   const customOn = settingsLoaded ? features.customStickers && custom.length > 0 : DEFAULT_FEATURES.customStickers;
   // The label pill marks the page you're on and only moves when the page
   // changes; a tab whose sheet is open just turns pink (no pill hopping to it
@@ -93,7 +94,7 @@ export default function MobileTabBar() {
     <>
       <nav
         aria-label="Main"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-ink/95 pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-8px_24px_-14px_rgba(16,24,40,0.2)] backdrop-blur-md sm:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-ink/95 pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-8px_24px_-14px_rgba(16,24,40,0.2)] sm:hidden"
       >
         <div className="flex h-14 items-stretch">
           {tabs.map(({ key, label, icon: Icon, href, active, open, onClick }) => {

@@ -17,6 +17,7 @@ import {
   productStructuredData,
 } from "@/lib/seo";
 import { pageMetadata } from "@/lib/site";
+import { shareImageUrl } from "@/lib/share-links";
 
 // Every active product page is prerendered at build time (free static asset
 // on Cloudflare) and then refreshes its stock/price live from Supabase in the
@@ -44,13 +45,18 @@ export async function generateMetadata({
     description: productSeoDescription(product),
     path: `/sticker/${product.slug}`,
     image: product.imageUrl,
+    // single mini posters have a ready share card (scripts/build-share-images.mjs)
+    card: isMiniPoster(product) && !isPosterPack(product) ? shareImageUrl(product, "poster") : null,
   });
 }
 
 export default async function ProductPage({
   params,
+  startPuzzle = false,
 }: {
   params: Promise<{ slug: string }>;
+  /** /puzzle/<slug>: opens with the puzzle game running. */
+  startPuzzle?: boolean;
 }) {
   const { slug } = await params;
   const driver = getDriver();
@@ -120,6 +126,7 @@ export default async function ProductPage({
         category={category?.name}
       />
       <ProductDetailClient
+        startPuzzle={startPuzzle}
         initial={product}
         category={category ? { name: category.name, slug: category.slug } : null}
         related={productSnapshot(related)}

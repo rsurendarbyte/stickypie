@@ -35,13 +35,25 @@ export function pageMetadata({
   description,
   path,
   image,
+  card,
+  shareUrl,
+  noindex = false,
 }: {
   title: string;
   description: string;
   path: string;
   image?: string;
+  /** A ready 1200 × 630 share card (preferred over `image` by chat apps). */
+  card?: string | null;
+  /** The link people share, when it isn't the canonical page (a poster's puzzle). */
+  shareUrl?: string;
+  noindex?: boolean;
 }): Metadata {
-  const images = image ? [{ url: image, alt: title }] : [SHARE_IMAGE];
+  const images = card
+    ? [{ url: card, width: 1200, height: 630, alt: title, type: "image/jpeg" }]
+    : image
+      ? [{ url: image, alt: title }]
+      : [SHARE_IMAGE];
   // Every page names the shop in its description too (the title already ends
   // in "· StickyPie"), so search and AI answers tie the page to the brand.
   if (!description.includes(SITE_NAME)) {
@@ -61,7 +73,7 @@ export function pageMetadata({
       type: "website",
       siteName: SITE_NAME,
       locale: "en_IN",
-      url: path,
+      url: shareUrl ?? path,
       title,
       description,
       images,
@@ -70,8 +82,9 @@ export function pageMetadata({
       card: "summary_large_image",
       title,
       description,
-      images: image ? [image] : [SHARE_IMAGE.url],
+      images: card ? [card] : image ? [image] : [SHARE_IMAGE.url],
     },
+    ...(noindex ? { robots: { index: false, follow: true } } : {}),
   };
 }
 

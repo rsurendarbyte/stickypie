@@ -2,7 +2,7 @@
 
 import { Check, ShoppingBag } from "lucide-react";
 import type { Product } from "@stickypie/shared";
-import { formatINR, priceForSize } from "@stickypie/shared";
+import { formatINR, priceForSize, withFinish } from "@stickypie/shared";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
 import { defaultSize, toCartProduct, useLineFinish } from "./size-picker";
@@ -32,7 +32,7 @@ export default function AddToCartButton({
   const out = product.stock === 0;
   const finish = useLineFinish(product);
   const chosen = stickerSize === undefined ? defaultSize(product) : stickerSize;
-  const price = priceForSize(product, chosen)?.price ?? product.price;
+  const price = priceForSize(withFinish(product, finish), chosen)?.price ?? product.price;
   const { gaps, line } = useWallLine(product, price);
   const inCart = items.find((item) => lineKey(item) === lineKey(line ?? { productId: product.id, size: chosen, finish }));
 

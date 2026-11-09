@@ -33,7 +33,7 @@ export default function CustomBookBar({
   label?: string;
 }) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-ink/95 px-4 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgba(16,24,40,0.18)] backdrop-blur-md sm:hidden">
+    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-ink/95 px-4 pt-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_-12px_rgba(16,24,40,0.18)] sm:hidden">
       <div className="flex items-center gap-2">
         <span className="mr-auto min-w-0">
           <span className={`block truncate text-[11px] ${hint ? "font-semibold text-brand" : "text-fog"}`}>

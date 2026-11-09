@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Download, FileText, Loader2, Minus, Plus, Scissors, Search, X } from "lucide-react";
 import { posterSizeLabel, type PackPoster } from "@stickypie/shared";
 import { imageDownloadHref, imageSrc } from "@/lib/img";
-import { BLEED, DEFAULT_CUT_AREA, MM_PER_IN, PRINT_DPI, SHEET, canvasPdf, cutBox, cutSteps, cutSvg, drawSheet, layOut, type CutArea, type Piece, type Placed } from "@stickypie/shared/wall-sheets";
+import { BLEED, DEFAULT_CUT_AREA, MM_PER_IN, PRINT_DPI, SHEET, canvasPdf, cutBox, cutSteps, cutSvg, drawSheet, layOut, parsePuzzleCardRef, puzzleCardImage, type CutArea, type Piece, type Placed } from "@stickypie/shared/wall-sheets";
 
 /** `preview` is the small picture: the sheets are arranged and shown with it, the full file is only fetched for the PDF. */
 export type SheetPoster = PackPoster & { preview: string };
@@ -81,8 +81,12 @@ export default function WallSheetMaker({ walls, ordered }: { walls: SheetWall[];
     setPicked((now) => now.map((p) => (p.wall.key === key ? { ...p, quantity: Math.max(1, quantity) } : p)));
   }
 
-  function image(url: string) {
-    if (!images.current.has(url)) images.current.set(url, loadImage(url));
+  function image(url: string): Promise<HTMLImageElement> {
+    if (!images.current.has(url)) {
+      // a puzzle card: its poster's file, cut into that card
+      const ref = parsePuzzleCardRef(url);
+      images.current.set(url, ref ? image(ref.url).then((src) => puzzleCardImage(src, ref.card)) : loadImage(url));
+    }
     return images.current.get(url)!;
   }
 

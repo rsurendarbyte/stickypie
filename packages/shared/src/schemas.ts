@@ -86,8 +86,8 @@ export const checkoutSchema = z.object({
         customKind: z.enum(["design", "qr", "text", "avatar", "wall"]).optional(),
         /** QR / name stickers: what to draw — saved instead of an image. Avatar books: pages + styles. */
         customSpec: customSpecSchema.optional(),
-        /** Mini posters: wall poster (default) or sticker. */
-        finish: z.enum(["poster", "sticker"]).optional(),
+        /** Mini posters: wall poster (default), sticker or puzzle poster (9 cards). */
+        finish: z.enum(["poster", "sticker", "puzzle"]).optional(),
       })
     )
     .min(1, "Your cart is empty")

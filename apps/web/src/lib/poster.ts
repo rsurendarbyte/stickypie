@@ -18,6 +18,8 @@ export function isSinglePoster(product: Product) {
 
 /** The Walls page's "theme" for single posters: ?theme=single. */
 export const SINGLE_POSTERS = "single";
+/** Walls page chip listing every single poster as a puzzle poster. */
+export const PUZZLE_POSTERS = "puzzle";
 
 /** A wall setup: a poster pack shown on a painted wall (square picture). */
 export function isWallSetup(product: Product) {

@@ -15,6 +15,8 @@ import { getAdminDriver } from "@/lib/data";
 import { supabaseConfigured, webUrl } from "@/lib/auth";
 import { createServerSupabase } from "@/lib/supabase";
 import { SpecDetails, SpecDownload, SpecThumb } from "@/components/spec-print-file";
+import PuzzleDownload from "@/components/puzzle-download";
+import { isPuzzleLine } from "@stickypie/shared/wall-sheets";
 import { imageDownloadHref, imageSrc } from "@/lib/img";
 
 export const dynamic = "force-dynamic";
@@ -228,7 +230,9 @@ export default async function OrderDetailPage({
                 <span className="text-sm font-semibold tabular-nums">
                   {formatINR(item.unitPrice * item.quantity)}
                 </span>
-                {item.imageUrl && !drawn && (
+                {item.imageUrl && !drawn && isPuzzleLine(item) && item.sizeInches ? (
+                  <PuzzleDownload imageUrl={item.imageUrl} name={item.name} cardInches={item.sizeInches} />
+                ) : item.imageUrl && !drawn && (
                   <a
                     href={imageDownloadHref(
                       item.imageUrl,

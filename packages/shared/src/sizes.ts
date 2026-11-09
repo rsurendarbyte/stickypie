@@ -14,13 +14,40 @@ export function isMiniPosterProduct(product: { slug?: string; tags?: string[] } 
 export const POSTER_PAPER = "premium poster paper";
 /** Posters have no sticky back, so every poster order comes with these. */
 export const POSTER_ADHESIVE = "glue dots or double-sided tape";
-/** A mini poster is sold as a wall poster (paper) or a sticker (vinyl); wall sets are paper only. */
-export type PosterFinish = "poster" | "sticker";
+/**
+ * A mini poster is sold as a wall poster (paper), a sticker (vinyl) or a puzzle
+ * poster (paper: the picture cut into 9 cards that build one big poster); wall
+ * sets are paper only.
+ */
+export type PosterFinish = "poster" | "sticker" | "puzzle";
 /** How the choice reads on the order line, so printing knows the material. */
 export function finishLabel(finish: PosterFinish): string {
-  return finish === "sticker" ? "Vinyl sticker" : "Wall poster";
+  return finish === "sticker" ? "Vinyl sticker" : finish === "puzzle" ? "Puzzle poster" : "Wall poster";
 }
-/** An order line printed on poster paper: a pack, or a mini poster not bought as a sticker. */
+/** A puzzle poster is a 3 × 3 grid of cards, each card one mini poster size. */
+export const PUZZLE_CARDS = 9;
+/** Puzzle poster price by card size (longest side): 9 × 4×6 cards ₹199, 9 × 6×9 cards ₹450. */
+export const PUZZLE_POSTER_PRICES: Readonly<Record<number, number>> = { 6: 199, 9: 450 };
+/** The longest side of the poster the 9 cards build: 3 cards across, 3 down. */
+export function puzzleBuildInches(cardInches: number): number {
+  return cardInches * 3;
+}
+/** The sizes and prices a mini poster has as a puzzle poster (the card sizes it's sold in). */
+export function puzzlePosterSizes(product: Pick<Product, "sizes">): ProductSize[] {
+  return productSizes(product).flatMap((s) =>
+    PUZZLE_POSTER_PRICES[s.inches] ? [{ inches: s.inches, price: PUZZLE_POSTER_PRICES[s.inches], compareAtPrice: null }] : []
+  );
+}
+/** The product as sold in this finish: a puzzle poster has its own sizes and prices. */
+export function withFinish<T extends Pick<Product, "sizes" | "price" | "compareAtPrice">>(
+  product: T & { slug?: string; tags?: string[]; packItems?: string[] },
+  finish: PosterFinish | undefined
+): T {
+  if (finish !== "puzzle" || !isMiniPosterProduct(product) || (product.packItems?.length ?? 0) > 0) return product;
+  const sizes = puzzlePosterSizes(product);
+  return sizes.length ? withSizePricing({ ...product, sizes }) : product;
+}
+/** An order line printed on poster paper: a pack, or a mini poster not bought as a sticker (puzzle posters too). */
 export function isPosterItem(item: { name: string; sizeLabel?: string | null; packPosters?: unknown[] | null }): boolean {
   if (item.packPosters?.length) return true;
   return /mini poster/i.test(item.name) && !/vinyl sticker/i.test(item.sizeLabel ?? "");

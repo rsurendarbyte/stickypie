@@ -451,6 +451,22 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
       return data?.length ?? 0;
     },
 
+    async discountCodeUsed(code, by) {
+      const email = by.email.trim().replace(/[\\%_,()]/g, "");
+      const phone = by.phone.replace(/\D/g, "").slice(-10);
+      const who = [email && `email.ilike.${email}`, phone && `phone.like.%${phone}`].filter(Boolean).join(",");
+      if (!who) return false;
+      const { data, error } = await client
+        .from("orders")
+        .select("id")
+        .eq("discount_code", code)
+        .in("status", ["paid", "packed", "shipped", "delivered"])
+        .or(who)
+        .limit(1);
+      if (error) throw friendly(error);
+      return (data?.length ?? 0) > 0;
+    },
+
     async listPendingOrdersForUser(userId, sinceIso) {
       const { data, error } = await client
         .from("orders")

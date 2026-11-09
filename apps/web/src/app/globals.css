@@ -953,14 +953,13 @@ html[data-lite] .card-shine {
   opacity: 0.38;
 }
 
-/* Glass controls in the swipe view; solid when there's no blur behind them. */
+/* Frosted controls in the swipe view: a near-solid white, no backdrop blur (a
+   blur over the moving swipe view re-renders on every scroll frame). */
 .reel-glass {
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.2));
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.82));
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.65),
-    0 6px 16px -6px rgba(16, 24, 40, 0.4);
-  -webkit-backdrop-filter: blur(12px) saturate(1.5);
-  backdrop-filter: blur(12px) saturate(1.5);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.8),
+    0 6px 16px -6px rgba(16, 24, 40, 0.35);
 }
 /* the same glass, tinted: Reset undoes the shopper's work, so it stands apart */
 .reel-glass.reel-glass--warn {
@@ -975,12 +974,10 @@ html[data-lite] .card-shine {
   color: color-mix(in srgb, var(--color-brand) 85%, black);
 }
 .reel-glass-bar {
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.72));
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.98));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.8),
     0 -12px 30px -18px rgba(16, 24, 40, 0.45);
-  -webkit-backdrop-filter: blur(20px) saturate(1.5);
-  backdrop-filter: blur(20px) saturate(1.5);
 }
 html[data-lite]:not([data-lite="net"]) .reel-glass,
 html[data-lite]:not([data-lite="net"]) .reel-glass-bar {
@@ -2101,4 +2098,480 @@ html[data-lite]:not([data-lite="net"]) .wall-slot.is-up {
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 2px 6px rgba(16, 24, 40, 0.25);
+}
+
+/* Poster puzzle (components/poster-puzzle.tsx): the solved poster pops, a few
+   sparks fly out, and the prize slides up. The prize itself never waits on them. */
+.puzzle-won {
+  animation: puzzle-won 0.6s cubic-bezier(0.3, 1.4, 0.5, 1) 0.25s both;
+}
+@keyframes puzzle-won {
+  50% {
+    transform: scale(1.04) rotate(-1deg);
+  }
+}
+.puzzle-burst i {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  margin: -5px;
+  border-radius: 2px;
+  background: var(--color-brand, #ff4d6d);
+  opacity: 0;
+  animation: puzzle-spark 0.9s cubic-bezier(0.2, 0.7, 0.3, 1) 0.35s both;
+}
+.puzzle-burst i:nth-child(3n) {
+  background: var(--color-gold, #f5b700);
+}
+.puzzle-burst i:nth-child(3n + 1) {
+  background: var(--color-mint, #10b981);
+}
+@keyframes puzzle-spark {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--a)) translateY(0) scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--a)) translateY(-58vmin) scale(1) rotate(180deg);
+  }
+}
+/* the congratulations card pops in once the poster has joined up */
+.puzzle-prize {
+  animation: puzzle-prize-pop 0.5s cubic-bezier(0.3, 1.4, 0.5, 1) 0.8s both;
+}
+.dialog-backdrop:has(> .puzzle-prize) {
+  animation-delay: 0.7s;
+}
+@keyframes puzzle-prize-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.7) translateY(24px);
+  }
+}
+/* "Solve & get 10% off": brand colours, a soft pulse ring and a wiggling piece */
+.puzzle-cta {
+  background-image: linear-gradient(135deg, var(--color-brand), var(--color-brand2));
+}
+/* Endless effects run only inside .puzzle-live: the few hero and poster-page
+   spots, never on every card in a feed. Each one is transform / opacity only
+   (no repaint per frame). */
+.puzzle-live.puzzle-cta,
+.puzzle-live .puzzle-cta {
+  position: relative;
+}
+.puzzle-live.puzzle-cta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand) 55%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  animation: puzzle-cta-ring 2.4s ease-out infinite;
+}
+@keyframes puzzle-cta-ring {
+  0% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  70%,
+  100% {
+    opacity: 0;
+    transform: scale(1.12, 1.35);
+  }
+}
+.puzzle-live .puzzle-cta-icon,
+.puzzle-live.puzzle-cta-icon {
+  animation: puzzle-cta-wiggle 2.4s ease-in-out infinite;
+}
+@keyframes puzzle-cta-wiggle {
+  0%,
+  60%,
+  100% {
+    transform: rotate(0);
+  }
+  70% {
+    transform: rotate(-14deg) scale(1.1);
+  }
+  80% {
+    transform: rotate(12deg) scale(1.1);
+  }
+  90% {
+    transform: rotate(-6deg);
+  }
+}
+html[data-lite]:not([data-lite="net"]) .puzzle-won,
+html[data-lite]:not([data-lite="net"]) .puzzle-cta,
+html[data-lite]:not([data-lite="net"]) .puzzle-cta-icon {
+  animation: none;
+}
+html[data-lite]:not([data-lite="net"]) .puzzle-burst {
+  display: none;
+}
+[data-puzzling] > img {
+  visibility: hidden;
+}
+
+/* Poster page puzzle offer as a coupon ticket (PuzzleTicket): notches cut out
+   at the tear line, a dashed perforation, and a shine across "Play now". */
+.puzzle-ticket {
+  --stub: 5.6rem;
+  background-image: linear-gradient(120deg, var(--color-brand) 0%, var(--color-brand2) 100%);
+  box-shadow: 0 14px 28px -14px color-mix(in srgb, var(--color-brand) 70%, transparent);
+  -webkit-mask:
+    radial-gradient(circle 9px at var(--stub) 0, transparent 97%, #000) top / 100% 51% no-repeat,
+    radial-gradient(circle 9px at var(--stub) 100%, transparent 97%, #000) bottom / 100% 51% no-repeat;
+  mask:
+    radial-gradient(circle 9px at var(--stub) 0, transparent 97%, #000) top / 100% 51% no-repeat,
+    radial-gradient(circle 9px at var(--stub) 100%, transparent 97%, #000) bottom / 100% 51% no-repeat;
+}
+.puzzle-ticket::before {
+  /* soft confetti dots on the ticket */
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 78% 18%, rgba(255, 255, 255, 0.22) 0 3px, transparent 4px),
+    radial-gradient(circle at 92% 64%, rgba(255, 255, 255, 0.16) 0 5px, transparent 6px),
+    radial-gradient(circle at 60% 88%, rgba(255, 255, 255, 0.14) 0 2px, transparent 3px);
+}
+.puzzle-ticket--won {
+  background-image: linear-gradient(120deg, #0b9e6b 0%, #087f86 100%);
+  box-shadow: 0 14px 28px -14px rgba(11, 158, 107, 0.7);
+}
+.puzzle-ticket-tear {
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: var(--stub);
+  border-left: 2px dashed rgba(255, 255, 255, 0.55);
+}
+.puzzle-ticket-hl {
+  display: inline-block;
+  padding: 0 0.3em;
+  border-radius: 4px;
+  background: #ffd23f;
+  color: #2a1a00;
+  transform: rotate(-2deg);
+}
+.puzzle-ticket-play {
+  position: relative;
+  overflow: hidden;
+}
+.puzzle-ticket-play::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 210, 63, 0.55) 50%, transparent 70%);
+  transform: translateX(-120%);
+  animation: puzzle-shine 2.6s ease-in-out 1s infinite;
+}
+@keyframes puzzle-shine {
+  60%,
+  100% {
+    transform: translateX(120%);
+  }
+}
+.puzzle-stamp {
+  padding: 2px 7px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transform: rotate(9deg);
+  animation: puzzle-stamp 0.5s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+@keyframes puzzle-stamp {
+  from {
+    opacity: 0;
+    transform: rotate(9deg) scale(2.2);
+  }
+}
+/* the little label on the poster picture: a tilted white sticker */
+.puzzle-sticker {
+  background: #fff;
+  color: var(--color-snow);
+  box-shadow: 0 10px 22px -10px rgba(16, 24, 40, 0.45), 0 0 0 1px rgba(16, 24, 40, 0.06);
+}
+.puzzle-sticker .puzzle-cta-icon {
+  color: #fff;
+  background-image: linear-gradient(135deg, var(--color-brand), var(--color-brand2));
+}
+.puzzle-sticker--won .puzzle-cta-icon {
+  background-image: none;
+  background-color: #0b9e6b;
+  animation: none;
+}
+html[data-lite]:not([data-lite="net"]) .puzzle-ticket-play::after,
+html[data-lite]:not([data-lite="net"]) .puzzle-stamp {
+  animation: none;
+}
+/* the slim phone strip: smaller notches at its tear line */
+.puzzle-strip {
+  --stub: 2.25rem;
+  -webkit-mask:
+    radial-gradient(circle 5px at var(--stub) 0, transparent 97%, #000) top / 100% 51% no-repeat,
+    radial-gradient(circle 5px at var(--stub) 100%, transparent 97%, #000) bottom / 100% 51% no-repeat;
+  mask:
+    radial-gradient(circle 5px at var(--stub) 0, transparent 97%, #000) top / 100% 51% no-repeat,
+    radial-gradient(circle 5px at var(--stub) 100%, transparent 97%, #000) bottom / 100% 51% no-repeat;
+}
+.puzzle-strip .puzzle-ticket-tear {
+  top: 6px;
+  bottom: 6px;
+}
+.puzzle-strip .puzzle-ticket-hl {
+  padding: 1px 0.3em;
+}
+/* a light sweep across the strip now and then, so the offer catches the eye */
+.puzzle-strip-shine {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, 0.35) 50%, transparent 65%);
+  transform: translateX(-100%);
+}
+.puzzle-live .puzzle-strip-shine,
+.puzzle-live.puzzle-strip-shine {
+  animation: puzzle-shine 3.2s ease-in-out 0.6s infinite;
+}
+.puzzle-strip {
+  --stub: 2.5rem;
+}
+html[data-lite]:not([data-lite="net"]) .puzzle-strip-shine {
+  display: none;
+}
+/* puzzle poster cards: a soft warm board behind the 9 cards */
+.puzzle-card-stage {
+  background:
+    radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--color-brand) 10%, transparent), transparent 60%),
+    linear-gradient(160deg, #fbf7f2, #f1ebe3);
+}
+/* hero fan: Play & win sits centred just under the middle poster */
+.hero-fan-play {
+  --u: min(1cqh, 0.66cqw);
+  position: absolute;
+  left: 50cqw;
+  /* on the fan's lower edge, clear of the slide dots and the words below */
+  top: calc(50cqh + 26 * var(--u));
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+/* Puzzle game screen: a warm cutting-mat backdrop, the board on a wooden-ish frame */
+.puzzle-screen {
+  background:
+    radial-gradient(circle at 20% 10%, color-mix(in srgb, var(--color-brand) 14%, transparent), transparent 45%),
+    radial-gradient(circle at 85% 90%, rgba(255, 210, 63, 0.18), transparent 45%),
+    linear-gradient(rgba(16, 24, 40, 0.035) 1px, transparent 1px) 0 0 / 24px 24px,
+    linear-gradient(90deg, rgba(16, 24, 40, 0.035) 1px, transparent 1px) 0 0 / 24px 24px,
+    #fbf8f4;
+}
+.puzzle-frame {
+  background: linear-gradient(145deg, #3a2a20, #24170f);
+  box-shadow:
+    0 24px 50px -20px rgba(16, 24, 40, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.puzzle-frame > div {
+  /* the empty board under the tiles: a dark felt */
+  background: #1a120c;
+  border-radius: 6px;
+}
+/* a hint: the tile and the one in its place pulse */
+.puzzle-hint {
+  animation: puzzle-hint 0.6s ease-in-out 3;
+  box-shadow: 0 0 0 3px #ffd23f;
+}
+@keyframes puzzle-hint {
+  50% {
+    transform: scale(0.92);
+  }
+}
+/* a tile landing in its right place */
+.puzzle-landed {
+  animation: puzzle-landed 0.55s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+@keyframes puzzle-landed {
+  40% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 4px rgba(11, 158, 107, 0.55);
+  }
+}
+.puzzle-count {
+  animation: puzzle-count 0.4s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+@keyframes puzzle-count {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+}
+html[data-lite]:not([data-lite="net"]) .puzzle-hint,
+html[data-lite]:not([data-lite="net"]) .puzzle-landed {
+  animation: none;
+}
+/* the game board's column: as big as the screen allows, the panel under it on
+   phones and beside it on wider screens */
+.puzzle-board-col {
+  width: min(100%, 26rem, calc((100dvh - 20rem) * var(--ratio) + 1.5rem));
+}
+@media (min-width: 640px) {
+  .puzzle-board-col {
+    width: min(40rem, calc((100dvh - 9.5rem) * var(--ratio) + 1.5rem));
+  }
+}
+
+/* a puzzle card's still picture: the poster whole with three cut lines each way,
+   painted once (the 9 tiles exist only while it solves itself) */
+.puzzle-cuts {
+  --cut: #f3ece4;
+  background:
+    linear-gradient(90deg, transparent calc(33.333% - 2px), var(--cut) 0 calc(33.333% + 2px), transparent 0 calc(66.666% - 2px), var(--cut) 0 calc(66.666% + 2px), transparent 0),
+    linear-gradient(transparent calc(33.333% - 2px), var(--cut) 0 calc(33.333% + 2px), transparent 0 calc(66.666% - 2px), var(--cut) 0 calc(66.666% + 2px), transparent 0);
+  pointer-events: none;
+}
+[data-puzzling] > .puzzle-cuts {
+  visibility: hidden;
+}
+
+/* Puzzle win: confetti falls once over the screen; the card pops, the solved
+   poster drops in, then the lines below come up one after another. All of it
+   transform / opacity, run once. */
+.puzzle-won-wait {
+  animation-delay: 0.45s;
+}
+.puzzle-confetti i {
+  position: absolute;
+  top: -20px;
+  border-radius: 2px;
+  opacity: 0;
+  animation-name: puzzle-confetti;
+  animation-timing-function: cubic-bezier(0.25, 0.6, 0.4, 1);
+  animation-fill-mode: forwards;
+}
+.puzzle-confetti i:nth-child(3n) {
+  border-radius: 50%;
+}
+@keyframes puzzle-confetti {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--drift), 105vh, 0) rotate(var(--spin));
+  }
+}
+.puzzle-win-head {
+  background:
+    radial-gradient(circle at 50% 120%, rgba(255, 255, 255, 0.35), transparent 60%),
+    linear-gradient(135deg, var(--color-brand), var(--color-brand2));
+}
+.puzzle-win-rays {
+  background: repeating-conic-gradient(from 0deg at 50% 70%, rgba(255, 255, 255, 0.16) 0 10deg, transparent 10deg 20deg);
+  opacity: 0;
+  animation: puzzle-rays 1.2s ease-out 0.6s forwards;
+}
+@keyframes puzzle-rays {
+  from {
+    opacity: 0;
+    transform: scale(0.6) rotate(-20deg);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.15) rotate(0deg);
+  }
+}
+.puzzle-win-poster {
+  transform: translateX(-50%) rotate(-4deg);
+  animation: puzzle-win-drop 0.6s cubic-bezier(0.3, 1.5, 0.5, 1) 0.75s both;
+}
+@keyframes puzzle-win-drop {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-40px) rotate(-18deg) scale(0.6);
+  }
+}
+.puzzle-win-up {
+  animation: puzzle-win-up 0.45s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+@keyframes puzzle-win-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+html[data-lite]:not([data-lite="net"]) .puzzle-confetti {
+  display: none;
+}
+html[data-lite]:not([data-lite="net"]) .puzzle-win-up,
+html[data-lite]:not([data-lite="net"]) .puzzle-win-poster,
+html[data-lite]:not([data-lite="net"]) .puzzle-win-rays {
+  animation-duration: 1ms;
+  animation-delay: 0s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .puzzle-confetti {
+    display: none;
+  }
+}
+/* the win's prize coupon has no stub, so no notches */
+.puzzle-win-coupon {
+  -webkit-mask: none;
+  mask: none;
+}
+
+/* Puzzle picked: the poster stands as its split cards; a solve loop on top hides them while its tiles are out */
+[data-split] > img {
+  visibility: hidden;
+}
+[data-puzzling] > .puzzle-split {
+  visibility: hidden;
+}
+/* the hero scrolled out of view: its endless animations stop until it's back */
+.hero-box[data-offscreen] *,
+.hero-box[data-offscreen] *::before,
+.hero-box[data-offscreen] *::after {
+  animation-play-state: paused !important;
+}
+
+/* A wall card arrives as one piece (a short rise and fade of the whole card,
+   one GPU layer) instead of every poster animating on its own, which spun up
+   dozens of layers mid-scroll and made scrolling stutter, phone and desktop. */
+@media all {
+  .wall-fx-sweep,
+  .wall-fx-pull {
+    transform: none;
+  }
+  .wall-fx-pull .wall-slot:not(.wall-slot--first) {
+    display: block;
+  }
+  .wall-fx .wall-print.is-up,
+  .wall-fx .wall-print--first.is-up {
+    animation: none;
+    opacity: 1;
+  }
+  .wall-fx .wall-slot.is-up {
+    animation: none;
+    opacity: 0;
+  }
+  .wall-fx.is-up {
+    animation: wall-rise 0.45s cubic-bezier(0.22, 0.8, 0.3, 1) both !important;
+  }
+}
+@keyframes wall-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
 }

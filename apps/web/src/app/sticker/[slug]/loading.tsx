@@ -44,6 +44,7 @@ export default function Loading() {
     <div className="relative isolate overflow-x-clip">
       <div className="no-select mx-auto min-h-screen w-full max-w-6xl px-4 pt-20 pb-36 sm:px-8 lg:pb-20">
         <ProductDetailClient
+          standIn
           initial={product}
           category={category ? { name: category.name, slug: category.slug } : null}
           related={siblings.filter((p) => p.id !== product.id).slice(0, 10)}
