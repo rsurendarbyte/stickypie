@@ -8,6 +8,7 @@ import { useBackToClose } from "@/lib/back-close";
 import { useFeatures } from "@/lib/live-catalog";
 import { useLite, useSlowNetwork } from "@/lib/lite";
 import { claimPuzzlePrize, usePuzzlePrize } from "@/lib/puzzle-prize";
+import { endPuzzleBoot } from "@/lib/puzzle-boot";
 import { finishTurn, usePuzzleTurn } from "@/lib/puzzle-turns";
 import PageLink from "./page-link";
 import { playHere, type PuzzleLaunch } from "@/lib/puzzle-launch";
@@ -679,6 +680,7 @@ export function PuzzleGame({
   // Each open (or "play again"): show it whole, then split and shuffle.
   useEffect(() => {
     if (!open) return;
+    endPuzzleBoot(); // the page's still copy of this screen (lib/puzzle-boot.ts) goes
     setPhase("look");
     setSlots(SOLVED);
     setPicked(null);
@@ -1066,11 +1068,12 @@ export function PuzzleGame({
                   <Share2 className="size-4" /> Challenge friends · beat my {seconds}s
                 </button>
               )}
-              <div className="mt-1.5 flex justify-center gap-4 text-xs font-semibold text-fog">
-                <button type="button" onClick={() => setRound((r) => r + 1)} className="inline-flex items-center gap-1 py-1.5 hover:text-brand">
-                  <RotateCcw className="size-3.5" /> Play again
+              {/* two full-size buttons: easy to hit with a thumb */}
+              <div className="mt-2 grid grid-cols-2 gap-2 text-sm font-bold text-snow">
+                <button type="button" onClick={() => setRound((r) => r + 1)} className="inline-flex h-11 items-center justify-center gap-1.5 rounded-xl bg-panel hover:text-brand">
+                  <RotateCcw className="size-4" /> Play again
                 </button>
-                <button type="button" onClick={onClose} className="py-1.5 hover:text-brand">
+                <button type="button" onClick={onClose} className="inline-flex h-11 items-center justify-center rounded-xl bg-panel hover:text-brand">
                   Keep browsing
                 </button>
               </div>
