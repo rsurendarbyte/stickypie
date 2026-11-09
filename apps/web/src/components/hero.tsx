@@ -50,6 +50,8 @@ import {
 } from "@/lib/live-catalog";
 import { readInterest, type Interest } from "@/lib/interest";
 import { useLite, useSlowNetwork } from "@/lib/lite";
+import { PuzzleLoop, PuzzlePlayLink } from "./poster-puzzle";
+import { launchOf, setHeroPuzzle, useHeroPuzzle } from "@/lib/puzzle-launch";
 import { FAN_SIZES, NOT_IN_HERO, fanOrder, fanScript, fanSrc, wallTileSrc, type FanPoster } from "@/lib/hero-fan";
 
 /** Rotating hero: the featured sticker is staged on a big tilted product card. */
@@ -127,19 +129,32 @@ export default function Hero({
 
   useEffect(() => {
     if (slides.length < 2 || paused || engaged) return;
+    // the fan slide stays long enough for its poster puzzle to split, shuffle and solve
+    const seconds = slide.kind === "avatar" && features.posterPuzzle ? Math.max(home.seconds, 8) : home.seconds;
     const timer = setInterval(
       () => setIndex((i) => (i + 1) % slides.length),
-      home.seconds * 1000,
+      seconds * 1000,
     );
     return () => clearInterval(timer);
     // index: a swipe or dot tap restarts the wait for the next slide.
-  }, [slides.length, paused, engaged, index, home.seconds]);
+  }, [slides.length, paused, engaged, index, home.seconds, slide.kind, features.posterPuzzle]);
 
   // Swipe left / right on phones to change slide.
   const touch = useRef<{ x: number; y: number } | null>(null);
   const go = (step: number) =>
     setIndex((i) => (i + step + slides.length) % slides.length);
 
+  // scrolled away: its endless animations pause (globals.css .hero-box[data-offscreen])
+  const heroBox = useRef<HTMLElement>(null);
+  const [offscreen, setOffscreen] = useState(false);
+  useEffect(() => {
+    // the section exists once there is a slide
+    const el = heroBox.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setOffscreen(!e.isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
+  }, [Boolean(slide)]);
   if (!slide) return null;
   const product = slide.kind === "product" ? slide.product : null;
   const key = product ? product.id : slide.kind;
@@ -190,7 +205,11 @@ export default function Hero({
         if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5)
           go(dx < 0 ? 1 : -1);
       }}
-      className="relative flex items-center overflow-x-clip md:min-h-[70svh]"
+      // clipped on every side: the moving sticker walls' GPU layers stay inside the
+      // hero, or the whole page below gets lifted into one giant layer (scroll jank)
+      ref={heroBox}
+      data-offscreen={offscreen || undefined}
+      className="hero-box relative flex items-center overflow-clip md:min-h-[70svh]"
     >
       {/* Background: the slide's sticker sheet / cutting mat fills the hero and
           fades softly into the page below (no hard edge). */}
@@ -241,7 +260,7 @@ export default function Hero({
               melts away under it instead of clashing with the badge. */}
           <div
             aria-hidden
-            className="pointer-events-none absolute -inset-x-4 -top-14 -bottom-5 -z-10 bg-[linear-gradient(to_bottom,rgba(255,255,255,0)_0%,rgba(255,255,255,0.72)_22%,rgba(255,255,255,0.86)_55%,rgba(255,255,255,0.9)_100%)] backdrop-blur-[6px] [mask-image:linear-gradient(to_bottom,transparent_0%,black_26%)] sm:hidden"
+            className="pointer-events-none absolute -inset-x-4 -top-14 -bottom-5 -z-10 bg-[linear-gradient(to_bottom,rgba(255,255,255,0)_0%,rgba(255,255,255,0.8)_22%,rgba(255,255,255,0.92)_55%,rgba(255,255,255,0.95)_100%)] [mask-image:linear-gradient(to_bottom,transparent_0%,black_26%)] sm:hidden"
           />
           {slides.map((s, i) => {
             const active = i === index;
@@ -1002,6 +1021,7 @@ function AvatarFan({ shop, snapshot, categories }: { shop: Product[]; snapshot: 
   useFanLifts(box);
   const start = useFanStart();
   const slow = useSlowNetwork();
+  const features = useFeatures();
   // The fan is drawn afresh each time the slide comes round: the next three posters.
   const [turn] = useState(() => (typeof window === "undefined" ? 0 : fanTurns++));
   // Every turn walks one list of all the posters, from this visit's start, so none
@@ -1028,8 +1048,13 @@ function AvatarFan({ shop, snapshot, categories }: { shop: Product[]; snapshot: 
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per fan, when the list is known
   }, [slow, poolCount, from]);
-  if (!cards.length) return null;
   const placed = start !== null;
+  // the Wall posters card's Play & win plays the poster in the middle
+  const middle = placed ? cards[1] : undefined;
+  useEffect(() => {
+    if (middle) setHeroPuzzle(launchOf(middle, middle.tinyUrl ?? undefined));
+  }, [middle]);
+  if (!cards.length) return null;
   return (
     <div ref={box} className="hero-fans">
       <div className="hero-fan" style={{ "--n": cards.length } as React.CSSProperties}>
@@ -1055,12 +1080,17 @@ function AvatarFan({ shop, snapshot, categories }: { shop: Product[]; snapshot: 
                   className="hero-fan-blur"
                 />
                 <FanImage key={placed ? poster.id : "first"} src={placed ? src : undefined} srcSet={placed ? srcSet : undefined} />
+                {/* the middle poster splits into its 9 puzzle cards and solves itself now and then */}
+                {placed && i === 1 && <PuzzleLoop priority src={src} />}
               </Link>
             </div>
           );
         })}
         {turn === 0 && snapshot.length > 0 && !placed && <script dangerouslySetInnerHTML={{ __html: fanScript(snapshot) }} />}
       </div>
+      {/* under the fan: play the middle poster's puzzle for 10% off */}
+      {/* under the fan (also in the Wall posters card) */}
+      {placed && cards[1] && features.posterPuzzle && <PuzzlePlayLink poster={launchOf(cards[1], cards[1].tinyUrl ?? undefined)} live className="hero-fan-play h-9 px-3.5 shadow-lg md:h-11 md:px-5" />}
     </div>
   );
 }
@@ -1150,8 +1180,13 @@ function warmAvatarPage() {
 
 /** First slide: the shop's two big things, side by side, each with its price and its way in. */
 function AvatarSlideCopy({ book, catalog, copy }: { book: AvatarBook; catalog: Product[]; copy: HomePage["avatar"] }) {
-  const { loaded: pricesReady } = useStoreSettings();
+  const { loaded: pricesReady, avatarStyles } = useStoreSettings();
   const walls = catalog.filter(isPosterPack);
+  const features = useFeatures();
+  // a few of the AI styles, as small stickers: what a shopper gets, and the card's
+  // height matches the Wall posters card (which has two buttons)
+  const stylePeek = avatarStyles.flatMap((st) => (st.covers[0] ? [{ label: st.label, src: st.covers[0] }] : [])).slice(0, 3);
+  const heroPuzzle = useHeroPuzzle();
   // The first word of the title carries the brand colour.
   const [lead, ...restOfTitle] = copy.titleTop.split(" ");
   // Tapped: show progress at once while the next page loads.
@@ -1189,6 +1224,24 @@ function AvatarSlideCopy({ book, catalog, copy }: { book: AvatarBook; catalog: P
           <p className="mt-1 flex-1 text-xs leading-snug text-fog sm:text-sm">
             {copy.stickerText.replace("{styles}", String(book.pages))}
           </p>
+          {stylePeek.length > 0 && (
+            <div className="mt-2 flex items-center" aria-label={`Styles: ${stylePeek.map((st) => st.label).join(", ")}`}>
+              {stylePeek.map((st, i) => (
+                <span
+                  key={st.label}
+                  className="-ml-1.5 grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-white shadow-sm ring-2 ring-white first:ml-0 sm:size-11"
+                  style={{ background: `linear-gradient(135deg, ${FAN_TINTS[i % FAN_TINTS.length]})`, transform: `rotate(${[-6, 4, -3][i]}deg)`, zIndex: 3 - i }}
+                >
+                  <img src={st.src} alt="" loading="lazy" decoding="async" className="size-full object-contain p-0.5" />
+                </span>
+              ))}
+              {avatarStyles.length > stylePeek.length && (
+                <span className="ml-1.5 shrink-0 text-xs font-bold whitespace-nowrap text-brand" title={`${avatarStyles.length} styles`}>
+                  +{avatarStyles.length - stylePeek.length}
+                </span>
+              )}
+            </div>
+          )}
           <p className="mt-2 flex items-baseline gap-1.5">
             <span className="font-display text-xl font-bold text-gold sm:text-2xl">
               {pricesReady ? formatINR(book.price) : <PriceWait className="w-14" />}
@@ -1231,9 +1284,13 @@ function AvatarSlideCopy({ book, catalog, copy }: { book: AvatarBook; catalog: P
               <PriceWait className="w-14" />
             )}
           </p>
+          {/* the fan's middle poster as a puzzle, then the shop */}
+          {heroPuzzle && features.posterPuzzle && (
+            <PuzzlePlayLink poster={heroPuzzle} compact live className="mt-2 h-10 px-1.5 sm:mt-3 sm:h-11" />
+          )}
           <PageLink
             href="/stickers/poster-packs"
-            className="peel-btn mt-2 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl px-2 text-[13px] font-bold sm:mt-3 sm:h-11 sm:text-sm"
+            className={`peel-btn inline-flex h-10 items-center justify-center gap-1.5 rounded-xl px-2 text-[13px] font-bold sm:h-11 sm:text-sm ${heroPuzzle && features.posterPuzzle ? "mt-2" : "mt-2 sm:mt-3"}`}
           >
             {copy.wallButton}
           </PageLink>

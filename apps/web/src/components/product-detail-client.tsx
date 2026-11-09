@@ -3,11 +3,12 @@
 import SmartImg from "./smart-img";
 import PageLink from "./page-link";
 import ImageZoom from "./image-zoom";
-import { isInternalTag, isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel, wallSize } from "@/lib/poster";
+import { isInternalTag, isMiniPoster, isPosterPack, isSinglePoster, isWallSetup, posterSetName, sizeChipLabel, wallSize } from "@/lib/poster";
+import { puzzleBuildInches } from "@stickypie/shared";
 import { useEffect, useRef, useState } from "react";
-import { BadgeCheck, Car, ChevronsUpDown, Frame, Gift, PackageX, Ruler, Sparkles, Truck } from "lucide-react";
+import { BadgeCheck, Car, ChevronsUpDown, Frame, Gift, PackageX, Ruler, Share2, Sparkles, Truck } from "lucide-react";
 import type { Product } from "@stickypie/shared";
-import { LOW_STOCK_THRESHOLD, OWN_POSTER_NAME, discountPercent, formatINR, isOwnPoster, packPosterSizes, packSizeSummary, posterSizeLabel } from "@stickypie/shared";
+import { LOW_STOCK_THRESHOLD, OWN_POSTER_NAME, PUZZLE_CARDS, discountPercent, formatINR, isOwnPoster, packPosterSizes, packSizeSummary, posterSizeLabel } from "@stickypie/shared";
 import { pickPoster, swapPosters, useWallLine } from "@/lib/wall-picks";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
 import { useSkinSeed } from "@/lib/skin-seed";
@@ -28,9 +29,15 @@ import FinishPicker from "./finish-picker";
 import WallSizeMap, { OwnPosterButton, WallPosterSheet, WallViewSwitch, usePosterCatalog, type WallView } from "./wall-size-map";
 import WallStage from "./wall-stage";
 import WallTip from "./wall-tip";
-import SizePicker, { useLineFinish, useSizeChoice } from "./size-picker";
+import SizePicker, { puzzleChipLabel, toCartProduct, useLineFinish, useSizeChoice } from "./size-picker";
+import { useCart } from "./cart-context";
 import SizeRuler from "./size-ruler";
 import TrueSizePreview from "./true-size-preview";
+import { PuzzleButton, PuzzleLoop, PuzzleSplit, PuzzleTicket } from "./poster-puzzle";
+import { launchOf, launchPuzzle } from "@/lib/puzzle-launch";
+import { setFinish } from "@/lib/poster-finish";
+import { posterShare, puzzleShare, share } from "@/lib/share";
+import { usePuzzleLead } from "@/lib/puzzle-mix";
 
 /** A poster in a poster pack, as shown under "What's inside". */
 export type PackPosterLink = { id: string; slug: string; name: string; imageUrl: string; active: boolean; /** printed size, longest side */ inches: number };
@@ -41,12 +48,18 @@ export default function ProductDetailClient({
   related,
   steps,
   packPosters = [],
+  standIn = false,
+  startPuzzle = false,
 }: {
   initial: Product;
   category: { name: string; slug: string } | null;
   related: Product[];
   steps: Steps | null;
   packPosters?: PackPosterLink[];
+  /** Drawn by the loading screen until the server's page takes over (that one opens the game). */
+  standIn?: boolean;
+  /** Reached by a shared puzzle link (/puzzle/<slug>): open as a puzzle poster, game running. */
+  startPuzzle?: boolean;
 }) {
   // Static snapshot first paint; live stock/price/availability from Supabase.
   const { product, unavailable, checked } = useLiveProduct(initial.slug, initial);
@@ -67,7 +80,9 @@ export default function ProductDetailClient({
   // Same sticker sheet / cutting mat look as the home hero — new every load.
   const seed = useSkinSeed();
   const skin = cardSkinFor(product.slug, seed);
-  const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product);
+  const finish = useLineFinish(product);
+  const isPuzzle = finish === "puzzle";
+  const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product, finish);
   const off = discountPercent(price, compareAtPrice);
   const out = product.stock === 0;
   const settings = useStoreSettings();
@@ -78,9 +93,31 @@ export default function ProductDetailClient({
   const low = product.stock !== null && product.stock > 0 && product.stock <= LOW_STOCK_THRESHOLD;
   // A pack's picture is the whole wall, so "actual size" would mislead — its posters are listed instead.
   const isPack = isPosterPack(product) || packPosters.length > 0;
-  const finish = useLineFinish(product);
   const poster = isPack || (isMiniPoster(product) && finish !== "sticker");
   const [zoom, setZoom] = useState(false);
+  // Single posters: the picture solves itself now and then, and the shopper can play it for 10% off.
+  const puzzle = isSinglePoster(product) && !out && !unavailable;
+  // every Play here opens the site-wide game (components/puzzle-launcher), which
+  // lives on through the loading screen handing over to the page
+  const play = () => launchPuzzle({ ...launchOf(product), size: isPuzzle ? size : null });
+  const { add, openCart } = useCart();
+  const mixPuzzles = usePuzzleLead();
+  // ?finish=puzzle (puzzle poster cards, Play & win) opens it as a puzzle poster.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (isSinglePoster(initial) && (startPuzzle || params.get("finish") === "puzzle" || params.has("puzzle"))) setFinish("puzzle");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // A card's Play & win (?puzzle=1) starts the game straight away, once per page
+  // load: the live stock check can flip `puzzle` while loading, which must not
+  // close and reopen it. The address keeps the flag (changing it remounts the page).
+  useEffect(() => {
+    if (standIn || !isSinglePoster(initial) || !(startPuzzle || new URLSearchParams(window.location.search).has("puzzle"))) return;
+    // after the router has settled its own history entry, or it drops the game's back step
+    const t = window.setTimeout(() => launchPuzzle(launchOf(initial)), 300);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [wallView, setWallView] = useState<WallView>("wall");
   const [spot, setSpot] = useState<number | null>(null);
   const [choosing, setChoosing] = useState(false);
@@ -182,6 +219,20 @@ export default function ProductDetailClient({
           >
             <ChevronsUpDown className="size-4" /> Swipe view
           </button>
+          <button
+            type="button"
+            onClick={() =>
+              void share(
+                isPuzzle
+                  ? puzzleShare({ slug: product.slug, name: product.name, image: product.thumbUrl ?? product.imageUrl })
+                  : posterShare(product, `/sticker/${product.slug}`)
+              )
+            }
+            aria-label={isPuzzle ? "Share this puzzle" : "Share"}
+            className="peel-btn peel-btn--light inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-xs font-bold max-sm:hidden"
+          >
+            <Share2 className="size-4" /> {isPuzzle ? "Challenge a friend" : "Share"}
+          </button>
           {steps && <StickerStepper steps={steps} />}
         </div>
       </div>
@@ -236,6 +287,8 @@ export default function ProductDetailClient({
                 }`}
               />
             )}
+            {puzzle && isPuzzle && <PuzzleSplit src={product.displayUrl ?? product.imageUrl} img={artEl} />}
+            {puzzle && isPuzzle && <PuzzleLoop priority src={product.displayUrl ?? product.imageUrl} img={artEl} />}
             {features.sizeRuler && !isPack && <SizeRuler img={artEl} inches={sizes.length > 0 ? size : null} aspectRatio={product.aspectRatio} />}
           </ArtBlock>
           {wall && wallView !== "wall" && (
@@ -244,6 +297,7 @@ export default function ProductDetailClient({
             </div>
           )}
           {wall && checked && !out && !unavailable && wallView === "wall" && <WallTip />}
+          {puzzle && <PuzzleButton src={product.thumbUrl ?? product.imageUrl} onClick={play} className="absolute bottom-2 left-2" />}
           {off !== null && !unavailable && wallView === "wall" && (
             <span className="pie-gradient absolute top-4 left-4 rounded-full px-3 py-1 text-xs font-bold text-white">
               SAVE {off}%
@@ -321,6 +375,19 @@ export default function ProductDetailClient({
 
               {wall && <WallFacts product={product} />}
 
+              {puzzle && (
+                <PuzzleTicket
+                  src={product.thumbUrl ?? product.imageUrl}
+                  onPlay={play}
+                  price={price}
+                  onAddToCart={() => {
+                    add(toCartProduct(product, size, price));
+                    openCart();
+                  }}
+                  className="mt-4"
+                />
+              )}
+
               {isMiniPoster(product) && !isPack && !out && (
                 <div className="mt-4">
                   <FinishPicker />
@@ -332,8 +399,13 @@ export default function ProductDetailClient({
                     sizes={sizes}
                     value={size}
                     onChange={setSize}
-                    label={(inches) => sizeChipLabel(product, inches)}
+                    label={(inches) => (isPuzzle ? `${puzzleChipLabel(product, inches)} puzzle` : sizeChipLabel(product, inches))}
                   />
+                  {isPuzzle && size !== null && (
+                    <p className="mt-2 text-xs text-fog">
+                      {PUZZLE_CARDS} cards of {sizeChipLabel(product, size)} in that fit together into one {puzzleChipLabel(product, size)} in poster. Glue dots included.
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -426,7 +498,7 @@ export default function ProductDetailClient({
             href={category ? `/stickers/${category.slug}` : "/stickers"}
           >
             {relatedLoaded
-              ? moreLikeThis.map((p) =>
+              ? mixPuzzles(moreLikeThis).map((p) =>
                   isPack ? (
                     <ProductCard key={p.id} product={p} width={WALL_CARD_WIDTH} wallEffect={wallEffect(0, seed)} />
                   ) : (
@@ -448,9 +520,9 @@ export default function ProductDetailClient({
         name={product.name}
         imageUrl={product.imageUrl}
         aspectRatio={product.aspectRatio}
-        sizes={sizes}
-        size={size}
-        onSizeChange={setSize}
+        sizes={isPuzzle ? sizes.map((s) => ({ ...s, inches: puzzleBuildInches(s.inches) })) : sizes}
+        size={isPuzzle && size !== null ? puzzleBuildInches(size) : size}
+        onSizeChange={(inches) => setSize(isPuzzle ? inches / 3 : inches)}
       />
     </>
   );

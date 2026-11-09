@@ -21,6 +21,8 @@ import AuthCookieSync from "@/components/auth-cookie-sync";
 import { META_PIXEL_SCRIPT } from "@/lib/meta-pixel";
 import { stickerCursorCss } from "@/lib/sticker-cursor";
 import PerfProbe from "@/components/perf-probe";
+import PuzzleLauncher from "@/components/puzzle-launcher";
+import ShareSheet from "@/components/share-sheet";
 import { LITE_SCRIPT } from "@/lib/lite-script";
 import { VIEW_SCRIPT } from "@/lib/view-script";
 import { siteUrl, supabaseConfigured } from "@/lib/mode";
@@ -108,6 +110,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <NavTracker />
           <AuthCookieSync />
           <PerfProbe />
+          <PuzzleLauncher />
+          <ShareSheet />
           <SiteChrome>
             <MildBackground />
             <Nav />

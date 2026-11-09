@@ -1,4 +1,5 @@
 import { orderCode } from "@stickypie/shared";
+import { isPuzzleLine, parsePuzzleCardRef, puzzleCardRef } from "@stickypie/shared/wall-sheets";
 import WallSheetMaker, { type SheetWall } from "@/components/wall-sheet-maker";
 import { getAdminDriver } from "@/lib/data";
 
@@ -30,7 +31,13 @@ export default async function PrintSheetsPage() {
   // Paid, not packed yet: walls with the shopper's own swaps, and single paper posters.
   const ordered: SheetWall[] = orders.flatMap((order) =>
     order.items.flatMap((item) => {
+      // a puzzle poster prints as its 9 cards, each at the card size
+      const puzzle =
+        isPuzzleLine(item) && item.imageUrl && item.sizeInches
+          ? Array.from({ length: 9 }, (_, card) => ({ name: `${item.name} · card ${card + 1}/9`, imageUrl: puzzleCardRef(item.imageUrl!, card), inches: item.sizeInches! }))
+          : null;
       const posters =
+        puzzle ??
         item.packPosters ??
         (/\b(270|300) GSM|wall poster/i.test(item.sizeLabel ?? "") && item.imageUrl && item.sizeInches
           ? [{ name: item.name, imageUrl: item.imageUrl, inches: item.sizeInches }]
@@ -43,7 +50,11 @@ export default async function PrintSheetsPage() {
           order: orderCode(order.id),
           quantity: item.quantity,
           image: item.imageUrl ?? posters[0].imageUrl,
-          posters: posters.map((p) => ({ ...p, preview: preview(p.imageUrl) })),
+          posters: posters.map((p) => {
+            // a puzzle card previews from the poster's small picture, cut the same way
+            const ref = parsePuzzleCardRef(p.imageUrl);
+            return { ...p, preview: ref ? puzzleCardRef(preview(ref.url), ref.card) : preview(p.imageUrl) };
+          }),
         },
       ];
     })

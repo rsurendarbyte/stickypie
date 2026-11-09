@@ -301,6 +301,8 @@ export interface DataDriver {
   setPaymentNote(id: string, note: string, paymentId?: string | null): Promise<void>;
   /** A shopper's unpaid online-payment orders created since `sinceIso`, newest first. */
   listPendingOrdersForUser(userId: string, sinceIso: string): Promise<Order[]>;
+  /** True when a paid (or later) order with this phone or email used this discount code. */
+  discountCodeUsed(code: string, by: { email: string; phone: string }): Promise<boolean>;
   /** Guest orders placed with this (confirmed) email move onto the account. Returns how many. */
   claimGuestOrders(email: string, userId: string): Promise<number>;
   /** Shiprocket: remember the shipment / label on the order. */

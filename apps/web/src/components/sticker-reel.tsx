@@ -1,14 +1,19 @@
 "use client";
 
+import { puzzleBuildInches } from "@stickypie/shared";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, ChevronUp, Info, LayoutList, RotateCcw, Ruler, Share2, ShoppingBag, Truck, ZoomIn } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { POSTER_ADHESIVE, POSTER_PAPER, belowMinimum, discountPercent, formatINR, inCategory, packPosterSizes, packSizeSummary } from "@stickypie/shared";
-import { useCatalogChecked, useLiveCatalog, useStoreSettings } from "@/lib/live-catalog";
+import { useCatalogChecked, useFeatures, useLiveCatalog, useStoreSettings } from "@/lib/live-catalog";
+import { isPuzzleEntry, puzzleProduct, withPuzzles } from "@/lib/puzzle-mix";
 import { rememberPackPosters, rememberPosters } from "@/lib/poster-images";
 import { pickPoster, setPosters, swapSpots, useWallLine } from "@/lib/wall-picks";
 import { cardSkinFor } from "@/lib/palette";
-import { isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel } from "@/lib/poster";
+import { isMiniPoster, isPosterPack, isSinglePoster, isWallSetup, posterSetName, sizeChipLabel } from "@/lib/poster";
+import { PuzzleLoop, PuzzleSplit, PuzzleStrip } from "./poster-puzzle";
+import { launchOf, launchPuzzle } from "@/lib/puzzle-launch";
+import { posterShare, puzzleShare, share as shareItem } from "@/lib/share";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { PAGE_VIEW_ONCE_KEY } from "@/lib/view-script";
 import { lineKey, useCart } from "./cart-context";
@@ -19,7 +24,7 @@ import FinishPicker from "./finish-picker";
 import WallSizeMap, { OwnPosterButton, WallPosterSheet, WallReset, WallViewSwitch, type WallView } from "./wall-size-map";
 import WallStage from "./wall-stage";
 import WallTip from "./wall-tip";
-import { toCartProduct, useLineFinish, useSizeChoice } from "./size-picker";
+import { puzzleChipLabel, toCartProduct, useLineFinish, useSizeChoice } from "./size-picker";
 import ImageZoom from "./image-zoom";
 import TrueSizePreview from "./true-size-preview";
 
@@ -105,7 +110,11 @@ function Reel({
   category: { id: string; name: string; slug: string } | null;
   onClassic: (slug: string) => void;
 }) {
+  const [active, setActive] = useState(0);
   const { products } = useLiveCatalog({ categories: [], products: [initial] });
+  const features = useFeatures();
+  // where the puzzle posters fall: new on every visit
+  const [puzzleSeed] = useState(() => Math.floor(Math.random() * 1e9));
   rememberPosters(products);
   const { count, openCart } = useCart();
 
@@ -115,14 +124,15 @@ function Reel({
     const others = products.filter((p) => p.id !== initial.id);
     const same = category ? others.filter((p) => inCategory(p, category.id)) : [];
     const rest = others.filter((p) => !same.includes(p));
-    return [current, ...same, ...rest];
-  }, [products, initial, category]);
+    return withPuzzles([current, ...same, ...rest], puzzleSeed, features.posterPuzzle);
+  }, [products, initial, category, puzzleSeed, features.posterPuzzle]);
+  // the counter counts stickers only, not the puzzle posters between them
   const sameCount = useMemo(
-    () => (category ? list.filter((p) => inCategory(p, category.id)).length : list.length),
+    () => list.filter((p) => !isPuzzleEntry(p) && (!category || inCategory(p, category.id))).length,
     [list, category]
   );
+  const position = list.slice(0, active + 1).filter((p) => !isPuzzleEntry(p)).length;
 
-  const [active, setActive] = useState(0);
   const scroller = useRef<HTMLDivElement>(null);
 
   // Which sticker fills the screen: keeps the address bar and tab title on it,
@@ -145,9 +155,11 @@ function Reel({
   useEffect(() => {
     const p = list[active];
     if (!p) return;
-    const path = `/sticker/${p.slug}`;
+    // a puzzle poster's own link (shares as the puzzle, opens the game)
+    const puzzle = isPuzzleEntry(p);
+    const path = puzzle ? `/puzzle/${p.slug}` : `/sticker/${p.slug}`;
     if (location.pathname !== path) history.replaceState(history.state, "", path);
-    document.title = `${p.name} · StickyPie`;
+    document.title = puzzle ? `Can you solve ${p.name}? · StickyPie` : `${p.name} · StickyPie`;
   }, [active, list]);
 
   // A one-time "swipe up" hint for first-timers.
@@ -173,7 +185,8 @@ function Reel({
     else location.assign(category ? `/stickers/${category.slug}` : "/stickers");
   }
 
-  const inCat = active < sameCount;
+  const inCat = position <= sameCount && !isPuzzleEntry(list[active] ?? initial);
+  const onPuzzle = isPuzzleEntry(list[active] ?? initial);
   return (
     <div className="swipe-view-root fixed inset-0 z-[70] bg-ink sm:hidden" role="region" aria-label="Swipe view">
       <div ref={scroller} className="reel-scroller no-scrollbar">
@@ -183,7 +196,12 @@ function Reel({
             catalogue. */}
         {list.map((p, i) => (
           <section key={p.id} data-index={i} className="reel-item" aria-label={p.name}>
-            {Math.abs(i - active) <= NEAR && <ReelItem product={p} onPageView={() => onClassic(p.slug)} />}
+            {Math.abs(i - active) <= NEAR &&
+              (isPuzzleEntry(p) ? (
+                <ReelItem product={puzzleProduct(p)} puzzleCard onPageView={() => onClassic(p.slug)} />
+              ) : (
+                <ReelItem product={p} onPageView={() => onClassic(p.slug)} />
+              ))}
           </section>
         ))}
       </div>
@@ -201,12 +219,14 @@ function Reel({
         {/* all four sit on one 40px line: same height, same white pill */}
         <div className="flex min-w-0 flex-1">
           <span className="pointer-events-auto flex h-10 min-w-0 items-center gap-1 reel-glass rounded-full px-3.5 text-xs font-semibold text-snow">
-            {inCat && category ? (
+            {onPuzzle ? (
+              <span className="truncate">🧩 Puzzle poster</span>
+            ) : inCat && category ? (
               <>
                 {/* a long category name shortens; the count always shows */}
                 <span className="truncate">{category.name}</span>
                 <span className="shrink-0 font-normal text-fog tabular-nums">
-                  {active + 1}/{sameCount}
+                  {position}/{sameCount}
                 </span>
               </>
             ) : (
@@ -216,7 +236,7 @@ function Reel({
         </div>
         <button
           type="button"
-          onClick={() => onClassic(list[active]?.slug ?? initial.slug)}
+          onClick={() => onClassic(list[active] ? (isPuzzleEntry(list[active]) ? puzzleProduct(list[active]).slug : list[active].slug) : initial.slug)}
           aria-label="Switch to page view"
           className="pointer-events-auto flex h-10 shrink-0 items-center gap-1.5 reel-glass rounded-full px-3.5 text-xs font-bold max-[359px]:w-10 max-[359px]:justify-center max-[359px]:px-0 text-snow"
         >
@@ -252,9 +272,12 @@ function Reel({
 function ReelItem({
   product,
   onPageView,
+  puzzleCard = false,
 }: {
   product: Product;
   onPageView: () => void;
+  /** A puzzle poster dropped into the swipe view: always sold as the puzzle. */
+  puzzleCard?: boolean;
 }) {
   const checked = useCatalogChecked();
   const { add, items, subtotal } = useCart();
@@ -262,19 +285,22 @@ function ReelItem({
   // Below the minimum order: no Checkout yet, just how much more to add.
   const shortBy = belowMinimum(settings, subtotal, items);
   const skin = cardSkinFor(product.slug, useSkinSeed());
-  const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product);
+  const lineFinish = useLineFinish(product);
+  const finish = puzzleCard ? "puzzle" : lineFinish;
+  const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product, finish);
   const off = discountPercent(price, compareAtPrice);
   const out = product.stock === 0;
   const pack = isPosterPack(product);
   const poster = pack || isMiniPoster(product);
   // This size already in the cart: a quantity stepper and Checkout instead of Add to cart.
-  const finish = useLineFinish(product);
   const paper = pack || (poster && finish !== "sticker");
   const { posters: picks, gaps, line } = useWallLine(product, price);
   const inCart = items.find((item) => lineKey(item) === lineKey(line ?? { productId: product.id, size, finish }));
   const [details, setDetails] = useState(false);
   const [trueSize, setTrueSize] = useState(false);
   const [zoom, setZoom] = useState(false);
+  const puzzle = isSinglePoster(product) && !out;
+  const [artEl, setArtEl] = useState<HTMLImageElement | null>(null);
   const [wallView, setWallView] = useState<WallView>("wall");
   const [spot, setSpot] = useState<number | null>(null);
   const [choosing, setChoosing] = useState(false);
@@ -288,7 +314,7 @@ function ReelItem({
 
   function addToCart(at?: { x: number; y: number }) {
     if (out || gaps) return;
-    add(line ?? toCartProduct(product, size, price));
+    add(line ?? toCartProduct(product, size, price, finish ?? "poster"));
     const id = Date.now();
     const spot = at ?? { x: window.innerWidth / 2, y: window.innerHeight * 0.4 };
     setPops((p) => [...p, { id, ...spot }]);
@@ -322,12 +348,13 @@ function ReelItem({
   const emptySpot = (i: number) =>
     arranging ? setDraft((now) => now && now.map((id, n) => (n === i ? "" : id))) : pickPoster(product, i, "");
 
-  async function share() {
-    const url = `${location.origin}/sticker/${product.slug}`;
-    try {
-      if (navigator.share) await navigator.share({ title: product.name, url });
-      else await navigator.clipboard.writeText(url);
-    } catch {}
+  // a puzzle poster shares its puzzle link (the game opens for whoever taps it)
+  function share() {
+    void shareItem(
+      finish === "puzzle"
+        ? puzzleShare({ slug: product.slug, name: product.name, image: product.thumbUrl ?? product.imageUrl })
+        : posterShare(product, `/sticker/${product.slug}`)
+    );
   }
 
   const wall = isWallSetup(product);
@@ -404,13 +431,26 @@ function ReelItem({
             </div>
           </div>
         ) : (
-        <img
-          // a set's wall stands straight and big, at the sharper size: the posters must read
-          src={pack ? (product.displayUrl ?? product.imageUrl) : (product.thumbUrl ?? product.imageUrl)}
-          alt={product.name}
-          draggable={false}
-          className={`max-h-full max-w-full object-contain ${pack ? "rounded-xl shadow-[0_18px_40px_-18px_rgba(16,24,40,0.5)]" : `animate-float ${poster ? "poster-print" : "sticker-cut"}`} ${out ? "opacity-50 saturate-50" : ""}`}
-        />
+        // floats as one with the puzzle laid over it, so the tiles stay on the picture
+        <div className={`relative grid size-full grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center ${pack ? "" : "animate-float"}`}>
+          <img
+            ref={setArtEl}
+            // a set's wall stands straight and big, at the sharper size: the posters must read
+            src={pack ? (product.displayUrl ?? product.imageUrl) : (product.thumbUrl ?? product.imageUrl)}
+            alt={product.name}
+            draggable={false}
+            className={`max-h-full max-w-full object-contain ${pack ? "rounded-xl shadow-[0_18px_40px_-18px_rgba(16,24,40,0.5)]" : poster ? "poster-print" : "sticker-cut"} ${out ? "opacity-50 saturate-50" : ""}`}
+          />
+          {puzzle && finish === "puzzle" && <PuzzleSplit src={product.thumbUrl ?? product.imageUrl} img={artEl} />}
+          {/* only as a puzzle poster: a plain mini poster stays still */}
+          {puzzle && finish === "puzzle" && <PuzzleLoop priority src={product.thumbUrl ?? product.imageUrl} img={artEl} />}
+        </div>
+        )}
+        {/* side rail: inside the picture area, so the buy bar can never cover it */}
+        {!wall && (
+          <div className="absolute right-3 bottom-4 flex flex-col items-center gap-3" onPointerUp={(e) => e.stopPropagation()}>
+            {actions}
+          </div>
         )}
         {pops.map((p) => (
           <span key={p.id} aria-hidden className="reel-pop pointer-events-none fixed z-10" style={{ left: p.x, top: p.y }}>
@@ -433,7 +473,7 @@ function ReelItem({
       )}
 
       {/* Side rail */}
-      {!wall && <div className="absolute right-3 bottom-[248px] flex flex-col items-center gap-3">{actions}</div>}
+
 
       {/* Buy bar — always on screen */}
       <div className="reel-glass-bar relative rounded-t-[28px] px-4 pt-3.5 pb-[calc(0.9rem+env(safe-area-inset-bottom,0px))]">
@@ -454,11 +494,12 @@ function ReelItem({
             </div>
           </div>
         )}
+        {puzzle && <PuzzleStrip src={product.thumbUrl ?? product.imageUrl} onPlay={() => launchPuzzle({ ...launchOf(product), size: finish === "puzzle" ? size : null })} />}
         <div className="flex items-start gap-3">
           <div className="min-w-0 flex-1">
             {poster && (
               <p className="text-[10px] font-bold tracking-wider text-brand uppercase">
-                {pack ? `Poster pack · ${product.packItems.length} posters` : "Mini poster"}
+                {pack ? `Poster pack · ${product.packItems.length} posters` : finish === "puzzle" ? "Puzzle poster · 9 cards" : "Mini poster"}
               </p>
             )}
             <h2 className="line-clamp-2 font-display text-lg leading-tight font-bold">{name}</h2>
@@ -474,31 +515,34 @@ function ReelItem({
             <p className="mt-0.5 text-[10px] text-fog">{settings.business.gstRate > 0 ? "+ GST + shipping" : "+ shipping"}</p>
           </div>
         </div>
-        {poster && !pack && (
-          <div className="mt-3">
-            <FinishPicker compact />
-          </div>
-        )}
-        {sizes.length > 1 && (
-          <div role="radiogroup" aria-label="Sticker size" className="mt-2 grid grid-cols-3 gap-2">
-            {sizes.map((s) => {
-              const on = s.inches === size;
-              return (
-                <button
-                  key={s.inches}
-                  type="button"
-                  role="radio"
-                  aria-checked={on}
-                  onClick={() => setSize(s.inches)}
-                  className={`rounded-xl border px-2 py-1.5 text-center transition-colors ${
-                    on ? "border-brand bg-brand/[0.07] text-brand" : "border-white/70 bg-white/40 text-snow"
-                  }`}
-                >
-                  <span className="block font-display text-sm font-bold">{sizeChipLabel(product, s.inches)}</span>
-                  <span className="block text-[11px]">{formatINR(s.price)}</span>
-                </button>
-              );
-            })}
+        {/* finish and size share one compact row */}
+        {((poster && !pack) || sizes.length > 1) && (
+          <div className="mt-2.5 flex gap-2">
+            {poster && !pack && !puzzleCard && <FinishPicker compact />}
+            {sizes.length > 1 && (
+              <div role="radiogroup" aria-label="Size" className="flex min-w-0 flex-1 rounded-xl bg-white/60 p-0.5 ring-1 ring-line">
+                {sizes.map((s) => {
+                  const on = s.inches === size;
+                  return (
+                    <button
+                      key={s.inches}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      onClick={() => setSize(s.inches)}
+                      className={`flex h-9 min-w-0 flex-1 items-center justify-center gap-1 rounded-[10px] px-1 whitespace-nowrap transition-colors ${
+                        on ? "bg-white text-brand shadow-sm ring-1 ring-brand/40" : "text-snow"
+                      }`}
+                    >
+                      {/* the price sits by the name above, so the chip stays short enough for one row */}
+                      <span className="font-display text-[13px] font-bold">
+                        {finish === "puzzle" ? puzzleChipLabel(product, s.inches) : sizeChipLabel(product, s.inches)}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
         <div className="mt-3 flex gap-2">
@@ -601,9 +645,9 @@ function ReelItem({
           name={product.name}
           imageUrl={product.imageUrl}
           aspectRatio={product.aspectRatio}
-          sizes={sizes}
-          size={size}
-          onSizeChange={setSize}
+          sizes={finish === "puzzle" ? sizes.map((s) => ({ ...s, inches: puzzleBuildInches(s.inches) })) : sizes}
+          size={finish === "puzzle" && size !== null ? puzzleBuildInches(size) : size}
+          onSizeChange={(inches) => setSize(finish === "puzzle" ? inches / 3 : inches)}
         />
       )}
     </div>

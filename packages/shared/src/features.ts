@@ -19,6 +19,11 @@ export const FEATURES = {
     description: "Width and height arrows (in inches) around the sticker art, following the size the shopper picks.",
     default: true,
   },
+  posterPuzzle: {
+    label: "Poster puzzle (10% off)",
+    description: "Mini poster cards and pages show the poster splitting into 9 tiles and solving itself; shoppers who solve it on the poster page get 10% off one order (once per phone and email, for 24 hours).",
+    default: true,
+  },
 } as const satisfies Record<string, { label: string; description: string; default: boolean }>;
 
 export type FeatureKey = keyof typeof FEATURES;

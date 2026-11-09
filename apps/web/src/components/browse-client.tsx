@@ -13,12 +13,13 @@ import { Frame, Sticker } from "lucide-react";
 import PageLink from "./page-link";
 import ShopLinks from "./shop-links";
 import ProductCard from "./product-card";
+import { asPuzzleEntry, usePuzzleLead } from "@/lib/puzzle-mix";
 import ProductCardSkeleton from "./product-card-skeleton";
 import VirtualGrid from "./virtual-grid";
 import { SinglePostersRail, WallsPageFeed, usePhone, wallChipColours } from "./wall-feed";
 import CategoryFilter from "./category-filter";
 import { useLiveCatalog, type Catalog } from "@/lib/live-catalog";
-import { SINGLE_POSTERS, isPosterPack, isSinglePoster } from "@/lib/poster";
+import { PUZZLE_POSTERS, SINGLE_POSTERS, isPosterPack, isSinglePoster } from "@/lib/poster";
 import { rememberPosters } from "@/lib/poster-images";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
 import { useDaySeed } from "@/lib/skin-seed";
@@ -47,6 +48,7 @@ export default function BrowseClient({
   /** From the URL path: /stickers/<slug>. Empty = all stickers. */
   categorySlug?: string;
 }) {
+  const mix = usePuzzleLead();
   const { categories, products, loaded, failed, retry } =
     useLiveCatalog(initial);
   useWindowScrollMemory(loaded);
@@ -60,7 +62,8 @@ export default function BrowseClient({
   const walls = category === WALLS;
   const phone = usePhone();
   const theme = walls ? (params.get("theme") ?? "") : "";
-  const single = theme === SINGLE_POSTERS;
+  const puzzles = theme === PUZZLE_POSTERS;
+  const single = theme === SINGLE_POSTERS || puzzles;
   const wallList = walls && !single;
 
   /** Link to a category (or all), keeping the current search + sort. */
@@ -137,9 +140,11 @@ export default function BrowseClient({
     [singlePosters, theme, q],
   );
 
+  // Puzzle poster cards first and between (among wall sets they take the wall card's shape).
+  // The Puzzle posters chip shows every single poster as one.
   const grid = (items: typeof visible, from = 0) => (
     <VirtualGrid
-      items={items}
+      items={puzzles ? items.map((p, i) => asPuzzleEntry(p, i)) : mix(items, { first: from === 0 })}
       getKey={(product) => product.id}
       render={(product, i, cols) => <ProductCard product={product} width="w-full" wallEffect={wallEffect(Math.floor((from + i) / cols), seed)} />}
       className={wallList ? "mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-5 sm:mt-6 sm:gap-x-4 sm:gap-y-7 @[53rem]:grid-cols-3 @[80rem]:grid-cols-4" : "mt-4 grid grid-cols-2 gap-x-3 gap-y-5 sm:mt-8 sm:gap-y-7 sm:gap-x-4 @[40rem]:grid-cols-3 @[53rem]:grid-cols-4 @[67rem]:grid-cols-5 @[80rem]:grid-cols-6 @[107rem]:grid-cols-8"}
@@ -219,7 +224,7 @@ export default function BrowseClient({
       {/* Walls: a chip per theme. Stickers: one button for categories + sort */}
       {walls ? (
         <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:mt-5 sm:px-0">
-          {[{ id: "", title: "All walls" }, { id: SINGLE_POSTERS, title: "Single posters" }, ...WALL_THEMES].map((t) => (
+          {[{ id: "", title: "All walls" }, { id: PUZZLE_POSTERS, title: "🧩 Puzzle posters" }, { id: SINGLE_POSTERS, title: "Single posters" }, ...WALL_THEMES].map((t) => (
             <button
               key={t.id}
               type="button"
@@ -275,7 +280,7 @@ export default function BrowseClient({
           <h2 className="mt-3 font-display text-lg font-bold">{suggestions.title}</h2>
           <div className="@container">
             <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-5 sm:gap-x-4 sm:gap-y-7 @[40rem]:grid-cols-3 @[53rem]:grid-cols-4 @[67rem]:grid-cols-5 @[80rem]:grid-cols-6 @[107rem]:grid-cols-8">
-              {suggestions.products.map((product) => (
+              {mix(suggestions.products).map((product) => (
                 <ProductCard key={product.id} product={product} width="w-full" />
               ))}
             </div>
@@ -314,7 +319,7 @@ export default function BrowseClient({
             <section className="mt-10">
               <h2 className="font-display text-lg font-bold">More like this</h2>
               <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-5 sm:gap-x-4 sm:gap-y-7 @[40rem]:grid-cols-3 @[53rem]:grid-cols-4 @[67rem]:grid-cols-5 @[80rem]:grid-cols-6 @[107rem]:grid-cols-8">
-                {moreLikeThis.map((product) => (
+                {mix(moreLikeThis).map((product) => (
                   <ProductCard key={product.id} product={product} width="w-full" />
                 ))}
               </div>

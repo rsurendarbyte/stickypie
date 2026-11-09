@@ -42,6 +42,14 @@ export function couponDiscount(subtotal: number, percent: number): number {
   return Math.round((subtotal * percent) / 100);
 }
 
+/** Discount code on orders that used the poster puzzle prize (once per phone and email). */
+export const PUZZLE_CODE = "PUZZLE10";
+export const PUZZLE_PERCENT = 10;
+/** How long a solved puzzle's prize waits for checkout. */
+export const PUZZLE_HOURS = 24;
+/** Browser cookie holding a solved puzzle's prize ("expiry.signature"). */
+export const PUZZLE_COOKIE = "sp_pz";
+
 /** The approved offer used at checkout: the biggest, then the oldest. */
 export function bestOffer(open: Coupon[]): Coupon | null {
   return [...open].sort((a, b) => b.percent - a.percent || a.createdAt.localeCompare(b.createdAt))[0] ?? null;

@@ -23,13 +23,14 @@ import {
   ZONE_LABELS,
   belowMinimum,
   couponDiscount,
+  PUZZLE_PERCENT,
   customerSchema,
   gstOnTop,
   formatINR,
   matchIndianState,
   shippingFor,
 } from "@stickypie/shared";
-import { useStoreSettings } from "@/lib/live-catalog";
+import { useFeatures, useStoreSettings } from "@/lib/live-catalog";
 import {
   authClient,
   signIn,
@@ -55,6 +56,7 @@ import { lineKey, useCart, type CartItem } from "./cart-context";
 import { cartToken } from "@/lib/cart-sync";
 import CartStepper from "./cart-stepper";
 import { useMyOffer } from "./my-offer";
+import { usePuzzlePrize } from "@/lib/puzzle-prize";
 import { CheckField, PasswordField, SelectField, TextField } from "./field";
 import StickerLoader, { PageLoader } from "./sticker-loader";
 
@@ -131,8 +133,13 @@ export default function CheckoutClient() {
     Partial<Record<keyof FormState, string>>
   >({});
   const [serverError, setServerError] = useState<string | null>(null);
-  // Thank-you offer the shop approved for this account: the server applies it by itself.
-  const discount = useMyOffer();
+  // Thank-you offer the shop approved for this account, or a solved poster puzzle
+  // (whichever is bigger): the server applies it by itself.
+  const offer = useMyOffer();
+  const puzzlePrize = usePuzzlePrize();
+  const features = useFeatures();
+  const puzzle = puzzlePrize !== null && features.posterPuzzle && (!offer || offer.percent < PUZZLE_PERCENT);
+  const discount = puzzle ? { percent: PUZZLE_PERCENT } : offer;
   const [submitting, setSubmitting] = useState(false);
   // Own posters on their way, as they leave the phone.
   const [sending, setSending] = useState<PosterSend[] | null>(null);
@@ -1004,13 +1011,14 @@ export default function CheckoutClient() {
                 <div className="flex items-center justify-between gap-3 text-fog">
                   <dt className="flex min-w-0 items-center gap-1.5">
                     <Gift className="size-3.5 shrink-0 text-mint" />
-                    <span className="truncate">Thank-you offer · {discount.percent}% off</span>
+                    <span className="truncate">{puzzle ? "Puzzle prize" : "Thank-you offer"} · {discount.percent}% off</span>
                   </dt>
                   <dd className="font-medium text-mint tabular-nums">
                     −{formatINR(discountAmount)}
                   </dd>
                 </div>
               )}
+              {puzzle && <p className="-mt-1 text-[11px] text-fog">One order per phone number and email.</p>}
               <div className="flex justify-between gap-3 text-fog">
                 <dt>
                   Shipping
@@ -1063,7 +1071,7 @@ export default function CheckoutClient() {
         {/* ── Pay bar, pinned to the bottom on every screen ────────────── */}
         <div
           ref={payBar}
-          className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-ink/95 pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-8px_24px_-12px_rgba(16,24,40,0.25)] backdrop-blur"
+          className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-ink/95 pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-8px_24px_-12px_rgba(16,24,40,0.25)]"
         >
           <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-8 lg:gap-6">
             <div className="shrink-0">

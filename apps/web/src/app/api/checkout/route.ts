@@ -18,12 +18,18 @@ import {
   formatINR,
   bestOffer,
   couponDiscount,
+  PUZZLE_CODE,
+  PUZZLE_PERCENT,
   shippingFor,
   priceForSize,
   sizeLabel,
   packPosterSizes,
   packSizeSummary,
   finishLabel,
+  formatDimensions,
+  puzzleBuildInches,
+  withFinish,
+  PUZZLE_CARDS,
   isMiniPosterProduct,
   isOwnPoster,
   OWN_POSTER_NAME,
@@ -37,6 +43,7 @@ import { GUEST_ORDERS_COOKIE, guestCookieOptions, withGuestOrder } from "@/lib/g
 import { getDriver } from "@/lib/data";
 import { checkIndianAddress } from "@/lib/india-address";
 import { cashfreeConfigured, checkoutGateway, paymentSimulatorAllowed, razorpayConfigured } from "@/lib/mode";
+import { puzzlePrizeFromRequest } from "@/lib/puzzle-offer";
 import { openNewPayment, reopenPayment, reuseWindowStart } from "@/lib/pay-session";
 import { accountsEnabled, shopperFromRequest } from "@/lib/shopper";
 
@@ -193,7 +200,8 @@ export async function POST(req: Request) {
   const orderItems: NewOrderInput["items"] = [];
   for (const line of lines.values()) {
     const product = byId.get(line.productId)!;
-    const priced = priceForSize(product, line.size);
+    // A puzzle poster has its own prices (shared PUZZLE_POSTER_PRICES), never the cart's.
+    const priced = priceForSize(withFinish(product, line.finish), line.size);
     if (!priced) {
       return NextResponse.json(
         {
@@ -218,7 +226,10 @@ export async function POST(req: Request) {
     const label =
       line.size == null
         ? null
-        : `${sizeLabel(line.size, product.aspectRatio)}${mini ? ` · ${finishLabel(line.finish)}` : ""}`;
+        : mini && line.finish === "puzzle"
+          ? // printing: 9 cards of this size, cut from the picture blown up 3 × 3
+            `${PUZZLE_CARDS} cards × ${sizeLabel(line.size, product.aspectRatio)} · builds ${formatDimensions(puzzleBuildInches(line.size), product.aspectRatio)} · ${finishLabel(line.finish)}`
+          : `${sizeLabel(line.size, product.aspectRatio)}${mini ? ` · ${finishLabel(line.finish)}` : ""}`;
     orderItems.push({
       productId: line.productId,
       name: product.name,
@@ -357,8 +368,16 @@ export async function POST(req: Request) {
     );
     if (holding) offer = null;
   }
-  const discountCode = offer?.code ?? null;
-  const discountAmount = offer ? couponDiscount(subtotal, offer.percent) : 0;
+  // Poster puzzle prize (signed cookie): used when it beats the thank-you offer,
+  // once per phone and email (a paid order with this code ends it).
+  const puzzle =
+    (!offer || offer.percent < PUZZLE_PERCENT) &&
+    (await puzzlePrizeFromRequest()) !== null &&
+    (await driver.getFeatures()).posterPuzzle &&
+    !(await driver.discountCodeUsed(PUZZLE_CODE, customer));
+  const discount = puzzle ? { code: PUZZLE_CODE, percent: PUZZLE_PERCENT } : offer;
+  const discountCode = discount?.code ?? null;
+  const discountAmount = discount ? couponDiscount(subtotal, discount.percent) : 0;
   // Always charged, by distance from the dispatch PIN code (zones set in the admin).
   const shippingFee = shippingFor(settings, customer.pincode, customer.state).fee;
   // GST is added on top of sticker prices (after the discount) + shipping (rate from admin → Settings).

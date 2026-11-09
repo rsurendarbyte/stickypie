@@ -12,7 +12,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { CUSTOM_PRODUCT_PREFIX, priceForSize, type CartCustomSpec, type CustomKind, type PosterFinish, type Product } from "@stickypie/shared";
+import { CUSTOM_PRODUCT_PREFIX, priceForSize, withFinish, type CartCustomSpec, type CustomKind, type PosterFinish, type Product } from "@stickypie/shared";
 
 export type CartItem = {
   productId: string;
@@ -76,9 +76,9 @@ export function itemHref(item: { slug: string; custom?: boolean; customKind?: Cu
   return "/custom-stickers/design";
 }
 
-/** One cart line per sticker per size (a mini poster's sticker is its own line). */
+/** One cart line per sticker per size (a mini poster's sticker or puzzle poster is its own line). */
 export function lineKey(item: { productId: string; size?: number | null; finish?: PosterFinish }): string {
-  return `${item.productId}:${item.size ?? ""}${item.finish === "sticker" ? ":sticker" : ""}`;
+  return `${item.productId}:${item.size ?? ""}${item.finish === "sticker" || item.finish === "puzzle" ? `:${item.finish}` : ""}`;
 }
 
 /** A set has one customized line: carts saved with several keep the latest. */
@@ -108,7 +108,8 @@ function pricedBy(item: CartItem): string | undefined {
 function todaysPrice(item: CartItem, products: Map<string, Product>): number {
   const product = products.get(pricedBy(item) ?? "");
   if (!product) return item.price;
-  return item.custom ? product.price : (priceForSize(product, item.size)?.price ?? item.price);
+  // a puzzle poster line has puzzle prices, the same as checkout
+  return item.custom ? product.price : (priceForSize(withFinish(product, item.finish), item.size)?.price ?? item.price);
 }
 
 function clampQty(qty: number, stock: number | null): number {

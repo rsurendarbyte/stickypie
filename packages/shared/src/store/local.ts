@@ -442,6 +442,17 @@ export function createLocalDriver(filePath: string): DataDriver {
       return 0;
     },
 
+    async discountCodeUsed(code, by) {
+      const email = by.email.trim().toLowerCase();
+      const phone = by.phone.replace(/\D/g, "").slice(-10);
+      return load().orders.some(
+        (o) =>
+          o.discountCode === code &&
+          ["paid", "packed", "shipped", "delivered"].includes(o.status) &&
+          ((email && o.email.toLowerCase() === email) || (phone && o.phone.replace(/\D/g, "").endsWith(phone)))
+      );
+    },
+
     async listPendingOrdersForUser(userId, sinceIso) {
       return load()
         .orders.filter(

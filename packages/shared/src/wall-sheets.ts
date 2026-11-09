@@ -348,3 +348,240 @@ export function cutSteps(paper: Paper, area: CutArea): string[] {
     "Test on plain paper first. The cut corner marks must land on the printed marks. A cut that is off leaves a thin white edge on the poster.",
   ];
 }
+
+// ---- Puzzle posters: one poster printed as 9 cards (3 × 3) ----
+
+/** Share of the poster trimmed off each edge before it's cut up: its rounded corners would give the corner cards away (as in the shop's game). */
+export const PUZZLE_EDGE = 0.035;
+
+/** An order line that's a puzzle poster (its size label says so, see the shop's checkout). */
+export function isPuzzleLine(item: { sizeLabel?: string | null }): boolean {
+  return /puzzle poster/i.test(item.sizeLabel ?? "");
+}
+
+/** A puzzle card stands for its poster's file plus which card (0–8, row by row). */
+export function puzzleCardRef(url: string, card: number): string {
+  return `${url}#puzzle-${card}`;
+}
+
+/** The poster file and card a puzzle card ref stands for, or null for an ordinary file. */
+export function parsePuzzleCardRef(ref: string): { url: string; card: number } | null {
+  const m = ref.match(/^(.*)#puzzle-([0-8])$/);
+  return m ? { url: m[1], card: Number(m[2]) } : null;
+}
+
+/** One card of a puzzle poster, cut from the poster (2:3, edge trimmed), as a canvas `w` × `h` px. */
+export function puzzleCardCanvas(src: HTMLImageElement, card: number, w: number, h: number): HTMLCanvasElement {
+  // the poster as 2:3, centred, less its rounded edge
+  const ratio = 2 / 3;
+  let pw = src.naturalWidth;
+  let ph = src.naturalHeight;
+  if (pw / ph > ratio) pw = ph * ratio;
+  else ph = pw / ratio;
+  const left = (src.naturalWidth - pw) / 2 + pw * PUZZLE_EDGE;
+  const top = (src.naturalHeight - ph) / 2 + ph * PUZZLE_EDGE;
+  const cw = (pw * (1 - 2 * PUZZLE_EDGE)) / 3;
+  const ch = (ph * (1 - 2 * PUZZLE_EDGE)) / 3;
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("This browser couldn't draw the puzzle card");
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(src, left + (card % 3) * cw, top + Math.floor(card / 3) * ch, cw, ch, 0, 0, w, h);
+  return canvas;
+}
+
+/** One card of a puzzle poster as a picture (for the sheet layout, which draws pictures). */
+export function puzzleCardImage(src: HTMLImageElement, card: number, longPx = 1800): Promise<HTMLImageElement> {
+  const canvas = puzzleCardCanvas(src, card, Math.round((longPx * 2) / 3), longPx);
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("Couldn't cut the puzzle card"));
+    img.src = canvas.toDataURL("image/jpeg", 0.95);
+  });
+}
+
+/** A PDF of several pages, each one JPEG filling a page of its own size (mm). */
+function pagesPdf(pages: { jpeg: Uint8Array; pixels: { w: number; h: number }; mm: { w: number; h: number } }[]): Blob {
+  const encoder = new TextEncoder();
+  const parts: Uint8Array<ArrayBuffer>[] = [];
+  const offsets: number[] = [];
+  let length = 0;
+  const add = (bytes: Uint8Array) => {
+    parts.push(new Uint8Array(bytes));
+    length += bytes.length;
+  };
+  const text = (s: string) => add(encoder.encode(s));
+  const object = (n: number, head: string, stream?: Uint8Array) => {
+    offsets[n] = length;
+    text(`${n} 0 obj\n${head}\n`);
+    if (stream) {
+      text("stream\n");
+      add(stream);
+      text("\nendstream\n");
+    }
+    text("endobj\n");
+  };
+  const count = pages.length;
+  const pageObj = (i: number) => 3 + i * 3;
+  text("%PDF-1.4\n");
+  object(1, "<< /Type /Catalog /Pages 2 0 R >>");
+  object(2, `<< /Type /Pages /Kids [${pages.map((_, i) => `${pageObj(i)} 0 R`).join(" ")}] /Count ${count} >>`);
+  pages.forEach((p, i) => {
+    const w = (p.mm.w / MM_PER_IN) * 72;
+    const h = (p.mm.h / MM_PER_IN) * 72;
+    const n = pageObj(i);
+    const draw = encoder.encode(`q ${w} 0 0 ${h} 0 0 cm /Art Do Q`);
+    object(n, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${w} ${h}] /Resources << /XObject << /Art ${n + 1} 0 R >> >> /Contents ${n + 2} 0 R >>`);
+    object(n + 1, `<< /Type /XObject /Subtype /Image /Width ${p.pixels.w} /Height ${p.pixels.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${p.jpeg.length} >>`, p.jpeg);
+    object(n + 2, `<< /Length ${draw.length} >>`, draw);
+  });
+  const total = 3 + count * 3;
+  const xref = length;
+  text(`xref\n0 ${total}\n0000000000 65535 f \n`);
+  for (let n = 1; n < total; n++) text(`${String(offsets[n]).padStart(10, "0")} 00000 n \n`);
+  text(`trailer\n<< /Size ${total} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+  return new Blob(parts, { type: "application/pdf" });
+}
+
+async function jpegOf(canvas: HTMLCanvasElement): Promise<Uint8Array> {
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.95));
+  if (!blob) throw new Error("This device couldn't make the print file");
+  return new Uint8Array(await blob.arrayBuffer());
+}
+
+/**
+ * A puzzle poster's print file: page 1 is the layout guide (the poster with its
+ * 9 numbered cards), pages 2–10 are cards 1–9 at their exact print size, 300 dpi.
+ * `cardInches` is a card's long side (6 = 4 × 6 in, 9 = 6 × 9 in).
+ */
+export async function puzzlePdf(src: HTMLImageElement, cardInches: number, title: string): Promise<Blob> {
+  const mm = { w: ((cardInches * 2) / 3) * MM_PER_IN, h: cardInches * MM_PER_IN };
+  const px = { w: Math.round(((cardInches * 2) / 3) * PRINT_DPI), h: Math.round(cardInches * PRINT_DPI) };
+  const pages: { jpeg: Uint8Array; pixels: { w: number; h: number }; mm: { w: number; h: number } }[] = [];
+
+  const guide = puzzleGuideCanvas(src, cardInches, title);
+  pages.push({ jpeg: await jpegOf(guide), pixels: px, mm });
+
+  for (let card = 0; card < 9; card++) {
+    pages.push({ jpeg: await jpegOf(puzzleCardCanvas(src, card, px.w, px.h)), pixels: px, mm });
+  }
+  return pagesPdf(pages);
+}
+
+
+/** The puzzle's layout guide at a card's size: the poster, its grid and the card numbers. */
+function puzzleGuideCanvas(src: HTMLImageElement, cardInches: number, title: string): HTMLCanvasElement {
+  const px = { w: Math.round(((cardInches * 2) / 3) * PRINT_DPI), h: Math.round(cardInches * PRINT_DPI) };
+  const guide = document.createElement("canvas");
+  guide.width = px.w;
+  guide.height = px.h;
+  const g = guide.getContext("2d");
+  if (!g) throw new Error("This browser couldn't draw the guide");
+  g.fillStyle = "#fff";
+  g.fillRect(0, 0, px.w, px.h);
+  const pad = px.w * 0.08;
+  const boardW = px.w - pad * 2;
+  const boardH = boardW * 1.5;
+  const boardTop = px.h * 0.16;
+  g.fillStyle = "#111";
+  g.font = `bold ${Math.round(px.w * 0.05)}px sans-serif`;
+  g.textAlign = "center";
+  g.fillText("Puzzle poster · layout", px.w / 2, px.h * 0.07);
+  g.font = `${Math.round(px.w * 0.035)}px sans-serif`;
+  g.fillText(title.slice(0, 48), px.w / 2, px.h * 0.115);
+  const cw = boardW / 3;
+  const chh = boardH / 3;
+  for (let card = 0; card < 9; card++) {
+    const x = pad + (card % 3) * cw;
+    const y = boardTop + Math.floor(card / 3) * chh;
+    g.drawImage(puzzleCardCanvas(src, card, Math.round(cw), Math.round(chh)), x, y, cw, chh);
+    g.strokeStyle = "#fff";
+    g.lineWidth = px.w * 0.006;
+    g.strokeRect(x, y, cw, chh);
+    g.fillStyle = "rgba(0,0,0,0.6)";
+    g.beginPath();
+    g.arc(x + cw / 2, y + chh / 2, px.w * 0.045, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = "#fff";
+    g.font = `bold ${Math.round(px.w * 0.05)}px sans-serif`;
+    g.textBaseline = "middle";
+    g.fillText(String(card + 1), x + cw / 2, y + chh / 2);
+    g.textBaseline = "alphabetic";
+  }
+  g.fillStyle = "#555";
+  g.font = `${Math.round(px.w * 0.03)}px sans-serif`;
+  g.fillText(`9 cards · ${formatLong(cardInches)} each · number = card file`, px.w / 2, boardTop + boardH + px.h * 0.05);
+  return guide;
+}
+
+/** "4 × 6 in" for a card's long side. */
+function formatLong(inches: number): string {
+  return `${Math.round(((inches * 2) / 3) * 10) / 10} × ${inches} in`;
+}
+
+/** A plain ZIP (stored, not compressed: JPEGs don't shrink) of the given files. */
+function zipFiles(files: { name: string; data: Uint8Array }[]): Blob {
+  const table = new Uint32Array(256).map((_, n) => {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    return c >>> 0;
+  });
+  const crc32 = (d: Uint8Array) => {
+    let c = 0xffffffff;
+    for (let i = 0; i < d.length; i++) c = table[(c ^ d[i]) & 0xff] ^ (c >>> 8);
+    return (c ^ 0xffffffff) >>> 0;
+  };
+  const enc = new TextEncoder();
+  const parts: Uint8Array<ArrayBuffer>[] = [];
+  const central: Uint8Array<ArrayBuffer>[] = [];
+  let offset = 0;
+  for (const f of files) {
+    const name = enc.encode(f.name);
+    const crc = crc32(f.data);
+    const local = new DataView(new ArrayBuffer(30));
+    local.setUint32(0, 0x04034b50, true);
+    local.setUint16(4, 20, true);
+    local.setUint32(14, crc, true);
+    local.setUint32(18, f.data.length, true);
+    local.setUint32(22, f.data.length, true);
+    local.setUint16(26, name.length, true);
+    parts.push(new Uint8Array(local.buffer), new Uint8Array(name), new Uint8Array(f.data));
+    const dir = new DataView(new ArrayBuffer(46));
+    dir.setUint32(0, 0x02014b50, true);
+    dir.setUint16(4, 20, true);
+    dir.setUint16(6, 20, true);
+    dir.setUint32(16, crc, true);
+    dir.setUint32(20, f.data.length, true);
+    dir.setUint32(24, f.data.length, true);
+    dir.setUint16(28, name.length, true);
+    dir.setUint32(42, offset, true);
+    central.push(new Uint8Array(dir.buffer), new Uint8Array(name));
+    offset += 30 + name.length + f.data.length;
+  }
+  const size = central.reduce((n, p) => n + p.length, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true);
+  end.setUint16(8, files.length, true);
+  end.setUint16(10, files.length, true);
+  end.setUint32(12, size, true);
+  end.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, new Uint8Array(end.buffer)], { type: "application/zip" });
+}
+
+/**
+ * A puzzle poster's print files as a ZIP: card-1.jpg … card-9.jpg, each one card
+ * at its print size (300 dpi), and layout-guide.jpg showing where each goes.
+ * `cardInches` is a card's long side (6 = 4 × 6 in, 9 = 6 × 9 in).
+ */
+export async function puzzleZip(src: HTMLImageElement, cardInches: number, title: string): Promise<Blob> {
+  const px = { w: Math.round(((cardInches * 2) / 3) * PRINT_DPI), h: Math.round(cardInches * PRINT_DPI) };
+  const files: { name: string; data: Uint8Array }[] = [];
+  for (let card = 0; card < 9; card++) {
+    files.push({ name: `card-${card + 1}.jpg`, data: await jpegOf(puzzleCardCanvas(src, card, px.w, px.h)) });
+  }
+  files.push({ name: "layout-guide.jpg", data: await jpegOf(puzzleGuideCanvas(src, cardInches, title)) });
+  return zipFiles(files);
+}

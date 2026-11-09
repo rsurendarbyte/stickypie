@@ -1,6 +1,7 @@
 "use client";
 
 import ProductCard from "./product-card";
+import { usePuzzleLead } from "@/lib/puzzle-mix";
 import ProductCardSkeleton from "./product-card-skeleton";
 import VirtualGrid from "./virtual-grid";
 import { useLiveCatalog, type Catalog } from "@/lib/live-catalog";
@@ -21,7 +22,8 @@ const POSTER_GRID = "mt-5 grid grid-cols-2 gap-x-3 gap-y-5 sm:gap-x-4 sm:gap-y-7
 function PosterGrid({ surface, posters }: { surface: Surface; posters: Product[] }) {
   const seed = useDaySeed();
   const walls = posters.filter(isPosterPack);
-  const singles = posters.filter((p) => !isPosterPack(p));
+  // a puzzle poster card first
+  const singles = usePuzzleLead()(posters.filter((p) => !isPosterPack(p)));
   return (
     <div className="@container">
       {walls.length > 0 && (
@@ -46,6 +48,7 @@ function PosterGrid({ surface, posters }: { surface: Surface; posters: Product[]
 export default function SurfaceGrid({ surface, initial }: { surface: Surface; initial: Catalog }) {
   const { categories, products, loaded } = useLiveCatalog(initial);
   useWindowScrollMemory(loaded);
+  const mix = usePuzzleLead();
 
   if (!loaded && products.length === 0) {
     return (
@@ -63,7 +66,7 @@ export default function SurfaceGrid({ surface, initial }: { surface: Surface; in
     <>
       {matched.length > 0 && (
         <div className={`mt-8 ${GRID}`}>
-          {matched.map((p) => (
+          {mix(matched).map((p) => (
             <ProductCard key={p.id} product={p} width="w-full" />
           ))}
         </div>
@@ -74,7 +77,7 @@ export default function SurfaceGrid({ surface, initial }: { surface: Surface; in
             {matched.length > 0 ? `More stickers for your ${surface.noun}` : `Stickers for your ${surface.noun}`}
           </h2>
           <div className={`mt-5 ${GRID}`}>
-            {others.map((p) => (
+            {mix(others).map((p) => (
               <ProductCard key={p.id} product={p} width="w-full" />
             ))}
           </div>

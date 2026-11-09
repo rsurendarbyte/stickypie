@@ -108,7 +108,7 @@ export default function Nav() {
       <header
         className={`shift-with-cart fixed inset-x-0 top-0 z-40 transition-all duration-300 ${
           scrolled
-            ? "border-b border-line/80 bg-ink/80 backdrop-blur-xl"
+            ? "border-b border-line/80 bg-ink/95"
             : "bg-gradient-to-b from-white via-white/70 to-transparent"
         }`}
       >

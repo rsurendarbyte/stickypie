@@ -9,6 +9,7 @@ import { wallEffect } from "@/lib/wall-effects";
 import CustomRail from "./custom-rail";
 import LazyRail from "./lazy-rail";
 import ProductCard from "./product-card";
+import { usePuzzleLead } from "@/lib/puzzle-mix";
 import { RowHead } from "./row";
 import VirtualFeed, { type FeedItem } from "./virtual-feed";
 
@@ -68,6 +69,9 @@ function WallPosts({
   /** Show the blocks the posts didn't reach after the last post. */
   leftovers: boolean;
 }) {
+  // puzzle poster cards first and between the walls, in the wall card's shape
+  const lead = usePuzzleLead();
+  const posts = useMemo(() => lead(walls), [lead, walls]);
   const items = useMemo(() => {
     const out: FeedItem[] = [];
     // Same as the rail cards' width. Every row holds this height, so Back lands on the same post.
@@ -82,7 +86,7 @@ function WallPosts({
       ),
     });
     const postHeight = window.innerWidth - 32 + POST_TEXT + GAP;
-    walls.forEach((product, i) => {
+    posts.forEach((product, i) => {
       out.push({
         key: product.id,
         height: postHeight,
@@ -96,10 +100,10 @@ function WallPosts({
       if (Number.isInteger(at) && at < breaks.length) out.push(block(at));
     });
     if (leftovers) {
-      for (let i = Math.floor(walls.length / POSTS_PER_BREAK); i < breaks.length; i++) out.push(block(i));
+      for (let i = Math.floor(posts.length / POSTS_PER_BREAK); i < breaks.length; i++) out.push(block(i));
     }
     return out;
-  }, [walls, breaks, seed, leftovers]);
+  }, [posts, breaks, seed, leftovers]);
   return <VirtualFeed items={items} />;
 }
 
@@ -176,9 +180,11 @@ export default function WallFeed({
 
 /** Single posters between the walls of the Walls page; the rest are one chip or tap away. */
 export function SinglePostersRail({ posters }: { posters: Product[] }) {
+  // a puzzle poster card first
+  const mix = usePuzzleLead();
   return (
     <LazyRail eager title="Single posters" href={`${categoryPath("poster-packs")}?theme=${SINGLE_POSTERS}`}>
-      {posters.slice(0, 24).map((product) => (
+      {mix(posters.slice(0, 24)).map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}
     </LazyRail>
@@ -205,6 +211,7 @@ export function WallsPageFeed({
 }) {
   const home = useHomePage();
   const { rails } = useHomeRails([]);
+  const mix = usePuzzleLead();
   const breaks = useMemo(() => {
     if (plain) return [];
     const on = (id: string) => home.sections.some((s) => s.id === id && s.visible);
@@ -212,7 +219,7 @@ export function WallsPageFeed({
     const rows = on("rails")
       ? resolveHomeRails(rails, singles, categories, seed).map((rail) => (
           <LazyRail key={rail.key} eager title={rail.title} href={rail.href}>
-            {rail.items.map((product) => (
+            {mix(rail.items).map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </LazyRail>
@@ -220,7 +227,7 @@ export function WallsPageFeed({
       : [];
     const blocks = feedBreaks(rows, on("custom") ? <CustomRail /> : null);
     return first ? [first, ...blocks] : blocks;
-  }, [plain, first, home.sections, rails, products, categories, seed]);
+  }, [plain, first, home.sections, rails, products, categories, seed, mix]);
   return (
     <div className="mt-3 -mx-4">
       <WallPosts walls={walls} breaks={breaks} seed={seed} leftovers={false} />

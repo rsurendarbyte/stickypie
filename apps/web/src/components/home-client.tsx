@@ -5,6 +5,7 @@ import { Children, Fragment } from "react";
 import Hero from "./hero";
 import type { FanPoster } from "@/lib/hero-fan";
 import ProductCard from "./product-card";
+import { usePuzzleLead } from "@/lib/puzzle-mix";
 import ProductCardSkeleton from "./product-card-skeleton";
 import Row from "./row";
 import CustomRail from "./custom-rail";
@@ -43,6 +44,8 @@ export default function HomeClient({
   festivalPages: string[];
   fanPosters: FanPoster[];
 }) {
+  // Puzzle poster cards between the cards of every row.
+  const mix = usePuzzleLead();
   const catalog = useLiveCatalog(initial);
   const { rails, loaded: railsLoaded } = useHomeRails(initialRails);
   const { festivals } = useFestivals(initialFestivals);
@@ -163,7 +166,7 @@ export default function HomeClient({
         title={`${f.name} · ${festivalShortDate(f)}`}
         href={festivalPages.includes(f.slug) ? `/${f.slug}` : `/stickers?q=${encodeURIComponent(f.tags[0] ?? f.name)}`}
       >
-        {items.map((product) => (
+        {mix(items).map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
       </LazyRail>
@@ -172,7 +175,7 @@ export default function HomeClient({
     // scrolls near them.
     rails: homeRails.map((rail, i) => (
       <LazyRail key={rail.key} eager={Boolean(feedAt) || i < 2} title={rail.title} href={rail.href}>
-        {rail.items.map((product) => (
+        {mix(rail.items).map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
       </LazyRail>
@@ -192,14 +195,14 @@ export default function HomeClient({
   const sections: Record<HomeSectionId, React.ReactNode> = {
     walls: feedAt ? feedAt === "walls" && feed : wallMix.length > 0 && (
       <LazyRail eager wide title={home.wallsTitle} href={categoryPath("poster-packs")}>
-        {wallMix.map((product) => (
+        {mix(wallMix).map((product) => (
           <ProductCard key={product.id} product={product} width={WALL_CARD_WIDTH} wallEffect={wallEffect(0, seed)} />
         ))}
       </LazyRail>
     ),
     themes: feedAt ? feedAt === "themes" && feed : wallRows.map((row, i) => (
       <LazyRail key={row.id} eager={i < 1} wide title={row.title} href={`${categoryPath("poster-packs")}?theme=${row.id}`}>
-        {row.items.map((product) => (
+        {mix(row.items).map((product) => (
           <ProductCard key={product.id} product={product} width={WALL_CARD_WIDTH} wallEffect={wallEffect(i + 1, seed)} />
         ))}
       </LazyRail>

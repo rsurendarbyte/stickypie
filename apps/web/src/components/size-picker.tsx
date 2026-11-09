@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { PosterFinish, Product, ProductSize } from "@stickypie/shared";
-import { formatINR, formatInches, priceForSize, productSizes } from "@stickypie/shared";
+import { PUZZLE_CARDS, formatINR, formatInches, priceForSize, productSizes, puzzleBuildInches, withFinish } from "@stickypie/shared";
 import { isMiniPoster, isPosterPack, sizeChipLabel } from "@/lib/poster";
 import { getFinish, useFinish } from "@/lib/poster-finish";
 import type { CartProduct } from "./cart-context";
@@ -14,8 +14,9 @@ export function defaultSize(product: Pick<Product, "sizes">): number | null {
   return [...sizes].sort((a, b) => a.price - b.price || a.inches - b.inches)[0].inches;
 }
 
-/** Selected size (lowest price first) + its price, for any buy surface. */
-export function useSizeChoice(product: Product) {
+/** Selected size (lowest price first) + its price, for any buy surface. A puzzle poster has its own prices. */
+export function useSizeChoice(base: Product, finish?: PosterFinish) {
+  const product = withFinish(base, finish);
   const sizes = productSizes(product);
   const [picked, setPicked] = useState<number | null>(null);
   const size =
@@ -27,16 +28,26 @@ export function useSizeChoice(product: Product) {
   return { sizes, size, setSize: setPicked, price: priced.price, compareAtPrice: priced.compareAtPrice };
 }
 
-/** The cart line's finish for this product: "sticker" for a mini poster bought as one. */
-export function useLineFinish(product: Product): PosterFinish | undefined {
+/**
+ * The cart line's finish for this product: "sticker" or "puzzle" for a mini
+ * poster bought as one. Cards pass `puzzle: false`: they always sell the poster
+ * itself (puzzle posters have cards of their own).
+ */
+export function useLineFinish(product: Product, { puzzle = true }: { puzzle?: boolean } = {}): PosterFinish | undefined {
   const finish = useFinish();
-  return finish === "sticker" && isMiniPoster(product) && !isPosterPack(product) ? finish : undefined;
+  if (!isMiniPoster(product) || isPosterPack(product)) return undefined;
+  return finish === "sticker" || (finish === "puzzle" && puzzle) ? finish : undefined;
 }
 
-/** What goes into the cart for this product in this size. */
-export function toCartProduct(product: Product, size: number | null, price: number): CartProduct {
+/** "12×18 puzzle" — the poster a puzzle's 9 cards build. */
+export function puzzleChipLabel(product: Product, cardInches: number): string {
+  return `${sizeChipLabel(product, puzzleBuildInches(cardInches))}`;
+}
+
+/** What goes into the cart for this product in this size (finish: the page's choice unless given). */
+export function toCartProduct(product: Product, size: number | null, price: number, chosen?: PosterFinish): CartProduct {
   const mini = isMiniPoster(product) && !isPosterPack(product);
-  const finish = getFinish();
+  const finish = chosen ?? getFinish();
   return {
     productId: product.id,
     slug: product.slug,
@@ -51,7 +62,9 @@ export function toCartProduct(product: Product, size: number | null, price: numb
         ? null
         : isPosterPack(product)
           ? `${sizeChipLabel(product, size)} in posters`
-          : mini
+          : mini && finish === "puzzle"
+            ? `${puzzleChipLabel(product, size)} in puzzle · ${PUZZLE_CARDS} cards of ${sizeChipLabel(product, size)}`
+            : mini
             ? `${sizeChipLabel(product, size)} in · ${finish === "sticker" ? "Sticker" : "Wall poster"}`
             : `${formatInches(size)}″`,
     ...(mini ? { finish } : {}),

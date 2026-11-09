@@ -2,7 +2,7 @@
 
 import PageLink from "./page-link";
 import { useState } from "react";
-import { Check, Frame, ImagePlus, Ruler, ShoppingBag } from "lucide-react";
+import { Check, Frame, ImagePlus, Puzzle, Ruler, ShoppingBag } from "lucide-react";
 import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR } from "@stickypie/shared";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
@@ -10,6 +10,9 @@ import WallStage from "./wall-stage";
 import type { WallEffect } from "@/lib/wall-effects";
 import { isMiniPoster, isPosterPack, isWallSetup, posterSetName, sizeChipLabel, wallBackground, wallPosterSizes } from "@/lib/poster";
 import { useHomePage } from "@/lib/live-catalog";
+import { PuzzleLoop, PuzzlePlayLink, SplitPicture } from "./poster-puzzle";
+import { isPuzzleEntry, isWidePuzzleEntry, puzzleProduct } from "@/lib/puzzle-mix";
+import { launchOf } from "@/lib/puzzle-launch";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
@@ -35,7 +38,10 @@ export function posterTitle(name: string) {
 const CARD_WIDTH = "w-[min(60vw,15rem)] shrink-0 sm:w-48 md:w-52";
 
 export default function ProductCard({ product, width = CARD_WIDTH, wallEffect }: { product: Product; width?: string; wallEffect?: WallEffect }) {
-  return isPosterPack(product) ? (
+  return isPuzzleEntry(product) ? (
+    // in a wall set row it takes the wall card's shape, so the row stays even
+    isWidePuzzleEntry(product) ? <PuzzleWallCard product={puzzleProduct(product)} width={width} /> : <PuzzleCard product={puzzleProduct(product)} width={width} />
+  ) : isPosterPack(product) ? (
     <PackCard product={product} width={width} wallEffect={wallEffect} />
   ) : (
     <StickerCard product={product} width={width} />
@@ -46,8 +52,8 @@ function StickerCard({ product, width }: { product: Product; width: string }) {
   const poster = isMiniPoster(product);
   const posterRatio = Math.max(product.aspectRatio ?? 0.6, POSTER_MIN_RATIO);
   const { add, items } = useCart();
+  const finish = useLineFinish(product, { puzzle: false });
   const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product);
-  const finish = useLineFinish(product);
   const inCart = items.find((item) => lineKey(item) === lineKey({ productId: product.id, size, finish }));
   const inCartAnySize = items
     .filter((item) => item.productId === product.id)
@@ -62,7 +68,7 @@ function StickerCard({ product, width }: { product: Product; width: string }) {
 
   function addToCart() {
     if (out) return;
-    add(toCartProduct(product, size, price));
+    add(toCartProduct(product, size, price, finish ?? "poster"));
   }
 
   return (
@@ -226,6 +232,110 @@ function StickerCard({ product, width }: { product: Product; width: string }) {
           )}
         </button>
         )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A mini poster sold as a puzzle poster: the picture split into its 9 cards
+ * (solving itself now and then), the puzzle price, and Play & win instead of
+ * Add to cart. Opens the poster page with Puzzle picked.
+ */
+function PuzzleCard({ product, width }: { product: Product; width: string }) {
+  const { price } = useSizeChoice(product, "puzzle");
+  const out = product.stock === 0;
+  const href = `/sticker/${product.slug}?finish=puzzle`;
+  const src = product.thumbUrl ?? product.imageUrl;
+  const ratio = Math.max(product.aspectRatio ?? 2 / 3, POSTER_MIN_RATIO);
+  return (
+    <div data-puzzle-scope="" className={`group relative snap-start overflow-hidden rounded-2xl border border-brand/40 bg-white transition-all duration-300 hover:-translate-y-1 hover:border-brand/60 hover:shadow-[0_22px_44px_-16px_rgba(16,24,40,0.22)] ${width}`}>
+      <div className="relative">
+      <PageLink href={href} className="puzzle-card-stage relative block aspect-[4/5] overflow-hidden" tabIndex={-1} aria-hidden>
+        <span className="absolute inset-x-4 top-9 bottom-3 grid place-items-center">
+          <span className="relative block max-h-full max-w-full" style={ratio >= POSTER_STAGE_RATIO ? { width: "100%", aspectRatio: ratio } : { height: "100%", aspectRatio: ratio }}>
+            <SplitPicture src={src} />
+            {!out && <PuzzleLoop src={src} />}
+          </span>
+        </span>
+        {/* says "puzzle" even between its animations; static, so free */}
+        <span className="puzzle-cta absolute top-2 left-2 z-[5] inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+          <Puzzle className="size-3" /> 9-piece puzzle
+        </span>
+      </PageLink>
+      </div>
+      <div className="px-3 pt-2.5">
+        <PageLink href={href} className="block">
+          <p className="truncate text-[13px] font-medium text-snow/90">{posterTitle(product.name)}</p>
+        </PageLink>
+        <p className="mt-1 h-[18px] truncate text-[11px] text-fog">
+          Puzzle poster · from <b className="text-gold">{formatINR(price)}</b>
+        </p>
+        <p className="mt-2 flex h-7 items-center gap-2 text-[11px] font-semibold text-fog">
+          <span>🧩 9 pieces</span>
+          <span>⏱ ~30 sec</span>
+        </p>
+      </div>
+      <div className="flex p-3 pt-2">
+        <PuzzlePlayLink poster={launchOf(product)} compact className="h-10 w-full px-1.5 sm:h-11" />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * A puzzle poster in a wall set row: the wall card's layout (white card, square
+ * picture, name, two lines, button), with the poster as its 9 cards and Play & win.
+ */
+function PuzzleWallCard({ product, width }: { product: Product; width: string }) {
+  const { price } = useSizeChoice(product, "puzzle");
+  const out = product.stock === 0;
+  const { wallCard: design } = useHomePage();
+  const href = `/sticker/${product.slug}?finish=puzzle`;
+  const src = product.thumbUrl ?? product.imageUrl;
+  const ratio = product.aspectRatio && product.aspectRatio > 0.3 ? product.aspectRatio : 2 / 3;
+  return (
+    <div
+      data-puzzle-scope=""
+      className={`rail-card-drawn group relative snap-start bg-white p-1.5 transition-shadow duration-300 sm:p-2 ${design.shadow ? "shadow-[0_1px_3px_rgba(16,24,40,0.06),0_12px_24px_-16px_rgba(16,24,40,0.28)] hover:shadow-[0_2px_6px_rgba(16,24,40,0.08),0_18px_32px_-16px_rgba(16,24,40,0.36)]" : ""} ring-1 ring-brand/30 ${width}`}
+      style={{ borderRadius: design.radius }}
+    >
+      <div className="relative">
+      <PageLink
+        href={href}
+        className="puzzle-card-stage relative block aspect-square overflow-hidden"
+        style={{ borderRadius: Math.max(design.radius - 6, 0) }}
+        tabIndex={-1}
+        aria-hidden
+      >
+        {/* below the puzzle tag, so the tag never sits on the poster */}
+        <span className="absolute inset-x-0 top-10 bottom-4 grid place-items-center">
+          <span className="relative block h-full transition-transform duration-300 group-hover:scale-[1.03]" style={{ aspectRatio: ratio }}>
+            <SplitPicture src={src} />
+            {!out && <PuzzleLoop src={src} />}
+          </span>
+        </span>
+        {/* says "puzzle" even between its animations; static, so free */}
+        <span className="puzzle-cta absolute top-2 left-2 z-[5] inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
+          <Puzzle className="size-3" /> 9-piece puzzle
+        </span>
+      </PageLink>
+      </div>
+
+      <div className="mt-2.5 px-1.5">
+        <PageLink href={href} className="block after:absolute after:inset-0">
+          <p className="truncate font-display text-[15px] leading-tight font-bold text-snow">{posterTitle(product.name)}</p>
+        </PageLink>
+        {/* as tall as a wall card's chip row, so rows and the phone feed keep one height */}
+        <p className="mt-0.5 flex min-h-[19px] items-center truncate text-[11px] text-fog">
+          <span className="truncate">
+            Puzzle poster · 9 cards · from <b className="text-gold">{formatINR(price)}</b>
+          </span>
+        </p>
+        <p className="truncate text-[11px] font-semibold text-fog">Solve it in ~30 sec, get 10% off your order</p>
+      </div>
+      <div className="mt-2 px-1.5 pb-1.5">
+        <PuzzlePlayLink poster={launchOf(product)} className="h-10 w-full" />
       </div>
     </div>
   );

@@ -53,7 +53,8 @@ export default function TrueSizePreview({
   const [calibrated, setCalibrated] = useState(false);
   const [auto, setAuto] = useState<PpiEstimate>({ pxPerInch: 96, source: "estimate" });
   const [calibrating, setCalibrating] = useState(false);
-  const [fit, setFit] = useState(false);
+  // null: not chosen yet, so it fits the screen when the real size wouldn't
+  const [userFit, setUserFit] = useState<boolean | null>(null);
   const [ratio, setRatio] = useState<number | null>(aspectRatio);
   const stage = useRef<HTMLDivElement>(null);
   const [stageBox, setStageBox] = useState({ w: 0, h: 0 });
@@ -128,7 +129,11 @@ export default function TrueSizePreview({
 
   // A new size, shape or fit starts again at actual size.
   const inches = size ?? sizes[sizes.length - 1]?.inches ?? null;
-  useEffect(() => resetZoom(), [open, inches, fit]);
+  useEffect(() => resetZoom(), [open, inches, userFit]);
+  // each opening starts fitted when the real size won't fit the screen
+  useEffect(() => {
+    if (open) setUserFit(null);
+  }, [open]);
 
   // Mouse wheel / trackpad pinch zooms (not the page): needs a non-passive listener.
   useEffect(() => {
@@ -191,6 +196,7 @@ export default function TrueSizePreview({
   const needW = realW + 80;
   const needH = realH + 110;
   const tooBig = stageBox.w > 0 && (needW > stageBox.w || needH > stageBox.h);
+  const fit = userFit ?? tooBig;
   const scale = fit && tooBig ? Math.min(stageBox.w / needW, stageBox.h / needH) : 1;
   const cell = ppi * scale * zoom.z;
 
@@ -200,7 +206,7 @@ export default function TrueSizePreview({
     if (!open || !el) return;
     el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2;
     el.scrollTop = (el.scrollHeight - el.clientHeight) / 2;
-  }, [open, inches, fit, ppi, ratio]);
+  }, [open, inches, userFit, ppi, ratio]);
 
   const grid = useMemo(
     () => ({
@@ -381,7 +387,7 @@ export default function TrueSizePreview({
         {tooBig && (
           <button
             type="button"
-            onClick={() => setFit((v) => !v)}
+            onClick={() => setUserFit(!fit)}
             className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-3 py-1.5 font-semibold text-snow transition-colors hover:border-brand/50"
           >
             {fit ? <Maximize2 className="size-3.5" /> : <Minimize2 className="size-3.5" />}
