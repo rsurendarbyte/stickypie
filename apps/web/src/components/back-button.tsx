@@ -2,6 +2,7 @@
 
 import { ArrowLeft } from "lucide-react";
 import { markBackNavigation } from "@/lib/scroll-memory";
+import { backGoesHome } from "@/lib/puzzle-launch";
 import { NAV_COUNT_KEY } from "./nav-tracker";
 
 /**
@@ -12,6 +13,9 @@ import { NAV_COUNT_KEY } from "./nav-tracker";
 export default function BackButton({ fallback = "/stickers" }: { fallback?: string }) {
 
   function goBack() {
+    // closed a game opened from outside the shop: home, not back into the game
+    const slug = location.pathname.match(/^\/sticker\/([^/]+)/)?.[1];
+    if (slug && backGoesHome(slug)) return window.location.assign("/");
     let visited = 0;
     try {
       visited = Number(sessionStorage.getItem(NAV_COUNT_KEY) ?? "0");

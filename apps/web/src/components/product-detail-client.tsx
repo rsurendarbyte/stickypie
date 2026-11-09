@@ -16,7 +16,7 @@ import { recordProductView, useFeatures, useLiveProduct, useRelatedProducts, use
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
 import { rememberInterest } from "@/lib/interest";
 import BackButton from "./back-button";
-import StickerStepper, { type Steps, useStepSwipe } from "./sticker-stepper";
+import StickerStepper, { type Steps, useRelatedSteps, useStepSwipe } from "./sticker-stepper";
 import ProductCard from "./product-card";
 import ProductCardSkeleton from "./product-card-skeleton";
 import ProductDetails from "./product-details";
@@ -68,11 +68,16 @@ export default function ProductDetailClient({
   useEffect(() => recordProductView(initial.id), [initial.id]);
   useEffect(() => watchImageSaves(initial.id), [initial.id]);
   // Live and on-sale only (never the build-time list).
+  // a fresh related order on every visit (More like this and the Next button)
+  const [visitSeed] = useState(() => Math.floor(Math.random() * 1e9));
   const { products: moreLikeThis, loaded: relatedLoaded } = useRelatedProducts(
     product.categoryId,
     product.id,
-    related
+    related,
+    visitSeed
   );
+  // page view Next: the most alike poster; Previous: the one Next came from
+  const relatedSteps = useRelatedSteps(steps, moreLikeThis[0] ?? null, product);
 
   const rotate = rotationFor(product.slug);
   // Same sticker sheet / cutting mat look as the home hero — new every load.
@@ -87,7 +92,7 @@ export default function ProductDetailClient({
   const [trueSize, setTrueSize] = useState(false);
   const [artEl, setArtEl] = useState<HTMLImageElement | null>(null);
   const features = useFeatures();
-  const swipe = useStepSwipe(steps);
+  const swipe = useStepSwipe(relatedSteps);
   const low = product.stock !== null && product.stock > 0 && product.stock <= LOW_STOCK_THRESHOLD;
   // A pack's picture is the whole wall, so "actual size" would mislead — its posters are listed instead.
   const isPack = isPosterPack(product) || packPosters.length > 0;
@@ -225,7 +230,7 @@ export default function ProductDetailClient({
           >
             <Share2 className="size-4" /> {isPuzzle ? "Challenge a friend" : "Share"}
           </button>
-          {steps && <StickerStepper steps={steps} />}
+          {relatedSteps && <StickerStepper steps={relatedSteps} />}
         </div>
       </div>
 
@@ -487,7 +492,7 @@ export default function ProductDetailClient({
             href={category ? `/stickers/${category.slug}` : "/stickers"}
           >
             {relatedLoaded
-              ? mixPuzzles(moreLikeThis).map((p) =>
+              ? (isPack ? mixPuzzles(moreLikeThis) : moreLikeThis).map((p) =>
                   isPack ? (
                     <ProductCard key={p.id} product={p} width={WALL_CARD_WIDTH} wallEffect={wallEffect(0, seed)} />
                   ) : (
