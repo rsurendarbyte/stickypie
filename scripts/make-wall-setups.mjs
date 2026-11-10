@@ -94,6 +94,7 @@ const PAINTS = {
   devotional: [CREAM, BLUSH, CLAY],
   motivational: [DUSTY_BLUE, WARM_GREY, BLUSH],
   retro: [CLAY, SAGE, CREAM],
+  festive: [CREAM, SAGE, BLUSH],
 };
 const paintFor = (theme, i) => {
   const list = PAINTS[theme] ?? [CREAM, DUSTY_BLUE, SAGE];

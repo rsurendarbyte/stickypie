@@ -4,6 +4,8 @@
 
 /** Rows of wall sets on the home page; a set says its row with the tag "wall theme:<id>". */
 export const WALL_THEMES = [
+  // Seasonal: its walls (row, mix, feed) show only while one of these festivals (admin → Festivals, by id) is on.
+  { id: "festive", title: "Christmas & New Year walls", festivals: ["christmas", "new-year"] },
   { id: "cars", title: "Car walls" },
   { id: "legends", title: "Legends walls" },
   { id: "ride", title: "Ride & adventure walls" },
@@ -13,6 +15,14 @@ export const WALL_THEMES = [
   { id: "motivational", title: "Motivational walls" },
   { id: "retro", title: "Retro walls" },
 ] as const;
+
+/** False for a wall of a seasonal theme (Christmas & New Year) while none of its festivals is on. */
+export function wallInSeason(tags: string[], onNow: ReadonlySet<string>): boolean {
+  for (const t of WALL_THEMES) {
+    if ("festivals" in t && tags.includes(`wall theme:${t.id}`)) return t.festivals.some((id) => onNow.has(id));
+  }
+  return true;
+}
 
 /** Tags that hold a wall's own data (layout, paint, theme), not words shoppers search: only code changes these. */
 export function isWallDataTag(tag: string) {

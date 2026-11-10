@@ -29,7 +29,7 @@ const SIZES = [
   { inches: 6, price: 60, compare_at_price: 150 },
   { inches: 9, price: 120, compare_at_price: 350 },
 ];
-const USES = ["car", "bike", "laptop", "bottle", "helmet", "fridge", "wall", "poster", "mini poster"];
+const USES = ["wall", "poster", "wall poster", "mini poster", "room decor"];
 
 const { url, key, args } = loadTargetEnv();
 const dry = args.includes("--dry");
@@ -98,7 +98,7 @@ for (const entry of list) {
     const row = {
       slug: entry.slug,
       name: `${entry.name} — Mini Poster`,
-      description: `${entry.about} — a mini poster for your car, bike, laptop, bottle, fridge or wall.`,
+      description: `${entry.about} — a mini poster on premium poster paper, for your wall.`,
       price: SIZES[0].price,
       compare_at_price: SIZES[0].compare_at_price,
       sizes: SIZES,
