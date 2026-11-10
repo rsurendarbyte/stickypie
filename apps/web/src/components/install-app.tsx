@@ -152,31 +152,29 @@ export default function InstallApp() {
     <div
       role="complementary"
       aria-labelledby="install-app-title"
-      className={`puzzle-win-up fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-[60] rounded-2xl border border-line bg-white p-3 shadow-xl ${forced ? "sm:inset-x-auto sm:right-6 sm:bottom-6 sm:w-96" : "sm:hidden"}`}
+      className={`puzzle-win-up fixed inset-x-3 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-[60] rounded-full border border-line bg-white py-1 pr-1 pl-1.5 shadow-lg ${forced ? "sm:inset-x-auto sm:right-6 sm:bottom-6 sm:w-80" : "sm:hidden"}`}
     >
-      <div className="flex items-center gap-3">
-        <img src="/icons/icon-192.png" alt="" className="size-10 shrink-0 rounded-xl" />
-        <div className="min-w-0 flex-1">
-          <p id="install-app-title" className="text-sm leading-tight font-bold">
-            Get the StickyPie app
+      {/* one slim row: icon, short line, Install (iPhone: the two taps), × */}
+      <div className="flex items-center gap-2">
+        <img src="/icons/icon-192.png" alt="" className="size-7 shrink-0 rounded-lg" />
+        {event ? (
+          <p id="install-app-title" className="min-w-0 flex-1 truncate text-[13px] font-bold">
+            Get the app
           </p>
-          <p className="text-xs text-fog">Faster, full screen, one tap away</p>
-        </div>
+        ) : (
+          <p id="install-app-title" className="flex min-w-0 flex-1 items-center gap-1 truncate text-xs">
+            Tap <Share className="size-3.5 shrink-0 text-[#007aff]" /> then <SquarePlus className="size-3.5 shrink-0" /> <b className="truncate">Add to Home Screen</b>
+          </p>
+        )}
         {event && (
-          <button type="button" onClick={install} className="peel-btn inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 text-sm font-bold">
-            <Download className="peel-icon size-4" /> Install
+          <button type="button" onClick={install} className="peel-btn inline-flex h-7 shrink-0 items-center gap-1 rounded-full px-2.5 text-xs font-bold">
+            <Download className="peel-icon size-3.5" /> Install
           </button>
         )}
-        <button type="button" onClick={later} aria-label="Close" className="grid size-8 shrink-0 place-items-center rounded-full text-fog">
-          <X className="size-4" />
+        <button type="button" onClick={later} aria-label="Close" className="grid size-7 shrink-0 place-items-center rounded-full text-fog">
+          <X className="size-3.5" />
         </button>
       </div>
-      {!event && (
-        // iPhone: no install button exists, so the two taps
-        <p className="mt-2 flex flex-wrap items-center gap-1 rounded-xl bg-panel px-2.5 py-2 text-xs">
-          Tap <Share className="size-3.5 text-[#007aff]" /> <b>Share</b>, then <SquarePlus className="size-3.5" /> <b>Add to Home Screen</b>
-        </p>
-      )}
     </div>
   );
 }
