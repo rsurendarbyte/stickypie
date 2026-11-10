@@ -37,9 +37,11 @@ export async function fetchPuzzleRound(): Promise<PuzzleRound | null> {
 
 /**
  * Asks the server for the prize after a solve, sending the round and the swaps
- * played (the server replays them); resolves to its expiry, or null.
+ * played (the server replays them). Resolves to the prize's expiry, "ended"
+ * when the offer is switched off (410), or "failed" when it couldn't be
+ * unlocked this time (weak network, or a game that had to mix without a round).
  */
-export async function claimPuzzlePrize(round: PuzzleRound | null, moves: [number, number][]): Promise<number | null> {
+export async function claimPuzzlePrize(round: PuzzleRound | null, moves: [number, number][]): Promise<number | "ended" | "failed"> {
   // a slow network mustn't leave "Unlocking your prize…" up for long: 6s a try, two tries
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
@@ -49,12 +51,13 @@ export async function claimPuzzlePrize(round: PuzzleRound | null, moves: [number
         body: JSON.stringify({ round: round?.round, moves }),
         signal: AbortSignal.timeout(6000),
       });
-      const data = (await res.json()) as { expires?: number };
+      if (res.status === 410) return "ended";
+      const data = (await res.json().catch(() => ({}))) as { expires?: number };
       window.dispatchEvent(new Event(CHANGED));
-      return res.ok && typeof data.expires === "number" ? data.expires : null;
+      return res.ok && typeof data.expires === "number" ? data.expires : "failed";
     } catch {
       // timed out or offline: try once more
     }
   }
-  return null;
+  return "failed";
 }

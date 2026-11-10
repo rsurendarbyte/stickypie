@@ -502,8 +502,11 @@ export function stickersForSurface(
     p.tags.some((t) => tags.has(t.toLowerCase())) || (p.categoryIds ?? []).some((id) => catIds.has(id));
   if (surface.puzzle) return { matched: products.filter(isSinglePoster), others: [] };
   if (surface.posters) return { matched: postersForSurface(products, fits), others: [] };
-  const matched = products.filter(fits);
-  const others = products.filter((p) => !fits(p));
+  // Sticker pages (car, bike, laptop, festivals…) list stickers only: mini
+  // posters are paper and share tags like "car", but don't go on a car.
+  const stickers = products.filter((p) => !isPoster(p));
+  const matched = stickers.filter(fits);
+  const others = stickers.filter((p) => !fits(p));
   return { matched, others };
 }
 

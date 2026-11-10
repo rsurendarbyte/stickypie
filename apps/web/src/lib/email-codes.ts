@@ -88,9 +88,31 @@ export async function issueCode(email: string): Promise<string> {
   return code;
 }
 
+/**
+ * Claims the next try on this code before it is compared: the count moves from
+ * N to N+1 only if it is still N (and the code is the same one), so parallel
+ * guesses can't all see "0 tries" — each try number is won by one request.
+ * Returns the row as it was before the claim, or null when the code is gone.
+ */
+async function claimTry(email: string): Promise<Row | null> {
+  for (let round = 0; round < 4; round++) {
+    const row = await load(email);
+    if (!row) return null;
+    if (row.attempts >= MAX_ATTEMPTS) return row;
+    const res = await rest(
+      `?email=eq.${encodeURIComponent(email)}&attempts=eq.${row.attempts}&code_hash=eq.${row.code_hash}`,
+      { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ attempts: row.attempts + 1 }) }
+    );
+    if (!res.ok) throw new Error(`email_verifications update failed (${res.status})`);
+    if (((await res.json()) as Row[]).length === 1) return row;
+    // another try took this number first: look again
+  }
+  throw new CodeError("Too many tries at once — wait a moment and try again.", 429);
+}
+
 /** Throws a CodeError unless `code` is the current, unexpired code for this email. */
 export async function checkCode(email: string, code: string): Promise<void> {
-  const row = await load(email);
+  const row = await claimTry(email);
   if (!row || new Date(row.expires_at).getTime() < Date.now()) {
     throw new CodeError("This code has expired — tap “Send a new code”.");
   }
@@ -100,10 +122,7 @@ export async function checkCode(email: string, code: string): Promise<void> {
   const a = Buffer.from(hash(email, code));
   const b = Buffer.from(row.code_hash);
   if (a.length !== b.length || !timingSafeEqual(a, b)) {
-    await rest(`?email=eq.${encodeURIComponent(email)}`, {
-      method: "PATCH",
-      body: JSON.stringify({ attempts: row.attempts + 1 }),
-    });
+    // this try was already counted by claimTry
     const left = MAX_ATTEMPTS - row.attempts - 1;
     throw new CodeError(
       left > 0 ? `That code isn't right — ${left} ${left === 1 ? "try" : "tries"} left.` : "Too many wrong tries — tap “Send a new code”."

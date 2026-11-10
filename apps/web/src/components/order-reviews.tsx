@@ -63,7 +63,7 @@ export default function OrderReviews({
             photoUrl: (r.photo_url as string | null) ?? null,
           }))
         )
-      ));
+      ), () => {}); // offline: the review boxes show empty; a refresh loads them
   }, [orderId]);
 
   useEffect(() => {

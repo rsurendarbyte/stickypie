@@ -7,7 +7,7 @@ import OrderSignIn from "@/components/order-sign-in";
 import PrintButton from "@/components/print-button";
 import RememberGuestOrder from "@/components/remember-guest-order";
 import { getDriver } from "@/lib/data";
-import { canViewOrder } from "@/lib/shopper";
+import { orderViewer } from "@/lib/shopper";
 import { PRIVATE_PAGE_ROBOTS } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +31,8 @@ export default async function InvoicePage({
   const [order, settings] = await Promise.all([driver.getOrder(id), driver.getSettings()]);
   if (!order) notFound();
   // Only the shopper who placed the order (a guest order: its key).
-  if (!(await canViewOrder(order, k))) {
+  const viewer = await orderViewer(order, k);
+  if (!viewer) {
     return <OrderSignIn path={`/order/${order.id}/invoice`} code={orderCode(order.id)} />;
   }
 
@@ -58,7 +59,8 @@ export default async function InvoicePage({
 
   return (
     <div className="mx-auto w-full max-w-[860px] px-4 pt-24 pb-16 sm:px-8">
-      {k && !order.userId && <RememberGuestOrder orderId={order.id} linkKey={k} />}
+      {/* the shopper's own browser keeps the order; an admin previewing it doesn't */}
+      {k && !order.userId && viewer === "owner" && <RememberGuestOrder orderId={order.id} linkKey={k} />}
       <div className="print-hide mb-4 flex flex-wrap items-center justify-between gap-3">
         <Link href={`/order/${order.id}`} className="text-sm font-semibold text-brand hover:underline">
           ← Back to order

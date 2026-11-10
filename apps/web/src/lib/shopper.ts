@@ -82,10 +82,12 @@ export async function orderViewer(
   if (!accountsEnabled()) return "owner";
   const shopper = await shopperFromCookies();
   if (shopper && order.userId && shopper.id === order.userId) return "owner";
-  if (await holdsGuestOrder(order, linkKey)) return "owner";
+  // An admin previewing ("View as customer") is an admin even when the link
+  // carries a guest key (the invoice link does), so nothing acts as the shopper.
   const { cookies } = await import("next/headers");
   const adminToken = (await cookies()).get(ADMIN_VIEW_COOKIE)?.value ?? "";
   if (adminToken && (await isAdminToken(adminToken))) return "admin";
+  if (await holdsGuestOrder(order, linkKey)) return "owner";
   return null;
 }
 

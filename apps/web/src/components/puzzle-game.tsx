@@ -67,7 +67,7 @@ export default function PuzzleGame({
   const [slots, setSlots] = useState<Slots>(SOLVED);
   const [picked, setPicked] = useState<number | null>(null);
   const [moves, setMoves] = useState(0);
-  const [prize, setPrize] = useState<number | null | "none">(null);
+  const [prize, setPrize] = useState<number | null | "ended" | "failed">(null);
   const [round, setRound] = useState(0);
   const started = useRef(0);
   // this game's server round and the swaps played on it (sent to claim the prize)
@@ -259,7 +259,7 @@ export default function PuzzleGame({
       setSeconds(Math.floor((Date.now() - started.current) / 1000));
       // let the last tile land, then close the gaps
       window.setTimeout(() => setPhase("won"), 450);
-      claimPuzzlePrize(playRound.current, moveLog.current).then((expires) => setPrize(expires ?? "none"));
+      claimPuzzlePrize(playRound.current, moveLog.current).then(setPrize);
     }
   }
 
@@ -480,8 +480,10 @@ export default function PuzzleGame({
               </div>
               {prize === null ? (
                 <p className="mt-4 h-[5.25rem] text-sm text-fog">Unlocking your prize…</p>
-              ) : prize === "none" ? (
+              ) : prize === "ended" ? (
                 <p className="mt-4 text-sm text-fog">The {pct}% offer has ended, but the poster still looks great.</p>
+              ) : prize === "failed" ? (
+                <p className="mt-4 text-sm text-fog">Solved! We couldn&apos;t unlock your {pct}% this time (weak connection?). Tap Play again to win it.</p>
               ) : (
                 // the prize as a coupon: notched, stamped
                 <div className="puzzle-win-up puzzle-ticket puzzle-ticket--won puzzle-win-coupon relative mt-4 overflow-hidden rounded-2xl px-4 py-3 text-left text-white" style={{ animationDelay: "1.1s" }}>
@@ -501,7 +503,7 @@ export default function PuzzleGame({
                   <p className="mt-0.5 text-[11px] text-white/80">On puzzle posters · at checkout · until {endsAt(prize)}</p>
                 </div>
               )}
-              {onAddToCart && prize !== "none" ? (
+              {onAddToCart && prize !== "ended" ? (
                 <button
                   type="button"
                   onClick={() => {
