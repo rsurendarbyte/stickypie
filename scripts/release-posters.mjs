@@ -89,3 +89,10 @@ for (const item of JSON.parse(readFileSync(path.join(folder, "posters.json"), "u
   });
   console.log(`${item.slug}: added to ${prod ? "production" : "dev"}`);
 }
+
+// Link previews (WhatsApp, Instagram, X…) for the new posters; existing ones are skipped.
+{
+  const { spawnSync } = await import("node:child_process");
+  const run = spawnSync(process.execPath, ["scripts/build-share-images.mjs", "--upload", ...(prod ? ["--prod"] : [])], { stdio: "inherit" });
+  if (run.status !== 0) console.log("Link previews failed: run node scripts/build-share-images.mjs --upload" + (prod ? " --prod" : ""));
+}
