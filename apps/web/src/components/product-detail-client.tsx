@@ -144,6 +144,8 @@ export default function ProductDetailClient({
       });
   const shownTags = product.tags.filter((t) => !isInternalTag(t));
   const wall = isWallSetup(product);
+  // portrait art (posters): on wide screens the stage grows with the window height instead of a fixed 440px box
+  const tall = !wall && (product.aspectRatio ?? 1) < 0.95;
   // A wall's posters have their own buttons, so the picture around them can't be one.
   const ArtBlock = wall ? "div" : "button";
 
@@ -236,17 +238,29 @@ export default function ProductDetailClient({
         </div>
       </div>
 
-      <div className={`mt-3 grid grid-cols-[minmax(0,1fr)] gap-5 lg:gap-10 ${wall ? "lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]" : "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]"}`}>
+      <div className={`mt-3 grid grid-cols-[minmax(0,1fr)] gap-5 lg:gap-10 ${wall ? "lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]" : tall && !isPack ? "lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]" : "lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]"}`}>
         {/* Art — stays in view on wide screens while the details (e.g. a pack's posters) scroll */}
         <div className="lg:sticky lg:top-24 lg:self-start">
-        <div className={`relative w-full ${wall ? "aspect-square" : isPack ? "aspect-[4/5] max-h-[620px]" : "aspect-[5/4] max-h-[440px] sm:aspect-square"}`} {...swipe}>
+        <div
+          className={`relative w-full ${
+            wall
+              ? "aspect-square"
+              : isPack
+                ? "aspect-[4/5] max-h-[620px]"
+                : tall
+                  ? // as tall as the window allows (header, breadcrumb and the "See actual size" button still in view), 420px at least, 860px at most
+                    "aspect-[5/4] max-h-[440px] sm:aspect-square lg:aspect-auto lg:max-h-none lg:h-[clamp(420px,calc(100dvh-13rem),860px)]"
+                  : "aspect-[5/4] max-h-[440px] sm:aspect-square"
+          }`}
+          {...swipe}
+        >
           <ArtBlock
             {...(wall ? {} : { type: "button" as const })}
             // A pack's picture is a collage of all its posters — no "actual size" for it.
             onClick={() => (isPack ? setZoom(true) : setTrueSize(true))}
             aria-label={isPack ? `Zoom into ${product.name}` : "See actual size"}
             // one fixed-size cell, so max-h-full has a height to fit tall art (posters) into
-            className={`absolute inset-0 grid cursor-zoom-in grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center ${wall && wallView !== "wall" ? "invisible" : ""} ${wall ? "" : isPack ? "p-2" : "p-6 sm:p-10"}`}
+            className={`absolute inset-0 grid cursor-zoom-in grid-cols-[minmax(0,1fr)] grid-rows-[minmax(0,1fr)] place-items-center ${wall && wallView !== "wall" ? "invisible" : ""} ${wall ? "" : isPack ? "p-2" : tall ? "p-6 sm:p-10 lg:px-10 lg:pt-10 lg:pb-6" : "p-6 sm:p-10"}`}
             style={{ transform: isPack ? undefined : `rotate(${rotate / 2}deg)` }}
           >
             {wall && picks && !checked ? (

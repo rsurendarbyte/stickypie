@@ -370,7 +370,8 @@ function noteContact(c: Contact) {
   if (off()) return;
   const name = c.name?.trim();
   const email = c.email?.trim();
-  const phone = c.phone?.replace(/\D/g, "");
+  // same tidy-up as the shared normalizePhone ("+91 …", "0…" → 10 digits), kept inline so this file stays tiny
+  const phone = c.phone?.replace(/\D/g, "").replace(/^(?:0091|91|0+)(?=\d{10}$)/, "");
   const next: Contact = {
     ...(name && name.length >= 2 ? { name } : {}),
     ...(email && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) ? { email } : {}),

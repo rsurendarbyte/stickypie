@@ -3,9 +3,54 @@ import { INDIAN_STATES, matchIndianState } from "./india";
 import { MAX_SIZES_PER_STICKER, MAX_STICKER_INCHES, MIN_STICKER_INCHES } from "./sizes";
 import { AVATAR_MAX_COVERS, AVATAR_MAX_PAGES, AVATAR_MAX_POSE_SETS, AVATAR_POSES_MAX, AVATAR_MAX_STYLE_IMAGES, AVATAR_MAX_STYLES, AVATAR_NOTE_MAX } from "./custom";
 
+/**
+ * An Indian mobile number as people type or autofill it, down to its 10 digits:
+ * "+91 98765-43210", "098765 43210", "0091 9876543210", "919876543210" → "9876543210".
+ * Anything else comes back as its digits (and fails the check below).
+ */
+export function normalizePhone(s: string): string {
+  return s.replace(/\D/g, "").replace(/^(?:0091|91|0+)(?=\d{10}$)/, "");
+}
+
+/**
+ * What a mobile field lets through while typing: digits, one leading "+",
+ * spaces and dashes; letters and other marks drop out, and no more digits than
+ * the number plus its prefix (10, 11 after a 0, 12 after 91, 14 after 0091).
+ */
+export function typingPhone(s: string): string {
+  const kept = s.replace(/[^\d+\s-]/g, "").replace(/(?!^)\+/g, "").replace(/\s+/g, " ").trimStart();
+  const digits = kept.replace(/\D/g, "");
+  const max = digits.startsWith("0091") ? 14 : digits.startsWith("91") ? 12 : digits.startsWith("0") ? 11 : 10;
+  if (digits.length <= max) return kept.slice(0, 20);
+  // too many digits: keep the first `max`, dropping the rest with whatever sits between them
+  let n = 0;
+  let out = "";
+  for (const ch of kept) {
+    if (/\d/.test(ch)) {
+      if (n === max) break;
+      n++;
+    }
+    out += ch;
+  }
+  return out;
+}
+
+/** What's wrong with a typed mobile number, in plain words (null = fine or empty). */
+export function phoneProblem(s: string): string | null {
+  const full = normalizePhone(s);
+  if (!full) return null;
+  if (/^[6-9]\d{9}$/.test(full)) return null;
+  // part-typed "0…", "+91 …": judge the number after its prefix
+  let d = full.replace(/^(?:0091|0+)/, "");
+  if (d.startsWith("91") && (s.trim().startsWith("+") || d.length > 10)) d = d.slice(2);
+  if (!/^[6-9]/.test(d)) return "Mobile numbers start with 6, 7, 8 or 9";
+  if (d.length < 10) return `Enter all 10 digits (${d.length} so far)`;
+  return "Enter a valid 10-digit Indian mobile number";
+}
+
 export const phoneSchema = z
   .string()
-  .transform((s) => s.replace(/\D/g, "").replace(/^91(?=\d{10}$)/, ""))
+  .transform(normalizePhone)
   .pipe(
     z
       .string()
