@@ -6,7 +6,6 @@ import { MetaViewContent } from "@/components/meta-track";
 import ProductDetailClient from "@/components/product-detail-client";
 import StickerReel from "@/components/sticker-reel";
 import { ProductAbout } from "@/components/seo-blocks";
-import ProductAboutChoice from "@/components/product-about-choice";
 import { isMiniPoster, isPosterPack, isWallSetup } from "@/lib/poster";
 import { productSnapshot } from "@/lib/catalog-snapshot";
 import { relatedOrder } from "@/lib/related";
@@ -137,11 +136,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         steps={steps}
         packPosters={packPosters}
       />
-      {isMiniPoster(product) && !isPosterPack(product) ? (
-        <ProductAboutChoice poster={details} sticker={productDetails(product, categoryNames, "sticker")} />
-      ) : (
-        <ProductAbout {...details} />
-      )}
+      <ProductAbout {...details} />
     </div>
     </div>
     </>

@@ -173,7 +173,7 @@ export default function MyOrders({ email, userId }: { email: string; userId: str
           setOrders(
             (data ?? []).map(rowToOrder).filter((o) => o.items.length > 0),
           );
-      }));
+      }), () => alive && setError("Could not load your orders. Please refresh."));
     return () => {
       alive = false;
     };

@@ -25,13 +25,21 @@ let loading: Promise<SupabaseClient | null> | null = null;
 /** The Supabase client, loading supabase-js the first time; null in demo mode. */
 export function loadAuthClient(): Promise<SupabaseClient | null> {
   if (!authEnabled) return Promise.resolve(null);
-  loading ??= import("@supabase/supabase-js").then(({ createClient }) => {
-    client = createClient(URL_!, KEY!, {
-      auth: { persistSession: true, autoRefreshToken: true, storageKey: STORAGE_KEY },
-    });
-    window.dispatchEvent(new Event(READY));
-    return client;
-  });
+  loading ??= import("@supabase/supabase-js").then(
+    ({ createClient }) => {
+      client = createClient(URL_!, KEY!, {
+        auth: { persistSession: true, autoRefreshToken: true, storageKey: STORAGE_KEY },
+      });
+      window.dispatchEvent(new Event(READY));
+      return client;
+    },
+    () => {
+      // the download failed (network blip, or an old page after a deploy):
+      // forget it so the next try downloads again, and say so plainly
+      loading = null;
+      throw new Error(NETWORK_ERROR);
+    }
+  );
   return loading;
 }
 
@@ -60,7 +68,7 @@ export function whenAuthClient(cb: (c: SupabaseClient) => void): () => void {
   let live = true;
   const run = () => live && client && cb(client);
   if (needsClientNow()) {
-    void loadAuthClient().then(run);
+    loadAuthClient().then(run, () => {}); // offline: stays a guest until the next try
     return () => (live = false);
   }
   const onReady = () => {

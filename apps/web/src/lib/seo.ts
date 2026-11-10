@@ -3,7 +3,7 @@
 // stickers", "vinyl stickers", "peel and stick") are woven into
 // real, readable text — never hidden or stuffed.
 import type { Category, Product, PublicReview, StoreSettings } from "@stickypie/shared";
-import { POSTER_ADHESIVE, POSTER_PAPER, categoryPath, formatINR, packPosterSizes, packSizeSummary, type PosterFinish } from "@stickypie/shared";
+import { POSTER_ADHESIVE, POSTER_PAPER, categoryPath, formatINR, packPosterSizes, packSizeSummary } from "@stickypie/shared";
 import { SITE_NAME, absoluteUrl } from "./site";
 import { siteUrl } from "./mode";
 import { isInternalTag, isMiniPoster, isPoster, isPosterPack, posterSetName, sizeChipLabel } from "./poster";
@@ -55,7 +55,7 @@ export function productSeoDescription(product: Product): string {
 const POSTER_TIPS = `Wipe the wall clean and dry and plan the layout first (a pencil dot for each corner helps). Put the ${POSTER_ADHESIVE} on the back of each poster, then press it onto the wall.`;
 
 /** Plain-language details shown on every sticker page (and read by Google). */
-export function productDetails(product: Product, categoryNames: string[], finish: PosterFinish = "poster") {
+export function productDetails(product: Product, categoryNames: string[]) {
   const name = seoName(product);
   const sizes = sizeList(product);
   const cats = categoryNames.length ? categoryNames.join(", ") : null;
@@ -74,22 +74,6 @@ export function productDetails(product: Product, categoryNames: string[], finish
         ["Shipping", `Dispatched in ${HANDLING_DAYS.min}–${HANDLING_DAYS.max} days, then ${TRANSIT_DAYS.min}–${TRANSIT_DAYS.max} days to reach you anywhere in India`],
       ] as [string, string][],
       tips: POSTER_TIPS,
-    };
-  }
-  if (isMiniPoster(product) && finish === "sticker") {
-    return {
-      heading: `About the ${name} sticker`,
-      intro: `This is the ${name} as a vinyl sticker, printed for your order${
-        cats ? ` — part of our ${cats} collection` : ""
-      }. It goes on a car, bike, helmet, laptop, water bottle or fridge. Just peel and stick.`,
-      facts: [
-        ["Material", "Premium vinyl, peel and stick"],
-        ...(sizes ? [["Sizes", sizes]] : []),
-        ["Price", product.sizes.length > 1 ? `From ${formatINR(product.price)}` : formatINR(product.price)],
-        ["Sticks on", "Cars, bikes, helmets, laptops, bottles, fridges"],
-        ["Shipping", `Dispatched in ${HANDLING_DAYS.min}–${HANDLING_DAYS.max} days, then ${TRANSIT_DAYS.min}–${TRANSIT_DAYS.max} days to reach you anywhere in India`],
-      ] as [string, string][],
-      tips: "Clean and dry the surface first, peel the sticker off its backing, press it down from the centre outwards and smooth out any air bubbles. Leave it 24 hours before washing.",
     };
   }
   if (isMiniPoster(product)) {

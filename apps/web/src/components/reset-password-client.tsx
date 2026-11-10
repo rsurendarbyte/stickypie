@@ -31,7 +31,7 @@ export default function ResetPasswordClient() {
     }
     // getSession() waits until the client has read the recovery tokens from the URL.
     c.auth.getSession().then(({ data }) => setStage(data.session ? "ready" : "invalid"));
-    });
+    }, () => setStage("invalid"));
   }, []);
 
   async function submit(e: React.FormEvent) {

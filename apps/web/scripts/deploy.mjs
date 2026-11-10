@@ -194,7 +194,12 @@ const BUILD_RULE = "/build.json\n  Cache-Control: no-store\n";
 const SECURITY_RULE =
   "/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  X-Frame-Options: SAMEORIGIN\n  Content-Security-Policy: frame-ancestors 'self'\n";
 const NOINDEX_RULE = "/*\n  X-Robots-Tag: noindex, nofollow, noimageindex\n";
-fs.writeFileSync(headersFile, BUILD_RULE + SECURITY_RULE + (indexable ? "" : NOINDEX_RULE));
+// Built code, CSS and fonts have the build's hash in their names, so a phone may
+// keep them for a year (without this Cloudflare sends max-age=0 and every page
+// open re-checks ~15 files). Icons change rarely: a day. sw.js stays uncached.
+const CACHE_RULE =
+  "/_next/static/*\n  Cache-Control: public, max-age=31536000, immutable\n/icons/*\n  Cache-Control: public, max-age=86400\n";
+fs.writeFileSync(headersFile, BUILD_RULE + CACHE_RULE + SECURITY_RULE + (indexable ? "" : NOINDEX_RULE));
 if (!indexable) console.log("deploy: wrote noindex _headers for static assets");
 
 if (flags.includes("--build-only")) process.exit(0);
