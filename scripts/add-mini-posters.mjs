@@ -125,3 +125,13 @@ for (const entry of list) {
   }
 }
 console.log(`${dry ? "Checked" : "Added"} ${ok}/${list.length}.`);
+
+// Link previews (WhatsApp, Instagram, X…) for the new posters: share/<slug>.jpg and
+// share/<slug>-puzzle.jpg. Posters that already have them are skipped.
+if (!dry && ok > 0) {
+  console.log("Making link previews…");
+  const { spawnSync } = await import("node:child_process");
+  const prodFlag = process.argv.includes("--prod") ? ["--prod"] : [];
+  const run = spawnSync(process.execPath, [path.join(root, "scripts/build-share-images.mjs"), "--upload", ...prodFlag], { stdio: "inherit" });
+  if (run.status !== 0) console.log("  ✘ previews failed: run node scripts/build-share-images.mjs --upload" + (prodFlag.length ? " --prod" : ""));
+}
