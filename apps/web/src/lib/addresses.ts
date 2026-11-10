@@ -3,7 +3,7 @@
 // Shopper address book (customer_addresses), read and written with the
 // shopper's own session — RLS keeps every list private to its owner.
 import { useCallback, useEffect, useState } from "react";
-import { authClient } from "./shopper-auth";
+import { loadAuthClient } from "./shopper-auth";
 
 export const ADDRESS_TYPES = ["Home", "Work", "Other"] as const;
 export type AddressType = (typeof ADDRESS_TYPES)[number];
@@ -56,7 +56,7 @@ export function sameAddress(a: AddressInput, b: AddressInput): boolean {
 }
 
 export async function listAddresses(): Promise<SavedAddress[]> {
-  const c = authClient();
+  const c = await loadAuthClient();
   if (!c) return [];
   const { data, error } = await c
     .from("customer_addresses")
@@ -72,7 +72,7 @@ export async function listAddresses(): Promise<SavedAddress[]> {
  * top, a new one is added (the first ever becomes the default).
  */
 export async function rememberAddress(input: AddressInput): Promise<void> {
-  const c = authClient();
+  const c = await loadAuthClient();
   if (!c) return;
   const existing = await listAddresses();
   const match = existing.find((a) => sameAddress(a, input));
@@ -112,7 +112,7 @@ export async function addAddress(input: AddressInput, makeDefault: boolean): Pro
 }
 
 export async function setDefaultAddress(id: string): Promise<void> {
-  const c = authClient();
+  const c = await loadAuthClient();
   if (!c) return;
   // One default per shopper (unique index): clear the old one first.
   await c.from("customer_addresses").update({ is_default: false }).eq("is_default", true);
@@ -121,7 +121,7 @@ export async function setDefaultAddress(id: string): Promise<void> {
 }
 
 export async function deleteAddress(id: string): Promise<void> {
-  const c = authClient();
+  const c = await loadAuthClient();
   if (!c) return;
   const { error } = await c.from("customer_addresses").delete().eq("id", id);
   if (error) throw new Error("Could not delete the address.");

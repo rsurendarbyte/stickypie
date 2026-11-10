@@ -27,7 +27,7 @@ import {
 } from "@stickypie/shared";
 import { useLiveCatalog } from "@/lib/live-catalog";
 import { orderWallPosters } from "@/lib/poster";
-import { authClient } from "@/lib/shopper-auth";
+import { loadAuthClient } from "@/lib/shopper-auth";
 import OrderWallThumb from "./order-wall-thumb";
 import StickerLoader from "./sticker-loader";
 
@@ -159,7 +159,7 @@ export default function MyOrders({ email, userId }: { email: string; userId: str
 
   useEffect(() => {
     let alive = true;
-    authClient()!
+    void loadAuthClient().then((c) => c!
       .from("orders")
       .select("*, order_items(*)")
       // Only this shopper's orders — RLS alone would hand an admin every order.
@@ -173,7 +173,7 @@ export default function MyOrders({ email, userId }: { email: string; userId: str
           setOrders(
             (data ?? []).map(rowToOrder).filter((o) => o.items.length > 0),
           );
-      });
+      }));
     return () => {
       alive = false;
     };

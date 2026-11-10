@@ -33,7 +33,7 @@ function sizeList(product: Product): string {
 
 export function productSeoTitle(product: Product): string {
   if (isPosterPack(product)) return `${seoName(product)} – ${product.packItems.length} Posters`;
-  return isMiniPoster(product) ? `${seoName(product)} – Wall Poster or Vinyl Sticker` : `${seoName(product)} – Die-Cut Vinyl Decal`;
+  return isMiniPoster(product) ? `${seoName(product)} – Wall Poster or Puzzle Poster` : `${seoName(product)} – Die-Cut Vinyl Decal`;
 }
 
 export function productSeoDescription(product: Product): string {
@@ -46,7 +46,7 @@ export function productSeoDescription(product: Product): string {
   const sizes = sizeList(product);
   const pitch = `Buy the ${seoName(product)} from ${SITE_NAME}, online in India from ${formatINR(product.price)}${
     sizes ? ` in ${sizes} sizes` : ""
-  }. ${isPosterPack(product) ? `Printed on ${POSTER_PAPER}, ${POSTER_ADHESIVE} included.` : isMiniPoster(product) ? `Choose a ${POSTER_PAPER} wall poster or a vinyl sticker.` : "Die-cut vinyl for car, bike, laptop & helmet. Peel and stick."}`;
+  }. ${isPosterPack(product) ? `Printed on ${POSTER_PAPER}, ${POSTER_ADHESIVE} included.` : isMiniPoster(product) ? `Choose a wall poster on ${POSTER_PAPER} or a 9-card puzzle poster.` : "Die-cut vinyl for car, bike, laptop & helmet. Peel and stick."}`;
   const lead = product.description.trim();
   const text = lead ? `${lead} ${pitch}` : pitch;
   return text.length > 160 ? `${text.slice(0, 157).trimEnd()}…` : text;
@@ -129,7 +129,7 @@ export function productDetails(product: Product, categoryNames: string[], finish
 export function categoryIntro(category: Category, count: number): string {
   const name = category.name.toLowerCase();
   if (/mini poster/.test(name)) {
-    return `Browse ${count} ${name} from ${SITE_NAME}. Pick each one as a wall poster on ${POSTER_PAPER}, with ${POSTER_ADHESIVE} included, or as a vinyl sticker. Printed to order and shipped across India.`;
+    return `Browse ${count} ${name} from ${SITE_NAME}. Pick each one as a wall poster on ${POSTER_PAPER}, with ${POSTER_ADHESIVE} included, or as a 9-card puzzle poster. Printed to order and shipped across India.`;
   }
   if (/poster/.test(name)) {
     return `Browse ${count} ${name} from ${SITE_NAME} — wall posters printed to order on ${POSTER_PAPER}, with ${POSTER_ADHESIVE} included, shipped across India.`;
@@ -192,7 +192,7 @@ export function storeFaq(facts: ShopFacts): Faq[] {
       ? [
           {
             q: "Are StickyPie mini posters stickers?",
-            a: `You choose. A mini poster comes as a wall poster on ${POSTER_PAPER}, with ${POSTER_ADHESIVE} included, or as a vinyl sticker you peel and stick. Wall poster sets are always on poster paper.`,
+            a: `No, they're printed on ${POSTER_PAPER}. A mini poster comes as a wall poster, with ${POSTER_ADHESIVE} included, or as a puzzle poster: 9 cards that join into one big poster on your wall. Wall poster sets are on poster paper too.`,
           },
         ]
       : []),
@@ -239,7 +239,7 @@ export function storeFaq(facts: ShopFacts): Faq[] {
       ? [
           {
             q: "Do you sell mini posters?",
-            a: `Yes — ${facts.posters} mini posters of cars, bikes and more, as wall posters on ${POSTER_PAPER} or as vinyl stickers, from ${formatINR(
+            a: `Yes — ${facts.posters} mini posters of cars, bikes and more, as wall posters on ${POSTER_PAPER} or as 9-card puzzle posters, from ${formatINR(
               facts.posterFrom
             )}.`,
           },
@@ -298,7 +298,7 @@ export function wallPosterFaq(facts: ShopFacts): Faq[] {
     },
     {
       q: "Are the wall posters paper or vinyl?",
-      a: `Wall poster sets are always on ${POSTER_PAPER}. A single mini poster can be either: choose a wall poster on paper, or a vinyl sticker you peel and stick.`,
+      a: `Paper. Wall poster sets and single mini posters are all printed on ${POSTER_PAPER}. A single mini poster comes as a wall poster or as a 9-card puzzle poster.`,
     },
   ];
 }
@@ -515,7 +515,7 @@ export function productStructuredData(
     sku: product.slug,
     mpn: product.slug,
     brand: { "@type": "Brand", name: SITE_NAME },
-    material: isPosterPack(product) ? POSTER_PAPER : isMiniPoster(product) ? `${POSTER_PAPER} or vinyl` : "Vinyl",
+    material: isPosterPack(product) ? POSTER_PAPER : isMiniPoster(product) ? POSTER_PAPER : "Vinyl",
     ...(mainCategory
       ? { category: `${isPoster(product) ? "Posters" : "Stickers"} > ${mainCategory.name}` }
       : { category: isPoster(product) ? "Posters" : "Stickers" }),

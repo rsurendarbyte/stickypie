@@ -6,21 +6,22 @@ import { isMiniPoster, isPosterPack } from "@/lib/poster";
 import { getDriver } from "@/lib/data";
 import { posterSharePath, puzzleSharePath, shareImageUrl } from "@/lib/share-links";
 import { pageMetadata } from "@/lib/site";
+import { activeProducts, productBySlug } from "@/lib/page-data";
 
 // A poster's puzzle game, as its own page: every Play & win comes here, and a
 // shared link gets its own preview ("Can you solve this poster?"). The HTML
 // already draws the game screen (PuzzleBoot); the game takes over when the
 // page's code is ready. Not indexed: search lands on the poster page (the canonical).
-export const revalidate = 600;
+export const revalidate = 3600;
 
 export async function generateStaticParams() {
-  const products = await getDriver().listProducts({ activeOnly: true });
+  const products = await activeProducts();
   return products.filter((p) => isMiniPoster(p) && !isPosterPack(p)).map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const product = await getDriver().getProductBySlug(slug);
+  const product = await productBySlug(slug);
   if (!product || !product.isActive) return { title: "Puzzle" };
   const percent = await getDriver().getPuzzlePercent();
   const name = product.name.replace(/\s*(—\s*)?Mini Poster\s*$/i, "");
@@ -37,7 +38,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function PuzzlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const product = await getDriver().getProductBySlug(slug);
+  const product = await productBySlug(slug);
   if (!product || !product.isActive || !isMiniPoster(product) || isPosterPack(product)) notFound();
   const ratio = product.aspectRatio && product.aspectRatio > 0.3 && product.aspectRatio < 3 ? product.aspectRatio : 2 / 3;
   const poster = {

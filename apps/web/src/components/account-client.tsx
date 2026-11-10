@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { LogOut, MapPin, Package, Plus, Trash2 } from "lucide-react";
 import { INDIAN_STATES, customerSchema } from "@stickypie/shared";
 import {
-  authClient,
   finishSignup,
   startSignup,
   requestPasswordReset,

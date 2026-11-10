@@ -57,7 +57,7 @@ export async function GET() {
         ["g:identifier_exists", "no"],
         ["g:google_product_category", poster ? GOOGLE_POSTER_CATEGORY : GOOGLE_CATEGORY],
         ["g:product_type", type],
-        ["g:material", pack ? "Poster Paper" : poster ? "Poster Paper or Vinyl" : "Vinyl"],
+        ["g:material", pack ? "Poster Paper" : poster ? "Poster Paper" : "Vinyl"],
         ...(size.inches ? [["g:size", `${poster ? sizeChipLabel(product, size.inches) : size.inches} inch`] as [string, string]] : []),
       ];
       return `    <item>\n${fields.map(([k, v]) => `      <${k}>${xml(v)}</${k}>`).join("\n")}\n    </item>`;

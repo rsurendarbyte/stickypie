@@ -4,7 +4,7 @@ import Link from "@/components/page-link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Camera, CheckCircle2, Clock3, X, XCircle } from "lucide-react";
 import type { OrderItem, ReviewStatus } from "@stickypie/shared";
-import { authClient, useShopper } from "@/lib/shopper-auth";
+import { loadAuthClient, useShopper } from "@/lib/shopper-auth";
 import { shrinkImage } from "@/lib/shrink-image";
 import { TextAreaField } from "./field";
 import StarPicker, { Stars } from "./star-rating";
@@ -49,7 +49,7 @@ export default function OrderReviews({
   );
 
   const load = useCallback(() => {
-    authClient()!
+    void loadAuthClient().then((c) => c!
       .from("product_reviews")
       .select("order_item_id,rating,body,status,photo_url")
       .eq("order_id", orderId)
@@ -63,7 +63,7 @@ export default function OrderReviews({
             photoUrl: (r.photo_url as string | null) ?? null,
           }))
         )
-      );
+      ));
   }, [orderId]);
 
   useEffect(() => {

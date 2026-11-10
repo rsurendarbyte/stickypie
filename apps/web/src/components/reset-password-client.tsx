@@ -3,7 +3,7 @@
 import Link from "@/components/page-link";
 import { useEffect, useState } from "react";
 import { CheckCircle2, Unlink } from "lucide-react";
-import { authClient, updatePassword } from "@/lib/shopper-auth";
+import { loadAuthClient, updatePassword } from "@/lib/shopper-auth";
 import AuthShell from "./auth-shell";
 import { PasswordField } from "./field";
 import StickerLoader from "./sticker-loader";
@@ -18,7 +18,7 @@ export default function ResetPasswordClient() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    const c = authClient();
+    void loadAuthClient().then((c) => {
     if (!c) {
       setStage("invalid");
       return;
@@ -31,6 +31,7 @@ export default function ResetPasswordClient() {
     }
     // getSession() waits until the client has read the recovery tokens from the URL.
     c.auth.getSession().then(({ data }) => setStage(data.session ? "ready" : "invalid"));
+    });
   }, []);
 
   async function submit(e: React.FormEvent) {

@@ -1,13 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import { PUZZLE_POSTER_PRICES, priceForSize, productSizes, withFinish } from "@stickypie/shared";
 import { closePuzzle, usePuzzleLaunch, type PuzzleLaunch } from "@/lib/puzzle-launch";
 import { posterTitle } from "./product-card";
-import { PuzzleGame } from "./poster-puzzle";
 import { usePosterCatalog } from "./wall-size-map";
 import { useCart } from "./cart-context";
 import { toCartProduct } from "./size-picker";
+
+// The game's code (about 28 KB) loads only when a game opens, or quietly once
+// the page has settled, so first loads don't carry it.
+const loadGame = () => import("./puzzle-game");
+const PuzzleGame = dynamic(loadGame, { ssr: false });
 
 /**
  * The site's one poster puzzle game, opened from any Play & win (lib/puzzle-launch).
@@ -21,6 +26,12 @@ export default function PuzzleLauncher() {
   const [src, setSrc] = useState<string | null>(null);
   const posters = usePosterCatalog();
   const { add, openCart } = useCart();
+
+  useEffect(() => {
+    const w = window as Window & { requestIdleCallback?: (cb: () => void) => number };
+    const t = window.setTimeout(() => (w.requestIdleCallback ?? ((cb: () => void) => cb()))(() => void loadGame()), 4000);
+    return () => window.clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     if (!launch) return;

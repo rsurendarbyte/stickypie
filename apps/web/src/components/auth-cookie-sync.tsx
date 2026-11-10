@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { Session } from "@supabase/supabase-js";
-import { authClient } from "@/lib/shopper-auth";
+import { whenAuthClient } from "@/lib/shopper-auth";
 
 /** Fired on window once guest orders moved onto the signed-in account. */
 export const ORDERS_CLAIMED = "sp:orders-claimed";
@@ -50,8 +50,7 @@ async function claimGuestOrders(session: Session): Promise<number> {
 export default function AuthCookieSync() {
   const router = useRouter();
   useEffect(() => {
-    const c = authClient();
-    if (!c) return;
+    let unsubscribe = () => {};
     const sync = (session: Session | null) => {
       writeAuthCookie(session?.access_token ?? null, session?.expires_at);
       if (!session) return;
@@ -61,9 +60,16 @@ export default function AuthCookieSync() {
         router.refresh();
       });
     };
-    c.auth.getSession().then(({ data }) => sync(data.session));
-    const { data } = c.auth.onAuthStateChange((_event, session) => sync(session));
-    return () => data.subscription.unsubscribe();
+    // A guest never loads supabase-js; this starts once a session exists or they sign in.
+    const stop = whenAuthClient((c) => {
+      c.auth.getSession().then(({ data }) => sync(data.session));
+      const { data } = c.auth.onAuthStateChange((_event, session) => sync(session));
+      unsubscribe = () => data.subscription.unsubscribe();
+    });
+    return () => {
+      stop();
+      unsubscribe();
+    };
   }, [router]);
   return null;
 }

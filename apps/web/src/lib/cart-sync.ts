@@ -4,7 +4,7 @@
 // Runs in the background, straight to Supabase: the cart itself lives in this
 // browser and works the same if a save fails. Only what the admin needs is
 // sent, never what a shopper typed or made for a custom sticker.
-import { authClient } from "./shopper-auth";
+import { currentSession } from "./shopper-auth";
 import type { CartItem } from "@/components/cart-context";
 
 const TOKEN_KEY = "stickypie.cart.token";
@@ -54,12 +54,12 @@ function notePlace(token: string) {
 async function send(lines: ReturnType<typeof toLines>, sent: string) {
   const token = cartToken();
   if (!token) return;
-  const { data } = (await authClient()?.auth.getSession()) ?? {};
+  const session = await currentSession();
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/save_cart`, {
     method: "POST",
     headers: {
       apikey: ANON_KEY!,
-      Authorization: `Bearer ${data?.session?.access_token ?? ANON_KEY}`,
+      Authorization: `Bearer ${session?.access_token ?? ANON_KEY}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ p_token: token, p_items: lines }),

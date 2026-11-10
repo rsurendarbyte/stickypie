@@ -31,7 +31,7 @@ import {
 } from "@stickypie/shared";
 import { useFeatures, useStoreSettings, usePuzzlePercent } from "@/lib/live-catalog";
 import {
-  authClient,
+  currentSession,
   signIn,
   signOut,
   useShopper,
@@ -348,7 +348,7 @@ export default function CheckoutClient() {
       try {
         const session = needsSignIn
           ? await signIn(parsed.data.email, password)
-          : (await authClient()!.auth.getSession()).data.session;
+          : await currentSession();
         token = session?.access_token ?? null;
       } catch (err) {
         const message =

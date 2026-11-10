@@ -3,9 +3,10 @@ import { z } from "zod";
 import { getDriver } from "@/lib/data";
 import { cashfreeConfigured, razorpayConfigured } from "@/lib/mode";
 import { reopenPayment } from "@/lib/pay-session";
+import { holdsGuestOrder } from "@/lib/guest-order";
 import { accountsEnabled, shopperFromRequest } from "@/lib/shopper";
 
-const bodySchema = z.object({ orderId: z.string().uuid() });
+const bodySchema = z.object({ orderId: z.string().uuid(), k: z.string().max(64).optional() });
 
 /**
  * "Pay now" on an unpaid order: reopens the SAME gateway payment (Cashfree
@@ -29,6 +30,10 @@ export async function POST(req: Request) {
         { status: 401 }
       );
     }
+  } else if (accountsEnabled() && !(await holdsGuestOrder(order, parsed.data.k))) {
+    // A guest order reopens only with its key (this browser's cookie or the
+    // order link), since the payment session carries the shopper's details.
+    return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
 
   const gatewayReady =

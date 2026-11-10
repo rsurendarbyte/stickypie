@@ -452,19 +452,26 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
     },
 
     async discountCodeUsed(code, by) {
-      const email = by.email.trim().replace(/[\\%_,()]/g, "");
+      // Exact email match, any case (\ % _ escaped, so an email with "_" still
+      // finds its own orders), or the same last 10 phone digits.
+      const email = by.email.trim().replace(/[\\%_]/g, (c) => `\\${c}`);
       const phone = by.phone.replace(/\D/g, "").slice(-10);
-      const who = [email && `email.ilike.${email}`, phone && `phone.like.%${phone}`].filter(Boolean).join(",");
-      if (!who) return false;
-      const { data, error } = await client
-        .from("orders")
-        .select("id")
-        .eq("discount_code", code)
-        .in("status", ["paid", "packed", "shipped", "delivered"])
-        .or(who)
-        .limit(1);
-      if (error) throw friendly(error);
-      return (data?.length ?? 0) > 0;
+      if (!email && phone.length !== 10) return false;
+      const used = () =>
+        client
+          .from("orders")
+          .select("id")
+          .eq("discount_code", code)
+          .in("status", ["paid", "packed", "shipped", "delivered"]);
+      const [byEmail, byPhone] = await Promise.all([
+        email ? used().ilike("email", email).limit(1) : null,
+        phone.length === 10 ? used().like("phone", `%${phone}`).limit(1) : null,
+      ]);
+      for (const res of [byEmail, byPhone]) {
+        if (res?.error) throw friendly(res.error);
+        if ((res?.data?.length ?? 0) > 0) return true;
+      }
+      return false;
     },
 
     async listPendingOrdersForUser(userId, sinceIso) {

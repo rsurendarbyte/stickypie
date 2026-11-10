@@ -5,6 +5,7 @@ import { FileClock } from "lucide-react";
 import { computeInvoice, formatINR, orderCode, rupeesInWords } from "@stickypie/shared";
 import OrderSignIn from "@/components/order-sign-in";
 import PrintButton from "@/components/print-button";
+import RememberGuestOrder from "@/components/remember-guest-order";
 import { getDriver } from "@/lib/data";
 import { canViewOrder } from "@/lib/shopper";
 import { PRIVATE_PAGE_ROBOTS } from "@/lib/site";
@@ -57,6 +58,7 @@ export default async function InvoicePage({
 
   return (
     <div className="mx-auto w-full max-w-[860px] px-4 pt-24 pb-16 sm:px-8">
+      {k && !order.userId && <RememberGuestOrder orderId={order.id} linkKey={k} />}
       <div className="print-hide mb-4 flex flex-wrap items-center justify-between gap-3">
         <Link href={`/order/${order.id}`} className="text-sm font-semibold text-brand hover:underline">
           ← Back to order
