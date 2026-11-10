@@ -8,6 +8,7 @@ import { POSTER_ADHESIVE, POSTER_PAPER, belowMinimum, discountPercent, formatINR
 import { useCatalogChecked, useFeatures, useLiveCatalog, useStoreSettings, usePuzzlePercent } from "@/lib/live-catalog";
 import { isPuzzleEntry, puzzleProduct, withPuzzles } from "@/lib/puzzle-mix";
 import { relatedOrder } from "@/lib/related";
+import { visitSeed } from "@/lib/skin-seed";
 import { rememberPackPosters, rememberPosters } from "@/lib/poster-images";
 import { pickPoster, setPosters, swapSpots, useWallLine } from "@/lib/wall-picks";
 import { cardSkinFor } from "@/lib/palette";
@@ -53,9 +54,12 @@ export default function StickerReel({
   initial,
   category,
   packPosters = [],
+  nextUp = [],
 }: {
   initial: Product;
   category: { id: string; name: string; slug: string } | null;
+  /** The posters most like this one, in the page's HTML: swipeable before the catalogue loads (slow networks). */
+  nextUp?: Product[];
   /** A wall set's posters. This draws first on the page, so it can't wait for the page below to supply them. */
   packPosters?: { id: string; imageUrl: string }[];
 }) {
@@ -99,29 +103,41 @@ export default function StickerReel({
   });
 
   if (view === "classic") return null;
-  return <Reel initial={initial} category={category} onClassic={(slug) => choose("classic", slug)} />;
+  return <Reel initial={initial} category={category} nextUp={nextUp} onClassic={(slug) => choose("classic", slug)} />;
 }
 
 function Reel({
   initial,
   category,
+  nextUp,
   onClassic,
 }: {
   initial: Product;
   category: { id: string; name: string; slug: string } | null;
+  nextUp: Product[];
   onClassic: (slug: string) => void;
 }) {
   const [active, setActive] = useState(0);
-  const { products } = useLiveCatalog({ categories: [], products: [initial] });
+  const activeRef = useRef(0);
+  activeRef.current = active;
+  const { products, loaded } = useLiveCatalog({ categories: [], products: [initial, ...nextUp] });
   const features = useFeatures();
   // where the puzzle posters fall, and the related order: new on every visit
-  const [puzzleSeed] = useState(() => Math.floor(Math.random() * 1e9));
+  const [puzzleSeed] = useState(() => visitSeed());
   rememberPosters(products);
   const { count, openCart } = useCart();
 
   // This sticker first, then the rest of its category, then everything else.
+  // Until the catalogue loads, the page's own related posters (in their order,
+  // so the HTML and the live page match); once it loads, what was already seen
+  // and the next two stay put, and the rest join behind them.
+  const shown = useRef<Product[] | null>(null);
   const list = useMemo(() => {
     const current = products.find((p) => p.id === initial.id) ?? initial;
+    if (!loaded) {
+      const byId = new Map(products.map((p) => [p.id, p]));
+      return [current, ...nextUp.flatMap((p) => byId.get(p.id) ?? [])];
+    }
     const others = products.filter((p) => p.id !== initial.id);
     // most like this one first (fresh order each visit), not the newest drops
     const same = relatedOrder(current, category ? others.filter((p) => inCategory(p, category.id)) : [], puzzleSeed);
@@ -129,8 +145,16 @@ function Reel({
     // puzzle posters drop in only between wall sets: a mini poster's swipe view
     // stays plain mini posters (the shopper picks Puzzle on any of them), or the
     // same poster would come round twice
-    return withPuzzles([current, ...same, ...rest], puzzleSeed, features.posterPuzzle && isPosterPack(current));
-  }, [products, initial, category, puzzleSeed, features.posterPuzzle]);
+    const fresh = withPuzzles([current, ...same, ...rest], puzzleSeed, features.posterPuzzle && isPosterPack(current));
+    const before = shown.current;
+    if (!before) return fresh;
+    const live = new Map(fresh.map((p) => [p.id, p]));
+    const keep = before.slice(0, activeRef.current + 3).flatMap((p) => live.get(p.id) ?? []);
+    const kept = new Set(keep.map((p) => p.id));
+    return [...keep, ...fresh.filter((p) => !kept.has(p.id))];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [products, loaded, initial, category, puzzleSeed, features.posterPuzzle]);
+  shown.current = list;
   // the counter counts stickers only, not the puzzle posters between them
   const sameCount = useMemo(
     () => list.filter((p) => !isPuzzleEntry(p) && (!category || inCategory(p, category.id))).length,
@@ -190,7 +214,8 @@ function Reel({
     if (backGoesHome(initial.slug)) return location.assign("/");
     const sameSite = document.referrer.startsWith(location.origin);
     if (sameSite && history.length > 1) history.back();
-    else location.assign(category ? `/stickers/${category.slug}` : "/stickers");
+    // straight from a link (an ad, a share), nothing of the shop to go back to: home
+    else location.assign("/");
   }
 
   const inCat = position <= sameCount && !isPuzzleEntry(list[active] ?? initial);
@@ -448,7 +473,7 @@ function ReelItem({
             src={pack ? (product.displayUrl ?? product.imageUrl) : (product.thumbUrl ?? product.imageUrl)}
             alt={product.name}
             draggable={false}
-            className={`max-h-full max-w-full object-contain ${pack ? "rounded-xl shadow-[0_18px_40px_-18px_rgba(16,24,40,0.5)]" : poster ? "poster-print" : "sticker-cut"} ${out ? "opacity-50 saturate-50" : ""}`}
+            className={`max-h-full max-w-full object-contain ${pack ? "rounded-xl shadow-[0_18px_40px_-18px_rgba(16,24,40,0.5)]" : poster ? "poster-print" : "sticker-cut"} ${puzzle && finish === "puzzle" ? "puzzle-cut-mask" : ""} ${out ? "opacity-50 saturate-50" : ""}`}
           />
           {puzzle && finish === "puzzle" && <PuzzleSplit src={product.thumbUrl ?? product.imageUrl} img={artEl} />}
           {/* only as a puzzle poster: a plain mini poster stays still */}

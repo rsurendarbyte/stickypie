@@ -9,6 +9,7 @@ import { ProductAbout } from "@/components/seo-blocks";
 import ProductAboutChoice from "@/components/product-about-choice";
 import { isMiniPoster, isPosterPack, isWallSetup } from "@/lib/poster";
 import { productSnapshot } from "@/lib/catalog-snapshot";
+import { relatedOrder } from "@/lib/related";
 import { getDriver } from "@/lib/data";
 import {
   productDetails,
@@ -62,6 +63,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     category ? { activeOnly: true, categorySlug: category.slug } : { activeOnly: true }
   );
   const related = category ? siblings.filter((p) => p.id !== product.id).slice(0, 10) : [];
+  // the swipe view's first posters, in the page itself: the most alike ones, so
+  // a slow network can swipe before the whole catalogue has loaded
+  const nextUp = relatedOrder(product, siblings.filter((p) => p.id !== product.id), 1).slice(0, 12);
 
   // Previous / next sticker in the same order as the category page (wraps).
   const at = siblings.findIndex((p) => p.id === product.id);
@@ -108,6 +112,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       initial={product}
       category={category ? { id: category.id, name: category.name, slug: category.slug } : null}
       packPosters={packPosters}
+      // sent even with the live catalogue on (productSnapshot sends none): 12 small entries
+      nextUp={nextUp.map((p) => ({ ...p, description: "" }))}
     />
     <div className="relative isolate overflow-x-clip">
     <div className="no-select mx-auto min-h-screen w-full max-w-6xl px-4 pt-20 pb-36 sm:px-8 lg:pb-20">

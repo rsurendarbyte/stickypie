@@ -14,6 +14,7 @@ import { cardSkinFor, rotationFor } from "@/lib/palette";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { recordProductView, useFeatures, useLiveProduct, useRelatedProducts, useStoreSettings, watchImageSaves, usePuzzlePercent } from "@/lib/live-catalog";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
+import { visitSeed as currentVisitSeed } from "@/lib/skin-seed";
 import { rememberInterest } from "@/lib/interest";
 import BackButton from "./back-button";
 import StickerStepper, { type Steps, useRelatedSteps, useStepSwipe } from "./sticker-stepper";
@@ -69,7 +70,7 @@ export default function ProductDetailClient({
   useEffect(() => watchImageSaves(initial.id), [initial.id]);
   // Live and on-sale only (never the build-time list).
   // a fresh related order on every visit (More like this and the Next button)
-  const [visitSeed] = useState(() => Math.floor(Math.random() * 1e9));
+  const [visitSeed] = useState(() => currentVisitSeed());
   const { products: moreLikeThis, loaded: relatedLoaded } = useRelatedProducts(
     product.categoryId,
     product.id,
@@ -192,7 +193,8 @@ export default function ProductDetailClient({
         className="detail-mat pointer-events-none absolute inset-x-0 top-0 -z-10 h-[820px]"
       />
       <div className="flex items-center gap-3">
-        <BackButton fallback={category ? `/stickers/${category.slug}` : "/stickers"} />
+        {/* came from a shop page: back there; straight from a link (an ad, a share): home */}
+        <BackButton fallback="/" />
         {/* phones show the Swipe view switch here instead of the breadcrumb */}
         <nav className="min-w-0 truncate text-xs text-fog max-sm:hidden">
           <PageLink href="/stickers" className="hover:text-snow">
@@ -279,7 +281,7 @@ export default function ProductDetailClient({
                 alt={product.name}
                 priority
                 imgRef={setArtEl}
-                className={`sticker-cut max-h-full max-w-full object-contain ${
+                className={`sticker-cut max-h-full max-w-full object-contain ${puzzle && isPuzzle ? "puzzle-cut-mask" : ""} ${
                   out || unavailable ? "opacity-50 saturate-50" : ""
                 }`}
               />

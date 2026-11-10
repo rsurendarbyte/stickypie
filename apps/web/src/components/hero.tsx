@@ -36,7 +36,7 @@ import {
   formatINR,
 } from "@stickypie/shared";
 import { cardSkinFor, tileFor } from "@/lib/palette";
-import { useDaySeed, useSkinSeed } from "@/lib/skin-seed";
+import { useDaySeed, useSkinSeed, visitChance } from "@/lib/skin-seed";
 import AddToCartButton from "./add-to-cart-button";
 import AvatarArt from "./avatar-art";
 import PriceWait from "./price-wait";
@@ -1029,7 +1029,7 @@ function AvatarFan({ shop, snapshot, categories }: { shop: Product[]; snapshot: 
   // it loads, the few first fans built into the page stand in.
   const pool: FanPoster[] = shop.length ? fanOrder(shop, categories) : snapshot;
   const found = start ? pool.findIndex((p) => p.slug === start) : -1;
-  const from = found >= 0 ? found : start === null ? 0 : Math.floor((fanRandom ??= Math.random()) * pool.length);
+  const from = found >= 0 ? found : start === null ? 0 : Math.floor((fanRandom ??= visitChance("fan")) * pool.length);
   const take = (at: number) =>
     Array.from({ length: Math.min(FAN_POSTERS, pool.length) }, (_, i) => pool[(at + i) % pool.length]);
   const cards = take(from + turn * FAN_POSTERS);

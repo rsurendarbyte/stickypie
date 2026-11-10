@@ -63,8 +63,15 @@ export default function InstallApp() {
 
   // the app's service worker (needed for "install"); harmless if it fails
   useEffect(() => {
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => {});
     adVisit(); // remembers where this visit started
+    if (!("serviceWorker" in navigator)) return;
+    // never on the local dev server: its code files change without changing name,
+    // so the worker's saved copies would go stale (and an old one is removed)
+    if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
+      navigator.serviceWorker.getRegistrations().then((all) => all.forEach((r) => r.unregister()), () => {});
+      return;
+    }
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
   }, []);
 
   useEffect(() => {
