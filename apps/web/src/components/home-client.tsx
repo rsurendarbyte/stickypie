@@ -21,6 +21,7 @@ import {
   festivalProducts,
   festivalShortDate,
   resolveHomeRails,
+  wallInSeason,
   type Festival,
   type HomeSectionId,
   type Product,
@@ -56,7 +57,9 @@ export default function HomeClient({
 
   // Poster packs get the first row, wall setups leading; every other row is single stickers.
   rememberPosters(products);
-  const packs = products.filter(isPosterPack);
+  // Christmas & New Year walls only while those festivals are on (admin → Festivals dates).
+  const onNow = new Set(activeFestivals(festivals).map((f) => f.id));
+  const packs = products.filter((p) => isPosterPack(p) && wallInSeason(p.tags, onNow));
   // A row per wall theme, after the mix of every set.
   const inTheme = (id: string) => packs.filter((p) => p.tags.includes(`wall theme:${id}`));
   const wallRows = home.themes
