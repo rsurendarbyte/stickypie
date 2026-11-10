@@ -28,7 +28,10 @@ import {
   gstOnTop,
   formatINR,
   matchIndianState,
+  normalizePhone,
+  phoneProblem,
   shippingFor,
+  typingPhone,
 } from "@stickypie/shared";
 import { useFeatures, useStoreSettings, usePuzzlePercent } from "@/lib/live-catalog";
 import {
@@ -829,16 +832,19 @@ export default function CheckoutClient() {
                 inputMode="numeric"
                 autoComplete="tel-national"
                 value={form.phone}
-                onChange={(e) =>
-                  set(
-                    "phone",
-                    // autofill may bring "+91 98765 43210" or "098765 43210"
-                    e.target.value
-                      .replace(/\D/g, "")
-                      .replace(/^(?:91|0)(?=\d{10}$)/, "")
-                      .slice(0, 10),
-                  )
-                }
+                maxLength={20}
+                // typed or autofilled as "+91 98765 43210", "098765 43210"…: kept as typed
+                // (letters drop out), tidied to the 10 digits once it's complete
+                onChange={(e) => {
+                  const typed = typingPhone(e.target.value);
+                  const clean = normalizePhone(typed);
+                  set("phone", /^[6-9]\d{9}$/.test(clean) && clean !== typed.replace(/\D/g, "") ? clean : typed);
+                }}
+                onBlur={() => {
+                  const problem = phoneProblem(form.phone);
+                  if (problem) setErrors((prev) => ({ ...prev, phone: problem }));
+                  else if (form.phone) set("phone", normalizePhone(form.phone));
+                }}
                 error={errors.phone}
                 hint="For delivery updates from the courier"
                 className={

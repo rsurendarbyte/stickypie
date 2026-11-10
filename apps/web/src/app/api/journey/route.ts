@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { normalizePhone } from "@stickypie/shared";
 import { supabaseConfigured, supabaseUrl } from "@/lib/mode";
 
 // Shopper journeys for the admin's Journeys page (journey_ingest in Supabase).
@@ -102,7 +103,7 @@ export async function POST(req: Request) {
   const c = b.contact;
   const name = c?.name?.trim().replace(/\s+/g, " ");
   const email = c?.email?.trim().toLowerCase();
-  const phone = c?.phone?.replace(/\D/g, "");
+  const phone = c?.phone ? normalizePhone(c.phone) : undefined;
   const contact = c
     ? {
         ...(name && name.length >= 2 ? { name } : {}),
