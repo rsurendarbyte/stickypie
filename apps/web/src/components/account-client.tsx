@@ -36,7 +36,11 @@ export default function AccountClient() {
   useEffect(() => {
     if (!shopper.email) return;
     const next = new URLSearchParams(window.location.search).get("next");
-    if (next && next.startsWith("/") && !next.startsWith("//")) window.location.replace(next);
+    // only a page on this shop: "/\evil.com" or "//evil.com" would leave it
+    if (next?.startsWith("/")) {
+      const to = new URL(next, window.location.origin);
+      if (to.origin === window.location.origin) window.location.replace(to.pathname + to.search + to.hash);
+    }
   }, [shopper.email]);
 
   if (!shopper.ready) {

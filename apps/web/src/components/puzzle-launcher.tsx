@@ -29,7 +29,7 @@ export default function PuzzleLauncher() {
 
   useEffect(() => {
     const w = window as Window & { requestIdleCallback?: (cb: () => void) => number };
-    const t = window.setTimeout(() => (w.requestIdleCallback ?? ((cb: () => void) => cb()))(() => void loadGame()), 4000);
+    const t = window.setTimeout(() => (w.requestIdleCallback ?? ((cb: () => void) => cb()))(() => void loadGame().catch(() => {})), 4000); // an early fetch may fail quietly; opening the game retries
     return () => window.clearTimeout(t);
   }, []);
 

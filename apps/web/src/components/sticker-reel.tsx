@@ -18,6 +18,7 @@ import { backGoesHome, launchOf, launchPuzzle } from "@/lib/puzzle-launch";
 import { posterShare, puzzleShare, share as shareItem } from "@/lib/share";
 import { useSkinSeed } from "@/lib/skin-seed";
 import { PAGE_VIEW_ONCE_KEY } from "@/lib/view-script";
+import { journeyPage } from "@/lib/journey";
 import { lineKey, useCart } from "./cart-context";
 import CartStepper from "./cart-stepper";
 import PageLink from "./page-link";
@@ -191,6 +192,8 @@ function Reel({
     const opened = p.slug === initial.slug && location.pathname.startsWith(`/sticker/${p.slug}`);
     if (location.pathname !== path && !opened) history.replaceState(history.state, "", path);
     document.title = puzzle ? `Can you solve ${p.name}? · StickyPie` : `${p.name} · StickyPie`;
+    // each poster swiped to is a page in the shopper's journey (noted in idle time)
+    journeyPage(path);
   }, [active, list]);
 
   // A one-time "swipe up" hint for first-timers.

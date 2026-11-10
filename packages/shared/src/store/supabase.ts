@@ -440,13 +440,10 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
 
     async claimGuestOrders(email, userId) {
       // Exact match, any case: older guest orders kept the email as typed.
+      // PostgREST reads "*" as a wildcard too, so an email with one is matched exactly.
       const exact = email.replace(/[\\%_]/g, (c) => `\\${c}`);
-      const { data, error } = await client
-        .from("orders")
-        .update({ user_id: userId })
-        .is("user_id", null)
-        .ilike("email", exact)
-        .select("id");
+      const pending = client.from("orders").update({ user_id: userId }).is("user_id", null);
+      const { data, error } = await (email.includes("*") ? pending.eq("email", email) : pending.ilike("email", exact)).select("id");
       if (error) throw friendly(error);
       return data?.length ?? 0;
     },

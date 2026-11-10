@@ -19,9 +19,16 @@ export const PRIVATE_URL_SCRIPT = `(function(){try{var l=location;if(!/^\\/order
 /** Pages whose address itself is a secret (print-job token, password-reset link): no pixel at all. */
 const NO_PIXEL_PATHS = "^\\/(print-job|account\\/reset|pay\\/simulator)(\\/|$)";
 
+/**
+ * Secrets that can sit in any address: the thank-you card's feedback key (?fb=,
+ * kept in the address so a reload still opens the feedback box; these visits
+ * come from a printed card, not an ad) and sign-in tokens. No pixel then either.
+ */
+const NO_PIXEL_PARAMS = "(^|[?&#])(fb|access_token|refresh_token)=";
+
 /** Meta's standard loader, then a PageView for the page that loaded it. */
 export const META_PIXEL_SCRIPT = META_PIXEL_ID
-  ? `if(!new RegExp(${JSON.stringify(NO_PIXEL_PATHS)}).test(location.pathname))!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init',${JSON.stringify(
+  ? `if(!new RegExp(${JSON.stringify(NO_PIXEL_PATHS)}).test(location.pathname)&&!new RegExp(${JSON.stringify(NO_PIXEL_PARAMS)}).test(location.search+location.hash))!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init',${JSON.stringify(
       META_PIXEL_ID
     )});fbq('track','PageView');`
   : "";

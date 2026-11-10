@@ -3,6 +3,7 @@
 import Link from "@/components/page-link";
 import ShopLinks from "@/components/shop-links";
 import { trackMeta } from "@/lib/meta-pixel";
+import { journey, journeyContact } from "@/lib/journey";
 import BackButton from "./back-button";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -126,6 +127,7 @@ export default function CheckoutClient() {
       value: subtotal,
       currency: "INR",
     });
+    journey("checkout", { value: subtotal, items: count });
   }, [items, count, subtotal]);
   const [form, setForm] = useState<FormState>(EMPTY);
   const [errors, setErrors] = useState<
@@ -247,13 +249,28 @@ export default function CheckoutClient() {
         const saved = { ...EMPTY, ...(JSON.parse(raw) as Partial<FormState>) };
         // Older saved addresses had a free-text state; snap it to the dropdown.
         saved.state = matchIndianState(saved.state) ?? "";
-        setForm(saved);
+        // a signed-in account's email wins over the one saved here
+        setForm((f) => ({ ...saved, email: f.email || saved.email }));
       }
     } catch {
       // ignore
     }
     setMounted(true);
   }, []);
+
+  // Remember what's typed so far (this browser only): a shopper who leaves and
+  // comes back finds the form filled. Saved addresses don't need it.
+  useEffect(() => {
+    if (!mounted || savedChoice) return;
+    const timer = setTimeout(() => {
+      try {
+        if (Object.values(form).some(Boolean)) localStorage.setItem(CUSTOMER_KEY, JSON.stringify(form));
+      } catch {
+        // ignore
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [form, mounted, savedChoice]);
 
   // Verify the PIN with India Post and fill in its city + state.
   useEffect(() => {
@@ -296,10 +313,29 @@ export default function CheckoutClient() {
     setErrors((e) => ({ ...e, [field]: undefined }));
   }
 
+  // Journeys page: who this guest is, once the details look complete (also when
+  // they came prefilled from last time), so an unpaid cart can be followed up.
+  useEffect(() => {
+    if (!mounted) return;
+    const timer = setTimeout(() => journeyContact({ name: form.name, email: form.email, phone: form.phone }), 1500);
+    return () => clearTimeout(timer);
+  }, [mounted, form.name, form.email, form.phone]);
+
+  /** Brings the first field with a problem into view (on phones the pay bar sits far below it). */
+  function showFirstError() {
+    requestAnimationFrame(() => {
+      const el = payForm.current?.querySelector<HTMLElement>('[aria-invalid="true"]');
+      if (!el) return;
+      el.scrollIntoView({ block: "center", behavior: "smooth" });
+      el.focus({ preventScroll: true });
+    });
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setServerError(null);
     setAuthError(null);
+    journey("pay_click", { total }, { now: true });
     if (shortBy > 0) {
       setServerError(
         `Minimum order is ${formatINR(settings.minOrder)} — add ${formatINR(shortBy)} more to check out.`,
@@ -315,6 +351,8 @@ export default function CheckoutClient() {
         if (key && !next[key]) next[key] = issue.message;
       }
       setErrors(next);
+      journey("checkout_error", { fields: Object.keys(next).join(",") }, { now: true });
+      showFirstError();
       return;
     }
     // Only a PIN India Post doesn't know blocks the order; if the lookup
@@ -326,10 +364,13 @@ export default function CheckoutClient() {
         ...e,
         pincode: "We couldn't find this PIN code — please check it",
       }));
+      journey("checkout_error", { fields: "pincode_not_found" }, { now: true });
+      showFirstError();
       return;
     }
     if (needsSignIn && !password) {
       setAuthError("Enter your password.");
+      journey("checkout_error", { fields: "password" }, { now: true });
       return;
     }
 
@@ -354,6 +395,7 @@ export default function CheckoutClient() {
         const message =
           err instanceof Error ? err.message : "Could not sign you in.";
         setAuthError(message);
+        journey("signin_error", { msg: message.slice(0, 100) }, { now: true });
         setSubmitting(false);
         return;
       }
@@ -409,9 +451,11 @@ export default function CheckoutClient() {
               : "Something went wrong. Please try again.",
           );
         }
+        journey("order_error", { code: String(data.code ?? res.status).slice(0, 40), msg: typeof data.error === "string" ? data.error.slice(0, 100) : null }, { now: true });
         setSubmitting(false);
         return;
       }
+      journey("order_created", typeof data.orderId === "string" ? { order: data.orderId, total } : { total }, { now: true });
       // Order placed: remember the address in the shopper's book (never blocks payment).
       if (shopper.enabled && token && (savedChoice || saveAddress)) {
         const { name, phone, address1, address2, city, state, pincode } =
@@ -432,9 +476,13 @@ export default function CheckoutClient() {
       await openPayment(
         data,
         (url) => router.push(url),
-        (orderId) => router.push(`/order/${orderId}`),
+        (orderId) => {
+          journey("payment_closed", { order: orderId }, { now: true });
+          router.push(`/order/${orderId}`);
+        },
       );
     } catch (err) {
+      journey("payment_error", { msg: (err instanceof Error ? err.message : "").slice(0, 100) }, { now: true });
       setServerError(
         err instanceof Error && /payment window/.test(err.message)
           ? err.message
@@ -527,10 +575,10 @@ export default function CheckoutClient() {
             <b>{formatINR(shortBy)}</b> more to check out.
           </p>
           <Link
-            href="/stickers"
+            href="/"
             className="mt-1 inline-block font-semibold text-brand hover:underline"
           >
-            Add more stickers →
+            Keep shopping →
           </Link>
         </div>
       )}
@@ -546,7 +594,7 @@ export default function CheckoutClient() {
     <div className="mx-auto min-h-screen w-full max-w-6xl px-4 pt-20 pb-32 sm:px-8">
       {/* desktop: Back on the page (phones have it in the header) */}
       <div className="mb-3 hidden sm:block">
-        <BackButton fallback="/stickers" />
+        <BackButton fallback="/" />
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -563,6 +611,13 @@ export default function CheckoutClient() {
         ref={payForm}
         id="checkout-form"
         onSubmit={submit}
+        autoComplete="on"
+        onBlur={(e) => {
+          // Journeys page: which fields got filled (never what was typed), once a visit each
+          const el = e.target as unknown as HTMLInputElement;
+          if (el.name && el.value && el.type !== "checkbox")
+            journey("field", { f: el.name }, { once: `field.${el.name}` });
+        }}
         className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:gap-7"
       >
         <div ref={formColumn} className="space-y-4 lg:sticky">
@@ -620,7 +675,11 @@ export default function CheckoutClient() {
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     {field("email", "Email", {
                       type: "email",
+                      name: "email",
                       autoComplete: "email",
+                      inputMode: "email",
+                      autoCapitalize: "none",
+                      spellCheck: false,
                     })}
                     {authMode === "signin" && (
                       <PasswordField
@@ -630,6 +689,7 @@ export default function CheckoutClient() {
                           setPassword(e.target.value);
                           setAuthError(null);
                         }}
+                        name="password"
                         autoComplete="current-password"
                       />
                     )}
@@ -739,7 +799,9 @@ export default function CheckoutClient() {
             >
               <TextField
                 label="Full name"
-                autoComplete="name"
+                name="name"
+                autoComplete="shipping name"
+                autoCapitalize="words"
                 value={form.name}
                 onChange={(e) => set("name", e.target.value)}
                 error={errors.name}
@@ -749,7 +811,11 @@ export default function CheckoutClient() {
                 <TextField
                   label="Email"
                   type="email"
+                  name="email"
                   autoComplete="email"
+                  inputMode="email"
+                  autoCapitalize="none"
+                  spellCheck={false}
                   value={form.email}
                   onChange={(e) => set("email", e.target.value)}
                   error={errors.email}
@@ -759,15 +825,17 @@ export default function CheckoutClient() {
               <TextField
                 label="Mobile (10 digits)"
                 type="tel"
+                name="tel"
                 inputMode="numeric"
                 autoComplete="tel-national"
                 value={form.phone}
                 onChange={(e) =>
                   set(
                     "phone",
+                    // autofill may bring "+91 98765 43210" or "098765 43210"
                     e.target.value
                       .replace(/\D/g, "")
-                      .replace(/^91(?=\d{10})/, "")
+                      .replace(/^(?:91|0)(?=\d{10}$)/, "")
                       .slice(0, 10),
                   )
                 }
@@ -782,8 +850,10 @@ export default function CheckoutClient() {
 
               <TextField
                 label="PIN code"
+                name="postal-code"
                 inputMode="numeric"
-                autoComplete="postal-code"
+                maxLength={7}
+                autoComplete="shipping postal-code"
                 value={form.pincode}
                 onChange={(e) =>
                   set("pincode", e.target.value.replace(/\D/g, "").slice(0, 6))
@@ -796,7 +866,9 @@ export default function CheckoutClient() {
               />
               <TextField
                 label="City / district"
-                autoComplete="address-level2"
+                name="city"
+                autoComplete="shipping address-level2"
+                autoCapitalize="words"
                 value={form.city}
                 onChange={(e) => set("city", e.target.value)}
                 error={errors.city}
@@ -804,6 +876,8 @@ export default function CheckoutClient() {
               />
               <SelectField
                 label="State"
+                name="state"
+                autoComplete="shipping address-level1"
                 value={form.state}
                 onChange={(e) => set("state", e.target.value)}
                 error={errors.state}
@@ -838,7 +912,8 @@ export default function CheckoutClient() {
 
               <TextField
                 label="House / flat no., street"
-                autoComplete="address-line1"
+                name="address-line1"
+                autoComplete="shipping address-line1"
                 value={form.address1}
                 onChange={(e) => set("address1", e.target.value)}
                 error={errors.address1}
@@ -846,7 +921,8 @@ export default function CheckoutClient() {
               />
               <TextField
                 label="Area, landmark (optional)"
-                autoComplete="address-line2"
+                name="address-line2"
+                autoComplete="shipping address-line2"
                 value={form.address2}
                 onChange={(e) => set("address2", e.target.value)}
                 className="col-span-2 sm:col-span-6"

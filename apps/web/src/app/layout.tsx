@@ -26,6 +26,7 @@ import ShareSheet from "@/components/share-sheet";
 import InstallApp from "@/components/install-app";
 import { LITE_SCRIPT } from "@/lib/lite-script";
 import { VIEW_SCRIPT } from "@/lib/view-script";
+import { STALE_BUILD_SCRIPT } from "@/lib/stale-build-script";
 import { PUZZLE_BOOT_SCRIPT } from "@/lib/puzzle-boot";
 import { VISIT_SEED_SCRIPT } from "@/lib/skin-seed";
 import { siteUrl, supabaseConfigured } from "@/lib/mode";
@@ -98,6 +99,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <style dangerouslySetInnerHTML={{ __html: shopThemeCss() }} />
         {/* The mouse pointer as a theme-coloured sticker arrow (lib/sticker-cursor.ts) */}
         <style dangerouslySetInnerHTML={{ __html: stickerCursorCss() }} />
+        <script dangerouslySetInnerHTML={{ __html: STALE_BUILD_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: LITE_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: VISIT_SEED_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: VIEW_SCRIPT }} />
