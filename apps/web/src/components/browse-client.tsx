@@ -5,6 +5,8 @@ import { useMemo } from "react";
 import {
   ALL_STICKERS_PATH,
   WALL_THEMES,
+  activeFestivals,
+  wallInSeason,
   categoryPath,
   categoryTitle,
   inCategory,
@@ -19,7 +21,7 @@ import ProductCardSkeleton from "./product-card-skeleton";
 import VirtualGrid from "./virtual-grid";
 import { SinglePostersRail, WallsPageFeed, usePhone, wallChipColours } from "./wall-feed";
 import CategoryFilter from "./category-filter";
-import { useLiveCatalog, type Catalog } from "@/lib/live-catalog";
+import { useFestivals, useLiveCatalog, type Catalog } from "@/lib/live-catalog";
 import { PUZZLE_POSTERS, SINGLE_POSTERS, isPoster, isPosterPack, isSinglePoster } from "@/lib/poster";
 import { rememberPosters } from "@/lib/poster-images";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
@@ -51,8 +53,17 @@ export default function BrowseClient({
   categorySlug?: string;
 }) {
   const mix = usePuzzleLead();
-  const { categories, products, loaded, failed, retry } =
+  const { categories, products: allProducts, loaded, failed, retry } =
     useLiveCatalog(initial);
+  // Christmas & New Year walls (and their chip) only while those festivals are on
+  // (admin → Festivals dates); hidden until the festival list has loaded.
+  const { festivals } = useFestivals([]);
+  const onNow = useMemo(() => new Set(activeFestivals(festivals).map((f) => f.id)), [festivals]);
+  const products = useMemo(
+    () => allProducts.filter((p) => !isPosterPack(p) || wallInSeason(p.tags, onNow)),
+    [allProducts, onNow]
+  );
+  const themes = WALL_THEMES.filter((t) => !("festivals" in t) || t.festivals.some((id) => onNow.has(id)));
   useWindowScrollMemory(loaded);
   rememberPosters(products);
   const seed = useDaySeed();
@@ -235,7 +246,7 @@ export default function BrowseClient({
       {/* Walls: a chip per theme. Stickers: one button for categories + sort */}
       {walls ? (
         <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:mt-5 sm:px-0">
-          {[{ id: "", title: "All walls" }, { id: PUZZLE_POSTERS, title: "🧩 Puzzle posters" }, { id: SINGLE_POSTERS, title: "Single posters" }, ...WALL_THEMES].map((t) => (
+          {[{ id: "", title: "All walls" }, { id: PUZZLE_POSTERS, title: "🧩 Puzzle posters" }, { id: SINGLE_POSTERS, title: "Single posters" }, ...themes].map((t) => (
             <button
               key={t.id}
               type="button"
