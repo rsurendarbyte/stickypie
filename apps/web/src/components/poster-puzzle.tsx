@@ -126,7 +126,7 @@ export function Tiles({
         const at = making ? slots[drag.tile] : slot;
         const up = lit.includes(tile) || picked === tile || held;
         const style = {
-          transform: `translate(${(at % 3) * 100}%, ${Math.floor(at / 3) * 100}%)${held ? ` translate3d(${drag.dx}px, ${drag.dy}px, 0)` : ""} scale(${split ? (held ? 1.06 : up ? 0.98 : 0.94) : 1})`,
+          transform: `translate(${(at % 3) * 100}%, ${Math.floor(at / 3) * 100}%)${held ? ` translate3d(${drag.dx}px, ${drag.dy}px, 0)` : ""} scale(${split ? (held ? 1.06 : up ? 0.995 : 0.98) : 1})`,
           zIndex: held ? 3 : up ? 2 : 1,
           // the held tile follows the finger exactly; the rest glide
           transitionDuration: held ? "0ms" : making ? "220ms" : undefined,
@@ -640,6 +640,7 @@ export function PuzzleGame({
   onAddToCart,
   slug,
   page = false,
+  waited = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -652,8 +653,10 @@ export function PuzzleGame({
   onAddToCart?: () => void;
   /** The poster's slug: "Challenge a friend" shares its puzzle link. */
   slug?: string;
-  /** Drawn as the /puzzle/ page itself: no sheet peeling in, and back leaves the page. */
+  /** Drawn full screen as a page: no sheet peeling in; history is handled by lib/puzzle-launch. */
   page?: boolean;
+  /** The /puzzle/ page, which already showed the poster while loading: skip the long look. */
+  waited?: boolean;
 }) {
   const challenge = (solvedIn?: number) => slug && void share(puzzleShare({ slug, name, image: src }, solvedIn, pct));
   const [shown, setShown] = useState(open);
@@ -685,6 +688,11 @@ export function PuzzleGame({
       return;
     }
     if (!shown) return;
+    // a full-screen game page just goes (the page underneath is right there)
+    if (page) {
+      setShown(false);
+      return;
+    }
     setClosing(true);
     const t = window.setTimeout(() => {
       setShown(false);
@@ -704,15 +712,20 @@ export function PuzzleGame({
     setSeconds(0);
     setHints(0);
     setHint([]);
+    // "Remember it!" for 1.6s, then shuffle. The game page already showed the
+    // poster with "Remember it!" while its code loaded (PuzzleBoot), so that
+    // wait counts: a slow phone shuffles straight away instead of waiting again.
+    const look = waited && round === 0 ? Math.max(250, 1600 - performance.now()) : 1600;
     const timers = [
-      window.setTimeout(() => setPhase("mix"), 1600),
-      window.setTimeout(() => setSlots(mixed()), 2000),
+      window.setTimeout(() => setPhase("mix"), look),
+      window.setTimeout(() => setSlots(mixed()), look + 400),
       window.setTimeout(() => {
         setPhase("play");
         started.current = Date.now();
-      }, 2600),
+      }, look + 1000),
     ];
     return () => timers.forEach((t) => window.clearTimeout(t));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, round]);
 
   useEffect(() => {

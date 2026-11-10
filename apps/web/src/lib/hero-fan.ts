@@ -72,6 +72,6 @@ export function fanSnapshot(products: Product[], categories: Category[]): FanPos
 export function fanScript(posters: FanPoster[]) {
   const list = posters.map((p) => ({ slug: p.slug, t: p.tinyUrl ?? undefined, ...fanSrc(p) }));
   const json = JSON.stringify(list).replace(/</g, "\\u003c");
-  return `(function(){var p=${json},s=3*Math.floor(Math.random()*p.length/3),a=document.currentScript.parentNode.querySelectorAll("a[data-fan]");window.__heroFan=p[s].slug;for(var i=0;i<a.length;i++){var q=p[s+i],m=a[i].querySelector("img"),b=a[i].querySelector("[data-fan-blur]");a[i].href="/sticker/"+q.slug;if(q.t&&b)b.style.backgroundImage="url("+q.t+")";m.onload=function(){this.setAttribute("data-loaded","")};if(q.srcSet){m.sizes=${JSON.stringify(FAN_SIZES)};m.srcset=q.srcSet}m.src=q.src;if(m.complete&&m.naturalWidth)m.setAttribute("data-loaded","")}})()`;
+  return `(function(){var p=${json},r=window.__visitSeed?((window.__visitSeed*9301+49297)%233280)/233280:Math.random(),s=3*Math.floor(r*p.length/3),a=document.currentScript.parentNode.querySelectorAll("a[data-fan]");window.__heroFan=p[s].slug;for(var i=0;i<a.length;i++){var q=p[s+i],m=a[i].querySelector("img"),b=a[i].querySelector("[data-fan-blur]");a[i].href="/sticker/"+q.slug;if(q.t&&b)b.style.backgroundImage="url("+q.t+")";m.onload=function(){this.setAttribute("data-loaded","")};if(q.srcSet){m.sizes=${JSON.stringify(FAN_SIZES)};m.srcset=q.srcSet}m.src=q.src;if(m.complete&&m.naturalWidth)m.setAttribute("data-loaded","")}})()`;
 
 }

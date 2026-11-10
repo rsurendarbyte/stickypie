@@ -21,9 +21,16 @@ export default function PuzzleBoot({ src, name, ratio }: { src: string; name: st
         <div className="puzzle-frame w-full max-w-[22rem] rounded-2xl p-2.5" style={{ maxWidth: `min(22rem, calc((100dvh - 14rem) * ${ratio}))` }}>
           <div className="relative w-full overflow-hidden" style={{ aspectRatio: ratio }}>
             <img src={src} alt="" fetchPriority="high" className="absolute inset-0 size-full rounded-[3px] object-cover" />
+            {/* the game's own first step, so the wait while it loads is part of the game */}
+            <span className="absolute inset-0 grid place-items-center">
+              <span className="rounded-2xl bg-snow/80 px-4 py-2 text-center text-white">
+                <span className="block font-display text-lg font-bold">Remember it!</span>
+                <span className="block text-[11px] text-white/80">It&apos;s about to shuffle</span>
+              </span>
+            </span>
           </div>
         </div>
-        <p className="text-sm font-semibold text-fog">Getting your puzzle ready…</p>
+        <p className="text-sm font-semibold text-fog">Swap the tiles back · win a prize</p>
       </div>
     </div>
   );

@@ -2440,8 +2440,8 @@ html[data-lite]:not([data-lite="net"]) .puzzle-landed {
 .puzzle-cuts {
   --cut: #f3ece4;
   background:
-    linear-gradient(90deg, transparent calc(33.333% - 2px), var(--cut) 0 calc(33.333% + 2px), transparent 0 calc(66.666% - 2px), var(--cut) 0 calc(66.666% + 2px), transparent 0),
-    linear-gradient(transparent calc(33.333% - 2px), var(--cut) 0 calc(33.333% + 2px), transparent 0 calc(66.666% - 2px), var(--cut) 0 calc(66.666% + 2px), transparent 0);
+    linear-gradient(90deg, transparent calc(33.333% - 1px), var(--cut) 0 calc(33.333% + 1px), transparent 0 calc(66.666% - 1px), var(--cut) 0 calc(66.666% + 1px), transparent 0),
+    linear-gradient(transparent calc(33.333% - 1px), var(--cut) 0 calc(33.333% + 1px), transparent 0 calc(66.666% - 1px), var(--cut) 0 calc(66.666% + 1px), transparent 0);
   pointer-events: none;
 }
 [data-puzzling] > .puzzle-cuts {
@@ -2583,3 +2583,18 @@ html[data-lite]:not([data-lite="net"]) .puzzle-win-rays {
   }
 }
 
+
+/* A puzzle poster's picture split into its 9 cards from the very first paint:
+   two transparent cut lines each way, masked out of the picture itself (no
+   measuring, so it's in the page's HTML). PuzzleSplit takes over once it has
+   measured the picture, and looks the same. */
+.puzzle-cut-mask {
+  -webkit-mask-image:
+    linear-gradient(to right, #000 calc(33.333% - 1px), transparent 0 calc(33.333% + 1px), #000 0 calc(66.667% - 1px), transparent 0 calc(66.667% + 1px), #000 0),
+    linear-gradient(to bottom, #000 calc(33.333% - 1px), transparent 0 calc(33.333% + 1px), #000 0 calc(66.667% - 1px), transparent 0 calc(66.667% + 1px), #000 0);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(to right, #000 calc(33.333% - 1px), transparent 0 calc(33.333% + 1px), #000 0 calc(66.667% - 1px), transparent 0 calc(66.667% + 1px), #000 0),
+    linear-gradient(to bottom, #000 calc(33.333% - 1px), transparent 0 calc(33.333% + 1px), #000 0 calc(66.667% - 1px), transparent 0 calc(66.667% + 1px), #000 0);
+  mask-composite: intersect;
+}

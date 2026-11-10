@@ -11,12 +11,13 @@ import type { Product } from "@stickypie/shared";
 import { useFeatures } from "./live-catalog";
 import { usePosterCatalog } from "@/components/wall-size-map";
 import { isPosterPack, isSinglePoster } from "./poster";
+import { visitSeed } from "./skin-seed";
 
 const MARK = "~puzzle";
 /** A puzzle card after every this many cards (and one first). */
 const EVERY = 2;
-/** One random pick per visit, kept for every row on the page. */
-const VISIT = Math.floor(Math.random() * 1e9);
+/** One pick per visit, kept for every row on the page (and the same again on Back). */
+const VISIT = visitSeed();
 
 export const isPuzzleEntry = (product: Product) => product.id.includes(MARK);
 /** A puzzle entry in a row of wall sets: drawn in the wall card's shape. */

@@ -1,38 +1,23 @@
 "use client";
 
 // Wall poster or puzzle poster: a mini poster is sold as either (no longer as a
-// sticker), and the shopper's choice carries from page to page (kept in this
-// browser only). A page can start it (the puzzle poster page starts on Puzzle).
+// sticker). The page decides where it starts, from how the shopper got there:
+// /sticker/<slug> starts on Wall poster, /sticker/<slug>/puzzle on Puzzle
+// (FinishStart). Nothing is remembered between pages, so the page's HTML and
+// the live page always agree and nothing flips once the page's code loads.
+// Switching on the page applies to that page (and its swipe view) only.
 import { createContext, createElement, useContext, useSyncExternalStore, type ReactNode } from "react";
 import type { PosterFinish } from "@stickypie/shared";
 
-const KEY = "stickypie.finish.v1";
 const listeners = new Set<() => void>();
 let current: PosterFinish = "poster";
-let loaded = false;
-
-function load() {
-  if (loaded) return;
-  loaded = true;
-  try {
-    if (localStorage.getItem(KEY) === "puzzle") current = "puzzle";
-  } catch {
-    // storage may be blocked; the default stands
-  }
-}
 
 export function getFinish(): PosterFinish {
-  load();
   return current;
 }
 
 export function setFinish(finish: PosterFinish) {
   current = finish;
-  try {
-    localStorage.setItem(KEY, finish);
-  } catch {
-    // still applies for this visit
-  }
   listeners.forEach((fn) => fn());
 }
 
@@ -53,11 +38,7 @@ export function FinishStart({ finish, children }: { finish: PosterFinish; childr
   // store agree (no flip from Wall poster to Puzzle once the page's code loads)
   if (typeof window !== "undefined" && !started) {
     started = true;
-    loaded = true;
     current = finish;
-    try {
-      localStorage.setItem(KEY, finish);
-    } catch {}
   }
   return createElement(StartFinish.Provider, { value: finish }, children);
 }

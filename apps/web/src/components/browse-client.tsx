@@ -14,12 +14,13 @@ import PageLink from "./page-link";
 import ShopLinks from "./shop-links";
 import ProductCard from "./product-card";
 import { asPuzzleEntry, usePuzzleLead } from "@/lib/puzzle-mix";
+import CustomRail from "./custom-rail";
 import ProductCardSkeleton from "./product-card-skeleton";
 import VirtualGrid from "./virtual-grid";
 import { SinglePostersRail, WallsPageFeed, usePhone, wallChipColours } from "./wall-feed";
 import CategoryFilter from "./category-filter";
 import { useLiveCatalog, type Catalog } from "@/lib/live-catalog";
-import { PUZZLE_POSTERS, SINGLE_POSTERS, isPosterPack, isSinglePoster } from "@/lib/poster";
+import { PUZZLE_POSTERS, SINGLE_POSTERS, isPoster, isPosterPack, isSinglePoster } from "@/lib/poster";
 import { rememberPosters } from "@/lib/poster-images";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
 import { useDaySeed } from "@/lib/skin-seed";
@@ -32,6 +33,7 @@ import { wallEffect } from "@/lib/wall-effects";
  * and all searching/filtering/sorting is local — zero server requests.
  */
 const WALLS = "poster-packs";
+const MINI_POSTERS = "mini-posters";
 /** Walls page, wider screens: this many sets before the single posters; fits 2, 3 and 4 columns. */
 const WALLS_BEFORE_POSTERS = 12;
 const SORTS = [
@@ -64,6 +66,10 @@ export default function BrowseClient({
   const theme = walls ? (params.get("theme") ?? "") : "";
   const puzzles = theme === PUZZLE_POSTERS;
   const single = theme === SINGLE_POSTERS || puzzles;
+  // The Stickers tab is die-cut stickers only: mini posters are wall posters or
+  // puzzle posters now (Walls tab), never stickers. The Mini Posters category
+  // page still lists the posters.
+  const stickersOnly = !walls && !single && category !== MINI_POSTERS;
   const wallList = walls && !single;
 
   /** Link to a category (or all), keeping the current search + sort. */
@@ -108,6 +114,7 @@ export default function BrowseClient({
       // Wall sets have their own page: All stickers is stickers.
       list = list.filter((p) => !isPosterPack(p));
     }
+    if (stickersOnly && !q) list = list.filter((p) => !isPoster(p));
     if (theme && !single) list = list.filter((p) => p.tags.includes(`wall theme:${theme}`));
     if (q) list = searchStickers(list, categories, q).exact;
     if (sort === "price-asc")
@@ -115,7 +122,7 @@ export default function BrowseClient({
     else if (sort === "price-desc")
       list = [...list].sort((a, b) => b.price - a.price);
     return list;
-  }, [products, categories, q, category, sort, theme, single]);
+  }, [products, categories, q, category, sort, theme, single, stickersOnly]);
 
   // A search with no exact match: the closest stickers (or popular picks)
   // from the whole shop instead of an empty page.
@@ -144,7 +151,9 @@ export default function BrowseClient({
   // The Puzzle posters chip shows every single poster as one.
   const grid = (items: typeof visible, from = 0) => (
     <VirtualGrid
-      items={puzzles ? items.map((p, i) => asPuzzleEntry(p, i)) : mix(items, { first: from === 0 })}
+      // puzzle poster cards only among wall sets: never between stickers or in
+      // the Single posters list (the Puzzle posters chip lists every poster as one)
+      items={puzzles ? items.map((p, i) => asPuzzleEntry(p, i)) : stickersOnly || single ? items : mix(items, { first: from === 0 })}
       getKey={(product) => product.id}
       render={(product, i, cols) => <ProductCard product={product} width="w-full" wallEffect={wallEffect(Math.floor((from + i) / cols), seed)} />}
       className={wallList ? "mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-5 sm:mt-6 sm:gap-x-4 sm:gap-y-7 @[53rem]:grid-cols-3 @[80rem]:grid-cols-4" : "mt-4 grid grid-cols-2 gap-x-3 gap-y-5 sm:mt-8 sm:gap-y-7 sm:gap-x-4 @[40rem]:grid-cols-3 @[53rem]:grid-cols-4 @[67rem]:grid-cols-5 @[80rem]:grid-cols-6 @[107rem]:grid-cols-8"}
@@ -154,12 +163,14 @@ export default function BrowseClient({
   const activeCategoryName = categories.find((c) => c.slug === category)?.name;
   // Only categories that have stickers on sale (plus the one being viewed),
   // so a big category list never shows dead-end chips.
+  // In the Stickers tab only categories with die-cut stickers (no poster categories).
+  const stickerProducts = useMemo(() => (stickersOnly ? products.filter((p) => !isPoster(p)) : products), [products, stickersOnly]);
   const shownCategories = useMemo(() => {
     const used = new Set(
-      products.flatMap((p) => p.categoryIds ?? [p.categoryId]),
+      stickerProducts.flatMap((p) => p.categoryIds ?? [p.categoryId]),
     );
-    return categories.filter((c) => (used.has(c.id) || c.slug === category) && c.slug !== WALLS);
-  }, [categories, products, category]);
+    return categories.filter((c) => (used.has(c.id) || c.slug === category) && c.slug !== WALLS && (!stickersOnly || c.slug !== MINI_POSTERS));
+  }, [categories, stickerProducts, category, stickersOnly]);
 
   // Category pop-up: every category with stickers, with its count.
   const filterCategories = useMemo(
@@ -167,9 +178,9 @@ export default function BrowseClient({
       shownCategories.map((c) => ({
         slug: c.slug,
         name: c.name,
-        count: products.filter((p) => inCategory(p, c.id)).length,
+        count: stickerProducts.filter((p) => inCategory(p, c.id)).length,
       })),
-    [shownCategories, products],
+    [shownCategories, stickerProducts],
   );
 
   return (
@@ -239,7 +250,7 @@ export default function BrowseClient({
         <div className="mt-3 sm:mt-5">
           <CategoryFilter
             categories={filterCategories}
-            total={products.filter((p) => !isPosterPack(p)).length}
+            total={stickerProducts.filter((p) => !isPosterPack(p)).length}
             active={category}
             activeName={activeCategoryName}
             onPick={(slug) => go(hrefFor(slug))}
@@ -306,6 +317,11 @@ export default function BrowseClient({
         // window's, keeping every card at least ~200px wide: with the cart panel
         // open the page is narrower and shows fewer columns, not squeezed cards.
         <div className="@container">
+          {stickersOnly && !category && !q && (
+            <div className="-mx-4 mt-4 sm:-mx-8 lg:-mx-12 2xl:-mx-20">
+              <CustomRail title="Stickers of you · make your own" />
+            </div>
+          )}
           {postersRail ? (
             <>
               {grid(visible.slice(0, WALLS_BEFORE_POSTERS))}
