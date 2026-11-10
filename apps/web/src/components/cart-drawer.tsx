@@ -262,11 +262,11 @@ export default function CartDrawer() {
                   <span className="mt-4 block h-11 w-full animate-pulse rounded-xl bg-panel" />
                 ) : shortBy > 0 ? (
                   <PageLink
-                    href="/stickers"
+                    href="/"
                     onClick={closeCart}
                     className="peel-btn mt-4 block w-full rounded-xl py-3 text-center text-sm font-bold"
                   >
-                    Add {formatINR(shortBy)} more — browse stickers →
+                    Add {formatINR(shortBy)} more — keep shopping →
                   </PageLink>
                 ) : (
                   <PageLink

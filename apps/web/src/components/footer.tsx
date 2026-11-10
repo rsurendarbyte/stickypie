@@ -42,7 +42,7 @@ export default function Footer({ demoMode }: { demoMode: boolean }) {
       <div className="grid w-full gap-10 px-4 py-12 sm:px-8 md:grid-cols-[1.4fr_1fr_1fr_1fr_1fr] lg:px-12 2xl:px-20">
         <div>
           <img loading="lazy" decoding="async"
-            src="/icons/logo-wide.webp"
+            src="/icons/logo-wide-480.webp"
             alt="StickyPie"
             width={960}
             height={323}

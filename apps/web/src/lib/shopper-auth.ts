@@ -10,6 +10,7 @@
 import { useEffect, useState } from "react";
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import { SUPPORT_EMAIL } from "@stickypie/shared";
+import { reloadIfStaleBuild } from "./stale-build-script";
 
 const URL_ = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -33,10 +34,12 @@ export function loadAuthClient(): Promise<SupabaseClient | null> {
       window.dispatchEvent(new Event(READY));
       return client;
     },
-    () => {
+    (err: unknown) => {
       // the download failed (network blip, or an old page after a deploy):
-      // forget it so the next try downloads again, and say so plainly
+      // forget it so the next try downloads again, and say so plainly; an old
+      // page reloads itself with the new build
       loading = null;
+      reloadIfStaleBuild(err instanceof Error ? err.message : String(err));
       throw new Error(NETWORK_ERROR);
     }
   );
@@ -46,7 +49,8 @@ export function loadAuthClient(): Promise<SupabaseClient | null> {
 /** True when the client should load now: a saved session, or auth tokens in the URL (reset link). */
 function needsClientNow(): boolean {
   if (!authEnabled || typeof window === "undefined") return false;
-  if (/(^|[#&?])(access_token|refresh_token|error_code|code)=/.test(location.hash + location.search)) return true;
+  // (no "code=": sign-in links use tokens in the hash, and ?code= is used elsewhere)
+  if (/(^|[#&?])(access_token|refresh_token|error_code)=/.test(location.hash + location.search)) return true;
   try {
     return localStorage.getItem(STORAGE_KEY) !== null;
   } catch {
@@ -72,13 +76,22 @@ export function whenAuthClient(cb: (c: SupabaseClient) => void): () => void {
     return () => (live = false);
   }
   const onReady = () => {
-    window.removeEventListener(READY, onReady);
+    stopListening();
     run();
   };
+  // signed in from another tab: its session lands in localStorage, so load here too
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === STORAGE_KEY && e.newValue) loadAuthClient().catch(() => {});
+  };
+  const stopListening = () => {
+    window.removeEventListener(READY, onReady);
+    window.removeEventListener("storage", onStorage);
+  };
   window.addEventListener(READY, onReady);
+  window.addEventListener("storage", onStorage);
   return () => {
     live = false;
-    window.removeEventListener(READY, onReady);
+    stopListening();
   };
 }
 

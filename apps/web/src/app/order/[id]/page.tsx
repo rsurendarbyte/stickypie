@@ -162,7 +162,7 @@ export default async function OrderPage({
         )}
         <span className="hidden text-xs font-semibold text-fog sm:inline">{orderCode(order.id)}</span>
         <Link
-          href="/stickers"
+          href="/"
           className="peel-btn ml-auto inline-flex h-10 items-center gap-1.5 rounded-xl px-3.5 text-sm font-bold"
         >
           <ShoppingBag className="peel-icon size-4" /> Shop more
@@ -500,7 +500,7 @@ export default async function OrderPage({
           </Link>
         ) : null}
         <Link
-          href="/stickers"
+          href="/"
           className={`peel-btn inline-flex h-11 items-center justify-center gap-1.5 rounded-xl text-sm font-bold ${
             order.userId ? "" : "col-span-2"
           }`}

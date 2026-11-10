@@ -7,6 +7,7 @@ import { Clock3, CreditCard, Lock, RefreshCw } from "lucide-react";
 import { formatINR } from "@stickypie/shared";
 import { openPayment } from "@/lib/open-payment";
 import { currentSession } from "@/lib/shopper-auth";
+import { journey } from "@/lib/journey";
 import StickerLoader from "./sticker-loader";
 
 // The gateway usually confirms within a few seconds of the shopper returning.
@@ -49,7 +50,14 @@ export default function PaymentPending({
     return () => clearTimeout(timer);
   }, [attempt, checking, router]);
 
+  // Journeys page: the shopper is back on the order without having paid.
+  useEffect(() => {
+    if (awaitingShopper)
+      journey(lastAttempt === "FAILED" ? "payment_failed" : "payment_not_done", { order: orderId }, { once: `unpaid.${orderId}.${lastAttempt}` });
+  }, [awaitingShopper, lastAttempt, orderId]);
+
   async function payNow() {
+    journey("pay_again", { order: orderId }, { now: true });
     setPaying(true);
     setError(null);
     try {
@@ -71,9 +79,13 @@ export default function PaymentPending({
           router.push(url);
           router.refresh();
         },
-        () => setPaying(false)
+        () => {
+          journey("payment_closed", { order: orderId });
+          setPaying(false);
+        }
       );
     } catch (err) {
+      journey("payment_error", { msg: (err instanceof Error ? err.message : "").slice(0, 100) });
       setError(err instanceof Error ? err.message : "Couldn't open the payment page.");
       setPaying(false);
     }

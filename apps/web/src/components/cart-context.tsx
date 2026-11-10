@@ -3,6 +3,7 @@
 import { syncCart } from "@/lib/cart-sync";
 import { liveProducts } from "@/lib/live-catalog";
 import { trackMeta } from "@/lib/meta-pixel";
+import { journey } from "@/lib/journey";
 import {
   createContext,
   useCallback,
@@ -197,6 +198,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         value: product.price * qty,
         currency: "INR",
       });
+      journey("add_to_cart", { id: product.productId, name: product.name.split(" · ")[0].slice(0, 80), price: product.price * qty });
       // Don't open the drawer — the persistent cart rail/strip picks it up so
       // browsing continues uninterrupted.
       return true;
@@ -227,7 +229,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const clear = useCallback(() => setItems([]), []);
-  const openCart = useCallback(() => setIsOpen(true), []);
+  const openCart = useCallback(() => {
+    setIsOpen(true);
+    journey("open_cart");
+  }, []);
   const closeCart = useCallback(() => setIsOpen(false), []);
 
   const value = useMemo<CartContextValue>(() => {

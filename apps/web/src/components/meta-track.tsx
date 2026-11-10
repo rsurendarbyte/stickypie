@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { trackMeta, trackMetaOnce } from "@/lib/meta-pixel";
+import { journey } from "@/lib/journey";
 
 /** ViewContent for the sticker (or offer) a page is about. */
 export function MetaViewContent({
@@ -41,6 +42,8 @@ export function MetaPurchase({
   items: { id: string; qty: number; price: number }[];
 }) {
   useEffect(() => {
+    // for the admin's Journeys page: how the order page looked when it opened
+    journey(paid ? "paid" : "order_unpaid", { order: orderId, total }, { once: `order.${orderId}.${paid}`, now: paid });
     if (!paid) return;
     trackMetaOnce(
       `purchase.${orderId}`,

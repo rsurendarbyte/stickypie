@@ -49,6 +49,7 @@ export function TextField({
     <label className={`block ${className}`}>
       <span className={shell(error)}>
         <input
+          aria-invalid={error ? true : undefined}
           {...rest}
           placeholder=" "
           className={`peer h-14 w-full bg-transparent px-4 pt-4 pb-0.5 text-sm text-snow outline-none placeholder-transparent ${
@@ -143,6 +144,8 @@ export function SelectField({
   onChange,
   disabled,
   id,
+  name,
+  autoComplete,
 }: {
   label: string;
   error?: string;
@@ -153,6 +156,9 @@ export function SelectField({
   onChange?: (e: { target: { value: string }; currentTarget: { value: string } }) => void;
   disabled?: boolean;
   id?: string;
+  /** With `autoComplete`: a native copy of the list, out of sight, that browser autofill can fill. */
+  name?: string;
+  autoComplete?: string;
 }) {
   const options = useMemo(() => readOptions(children), [children]);
   const current = String(value ?? "");
@@ -255,11 +261,33 @@ export function SelectField({
   return (
     <div ref={rootRef} className={`relative block ${className}`} onKeyDown={onKey}>
       <span className={shell(error)}>
+        {autoComplete && (
+          <select
+            name={name}
+            autoComplete={autoComplete}
+            tabIndex={-1}
+            aria-hidden
+            value={current}
+            disabled={disabled}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v && v !== current) onChange?.({ target: { value: v }, currentTarget: { value: v } });
+            }}
+            className="pointer-events-none absolute bottom-0 left-4 h-px w-px opacity-0"
+          >
+            {options.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        )}
         <button
           ref={buttonRef}
           id={id}
           type="button"
           disabled={disabled}
+          aria-invalid={error ? true : undefined}
           aria-haspopup="listbox"
           aria-expanded={open}
           aria-controls={listId}

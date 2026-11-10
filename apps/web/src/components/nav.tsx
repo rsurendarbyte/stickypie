@@ -125,7 +125,7 @@ export default function Nav() {
           >
             <span className="relative block aspect-[960/323] h-[50px] drop-shadow-[0_1px_2px_rgba(21,22,30,0.2)] sm:h-[60px]">
               <img
-                src="/icons/logo-wide-base.webp"
+                src="/icons/logo-wide-base-480.webp"
                 alt=""
                 width={960}
                 height={323}
@@ -134,7 +134,7 @@ export default function Nav() {
               <span ref={logoPeel} aria-hidden className="peel peel-gentle peel-logo">
                 <span className="peel-face">
                   <img
-                    src="/icons/logo-mark.webp"
+                    src="/icons/logo-mark-140.webp"
                     alt=""
                     width={270}
                     height={267}
