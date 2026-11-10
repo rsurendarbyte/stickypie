@@ -11,6 +11,7 @@ import { isMiniPoster, isPosterPack, isWallSetup } from "@/lib/poster";
 import { productSnapshot } from "@/lib/catalog-snapshot";
 import { relatedOrder } from "@/lib/related";
 import { getDriver } from "@/lib/data";
+import { allCategories, productBySlug } from "@/lib/page-data";
 import {
   productDetails,
   productSeoDescription,
@@ -25,8 +26,9 @@ import { shareImageUrl } from "@/lib/share-links";
 // browser. Products added after the last deploy still render on demand.
 // Stored in the R2 page cache once built (at deploy, or on the first visit
 // for a sticker added later) and refreshed in the background at most every
-// 10 minutes, so admin edits show up without a deploy.
-export const revalidate = 600;
+// hour, so admin edits show up without a deploy (prices and stock are
+// already live in the browser, so a slower refresh costs shoppers nothing).
+export const revalidate = 3600;
 
 export async function generateStaticParams() {
   const products = await getDriver().listProducts({ activeOnly: true });
@@ -39,7 +41,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const product = await getDriver().getProductBySlug(slug);
+  const product = await productBySlug(slug);
   if (!product || !product.isActive) return { title: "Sticker" };
   return pageMetadata({
     title: productSeoTitle(product),
@@ -54,10 +56,19 @@ export async function generateMetadata({
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const driver = getDriver();
-  const product = await driver.getProductBySlug(slug);
+  const product = await productBySlug(slug);
   if (!product || !product.isActive) notFound();
 
-  const categories = await driver.listCategories();
+  // Independent reads run together (a refresh used to wait on each in turn).
+  const [categories, reviews, settings] = await Promise.all([
+    allCategories(),
+    // Approved reviews feed Google's star ratings; never block the page on them.
+    driver
+      .listReviews("approved")
+      .then((all) => all.filter((r) => r.productId === product.id))
+      .catch(() => []),
+    driver.getSettings(),
+  ]);
   const category = categories.find((c) => c.id === product.categoryId) ?? null;
   const siblings = await driver.listProducts(
     category ? { activeOnly: true, categorySlug: category.slug } : { activeOnly: true }
@@ -78,11 +89,6 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       ? { prev: pick(at - 1), next: pick(at + 1), index: at, total: siblings.length }
       : null;
 
-  // Approved reviews feed Google's star ratings; never block the page on them.
-  const reviews = await driver
-    .listReviews("approved")
-    .then((all) => all.filter((r) => r.productId === product.id))
-    .catch(() => []);
   // Poster packs show what's inside (wall order).
   const packPosters = product.packItems.length
     ? await driver.getProductsByIds(product.packItems).then((found) =>
@@ -97,7 +103,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     preconnect(new URL(packPosters[0].imageUrl).origin);
     for (const poster of packPosters) preload(poster.imageUrl, { as: "image", fetchPriority: "high" });
   }
-  const { rates } = await driver.getSettings();
+  const { rates } = settings;
   const structuredData = productStructuredData(product, category, reviews, rates);
   const categoryNames = product.categoryIds.map((id) => categories.find((c) => c.id === id)?.name).filter((n): n is string => !!n);
   const details = productDetails(product, categoryNames);

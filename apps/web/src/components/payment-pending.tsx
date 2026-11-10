@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { Clock3, CreditCard, Lock, RefreshCw } from "lucide-react";
 import { formatINR } from "@stickypie/shared";
 import { openPayment } from "@/lib/open-payment";
-import { authClient } from "@/lib/shopper-auth";
+import { currentSession } from "@/lib/shopper-auth";
 import StickerLoader from "./sticker-loader";
 
 // The gateway usually confirms within a few seconds of the shopper returning.
@@ -24,8 +24,11 @@ export default function PaymentPending({
   total,
   awaitingShopper,
   lastAttempt,
+  guestKey,
 }: {
   orderId: string;
+  /** A guest order's key, so "Pay now" works from the order link on any device. */
+  guestKey?: string;
   total: number;
   awaitingShopper: boolean;
   lastAttempt: string | null;
@@ -50,11 +53,11 @@ export default function PaymentPending({
     setPaying(true);
     setError(null);
     try {
-      const token = (await authClient()?.auth.getSession())?.data.session?.access_token;
+      const token = (await currentSession())?.access_token;
       const res = await fetch("/api/pay/retry", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ orderId }),
+        body: JSON.stringify({ orderId, ...(guestKey ? { k: guestKey } : {}) }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {

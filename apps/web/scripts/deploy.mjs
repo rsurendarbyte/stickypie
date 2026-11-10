@@ -190,8 +190,11 @@ fs.writeFileSync(path.join(appDir, ".open-next/assets/build.json"), JSON.stringi
 // non-production sites are noindex.
 const headersFile = path.join(appDir, ".open-next/assets/_headers");
 const BUILD_RULE = "/build.json\n  Cache-Control: no-store\n";
+// Same security headers as next.config.ts SECURITY_HEADERS (prerendered pages skip next.config).
+const SECURITY_RULE =
+  "/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  X-Frame-Options: SAMEORIGIN\n  Content-Security-Policy: frame-ancestors 'self'\n";
 const NOINDEX_RULE = "/*\n  X-Robots-Tag: noindex, nofollow, noimageindex\n";
-fs.writeFileSync(headersFile, indexable ? BUILD_RULE : BUILD_RULE + NOINDEX_RULE);
+fs.writeFileSync(headersFile, BUILD_RULE + SECURITY_RULE + (indexable ? "" : NOINDEX_RULE));
 if (!indexable) console.log("deploy: wrote noindex _headers for static assets");
 
 if (flags.includes("--build-only")) process.exit(0);

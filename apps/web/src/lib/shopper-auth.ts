@@ -3,24 +3,82 @@
 // Shopper sign-in in the browser (Supabase Auth, email + password). The
 // session lives in localStorage and refreshes itself; API calls send its
 // access token so the server knows who is ordering.
+//
+// supabase-js is big (about 64 KB compressed) and almost every visitor is a
+// guest, so it loads only when it's needed: a session saved in this browser, a
+// sign-in link in the address bar, or the shopper signing in.
 import { useEffect, useState } from "react";
-import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
+import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import { SUPPORT_EMAIL } from "@stickypie/shared";
 
-let client: SupabaseClient | null | undefined;
+const URL_ = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const STORAGE_KEY = "stickypie.auth";
+const READY = "stickypie:auth-ready";
 
-/** null in demo mode (no Supabase configured) — the shop stays guest-only. */
-export function authClient(): SupabaseClient | null {
-  if (client !== undefined) return client;
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  client =
-    url && key
-      ? createClient(url, key, {
-          auth: { persistSession: true, autoRefreshToken: true, storageKey: "stickypie.auth" },
-        })
-      : null;
-  return client;
+/** False in demo mode (no Supabase configured): the shop stays guest-only. */
+export const authEnabled = Boolean(URL_ && KEY);
+
+let client: SupabaseClient | null = null;
+let loading: Promise<SupabaseClient | null> | null = null;
+
+/** The Supabase client, loading supabase-js the first time; null in demo mode. */
+export function loadAuthClient(): Promise<SupabaseClient | null> {
+  if (!authEnabled) return Promise.resolve(null);
+  loading ??= import("@supabase/supabase-js").then(({ createClient }) => {
+    client = createClient(URL_!, KEY!, {
+      auth: { persistSession: true, autoRefreshToken: true, storageKey: STORAGE_KEY },
+    });
+    window.dispatchEvent(new Event(READY));
+    return client;
+  });
+  return loading;
+}
+
+/** True when the client should load now: a saved session, or auth tokens in the URL (reset link). */
+function needsClientNow(): boolean {
+  if (!authEnabled || typeof window === "undefined") return false;
+  if (/(^|[#&?])(access_token|refresh_token|error_code|code)=/.test(location.hash + location.search)) return true;
+  try {
+    return localStorage.getItem(STORAGE_KEY) !== null;
+  } catch {
+    return true; // storage blocked: can't tell, load it
+  }
+}
+
+/**
+ * Runs `cb` with the client once it exists: now if it's loaded or needed
+ * (saved session), otherwise when something later loads it (signing in).
+ * Returns a function that stops waiting.
+ */
+export function whenAuthClient(cb: (c: SupabaseClient) => void): () => void {
+  if (!authEnabled) return () => {};
+  if (client) {
+    cb(client);
+    return () => {};
+  }
+  let live = true;
+  const run = () => live && client && cb(client);
+  if (needsClientNow()) {
+    void loadAuthClient().then(run);
+    return () => (live = false);
+  }
+  const onReady = () => {
+    window.removeEventListener(READY, onReady);
+    run();
+  };
+  window.addEventListener(READY, onReady);
+  return () => {
+    live = false;
+    window.removeEventListener(READY, onReady);
+  };
+}
+
+/** The signed-in session, or null. A guest gets null without loading supabase-js. */
+export async function currentSession(): Promise<Session | null> {
+  if (!client && !needsClientNow()) return null;
+  const c = await loadAuthClient();
+  return c ? (await c.auth.getSession()).data.session : null;
 }
 
 export function useShopper() {
@@ -28,21 +86,28 @@ export function useShopper() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const c = authClient();
-    if (!c) {
-      setReady(true);
-      return;
-    }
-    c.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setReady(true);
+    let unsubscribe = () => {};
+    let live = true;
+    const stop = whenAuthClient((c) => {
+      c.auth.getSession().then(({ data }) => {
+        if (!live) return;
+        setSession(data.session);
+        setReady(true);
+      });
+      const { data } = c.auth.onAuthStateChange((_event, next) => live && setSession(next));
+      unsubscribe = () => data.subscription.unsubscribe();
     });
-    const { data } = c.auth.onAuthStateChange((_event, next) => setSession(next));
-    return () => data.subscription.unsubscribe();
+    // a guest: known straight away, nothing to load
+    if (!client && !needsClientNow()) setReady(true);
+    return () => {
+      live = false;
+      stop();
+      unsubscribe();
+    };
   }, []);
 
   return {
-    enabled: authClient() !== null,
+    enabled: authEnabled,
     ready,
     session,
     email: session?.user.email ?? null,
@@ -50,7 +115,7 @@ export function useShopper() {
 }
 
 export async function signIn(email: string, password: string): Promise<Session> {
-  const c = authClient();
+  const c = await loadAuthClient();
   if (!c) throw new Error("Sign-in is not available");
   const { data, error } = await c.auth.signInWithPassword({ email: email.trim(), password });
   if (error || !data.session) {
@@ -128,7 +193,7 @@ export async function finishSignup(email: string, password: string, name: string
 }
 
 export async function signOut(): Promise<void> {
-  await authClient()?.auth.signOut();
+  await (await loadAuthClient())?.auth.signOut();
 }
 
 /**
@@ -137,7 +202,7 @@ export async function signOut(): Promise<void> {
  * emails are registered.
  */
 export async function requestPasswordReset(email: string): Promise<void> {
-  const c = authClient();
+  const c = await loadAuthClient();
   if (!c) throw new Error("Password reset is not available");
   const { error } = await c.auth.resetPasswordForEmail(email.trim(), {
     redirectTo: `${window.location.origin}/account/reset`,
@@ -160,7 +225,7 @@ export async function requestPasswordReset(email: string): Promise<void> {
 
 /** Sets a new password for the signed-in (or link-recovered) shopper. */
 export async function updatePassword(password: string): Promise<void> {
-  const c = authClient();
+  const c = await loadAuthClient();
   if (!c) throw new Error("Password reset is not available");
   const { error } = await c.auth.updateUser({ password });
   if (error) {

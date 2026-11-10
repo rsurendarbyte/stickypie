@@ -222,7 +222,7 @@ export const POSTER_SURFACES: Surface[] = [
       },
       {
         heading: "Single mini posters",
-        body: `Want just one? Every mini poster comes in 4 × 6 in or 6 × 9 in, as a wall poster on ${POSTER_PAPER} or as a vinyl sticker, whichever suits the spot you have in mind.`,
+        body: `Want just one? Every mini poster comes as a wall poster on ${POSTER_PAPER} in 4 × 6 in or 6 × 9 in, or as a 9-card puzzle poster that makes one big 12 × 18 in or 18 × 27 in poster, whichever suits the spot you have in mind.`,
       },
     ],
     faq: [],
@@ -319,11 +319,11 @@ export const POSTER_SURFACES: Surface[] = [
     faq: [
       {
         q: "Do you have Rajinikanth posters?",
-        a: "Yes. Rajinikanth mini posters come as wall posters or vinyl stickers, and some wall sets feature him too.",
+        a: "Yes. Rajinikanth mini posters come as wall posters or puzzle posters, and some wall sets feature him too.",
       },
       {
         q: "Do you have Thalapathy Vijay posters?",
-        a: "Yes. Vijay mini posters come as wall posters or vinyl stickers, and some wall sets feature him too.",
+        a: "Yes. Vijay mini posters come as wall posters or puzzle posters, and some wall sets feature him too.",
       },
     ],
   },
@@ -347,7 +347,7 @@ export const POSTER_SURFACES: Surface[] = [
     faq: [
       {
         q: "Do you have Virat Kohli and MS Dhoni posters?",
-        a: "Yes. Both have mini posters that come as wall posters or vinyl stickers, and some wall sets feature them too.",
+        a: "Yes. Both have mini posters that come as wall posters or puzzle posters, and some wall sets feature them too.",
       },
     ],
   },
@@ -466,7 +466,7 @@ export function festivalSurface(f: Festival, categories: Category[]): Surface {
     name: `${f.name} Stickers`,
     noun: "collection",
     title: f.title || `${f.name} Stickers & Mini Posters`,
-    description: f.description || `${f.name} die-cut vinyl stickers for your car, bike and laptop, and mini posters as wall posters or stickers, shipped across India.`,
+    description: f.description || `${f.name} die-cut vinyl stickers for your car, bike and laptop, and mini posters as wall posters or puzzle posters, shipped across India.`,
     intro: f.intro,
     tags: f.tags,
     categories: category ? [category.slug] : [],

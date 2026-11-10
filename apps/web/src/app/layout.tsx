@@ -18,7 +18,7 @@ import NavTracker from "@/components/nav-tracker";
 import VersionCheck from "@/components/version-check";
 import VisitorCount from "@/components/visitor-count";
 import AuthCookieSync from "@/components/auth-cookie-sync";
-import { META_PIXEL_SCRIPT } from "@/lib/meta-pixel";
+import { META_PIXEL_SCRIPT, PRIVATE_URL_SCRIPT } from "@/lib/meta-pixel";
 import { stickerCursorCss } from "@/lib/sticker-cursor";
 import PerfProbe from "@/components/perf-probe";
 import PuzzleLauncher from "@/components/puzzle-launcher";
@@ -102,6 +102,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script dangerouslySetInnerHTML={{ __html: VISIT_SEED_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: VIEW_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: PUZZLE_BOOT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: PRIVATE_URL_SCRIPT }} />
         {/* Meta pixel for ads (prod only: the ID is set in .env.prod) */}
         {META_PIXEL_SCRIPT && <script dangerouslySetInnerHTML={{ __html: META_PIXEL_SCRIPT }} />}
       </head>

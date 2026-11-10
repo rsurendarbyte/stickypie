@@ -16,6 +16,7 @@ import {
 import CardFeedback from "@/components/card-feedback";
 import AvatarStickersShare from "@/components/avatar-stickers-share";
 import ClearCartOnPaid from "@/components/clear-cart-on-paid";
+import RememberGuestOrder from "@/components/remember-guest-order";
 import { MetaPurchase } from "@/components/meta-track";
 import CustomOrderUpload from "@/components/custom-order-upload";
 import OrderReviews from "@/components/order-reviews";
@@ -174,6 +175,7 @@ export default async function OrderPage({
       ) : (
         <>
           <ClearCartOnPaid orderId={order.id} paid={paid} />
+          {k && guestKey && <RememberGuestOrder orderId={order.id} linkKey={k} />}
           <MetaPurchase
             orderId={order.id}
             paid={paid}
@@ -245,6 +247,7 @@ export default async function OrderPage({
             total={order.total}
             awaitingShopper={awaitingShopper}
             lastAttempt={lastAttempt}
+            guestKey={guestKey ?? undefined}
           />
         )}
         {failed && (

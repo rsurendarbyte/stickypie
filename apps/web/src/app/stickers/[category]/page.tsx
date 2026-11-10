@@ -6,26 +6,26 @@ import { categoryPath, categoryTitle, inCategory } from "@stickypie/shared";
 import BrowseClient from "@/components/browse-client";
 import StickerLoader from "@/components/sticker-loader";
 import { productSnapshot } from "@/lib/catalog-snapshot";
-import { getDriver } from "@/lib/data";
 import { isSinglePoster } from "@/lib/poster";
 import { CategoryAbout, PosterTopics, ProductLinks } from "@/components/seo-blocks";
 import { categoryIntro, itemListStructuredData } from "@/lib/seo";
 import { absoluteUrl, pageMetadata, MIN_INDEXED_CATEGORY } from "@/lib/site";
+import { activeProducts, allCategories } from "@/lib/page-data";
 
 // One SEO page per category: /stickers/cars, /stickers/memes… Prerendered at
 // build; categories added later from the admin render on demand.
 // Stored in the R2 page cache once built (at deploy, or on the first visit
 // for a category added later) and refreshed in the background at most every
 // 10 minutes, so admin edits show up without a deploy.
-export const revalidate = 600;
+export const revalidate = 3600;
 
 export async function generateStaticParams() {
-  const categories = await getDriver().listCategories();
+  const categories = await allCategories();
   return categories.map((c) => ({ category: c.slug }));
 }
 
 async function findCategory(slug: string) {
-  const categories = await getDriver().listCategories();
+  const categories = await allCategories();
   return { category: categories.find((c) => c.slug === slug) ?? null, categories };
 }
 
@@ -38,7 +38,7 @@ export async function generateMetadata({
   const { category } = await findCategory(slug);
   if (!category) return {};
   const title = categoryTitle(category.name);
-  const count = (await getDriver().listProducts({ activeOnly: true })).filter((p) => inCategory(p, category.id)).length;
+  const count = (await activeProducts()).filter((p) => inCategory(p, category.id)).length;
   return pageMetadata({
     title: `${title} — Buy Online in India`,
     description: /mini poster/i.test(category.name)
@@ -56,7 +56,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
   const { category: slug } = await params;
   const { category, categories } = await findCategory(slug);
   if (!category) notFound();
-  const products = await getDriver().listProducts({ activeOnly: true });
+  const products = await activeProducts();
   const inThis = products.filter((p) => inCategory(p, category.id));
   const posters = /poster/i.test(category.name);
   // The Walls page sells single posters too, drawn in the browser like its sets.
