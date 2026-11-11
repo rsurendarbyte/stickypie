@@ -2,7 +2,8 @@
 
 import PageLink from "./page-link";
 import { useState } from "react";
-import { Check, Frame, ImagePlus, Puzzle, Ruler, ShoppingBag } from "lucide-react";
+import { Check, Flame, Frame, ImagePlus, Puzzle, Ruler, ShoppingBag } from "lucide-react";
+import { useIsHot } from "@/lib/trending";
 import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR, isLockedWall } from "@stickypie/shared";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
@@ -63,6 +64,7 @@ function StickerCard({ product, width }: { product: Product; width: string }) {
   const out = product.stock === 0;
   const low = product.stock !== null && product.stock > 0 && product.stock <= LOW_STOCK_THRESHOLD;
   const isNew = product.isNew;
+  const hot = useIsHot(product.id);
   const off = discountPercent(price, compareAtPrice);
   const [trueSize, setTrueSize] = useState(false);
 
@@ -111,7 +113,9 @@ function StickerCard({ product, width }: { product: Product; width: string }) {
               </span>
             </div>
             {/* bottom-left, clear of the "Mini poster" tape at the top */}
-            {isNew && !out && (
+            {hot && !out ? (
+              <HotTag className="bottom-2.5 left-2.5" />
+            ) : isNew && !out && (
               <span className="absolute bottom-2.5 left-2.5 rounded-md bg-mint px-2 py-0.5 text-[10px] font-bold tracking-wider text-ink uppercase shadow-sm">
                 New
               </span>
@@ -133,7 +137,9 @@ function StickerCard({ product, width }: { product: Product; width: string }) {
               }`}
             />
           </div>
-          {isNew && !out && (
+          {hot && !out ? (
+            <HotTag className="top-2.5 left-2.5" />
+          ) : isNew && !out && (
             <span className="absolute top-2.5 left-2.5 rounded-md bg-mint px-2 py-0.5 text-[10px] font-bold tracking-wider text-ink uppercase shadow-sm">
               New
             </span>
@@ -455,6 +461,15 @@ function Tag({ className, children }: { className: string; children: React.React
   return (
     <span className={`inline-flex items-center gap-0.5 rounded px-1.5 py-px text-[10px] font-bold uppercase ${className}`}>
       {children}
+    </span>
+  );
+}
+
+/** On the best matches for what India searches right now (home page only). */
+function HotTag({ className }: { className: string }) {
+  return (
+    <span className={`absolute ${className} flex items-center gap-0.5 rounded-md bg-[#e11d48] px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-white uppercase shadow-sm`}>
+      <Flame className="size-3" aria-hidden /> Trending
     </span>
   );
 }
