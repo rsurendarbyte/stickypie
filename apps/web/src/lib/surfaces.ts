@@ -27,6 +27,8 @@ export type Surface = {
   posters?: boolean;
   /** The puzzle posters page: every single mini poster, as a puzzle poster. */
   puzzle?: boolean;
+  /** A poster page that also lists its matching stickers under this heading ("Ramayana stickers"). */
+  stickers?: string;
 };
 
 export const SURFACES: Surface[] = [
@@ -441,11 +443,12 @@ export const POSTER_SURFACES: Surface[] = [
     noun: "Ramayana",
     title: "Ramayana Posters Online in India – Lord Rama, Hanuman & Ravana Wall Posters",
     description:
-      "Buy Ramayana posters online in India: Lord Rama, Sita, Hanuman, Ravana, Ram Setu and Lanka Dahan wall posters in an epic movie-poster style, single or as ready wall sets, on premium poster paper.",
+      "Buy Ramayana posters online in India: Lord Rama, Sita, Hanuman, Ravana, Ram Setu and Lanka Dahan wall posters in an epic movie-poster style, single or as ready wall sets, plus cute Ramayana stickers.",
     intro: `The Ramayana told as epic movie posters: Lord Rama with his bow, Sita, Hanuman's leap to Lanka, Ram Setu, Ravana on his throne and Rama's return to Ayodhya. ${POSTER_BASICS} Hang one Jai Shri Ram poster in your pooja corner, or the whole story as a wall.`,
     tags: ["ramayana", "ramayan"],
     categories: [],
     posters: true,
+    stickers: "Ramayana stickers",
     sections: [
       {
         heading: "The whole Ramayana, scene by scene",
@@ -464,6 +467,10 @@ export const POSTER_SURFACES: Surface[] = [
       {
         q: "Which Ramayana posters do you have?",
         a: "Lord Rama, Sita, Hanuman, Ravana, Jatayu, Lakshman Rekha, Ram Setu, Lanka Dahan, Sanjeevani, Vanvaas, the Rama–Ravana yuddh, Ravana Vadha and the return of Rama to Ayodhya, as single mini posters and as ready wall sets.",
+      },
+      {
+        q: "Do you have Ramayana stickers?",
+        a: "Yes: cute die-cut vinyl stickers of chibi Lord Rama, Sita and Lakshmana, baby Hanuman flying and lifting the Sanjeevani mountain, the Ram Setu squirrel and floating राम stone, the Ayodhya Ram Mandir, Shabari feeding Rama berries, Jatayu, King Dasharatha and a cartoon Ravana, for your laptop, bottle, phone, car or bike.",
       },
       {
         q: "Do you have Hanuman posters?",
@@ -594,6 +601,16 @@ export function stickersForSurface(
   const matched = stickers.filter(fits);
   const others = stickers.filter((p) => !fits(p));
   return { matched, others };
+}
+
+/** A poster page's own stickers (Surface.stickers): stickers with one of its tags or categories. */
+export function surfaceStickers(surface: Surface, products: Product[], categories: Category[]): Product[] {
+  if (!surface.stickers) return [];
+  const catIds = new Set(categories.filter((c) => surface.categories.includes(c.slug)).map((c) => c.id));
+  const tags = new Set(surface.tags);
+  return products.filter(
+    (p) => !isPoster(p) && (p.tags.some((t) => tags.has(t.toLowerCase())) || (p.categoryIds ?? []).some((id) => catIds.has(id)))
+  );
 }
 
 /** Wall sets first, then single posters. A set counts when at least half its posters fit (Legends walls have no subject of their own). */

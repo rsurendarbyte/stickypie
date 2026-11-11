@@ -11,7 +11,7 @@ import { POSTER_ADHESIVE, PUZZLE_POSTER_PRICES, formatINR } from "@stickypie/sha
 import { itemListStructuredData, lowestPrice, posterTopicFaq, seoName, wallPosterFaq } from "@/lib/seo";
 import { loadShopFacts } from "@/lib/shop-facts";
 import { absoluteUrl, pageMetadata } from "@/lib/site";
-import { SURFACES, allLandings, posterLabel, stickersForSurface, type Surface } from "@/lib/surfaces";
+import { SURFACES, allLandings, posterLabel, stickersForSurface, surfaceStickers, type Surface } from "@/lib/surfaces";
 
 // "Where it goes" landing pages: /car-stickers, /bike-stickers, /laptop-stickers,
 // /helmet-stickers, /bottle-stickers, plus a page per festival from the admin
@@ -62,6 +62,7 @@ export default async function SurfacePage({
     driver.listProducts({ activeOnly: true }),
   ]);
   const { matched, others } = stickersForSurface(surface, products, categories);
+  const ownStickers = surfaceStickers(surface, products, categories);
   // A festival page lists only its own stickers (for Google too); the
   // where-it-goes pages fall back on everything, since vinyl fits them all.
   const listed = surface.when && matched.length ? matched : [...matched, ...others];
@@ -103,7 +104,7 @@ export default async function SurfacePage({
         },
       ],
     },
-    itemListStructuredData(listed),
+    itemListStructuredData([...listed, ...ownStickers]),
     // a festival may not have questions yet
     ...(faq.length
       ? [
@@ -165,6 +166,7 @@ export default async function SurfacePage({
       )}
 
       {posters && <ProductLinks heading={`All ${posterLabel(surface)}`} products={matched} />}
+      {ownStickers.length > 0 && <ProductLinks heading={`All ${surface.stickers}`} products={ownStickers} />}
 
       {!posters && popular.length > 0 && (
         <section className="mt-12 max-w-5xl">
