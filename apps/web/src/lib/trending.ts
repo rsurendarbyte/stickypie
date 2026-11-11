@@ -10,10 +10,12 @@
 // there yet) the page simply works without it.
 import { createContext, useContext, useMemo, useSyncExternalStore } from "react";
 import type { Category, Product } from "@stickypie/shared";
-import { liveCatalogEnabled } from "./live-catalog";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// its own check, not live-catalog's flag: in the production bundle that import
+// could still be unset when this first runs, and the page never got its rows
+const enabled = Boolean(SUPABASE_URL && ANON_KEY);
 const KEY = "stickypie.trends:v1";
 const TTL_MS = 60 * 60_000;
 
@@ -28,15 +30,18 @@ const listeners = new Set<() => void>();
 const EMPTY: TrendRow[] = [];
 
 function settle(next: TrendRow[] | null) {
-  if (next && !loaded) rows = next;
+  if (loaded) return;
+  if (next) rows = next;
   loaded = true;
-  listeners.forEach((l) => l());
+  // after the current subscribe call returns: a cached answer arrives straight
+  // away, and the page must already be listening to hear it
+  setTimeout(() => listeners.forEach((l) => l()), 0);
 }
 
 function start() {
   if (started || typeof window === "undefined") return;
   started = true;
-  if (!liveCatalogEnabled) return settle(null);
+  if (!enabled) return settle(null);
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) ?? "null");
     if (saved && Date.now() - saved.at < TTL_MS && Array.isArray(saved.rows)) return settle(saved.rows);
@@ -67,8 +72,8 @@ function start() {
 }
 
 function subscribe(l: () => void) {
-  start();
   listeners.add(l);
+  start();
   return () => listeners.delete(l);
 }
 
