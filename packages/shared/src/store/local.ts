@@ -19,6 +19,7 @@ import { rowToFeatures, type FeatureFlags } from "../features";
 import { puzzlePercentFrom } from "../thanks";
 import { rowToHomePage, type HomePage } from "../home-page";
 import { rowToWallCosts, type WallCosts } from "../wall-costs";
+import { rowToTrendWalls, type TrendWalls } from "../trend-walls";
 import { DEFAULT_HOME_RAILS, type HomeRail } from "../home-rails";
 import { DEFAULT_FESTIVALS, type Festival } from "../festivals";
 import { inCategory } from "../utils";
@@ -34,6 +35,7 @@ type StoreShape = {
   homePage?: HomePage;
   puzzlePercent?: number;
   wallCosts?: WallCosts;
+  trendWalls?: TrendWalls;
   homeRails?: HomeRail[];
   festivals?: Festival[];
   contactMessages?: ContactMessage[];
@@ -568,6 +570,17 @@ export function createLocalDriver(filePath: string): DataDriver {
       store.wallCosts = costs;
       persist(store);
       return rowToWallCosts(costs);
+    },
+
+    async getTrendWalls() {
+      return rowToTrendWalls(load().trendWalls);
+    },
+
+    async updateTrendWallsPrompt(prompt: string) {
+      const store = load();
+      store.trendWalls = { ...rowToTrendWalls(store.trendWalls), prompt };
+      persist(store);
+      return rowToTrendWalls(store.trendWalls);
     },
 
     async getPuzzlePercent() {

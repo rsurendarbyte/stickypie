@@ -252,6 +252,7 @@ import type { FeatureFlags } from "./features";
 import type { HomeRail } from "./home-rails";
 import type { HomePage } from "./home-page";
 import type { WallCosts } from "./wall-costs";
+import type { TrendWalls } from "./trend-walls";
 import type { Festival } from "./festivals";
 import type { ContactInput, ContactMessage, NewReviewInput, Review, ReviewStatus } from "./feedback";
 import type { Coupon, NewCouponInput } from "./thanks";
@@ -337,6 +338,9 @@ export interface DataDriver {
   updateHomePage(page: HomePage): Promise<HomePage>;
   getWallCosts(): Promise<WallCosts>;
   updateWallCosts(costs: WallCosts): Promise<WallCosts>;
+  getTrendWalls(): Promise<TrendWalls>;
+  /** Saves the daily run's instructions; its last run is kept. */
+  updateTrendWallsPrompt(prompt: string): Promise<TrendWalls>;
   /** Festivals & special days (DEFAULT_FESTIVALS until edited). */
   getFestivals(): Promise<Festival[]>;
   updateFestivals(festivals: Festival[]): Promise<Festival[]>;

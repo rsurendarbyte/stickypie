@@ -16,6 +16,7 @@ export * from "./shipping";
 export * from "./home-rails";
 export * from "./home-page";
 export * from "./wall-costs";
+export * from "./trend-walls";
 export * from "./festivals";
 export * from "./features";
 export * from "./custom";

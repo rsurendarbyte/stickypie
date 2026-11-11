@@ -19,6 +19,7 @@ import { rowToSettings, settingsToRow, type StoreSettings } from "../shipping";
 import { rowToFeatures, type FeatureFlags } from "../features";
 import { rowToHomePage, type HomePage } from "../home-page";
 import { rowToWallCosts, type WallCosts } from "../wall-costs";
+import { rowToTrendWalls } from "../trend-walls";
 import { rowToHomeRails, type HomeRail } from "../home-rails";
 import { rowToFestivals, type Festival } from "../festivals";
 import {
@@ -590,6 +591,25 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
         .single();
       if (error) throw error;
       return rowToWallCosts(data.features?.wallCosts);
+    },
+
+    async getTrendWalls() {
+      const { data, error } = await client.from("store_settings").select("features").eq("id", 1).maybeSingle();
+      if (error) return rowToTrendWalls(null);
+      return rowToTrendWalls(data?.features?.trendWalls);
+    },
+
+    async updateTrendWallsPrompt(prompt: string) {
+      const saved = await savedFeatures();
+      const trendWalls = { ...rowToTrendWalls(saved.trendWalls), prompt };
+      const { data, error } = await client
+        .from("store_settings")
+        .update({ features: { ...saved, trendWalls } })
+        .eq("id", 1)
+        .select("features")
+        .single();
+      if (error) throw error;
+      return rowToTrendWalls(data.features?.trendWalls);
     },
 
     async getPuzzlePercent() {
