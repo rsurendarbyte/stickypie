@@ -30,19 +30,22 @@ export default function VirtualGrid<T>({
   const [rowH, setRowH] = useState(0);
   const [range, setRange] = useState<[number, number] | null>(null);
 
-  // Columns and row height, from the live grid.
+  // Columns and row height, from the live grid. The height is the average of
+  // the rows drawn now (rows differ: puzzle cards and wall cards aren't the same
+  // height), so the space standing in for rows off screen matches them.
   const measure = useCallback(() => {
     const el = grid.current;
     if (!el) return;
     const style = getComputedStyle(el);
     const n = style.gridTemplateColumns.split(" ").filter(Boolean).length || 1;
     const gap = parseFloat(style.rowGap) || 0;
-    const first = el.firstElementChild as HTMLElement | null;
     setCols(n);
-    if (first) {
-      const h = first.offsetHeight + gap;
-      setRowH((prev) => (Math.abs(prev - h) > 1 ? h : prev));
-    }
+    const drawn = el.children.length;
+    if (!drawn) return;
+    const content = el.clientHeight - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0);
+    const rows = Math.ceil(drawn / n);
+    const h = (content + gap) / rows;
+    if (h > 0) setRowH((prev) => (Math.abs(prev - h) > 1 ? h : prev));
   }, []);
 
   useLayoutEffect(() => {
@@ -64,7 +67,10 @@ export default function VirtualGrid<T>({
       if (!el) return;
       const top = el.getBoundingClientRect().top; // relative to the screen
       const rows = Math.ceil(items.length / cols);
-      const first = Math.max(0, Math.floor(-top / rowH) - OVERSCAN_ROWS);
+      // never past the last row: once the whole grid is above the screen its
+      // top space must stop growing, or it pushes everything below down as
+      // fast as you scroll and the page seems stuck
+      const first = Math.min(rows, Math.max(0, Math.floor(-top / rowH) - OVERSCAN_ROWS));
       const last = Math.min(rows, Math.ceil((window.innerHeight - top) / rowH) + OVERSCAN_ROWS);
       setRange((prev) => (prev && prev[0] === first && prev[1] === last ? prev : [first, Math.max(first, last)]));
     };
@@ -99,6 +105,9 @@ export default function VirtualGrid<T>({
       style={{
         paddingTop: firstRow * rowH,
         paddingBottom: Math.max(0, rows - lastRow) * rowH,
+        // rows come and go as you scroll: the browser must not "hold the page
+        // still" by moving the scroll back, or scrolling seems to stick
+        overflowAnchor: "none",
       }}
     >
       {items.slice(start, end).map((item, i) => (
