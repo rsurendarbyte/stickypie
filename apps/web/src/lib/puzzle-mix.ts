@@ -42,12 +42,13 @@ const catsOf = (p: Product) => (p.categoryIds?.length ? p.categoryIds : [p.categ
  * everything when the puzzle is switched off.
  *
  * A puzzle card never shows a poster that is already a card in the row. Pass
- * the page's `used` set (every product already on the page) and it also skips
- * those, adding its own picks to it, so nothing on the page repeats: once every
- * poster is on the page the puzzle cards are left out. Picks go, in order: the
- * row's theme (posters in the same categories as its single posters, or the
- * posters inside its wall sets) not yet used, then any poster not yet used.
- * Without `used` (a single grid), repeats outside the row come after that.
+ * the page's `used` set (every product already on the page) and it prefers
+ * posters not on the page yet, adding its own picks to it. Once those run out
+ * (the home rows hold nearly every poster) it takes posters shown elsewhere on
+ * the page as cards, but never one an earlier puzzle card on the page showed;
+ * only when every poster has been a puzzle card are puzzle cards left out.
+ * Picks go, in order: the row's theme (posters in the same categories as its
+ * single posters, or the posters inside its wall sets), then any poster.
  */
 export function usePuzzleLead() {
   const features = useFeatures();
@@ -66,13 +67,16 @@ export function usePuzzleLead() {
         theme = posters.filter((p) => catsOf(p).some((c) => cats.has(c)));
       }
       const free = (p: Product) => !inRow.has(p.id) && !used?.has(p.id);
+      // with the page's list: puzzle picks are also kept in it under this key, so no two puzzle cards match
+      const asPuzzle = (id: string) => `${MARK}:${id}`;
+      const notPuzzled = (p: Product) => !inRow.has(p.id) && !used?.has(asPuzzle(p.id));
       const unique = (l: Product[]) => [...new Map(l.map((p) => [p.id, p])).values()];
       // the theme's unused posters, then any unused poster, then (all shown) repeats outside the row
       const tiers = [
         unique(theme.filter(free)),
         posters.filter(free),
-        unique(theme.filter((p) => !inRow.has(p.id))),
-        posters.filter((p) => !inRow.has(p.id)),
+        unique(theme.filter(notPuzzled)),
+        posters.filter(notPuzzled),
       ];
       if (!tiers[3].length) return list;
       // each tier walked from a random start: no repeats until it is used up
@@ -81,19 +85,20 @@ export function usePuzzleLead() {
       const steps = tiers.map(() => 0);
       let round = 0;
       const next = (): Product | undefined => {
-        for (let t = 0; t < (used ? 2 : tiers.length); t++) {
+        for (let t = 0; t < tiers.length; t++) {
           const tier = tiers[t];
           while (steps[t] < tier.length) {
             const p = tier[(start + steps[t]++) % tier.length];
-            // the first two tiers are "not on the page yet": skip what an earlier pick used
-            if (picked.has(p.id) || (t < 2 && used?.has(p.id))) continue;
+            // the first two tiers are "not on the page yet", the last two "not a puzzle card yet": skip what an earlier pick took
+            if (picked.has(p.id) || (t < 2 ? used?.has(p.id) : used?.has(asPuzzle(p.id)))) continue;
             picked.add(p.id);
             used?.add(p.id);
+            used?.add(asPuzzle(p.id));
             return p;
           }
         }
-        // with the page's list: every poster is on the page already, so leave the
-        // puzzle card out rather than show one twice
+        // with the page's list: every poster has been a puzzle card already, so
+        // leave the puzzle card out rather than show one twice
         if (used) return undefined;
         // every poster outside the row already picked in this row (a tiny shop): go round again
         const last = tiers[3];
