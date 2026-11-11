@@ -45,10 +45,17 @@ const ROW_TEXT = 205;
 export const wallChipColours = (on: boolean) =>
   on ? "border-brand bg-brand/[0.07] text-brand" : "border-line bg-white text-fog hover:text-snow";
 
+/**
+ * A block between the walls: ready to draw, or built when the feed reaches it,
+ * from the products the page has shown so far (`used`), so its puzzle cards
+ * pick in the order the shopper scrolls.
+ */
+export type FeedBreak = React.ReactNode | ((used: Set<string>) => React.ReactNode);
+
 /** The blocks to put between walls: the AI row first and again every few, the others in order. */
-export function feedBreaks(rows: React.ReactNode[], ai: React.ReactNode): React.ReactNode[] {
+export function feedBreaks(rows: FeedBreak[], ai: React.ReactNode): FeedBreak[] {
   if (!ai) return rows;
-  const out: React.ReactNode[] = [];
+  const out: FeedBreak[] = [];
   rows.forEach((row, i) => {
     if (i % AI_EVERY === 0) out.push(ai);
     out.push(row);
@@ -56,54 +63,70 @@ export function feedBreaks(rows: React.ReactNode[], ai: React.ReactNode): React.
   return out.length ? out : [ai];
 }
 
+/** Walls taken this many at a time, with a puzzle card before each group (the same pattern as one long row). */
+const WALLS_PER_PUZZLE = 2;
+
 /** Every wall, full width, with the shop's other blocks between; only what's near the screen is drawn. */
 function WallPosts({
   walls,
   breaks,
   seed,
   leftovers,
+  used,
 }: {
   walls: Product[];
-  breaks: React.ReactNode[];
+  breaks: FeedBreak[];
   seed: number;
+  /** Products the page shows as cards anywhere: puzzle cards skip them until every poster has been shown once. */
+  used?: Set<string>;
   /** Show the blocks the posts didn't reach after the last post. */
   leftovers: boolean;
 }) {
   // puzzle poster cards first and between the walls, in the wall card's shape
   const lead = usePuzzleLead();
-  const posts = useMemo(() => lead(walls), [lead, walls]);
   const items = useMemo(() => {
+    // a copy, filled with the puzzle picks top to bottom: the feed's walls and
+    // its rows pick in the order they're seen, so the first repeat comes only
+    // after every poster has been shown
+    const shown = new Set(used ?? []);
     const out: FeedItem[] = [];
     // Same as the rail cards' width. Every row holds this height, so Back lands on the same post.
     const rowHeight = Math.round(Math.min(window.innerWidth * 0.6, 240) * 1.25) + ROW_TEXT;
-    const block = (i: number): FeedItem => ({
-      key: `block-${i}`,
-      height: rowHeight + GAP,
-      render: () => (
-        <div className="pb-3">
-          <div style={{ minHeight: rowHeight }}>{breaks[i]}</div>
-        </div>
-      ),
-    });
-    const postHeight = window.innerWidth - 32 + POST_TEXT + GAP;
-    posts.forEach((product, i) => {
+    let b = 0;
+    const block = () => {
+      const i = b++;
+      const made = breaks[i];
+      const node = typeof made === "function" ? made(shown) : made;
       out.push({
-        key: product.id,
-        height: postHeight,
+        key: `block-${i}`,
+        height: rowHeight + GAP,
         render: () => (
-          <div className="px-4 pb-3">
-            <ProductCard product={product} width="w-full" wallEffect={wallEffect(i, seed)} />
+          <div className="pb-3">
+            <div style={{ minHeight: rowHeight }}>{node}</div>
           </div>
         ),
       });
-      const at = (i + 1) / POSTS_PER_BREAK - 1;
-      if (Number.isInteger(at) && at < breaks.length) out.push(block(at));
-    });
-    if (leftovers) {
-      for (let i = Math.floor(posts.length / POSTS_PER_BREAK); i < breaks.length; i++) out.push(block(i));
+    };
+    const postHeight = window.innerWidth - 32 + POST_TEXT + GAP;
+    let n = 0;
+    for (let c = 0; c < walls.length; c += WALLS_PER_PUZZLE) {
+      for (const product of lead(walls.slice(c, c + WALLS_PER_PUZZLE), { used: shown })) {
+        const i = n++;
+        out.push({
+          key: `${product.id}:${i}`,
+          height: postHeight,
+          render: () => (
+            <div className="px-4 pb-3">
+              <ProductCard product={product} width="w-full" wallEffect={wallEffect(i, seed)} />
+            </div>
+          ),
+        });
+        if (n % POSTS_PER_BREAK === 0 && b < breaks.length) block();
+      }
     }
+    if (leftovers) while (b < breaks.length) block();
     return out;
-  }, [posts, breaks, seed, leftovers]);
+  }, [lead, walls, breaks, used, seed, leftovers]);
   return <VirtualFeed items={items} />;
 }
 
@@ -114,12 +137,14 @@ export default function WallFeed({
   themes,
   breaks,
   seed,
+  used,
 }: {
   title: string;
   walls: Product[];
   themes: { id: string; title: string; items: Product[] }[];
-  breaks: React.ReactNode[];
+  breaks: FeedBreak[];
   seed: number;
+  used?: Set<string>;
 }) {
   const [theme, setTheme] = useState(() => {
     const saved = savedChoice(THEME_KEY);
@@ -172,19 +197,19 @@ export default function WallFeed({
         </div>
       )}
       <div ref={list} className="mt-2">
-        <WallPosts walls={items} breaks={breaks} seed={seed} leftovers />
+        <WallPosts walls={items} breaks={breaks} seed={seed} leftovers used={used} />
       </div>
     </section>
   );
 }
 
 /** Single posters between the walls of the Walls page; the rest are one chip or tap away. */
-export function SinglePostersRail({ posters }: { posters: Product[] }) {
+export function SinglePostersRail({ posters, mixed }: { posters: Product[]; /** Already mixed with puzzle cards (the phone feed does it). */ mixed?: boolean }) {
   // a puzzle poster card first
   const mix = usePuzzleLead();
   return (
     <LazyRail eager title="Single posters" href={`${categoryPath("poster-packs")}?theme=${SINGLE_POSTERS}`}>
-      {mix(posters.slice(0, 24)).map((product) => (
+      {(mixed ? posters : mix(posters.slice(0, 24))).map((product) => (
         <ProductCard key={product.id} product={product} />
       ))}
     </LazyRail>
@@ -198,7 +223,7 @@ export function WallsPageFeed({
   categories,
   seed,
   plain,
-  first,
+  singles: singlesFirst,
 }: {
   walls: Product[];
   products: Product[];
@@ -206,31 +231,37 @@ export function WallsPageFeed({
   seed: number;
   /** Search results: only the walls. */
   plain: boolean;
-  /** Comes before the other blocks. */
-  first?: React.ReactNode;
+  /** Single posters: a row of them comes before the other blocks. */
+  singles?: Product[];
 }) {
   const home = useHomePage();
   const { rails } = useHomeRails([]);
   const mix = usePuzzleLead();
-  const breaks = useMemo(() => {
-    if (plain) return [];
+  // Every product the page shows as a card, so no product (or its puzzle card)
+  // comes twice until every poster has been shown once; the rows' puzzle cards
+  // are picked when the feed reaches them.
+  const { breaks, used } = useMemo(() => {
+    const used = new Set<string>(walls.map((p) => p.id));
+    if (plain) return { breaks: [] as FeedBreak[], used };
     const on = (id: string) => home.sections.some((s) => s.id === id && s.visible);
+    const firstRow = singlesFirst?.length ? singlesFirst.slice(0, 24) : [];
+    firstRow.forEach((p) => used.add(p.id));
     const singles = products.filter((p) => !isPosterPack(p) && isListed(p));
-    const rows = on("rails")
-      ? resolveHomeRails(rails, singles, categories, seed).map((rail) => (
-          <LazyRail key={rail.key} eager title={rail.title} href={rail.href}>
-            {mix(rail.items).map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </LazyRail>
-        ))
-      : [];
-    const blocks = feedBreaks(rows, on("custom") ? <CustomRail /> : null);
-    return first ? [first, ...blocks] : blocks;
-  }, [plain, first, home.sections, rails, products, categories, seed, mix]);
+    const resolved = on("rails") ? resolveHomeRails(rails, singles, categories, seed, used) : [];
+    resolved.forEach((rail) => rail.items.forEach((p) => used.add(p.id)));
+    const first: FeedBreak[] = firstRow.length ? [(shown: Set<string>) => <SinglePostersRail posters={mix(firstRow, { used: shown })} mixed />] : [];
+    const rows: FeedBreak[] = resolved.map((rail) => (shown: Set<string>) => (
+      <LazyRail key={rail.key} eager title={rail.title} href={rail.href}>
+        {mix(rail.items, { used: shown }).map((product) => (
+          <ProductCard key={product.id} product={product} />
+        ))}
+      </LazyRail>
+    ));
+    return { breaks: [...first, ...feedBreaks(rows, on("custom") ? <CustomRail /> : null)], used };
+  }, [plain, singlesFirst, walls, home.sections, rails, products, categories, seed, mix]);
   return (
     <div className="mt-3 -mx-4">
-      <WallPosts walls={walls} breaks={breaks} seed={seed} leftovers={false} />
+      <WallPosts walls={walls} breaks={breaks} seed={seed} leftovers={false} used={used} />
     </div>
   );
 }

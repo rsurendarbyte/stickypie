@@ -72,15 +72,19 @@ export function rowToHomeRails(value: any): HomeRail[] {
 
 export type ResolvedRail = { key: string; title: string; href?: string; items: Product[] };
 
+/** A rail with fewer cards than this after removing repeats is dropped. */
+const MIN_RAIL = 3;
+
 /**
  * Turns the layout into rails of products. `products` must be the on-sale
  * catalog, newest first. Hidden rails and rails with nothing to show are dropped.
  *
- * Stickers can sit in several categories, so category rails don't repeat each
- * other: a category rail only fills itself with stickers no earlier category
- * rail has shown (stickers pinned to a rail always show). A category whose
- * stickers were all shown above gets no rail. Top picks / New drops /
- * hand-picked rails are left as they are.
+ * No product shows twice on the page: every rail (Top picks, New drops,
+ * hand-picked and category rails) fills itself only with products no earlier
+ * rail has shown, nor anything in `exclude` (what the page already shows above,
+ * e.g. festival rails). Pinned products keep their spot at the front of the
+ * first rail that has them. A rail left with fewer than MIN_RAIL cards is
+ * dropped, so a category whose stickers were all shown above gets no rail.
  *
  * `seed` (a random number per visit, 0 = off) shuffles what each rail shows,
  * so returning shoppers see a fresh mix: category rails and Top picks pick a
@@ -91,7 +95,8 @@ export function resolveHomeRails(
   rails: HomeRail[],
   products: Product[],
   categories: Category[],
-  seed = 0
+  seed = 0,
+  exclude: Iterable<string> = []
 ): ResolvedRail[] {
   const byId = new Map(products.map((p) => [p.id, p]));
   const catById = new Map(categories.map((c) => [c.id, c]));
@@ -99,16 +104,20 @@ export function resolveHomeRails(
     rails.filter((r) => r.visible && r.kind === "category" && r.categoryId).map((r) => r.categoryId)
   );
   const out: ResolvedRail[] = [];
-  const shownInCategoryRails = new Set<string>();
-  const notShownYet = (p: Product) => !shownInCategoryRails.has(p.id);
-  const markShown = (items: Product[]) => items.forEach((p) => shownInCategoryRails.add(p.id));
+  const shown = new Set<string>(exclude);
+  const notShownYet = (p: Product) => !shown.has(p.id);
   // Same seed + rail → same order (stable while the visitor browses this page).
   const mix = (list: Product[], salt: string) => (seed ? shuffled(list, seed, salt) : list);
-  // Pinned (on-sale) stickers first, then the automatic list without repeats.
+  // Pinned (on-sale) stickers first, then the automatic list; nothing an earlier rail showed.
   const pinnedFirst = (pins: string[], auto: Product[]) => {
     const pinned = pins.map((id) => byId.get(id)).filter((p): p is Product => Boolean(p));
     const seen = new Set(pinned.map((p) => p.id));
-    return [...pinned, ...auto.filter((p) => !seen.has(p.id))];
+    return [...pinned, ...auto.filter((p) => !seen.has(p.id))].filter(notShownYet);
+  };
+  const add = (key: string, title: string, href: string | undefined, items: Product[]) => {
+    if (items.length < MIN_RAIL) return;
+    items.forEach((p) => shown.add(p.id));
+    out.push({ key, title, href, items });
   };
 
   for (const rail of rails) {
@@ -118,11 +127,8 @@ export function resolveHomeRails(
         if (explicitCategories.has(category.id)) continue;
         const inThis = (p: Product) => inCategory(p, category.id);
         const pins = rail.productIds.filter((id) => byId.get(id) && inThis(byId.get(id)!));
-        const items = pinnedFirst(pins, mix(products.filter((p) => inThis(p) && notShownYet(p)), category.id)).slice(0, rail.limit);
-        markShown(items);
-        if (items.length > 0) {
-          out.push({ key: `${rail.id}:${category.id}`, title: category.name, href: categoryPath(category.slug), items });
-        }
+        const items = pinnedFirst(pins, mix(products.filter(inThis), category.id)).slice(0, rail.limit);
+        add(`${rail.id}:${category.id}`, category.name, categoryPath(category.slug), items);
       }
       continue;
     }
@@ -131,20 +137,18 @@ export function resolveHomeRails(
     let href: string | undefined;
     if (rail.kind === "featured") items = mix(products.filter((p) => p.featured), rail.id);
     else if (rail.kind === "new") {
-      // still the newest stickers, just not always in the same order
-      items = mix(products.slice(0, rail.limit), rail.id);
+      // still the newest stickers (of those not shown above), just not always in the same order
+      items = mix(products.filter(notShownYet).slice(0, rail.limit), rail.id);
       href = "/stickers?sort=new";
     } else if (rail.kind === "category") {
       const category = rail.categoryId ? catById.get(rail.categoryId) : undefined;
       if (!category) continue;
-      items = mix(products.filter((p) => inCategory(p, category.id) && notShownYet(p)), rail.id);
+      items = mix(products.filter((p) => inCategory(p, category.id)), rail.id);
       title = title || category.name;
       href = categoryPath(category.slug);
     }
-    items = pinnedFirst(rail.productIds, rail.kind === "custom" ? [] : items);
-    items = items.slice(0, rail.limit);
-    if (rail.kind === "category") markShown(items);
-    if (items.length > 0) out.push({ key: rail.id, title, href, items });
+    items = pinnedFirst(rail.productIds, rail.kind === "custom" ? [] : items).slice(0, rail.limit);
+    add(rail.id, title, href, items);
   }
   return out;
 }

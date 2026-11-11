@@ -33,38 +33,81 @@ function hash(text: string): number {
   return Math.abs(h);
 }
 
+const catsOf = (p: Product) => (p.categoryIds?.length ? p.categoryIds : [p.categoryId]);
+
 /**
  * `lead(list)`: the list with a puzzle poster card first and another after every
  * `EVERY` cards (`first: false` skips the opening one, for the later part of a
- * split grid). Their posters come from the row itself: its single posters, else
- * the posters inside its wall sets, else posters in the same categories. Rows
- * with none of those stay as they are, and so does everything when the puzzle
- * is switched off.
+ * split grid). Rows with no posters to pick from stay as they are, and so does
+ * everything when the puzzle is switched off.
+ *
+ * A puzzle card never shows a poster that is already a card in the row. Pass
+ * the page's `used` set (every product already on the page) and it also skips
+ * those, adding its own picks to it, so nothing on the page repeats: once every
+ * poster is on the page the puzzle cards are left out. Picks go, in order: the
+ * row's theme (posters in the same categories as its single posters, or the
+ * posters inside its wall sets) not yet used, then any poster not yet used.
+ * Without `used` (a single grid), repeats outside the row come after that.
  */
 export function usePuzzleLead() {
   const features = useFeatures();
   const posters = usePosterCatalog();
   return useCallback(
-    (list: Product[], { first = true }: { first?: boolean } = {}): Product[] => {
+    (list: Product[], { first = true, used }: { first?: boolean; used?: Set<string> } = {}): Product[] => {
       if (!features.posterPuzzle || list.length === 0 || posters.length === 0) return list;
       const byId = new Map(posters.map((p) => [p.id, p]));
       // in a row of (mostly) wall sets the puzzle card takes their shape, so rows (and the phone feed) keep one height
       const wide = list.filter(isPosterPack).length > list.length / 2;
-      let pool = list.filter((p) => isSinglePoster(p) && byId.has(p.id));
-      if (!pool.length) pool = list.filter(isPosterPack).flatMap((set) => set.packItems.flatMap((id) => byId.get(id) ?? []));
-      if (!pool.length) {
-        const cats = new Set(list.flatMap((p) => (p.categoryIds?.length ? p.categoryIds : [p.categoryId])));
-        pool = posters.filter((p) => (p.categoryIds?.length ? p.categoryIds : [p.categoryId]).some((c) => cats.has(c)));
+      const inRow = new Set(list.map((p) => p.id));
+      const singles = list.filter((p) => isSinglePoster(p) && byId.has(p.id));
+      let theme = singles.length ? [] : list.filter(isPosterPack).flatMap((set) => set.packItems.flatMap((id) => byId.get(id) ?? []));
+      if (!theme.length) {
+        const cats = new Set(list.flatMap(catsOf));
+        theme = posters.filter((p) => catsOf(p).some((c) => cats.has(c)));
       }
-      pool = [...new Map(pool.map((p) => [p.id, p])).values()];
-      if (!pool.length) return list;
-      // walk the theme's posters from a random start: no repeats until all are used
-      let at = hash(list.map((p) => p.id).join()) % pool.length;
-      const next = () => pool[at++ % pool.length];
-      const out: Product[] = first ? [asPuzzleEntry(next(), 0, wide)] : [];
+      const free = (p: Product) => !inRow.has(p.id) && !used?.has(p.id);
+      const unique = (l: Product[]) => [...new Map(l.map((p) => [p.id, p])).values()];
+      // the theme's unused posters, then any unused poster, then (all shown) repeats outside the row
+      const tiers = [
+        unique(theme.filter(free)),
+        posters.filter(free),
+        unique(theme.filter((p) => !inRow.has(p.id))),
+        posters.filter((p) => !inRow.has(p.id)),
+      ];
+      if (!tiers[3].length) return list;
+      // each tier walked from a random start: no repeats until it is used up
+      const start = hash(list.map((p) => p.id).join());
+      const picked = new Set<string>();
+      const steps = tiers.map(() => 0);
+      let round = 0;
+      const next = (): Product | undefined => {
+        for (let t = 0; t < (used ? 2 : tiers.length); t++) {
+          const tier = tiers[t];
+          while (steps[t] < tier.length) {
+            const p = tier[(start + steps[t]++) % tier.length];
+            // the first two tiers are "not on the page yet": skip what an earlier pick used
+            if (picked.has(p.id) || (t < 2 && used?.has(p.id))) continue;
+            picked.add(p.id);
+            used?.add(p.id);
+            return p;
+          }
+        }
+        // with the page's list: every poster is on the page already, so leave the
+        // puzzle card out rather than show one twice
+        if (used) return undefined;
+        // every poster outside the row already picked in this row (a tiny shop): go round again
+        const last = tiers[3];
+        return last[(start + round++) % last.length];
+      };
+      const out: Product[] = [];
+      const push = (n: number) => {
+        const p = next();
+        if (p) out.push(asPuzzleEntry(p, n, wide));
+      };
+      if (first) push(0);
       list.forEach((product, i) => {
         out.push(product);
-        if ((i + 1) % EVERY === 0 && i < list.length - 1) out.push(asPuzzleEntry(next(), out.length, wide));
+        if ((i + 1) % EVERY === 0 && i < list.length - 1) push(out.length);
       });
       return out;
     },
