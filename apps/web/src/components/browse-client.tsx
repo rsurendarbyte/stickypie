@@ -322,7 +322,7 @@ export default function BrowseClient({
           </div>
         </div>
       ) : wallList && phone ? (
-        <WallsPageFeed walls={visible} products={products} categories={categories} seed={seed} plain={Boolean(q)} first={postersRail} />
+        <WallsPageFeed walls={visible} products={products} categories={categories} seed={seed} plain={Boolean(q)} singles={postersRail ? singlePosters : undefined} />
       ) : (
         // Only the rows near the screen are rendered — smooth with hundreds of stickers.
         // Columns follow the grid's own width (container queries), not the

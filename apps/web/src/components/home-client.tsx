@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "@/components/page-link";
-import { Children, Fragment } from "react";
+import { Fragment } from "react";
 import Hero from "./hero";
 import type { FanPoster } from "@/lib/hero-fan";
 import ProductCard from "./product-card";
@@ -10,7 +10,7 @@ import ProductCardSkeleton from "./product-card-skeleton";
 import Row from "./row";
 import CustomRail from "./custom-rail";
 import LazyRail, { WALL_CARD_WIDTH } from "./lazy-rail";
-import WallFeed, { feedBreaks, usePhone } from "./wall-feed";
+import WallFeed, { feedBreaks, usePhone, type FeedBreak } from "./wall-feed";
 import { isListed, isPosterPack } from "@/lib/poster";
 import { rememberPosters } from "@/lib/poster-images";
 import {
@@ -73,7 +73,9 @@ export default function HomeClient({
   // shows changes once a day, not on every refresh.
   const seed = useDaySeed();
   const wallMix = arrangeWallRow(home.wallRows[WALL_MIX_ROW], mixWalls(packs, seed), packs);
-  const homeRails = resolveHomeRails(rails, singles, categories, seed);
+  // festival rails come before the other rails: those never repeat their stickers
+  const festivalItems = activeFestivals(festivals).flatMap((f) => festivalProducts(f, singles).slice(0, 24).map((p) => p.id));
+  const homeRails = resolveHomeRails(rails, singles, categories, seed, festivalItems);
   // Phones get one wall feed in place of the wall rows, with the sections after it woven in.
   const phone = usePhone();
   const sectionOn = (id: HomeSectionId) => home.sections.some((s) => s.id === id && s.visible);
@@ -160,67 +162,81 @@ export default function HomeClient({
 
   // The page's sections, in the order set in the admin (Home page).
   const order = home.sections.filter((section) => section.visible).map((section) => section.id);
-  const rows = {
-    custom: <CustomRail />,
-    festivals: festivalRails.map(({ f, items }) => (
-      <LazyRail
-        key={`festival-${f.id}`}
-        eager
-        title={`${f.name} · ${festivalShortDate(f)}`}
-        href={festivalPages.includes(f.slug) ? `/${f.slug}` : `/stickers?q=${encodeURIComponent(f.tags[0] ?? f.name)}`}
-      >
-        {mix(items).map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </LazyRail>
-    )),
-    // The first two rails render straight away; the rest only when the shopper
-    // scrolls near them.
-    rails: homeRails.map((rail, i) => (
-      <LazyRail key={rail.key} eager={Boolean(feedAt) || i < 2} title={rail.title} href={rail.href}>
-        {mix(rail.items).map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </LazyRail>
-    )),
-  };
+  // Every product the rows show as a card, so a puzzle card never brings one
+  // back (until every poster has been shown once). Sections are built top to
+  // bottom, and the phone feed builds its rows as it reaches them, so puzzle
+  // cards pick in the order the shopper scrolls.
+  const used = new Set<string>([...festivalItems, ...homeRails.flatMap((r) => r.items.map((p) => p.id)), ...wallMix.map((p) => p.id)]);
+  const festivalRow = ({ f, items }: (typeof festivalRails)[number], u: Set<string>) => (
+    <LazyRail
+      key={`festival-${f.id}`}
+      eager
+      title={`${f.name} · ${festivalShortDate(f)}`}
+      href={festivalPages.includes(f.slug) ? `/${f.slug}` : `/stickers?q=${encodeURIComponent(f.tags[0] ?? f.name)}`}
+    >
+      {mix(items, { used: u }).map((product) => (
+        <ProductCard key={product.id} product={product} />
+      ))}
+    </LazyRail>
+  );
+  // The first two rails render straight away; the rest only when the shopper
+  // scrolls near them.
+  const railRow = (rail: (typeof homeRails)[number], i: number, u: Set<string>) => (
+    <LazyRail key={rail.key} eager={Boolean(feedAt) || i < 2} title={rail.title} href={rail.href}>
+      {mix(rail.items, { used: u }).map((product) => (
+        <ProductCard key={product.id} product={product} />
+      ))}
+    </LazyRail>
+  );
   const isRow = (id: HomeSectionId): id is "festivals" | "rails" => id === "festivals" || id === "rails";
-  const feed = (
+  // the phone feed's rows: the sections after it, built when the feed reaches them
+  const feedRows: FeedBreak[] = !feedAt
+    ? []
+    : order.slice(order.indexOf(feedAt) + 1).filter(isRow).flatMap((id) =>
+        id === "festivals"
+          ? festivalRails.map((r) => (u: Set<string>) => festivalRow(r, u))
+          : homeRails.map((r, i) => (u: Set<string>) => railRow(r, i, u)),
+      );
+  const feed = () => (
     <WallFeed
       title={home.wallsTitle}
       walls={wallMix}
       themes={sectionOn("themes") ? wallRows : []}
-      breaks={feedAt ? feedBreaks(order.slice(order.indexOf(feedAt) + 1).filter(isRow).flatMap((id) => Children.toArray(rows[id])), sectionOn("custom") && rows.custom) : []}
+      breaks={feedBreaks(feedRows, sectionOn("custom") && <CustomRail />)}
       seed={seed}
+      used={new Set(used)}
     />
   );
 
-  const sections: Record<HomeSectionId, React.ReactNode> = {
-    walls: feedAt ? feedAt === "walls" && feed : wallMix.length > 0 && (
+  const sections: Record<HomeSectionId, () => React.ReactNode> = {
+    walls: () => feedAt ? feedAt === "walls" && feed() : wallMix.length > 0 && (
       <LazyRail eager wide title={home.wallsTitle} href={categoryPath("poster-packs")}>
-        {mix(wallMix).map((product) => (
+        {mix(wallMix, { used }).map((product) => (
           <ProductCard key={product.id} product={product} width={WALL_CARD_WIDTH} wallEffect={wallEffect(0, seed)} />
         ))}
       </LazyRail>
     ),
-    themes: feedAt ? feedAt === "themes" && feed : wallRows.map((row, i) => (
+    themes: () => feedAt ? feedAt === "themes" && feed() : wallRows.map((row, i) => (
       <LazyRail key={row.id} eager={i < 1} wide title={row.title} href={`${categoryPath("poster-packs")}?theme=${row.id}`}>
-        {mix(row.items).map((product) => (
+        {mix(row.items, { used }).map((product) => (
           <ProductCard key={product.id} product={product} width={WALL_CARD_WIDTH} wallEffect={wallEffect(i + 1, seed)} />
         ))}
       </LazyRail>
     )),
-    ...rows,
+    custom: () => <CustomRail />,
+    festivals: () => festivalRails.map((r) => festivalRow(r, used)),
+    rails: () => homeRails.map((r, i) => railRow(r, i, used)),
   };
 
   return (
     <>
       {heroBanner}
       <div className="relative z-10 mt-2 space-y-1 pb-24 sm:space-y-8">
+        {/* built in page order, so puzzle cards higher up pick first */}
         {order
           .filter((id) => !feedAt || order.indexOf(id) <= order.indexOf(feedAt))
           .map((id) => (
-            <Fragment key={id}>{sections[id]}</Fragment>
+            <Fragment key={id}>{sections[id]()}</Fragment>
           ))}
       </div>
     </>
