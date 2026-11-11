@@ -126,10 +126,22 @@ function layoutSpots(name, count) {
     const columns = [0, colW, colW * 2, right, right + colW, right + colW * 2].flatMap(side);
     return [big(left, bigTop), big(left, bigTop + bigH), ...row(0), ...columns, ...row(rowH + band + GAP)];
   }
-  if (name === "calendar") {
-    // A month-by-month calendar: every poster 4 × 6 in, four across, in poster order.
-    const perRow = 4;
-    return Array.from({ length: count }, (_, i) => small((i % perRow) * colW, Math.floor(i / perRow) * rowH));
+  // Month-by-month calendars: every poster 4 × 6 in, in poster order (January first).
+  const grid = (perRow) => Array.from({ length: count }, (_, i) => small((i % perRow) * colW, Math.floor(i / perRow) * rowH));
+  if (name === "calendar") return grid(4); // 4 across, 3 down
+  if (name === "calendar-wide") return grid(6); // 6 across, 2 down: over a bed or desk
+  if (name === "calendar-tall") return grid(3); // 3 across, 4 down: beside a door or cupboard
+  if (name === "calendar-steps") {
+    // 4 across, every other column dropped half a poster: a staggered wall.
+    return Array.from({ length: count }, (_, i) => small((i % 4) * colW, Math.floor(i / 4) * rowH + (i % 2 ? rowH / 2 : 0)));
+  }
+  if (name === "calendar-clock") {
+    // Months where the hours sit on a clock: January at 1 o'clock … December at 12.
+    const r = 13.2;
+    return Array.from({ length: count }, (_, i) => {
+      const a = (((i + 1) % 12) / 12) * Math.PI * 2;
+      return small(r + Math.sin(a) * r, r - Math.cos(a) * r);
+    });
   }
   if (name === "trio") {
     const perRow = Math.min(4, Math.floor((count - 3) / 2));
