@@ -29,6 +29,10 @@ export type Surface = {
   puzzle?: boolean;
   /** A poster page that also lists its matching stickers under this heading ("Ramayana stickers"). */
   stickers?: string;
+  /** A sticker page that lists only its own stickers (no "more stickers"), then its matching posters under this heading. */
+  alsoPosters?: string;
+  /** The sister page for the same subject (stickers ↔ posters), linked under the intro. */
+  related?: { href: string; label: string };
 };
 
 export const SURFACES: Surface[] = [
@@ -193,6 +197,43 @@ export const SURFACES: Surface[] = [
       {
         q: "What size fits a water bottle?",
         a: "3″ fits most bottles and flasks. Use \"See actual size\" on a sticker to check it against your bottle.",
+      },
+    ],
+  },  {
+    slug: "ramayana-stickers",
+    name: "Ramayana Stickers",
+    noun: "Ramayana",
+    title: "Ramayana Stickers Online in India – Lord Rama, Hanuman & Jai Shri Ram Stickers",
+    description:
+      "Buy Ramayana stickers online in India: cute die-cut vinyl stickers of Lord Rama, Sita, Lakshmana, baby Hanuman, the Ram Setu squirrel, the राम stone and the Ayodhya Ram Mandir for your laptop, bottle, phone, car or bike.",
+    intro:
+      "Cute Ramayana stickers for your laptop, water bottle, phone, car or bike: chibi Lord Rama, Sita and Lakshmana, baby Hanuman flying with his gada and lifting the Sanjeevani mountain, the little Ram Setu squirrel, the floating राम stone, the Ayodhya Ram Mandir, Shabari feeding Rama berries, Jatayu, King Dasharatha and a cartoon Ravana. Each one is a die-cut vinyl sticker, cut to the shape of the design.",
+    tags: ["ramayana", "ramayan"],
+    categories: [],
+    alsoPosters: "Ramayana posters for your wall",
+    related: { href: "/ramayana-posters", label: "See the Ramayana wall posters" },
+    sections: [
+      {
+        heading: "Jai Shri Ram on the go",
+        body: "Put a Ram Setu राम stone on your car's rear glass, baby Hanuman on your bike's tank, or chibi Rama, Sita and Lakshmana on your laptop. The 3″ size fits bottles and phones, 6″ and 7″ suit cars and laptops.",
+      },
+      {
+        heading: "Made for kids and gifting",
+        body: "The chibi characters and the Ram Setu squirrel make the Ramayana fun for kids, and a few stickers are an easy return gift for Ram Navami, Dussehra, Diwali or a birthday.",
+      },
+    ],
+    faq: [
+      {
+        q: "Which Ramayana stickers do you have?",
+        a: "Chibi Lord Rama, Sita and Lakshmana, baby Hanuman flying and baby Hanuman with the Sanjeevani mountain, the Ram Setu squirrel, the floating राम stone, the Ayodhya Ram Mandir, Shabari feeding Rama berries, Jatayu, King Dasharatha and a cartoon Ravana.",
+      },
+      {
+        q: "Can I put a Ram sticker on my car or bike?",
+        a: "Yes. They are die-cut vinyl, so they stick cleanly to glass, paint and tanks and peel off later. Don't place one where it blocks your view.",
+      },
+      {
+        q: "Do you have Ramayana posters too?",
+        a: "Yes: Lord Rama, Sita, Hanuman, Ravana, Ram Setu, Lanka Dahan and more as epic movie-style wall posters, single or as ready wall sets, on the Ramayana posters page.",
       },
     ],
   },
@@ -449,6 +490,7 @@ export const POSTER_SURFACES: Surface[] = [
     categories: [],
     posters: true,
     stickers: "Ramayana stickers",
+    related: { href: "/ramayana-stickers", label: "See all Ramayana stickers" },
     sections: [
       {
         heading: "The whole Ramayana, scene by scene",
@@ -599,7 +641,8 @@ export function stickersForSurface(
   // posters are paper and share tags like "car", but don't go on a car.
   const stickers = products.filter((p) => !isPoster(p));
   const matched = stickers.filter(fits);
-  const others = stickers.filter((p) => !fits(p));
+  // a subject page (Ramayana stickers) lists only its own stickers
+  const others = surface.alsoPosters ? [] : stickers.filter((p) => !fits(p));
   return { matched, others };
 }
 
@@ -611,6 +654,12 @@ export function surfaceStickers(surface: Surface, products: Product[], categorie
   return products.filter(
     (p) => !isPoster(p) && (p.tags.some((t) => tags.has(t.toLowerCase())) || (p.categoryIds ?? []).some((id) => catIds.has(id)))
   );
+}
+
+/** A sticker page's matching posters and wall sets (Surface.alsoPosters), wall sets first. */
+export function surfacePosters(surface: Surface, products: Product[], categories: Category[]): Product[] {
+  if (!surface.alsoPosters) return [];
+  return stickersForSurface({ ...surface, posters: true }, products, categories).matched;
 }
 
 /** Wall sets first, then single posters. A set counts when at least half its posters fit (Legends walls have no subject of their own). */

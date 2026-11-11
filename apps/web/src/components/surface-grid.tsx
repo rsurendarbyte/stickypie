@@ -8,7 +8,7 @@ import { useLiveCatalog, type Catalog } from "@/lib/live-catalog";
 import { isPosterPack } from "@/lib/poster";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
 import { useDaySeed } from "@/lib/skin-seed";
-import { posterLabel, stickersForSurface, surfaceStickers, type Surface } from "@/lib/surfaces";
+import { posterLabel, stickersForSurface, surfacePosters, surfaceStickers, type Surface } from "@/lib/surfaces";
 import { wallEffect } from "@/lib/wall-effects";
 import type { Product } from "@stickypie/shared";
 
@@ -57,6 +57,17 @@ function PosterGrid({ surface, posters, stickers }: { surface: Surface; posters:
   );
 }
 
+/** A sticker page's posters at the bottom: wall sets, then single posters. */
+function AlsoPosters({ surface, posters }: { surface: Surface; posters: Product[] }) {
+  if (!posters.length) return null;
+  return (
+    <>
+      <h2 className="mt-16 font-display text-xl font-bold">{surface.alsoPosters}</h2>
+      <PosterGrid surface={{ ...surface, name: surface.name.replace(/Stickers$/, "Posters") }} posters={posters} stickers={[]} />
+    </>
+  );
+}
+
 /** Live, on-sale stickers for one surface page: best fits first, then the rest. */
 export default function SurfaceGrid({ surface, initial }: { surface: Surface; initial: Catalog }) {
   const { categories, products, loaded } = useLiveCatalog(initial);
@@ -96,6 +107,7 @@ export default function SurfaceGrid({ surface, initial }: { surface: Surface; in
           </div>
         </>
       )}
+      {surface.alsoPosters && <AlsoPosters surface={surface} posters={surfacePosters(surface, products, categories)} />}
     </>
   );
 }
