@@ -239,10 +239,17 @@ export default function Hero({
           />
         </>
       )}
+      {/* the side glow fades out with the background: the hero clips it, so
+          unmasked its colour stopped in a straight line at the hero's bottom */}
       <div
-        className="pointer-events-none absolute top-1/3 -right-44 size-[32rem] rounded-full blur-[140px] transition-colors duration-700"
-        style={{ background: `${tile.glow}1f` }}
-      />
+        aria-hidden
+        className="pointer-events-none absolute inset-0 [mask-image:linear-gradient(to_bottom,black_0%,black_55%,transparent_100%)]"
+      >
+        <div
+          className="absolute top-1/3 -right-44 size-[32rem] rounded-full blur-[140px] transition-colors duration-700"
+          style={{ background: `${tile.glow}1f` }}
+        />
+      </div>
 
       <div
         className={`relative grid w-full items-center gap-3 px-4 pt-[68px] pb-5 sm:gap-8 sm:px-8 sm:pt-24 md:grid-cols-[1fr_1.2fr] md:gap-8 lg:gap-14 lg:px-12 md:pb-10 2xl:px-20 ${onWall ? "pointer-events-none" : ""}`}
@@ -335,9 +342,12 @@ export default function Hero({
           {/* product-tinted wash behind the art (not on the wall slides: it fogs the wall) */}
           {!onWall && (
             <>
+              {/* a soft radial wash that is clear at its edge and stays inside the
+                  hero: the old full-width blurred circle ran past the hero's bottom
+                  and was cut off in a straight line */}
               <div
-                className="pointer-events-none absolute inset-0 m-auto aspect-square w-[105%] rounded-full blur-[85px] transition-colors duration-700"
-                style={{ background: `${tile.glow}30` }}
+                className="pointer-events-none absolute inset-0 m-auto aspect-square w-[min(105%,640px)] rounded-full"
+                style={{ background: `radial-gradient(closest-side, ${tile.glow}30, ${tile.glow}18 50%, transparent 100%)` }}
               />
               <div className="pointer-events-none absolute inset-0 m-auto aspect-square w-[55%] rounded-full bg-white/70 blur-[60px]" />
             </>
