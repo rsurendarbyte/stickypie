@@ -417,9 +417,9 @@ export const POSTER_SURFACES: Surface[] = [
     noun: "devotional",
     title: "Devotional Posters Online in India – God Wall Posters",
     description:
-      "Buy devotional posters online in India: Shiva, Ganesha, Krishna and Buddha wall posters and wall sets on premium poster paper.",
-    intro: `Shiva, Ganesha, Krishna, Buddha and more, for your pooja corner or living room. ${POSTER_BASICS}`,
-    tags: ["wall theme:devotional", "devotional", "shiva", "mahadev", "ganesha", "krishna", "buddha", "spiritual"],
+      "Buy devotional posters online in India: Shiva, Ganesha, Krishna, Lord Rama, Hanuman and Buddha wall posters and wall sets on premium poster paper.",
+    intro: `Shiva, Ganesha, Krishna, Lord Rama, Hanuman, Buddha and more, for your pooja corner or living room. ${POSTER_BASICS}`,
+    tags: ["wall theme:devotional", "devotional", "shiva", "mahadev", "ganesha", "krishna", "buddha", "spiritual", "ramayana", "hanuman"],
     categories: [],
     posters: true,
     sections: [
@@ -431,7 +431,51 @@ export const POSTER_SURFACES: Surface[] = [
     faq: [
       {
         q: "Which devotional posters do you have?",
-        a: "Shiva and Mahadev, Ganesha, Krishna and Buddha designs, as single mini posters and as ready wall sets.",
+        a: "Shiva and Mahadev, Ganesha, Krishna, Buddha, Hanuman and a full set of Ramayana posters (Lord Rama, Sita, Ravana, Ram Setu and more), as single mini posters and as ready wall sets.",
+      },
+    ],
+  },
+  {
+    slug: "ramayana-posters",
+    name: "Ramayana Posters",
+    noun: "Ramayana",
+    title: "Ramayana Posters Online in India – Lord Rama, Hanuman & Ravana Wall Posters",
+    description:
+      "Buy Ramayana posters online in India: Lord Rama, Sita, Hanuman, Ravana, Ram Setu and Lanka Dahan wall posters in an epic movie-poster style, single or as ready wall sets, on premium poster paper.",
+    intro: `The Ramayana told as epic movie posters: Lord Rama with his bow, Sita, Hanuman's leap to Lanka, Ram Setu, Ravana on his throne and Rama's return to Ayodhya. ${POSTER_BASICS} Hang one Jai Shri Ram poster in your pooja corner, or the whole story as a wall.`,
+    tags: ["ramayana", "ramayan"],
+    categories: [],
+    posters: true,
+    sections: [
+      {
+        heading: "The whole Ramayana, scene by scene",
+        body: "Vanvaas (the exile), Lakshman Rekha, Jatayu, Hanuman's leap across the ocean, Lanka Dahan, Ram Setu, Sanjeevani, Sita's Agni Pariksha, the Rama–Ravana yuddh, Ravana Vadha and the return of Rama to Ayodhya, each painted as a cinematic poster with its own title.",
+      },
+      {
+        heading: "Ramayana wall sets",
+        body: "Ramayana Story puts nine scenes on one wall with Lord Rama in the middle, Jai Hanuman centres Hanuman and Ravana, and Rama vs Ravana is a smaller battle wall. Swap any poster in a set for another scene you like more.",
+      },
+      {
+        heading: "For Ram Navami, Dussehra and Diwali",
+        body: "A Ramayana poster makes a thoughtful gift for Ram Navami, Dussehra, Diwali or a griha pravesh, and suits a pooja room, a living room, a kid's room for bedtime stories or a hostel wall.",
+      },
+    ],
+    faq: [
+      {
+        q: "Which Ramayana posters do you have?",
+        a: "Lord Rama, Sita, Hanuman, Ravana, Jatayu, Lakshman Rekha, Ram Setu, Lanka Dahan, Sanjeevani, Vanvaas, the Rama–Ravana yuddh, Ravana Vadha and the return of Rama to Ayodhya, as single mini posters and as ready wall sets.",
+      },
+      {
+        q: "Do you have Hanuman posters?",
+        a: "Yes: Hanuman leaping across the ocean to Lanka, Lanka Dahan with his burning tail, and Hanuman carrying the Sanjeevani mountain, plus the Jai Hanuman wall set.",
+      },
+      {
+        q: "Are these from a Ramayana movie?",
+        a: "No. They are original artwork made for StickyPie in the style of a film poster, not stills or posters from any film or TV series.",
+      },
+      {
+        q: "Can I put a Ramayana poster in my pooja room?",
+        a: `Yes. They are printed on ${POSTER_PAPER} and come with ${POSTER_ADHESIVE}, so they go up without nails and come off without marking the wall.`,
       },
     ],
   },
@@ -489,7 +533,7 @@ export const POSTER_SURFACES: Surface[] = [
 export function posterLabel(surface: Surface): string {
   // festival names stay capitalised: "Christmas posters"
   if (surface.when) return surface.name.replace(/ Posters$/, " posters");
-  return surface.name.toLowerCase().replace(/^tamil/, "Tamil");
+  return surface.name.toLowerCase().replace(/^tamil/, "Tamil").replace(/^ramayana/, "Ramayana");
 }
 
 export function surfaceBySlug(slug: string): Surface | undefined {
