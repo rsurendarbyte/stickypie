@@ -9,6 +9,8 @@
 //   and --prices to reset the prices of sets already saved
 //   --themes makes the rows of about 10 sets per theme instead (--only=cars,travel for some)
 //   --sets=<file> makes the sets picked in that file instead
+//   --draft (with --sets --save) saves them hidden, tagged "awaiting approval", for the
+//   admin's Approve page; it never touches a wall that already exists
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -236,6 +238,8 @@ async function draw(setup, posters) {
 
 const { url, key, args } = loadTargetEnv();
 const save = args.includes("--save");
+const draft = args.includes("--draft");
+const DRAFT_TAG = "awaiting approval";
 const headers = { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" };
 
 async function rest(query, init = {}) {
@@ -289,6 +293,8 @@ async function saveSetup(setup, tags, rows, done) {
     row[column] = await put(`${prefix}/${slug}-${maxPx}-${ts}.webp`, webp, "image/webp");
   }
   const [existing] = await rest(`products?slug=eq.${slug}&select=id`);
+  if (draft && existing) throw new Error(`${setup.title}: a wall with this name already exists`);
+  if (draft) row.tags.push(DRAFT_TAG);
   // Starting price by poster: change it in the admin any time (--prices resets it).
   const listed = Math.ceil((done.sizes.length * 69) / 50) * 50 - 1;
   const price = WALL_PRICES[done.sizes.length];
@@ -300,7 +306,7 @@ async function saveSetup(setup, tags, rows, done) {
   } else {
     await rest("products", {
       method: "POST",
-      body: JSON.stringify({ ...row, ...priced, sizes: [], is_active: true, is_new: true, featured: false, stock: null }),
+      body: JSON.stringify({ ...row, ...priced, sizes: [], is_active: !draft, is_new: true, featured: false, stock: null }),
     });
   }
   return row.name;
@@ -403,19 +409,38 @@ if (setsFile) {
   const slugs = [...new Set(list.flatMap((s) => s.posters))].map((s) => `${s}-mini-poster`);
   const posters = await rest(`products?slug=in.(${slugs.join(",")})&is_active=eq.true&select=id,slug,image_url,display_url`);
   const pictures = new Map();
+  const made = [];
+  const failed = [];
   for (const [i, set] of list.entries()) {
-    const rows = set.posters.map((s) => {
-      const row = posters.find((p) => p.slug === `${s}-mini-poster`);
-      if (!row) throw new Error(`${set.name}: no poster ${s}`);
-      return row;
-    });
-    if (new Set(rows).size !== rows.length) throw new Error(`${set.name}: a poster twice`);
-    for (const row of rows) if (!pictures.has(row.id)) pictures.set(row.id, await picture(row.display_url ?? row.image_url));
-    const setup = { file: `${set.theme}/${kebab(set.name)}`, theme: set.theme, title: `${set.name} Wall Setup`, layout: set.layout, ...paintFor(set.theme, set.paint ?? i) };
-    const done = await draw(setup, rows.map((r) => pictures.get(r.id)));
-    if (done.sizes.length !== rows.length) throw new Error(`${set.name}: ${rows.length} posters, layout holds ${done.sizes.length}`);
-    if (save) await saveSetup(setup, [set.theme, ...(set.tags ?? [])], rows, done);
-    console.log(`✓ ${set.name}: ${rows.length} posters, ${done.feet}`);
+    try {
+      const rows = set.posters.map((s) => {
+        const row = posters.find((p) => p.slug === `${s}-mini-poster`);
+        if (!row) throw new Error(`${set.name}: no poster ${s}`);
+        return row;
+      });
+      if (new Set(rows).size !== rows.length) throw new Error(`${set.name}: a poster twice`);
+      // a draft never replaces a wall: find out before drawing it
+      if (draft && save && (await rest(`products?slug=eq.${kebab(set.name)}-wall-setup&select=id`)).length) throw new Error(`${set.name}: a wall with this name already exists`);
+      for (const row of rows) if (!pictures.has(row.id)) pictures.set(row.id, await picture(row.display_url ?? row.image_url));
+      const setup = { file: `${set.theme}/${kebab(set.name)}`, theme: set.theme, title: `${set.name} Wall Setup`, layout: set.layout, ...paintFor(set.theme, set.paint ?? i) };
+      const done = await draw(setup, rows.map((r) => pictures.get(r.id)));
+      if (done.sizes.length !== rows.length) throw new Error(`${set.name}: ${rows.length} posters, layout holds ${done.sizes.length}`);
+      if (save) await saveSetup(setup, [set.theme, ...(set.tags ?? [])], rows, done);
+      console.log(`✓ ${set.name}: ${rows.length} posters, ${done.feet}`);
+      made.push(set.name);
+    } catch (err) {
+      // a daily draft run keeps going: one bad set shouldn't lose the others
+      if (!draft) throw err;
+      failed.push(err.message.startsWith(set.name) ? err.message : `${set.name}: ${err.message}`);
+      console.log(`✘ ${failed.at(-1)}`);
+    }
+  }
+  if (draft && save) {
+    // shown under the Daily prompt on the admin's Approve page
+    const [row] = await rest("store_settings?id=eq.1&select=features");
+    const features = row?.features ?? {};
+    const lastRun = { at: new Date().toISOString(), made, skipped: failed };
+    await rest("store_settings?id=eq.1", { method: "PATCH", body: JSON.stringify({ features: { ...features, trendWalls: { ...features.trendWalls, lastRun } } }) });
   }
 }
 

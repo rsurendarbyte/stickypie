@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { OrderAlertsToggle, useOrderAlerts } from "./order-alerts";
-import { BarChart3, Calculator, Clapperboard, CalendarHeart, Inbox, LayoutDashboard, LayoutList, LogOut, Package, Route, Scissors, Settings, ShoppingBasket, ShoppingCart, Smile, Star, Tag, Tags, ToggleRight, Users } from "lucide-react";
+import { BadgeCheck, BarChart3, Calculator, Clapperboard, CalendarHeart, Inbox, LayoutDashboard, LayoutList, LogOut, Package, Route, Scissors, Settings, ShoppingBasket, ShoppingCart, Smile, Star, Tag, Tags, ToggleRight, Users } from "lucide-react";
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/products", label: "Products", icon: Package },
+  { href: "/approve", label: "Approve", icon: BadgeCheck },
   { href: "/categories", label: "Categories", icon: Tags },
   { href: "/home-layout", label: "Home page", icon: LayoutList },
   { href: "/festivals", label: "Festivals", icon: CalendarHeart },
