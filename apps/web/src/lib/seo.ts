@@ -292,12 +292,14 @@ export function posterTopicFaq(label: string, products: Product[]): Faq | null {
   const single = lowestPrice(products.filter((p) => !isPosterPack(p)));
   const set = lowestPrice(products.filter(isPosterPack));
   if (single === null && set === null) return null;
+  const prices = [
+    single !== null && `Single mini posters start at ${formatINR(single)}`,
+    set !== null && `wall poster sets start at ${formatINR(set)} for the whole set`,
+  ].filter(Boolean).join(", and ");
   return {
     q: `How much do ${label} cost?`,
-    a: `${[
-      single !== null && `Single mini posters start at ${formatINR(single)}`,
-      set !== null && `wall poster sets start at ${formatINR(set)} for the whole set`,
-    ].filter(Boolean).join(", and ")}. Shipping is worked out at checkout from your pin code.`,
+    // a page with only wall sets starts with the second phrase: capitalise it
+    a: `${prices.charAt(0).toUpperCase()}${prices.slice(1)}. Shipping is worked out at checkout from your pin code.`,
   };
 }
 
