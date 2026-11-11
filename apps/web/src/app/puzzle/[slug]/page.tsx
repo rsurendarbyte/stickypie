@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import PuzzleBoot from "@/components/puzzle-boot";
 import PuzzlePageClient from "@/components/puzzle-page-client";
-import { isMiniPoster, isPosterPack } from "@/lib/poster";
+import { isSinglePoster } from "@/lib/poster";
 import { getDriver } from "@/lib/data";
 import { posterSharePath, puzzleSharePath, shareImageUrl } from "@/lib/share-links";
 import { pageMetadata } from "@/lib/site";
@@ -16,7 +16,7 @@ export const revalidate = 3600;
 
 export async function generateStaticParams() {
   const products = await activeProducts();
-  return products.filter((p) => isMiniPoster(p) && !isPosterPack(p)).map((p) => ({ slug: p.slug }));
+  return products.filter(isSinglePoster).map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function PuzzlePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const product = await productBySlug(slug);
-  if (!product || !product.isActive || !isMiniPoster(product) || isPosterPack(product)) notFound();
+  if (!product || !product.isActive || !isSinglePoster(product)) notFound();
   const ratio = product.aspectRatio && product.aspectRatio > 0.3 && product.aspectRatio < 3 ? product.aspectRatio : 2 / 3;
   const poster = {
     id: product.id,

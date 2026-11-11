@@ -5,6 +5,7 @@ import BrowseClient from "@/components/browse-client";
 import StickerLoader from "@/components/sticker-loader";
 import { productSnapshot } from "@/lib/catalog-snapshot";
 import { getDriver } from "@/lib/data";
+import { isWallSetOnly } from "@stickypie/shared";
 import { itemListStructuredData } from "@/lib/seo";
 import { pageMetadata } from "@/lib/site";
 
@@ -26,7 +27,7 @@ export default async function StickersPage() {
 
   return (
     <div className="min-h-screen w-full px-4 pt-[76px] pb-24 sm:px-8 sm:pt-24 lg:px-12 2xl:px-20">
-      <JsonLd data={itemListStructuredData(products)} />
+      <JsonLd data={itemListStructuredData(products.filter((p) => !isWallSetOnly(p)))} />
       <Suspense
         fallback={
           <>

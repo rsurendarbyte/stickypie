@@ -3,7 +3,7 @@
 import Link from "@/components/page-link";
 import SmartImg from "./smart-img";
 import PageLink from "./page-link";
-import { isMiniPoster, isPosterPack, isRegional, isRegionalName, posterSetName, sizeChipLabel, wallPosterSizes, wallSize, wallSpots } from "@/lib/poster";
+import { isListed, isMiniPoster, isPosterPack, isRegional, isRegionalName, posterSetName, sizeChipLabel, wallPosterSizes, wallSize, wallSpots } from "@/lib/poster";
 import { rememberPosters } from "@/lib/poster-images";
 import WallStage from "./wall-stage";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -86,7 +86,7 @@ export default function Hero({
   const home = useHomePage();
   // The hero speaks to all of India: nothing tied to one state or city (those keep their own rows).
   const regionId = categories.find((c) => c.slug === "cities-states")?.id;
-  const national = (p: Product) => (!home.hideRegional || !isRegional(p, regionId)) && !NOT_IN_HERO.test(p.name);
+  const national = (p: Product) => (!home.hideRegional || !isRegional(p, regionId)) && !NOT_IN_HERO.test(p.name) && isListed(p);
   const shop = (catalog.length ? catalog : products).filter(national);
   const wallSets = packs.filter(national);
   const { picks, packPicks, momentOf } = heroPicks(
@@ -566,7 +566,7 @@ function heroPicks(
  *  Categories take turns (one from each, round and round) so no single one —
  *  a festival's dozen posters, say — fills the wall; the mix changes each day. */
 function wallItems(everything: Product[], posters: boolean, seed: number) {
-  const pool = everything.filter((p) => !isPosterPack(p) && isMiniPoster(p) === posters);
+  const pool = everything.filter((p) => !isPosterPack(p) && isListed(p) && isMiniPoster(p) === posters);
   const random = seededRandom(seed);
   const mix = <T,>(list: T[]) => {
     for (let i = list.length - 1; i > 0; i--) {

@@ -26,7 +26,7 @@ const IMAGE_HOST = "https://stickers.stickypie.in";
 const SMALL = { w: 4, h: 6 };
 const BIG = { w: 6, h: 9 };
 /** One price per wall, by number of posters. */
-const WALL_PRICES = { 4: 199, 6: 199, 7: 229, 8: 259, 9: 279, 10: 299, 11: 329, 14: 379, 20: 459, 30: 549 };
+const WALL_PRICES = { 4: 199, 6: 199, 7: 229, 8: 259, 9: 279, 10: 299, 11: 329, 12: 349, 14: 379, 20: 459, 30: 549 };
 
 // pack: id in packs.json; its first poster goes big.
 const SETUPS = [
@@ -125,6 +125,11 @@ function layoutSpots(name, count) {
     const row = (y) => Array.from({ length: 5 }, (_, i) => small(inset + i * colW, y));
     const columns = [0, colW, colW * 2, right, right + colW, right + colW * 2].flatMap(side);
     return [big(left, bigTop), big(left, bigTop + bigH), ...row(0), ...columns, ...row(rowH + band + GAP)];
+  }
+  if (name === "calendar") {
+    // A month-by-month calendar: every poster 4 × 6 in, four across, in poster order.
+    const perRow = 4;
+    return Array.from({ length: count }, (_, i) => small((i % perRow) * colW, Math.floor(i / perRow) * rowH));
   }
   if (name === "trio") {
     const perRow = Math.min(4, Math.floor((count - 3) / 2));
@@ -345,7 +350,7 @@ if (args.includes("--themes")) {
   const only = args.find((a) => a.startsWith("--only="))?.slice(7).split(",");
   for (const theme of THEMES.filter((t) => !only || only.includes(t.id))) {
     const ids = new Set(categories.filter((c) => theme.categories.includes(c.name)).map((c) => c.id));
-    const pool = posters.filter((p) => (p.category_ids ?? []).some((id) => ids.has(id)) && !(p.tags ?? []).some((t) => /festival|diwali/i.test(t)));
+    const pool = posters.filter((p) => (p.category_ids ?? []).some((id) => ids.has(id)) && !(p.tags ?? []).some((t) => /festival|diwali|wall set only/i.test(t)));
     for (const p of pool) {
       if (pictures.has(p.id)) continue;
       try {
@@ -377,7 +382,8 @@ if (args.includes("--themes")) {
   }
 }
 
-// Sets picked by hand: --sets=<file>, a list of { name, theme, layout, posters: [slugs] }.
+// Sets picked by hand: --sets=<file>, a list of { name, theme, layout, posters: [slugs], tags? }.
+// tags: ["locked wall"] sells the set exactly as made (calendars): shoppers can't change its posters.
 // The first posters in the list are the big ones.
 const setsFile = args.find((a) => a.startsWith("--sets="))?.slice(7);
 if (setsFile) {
@@ -396,7 +402,7 @@ if (setsFile) {
     const setup = { file: `${set.theme}/${kebab(set.name)}`, theme: set.theme, title: `${set.name} Wall Setup`, layout: set.layout, ...paintFor(set.theme, set.paint ?? i) };
     const done = await draw(setup, rows.map((r) => pictures.get(r.id)));
     if (done.sizes.length !== rows.length) throw new Error(`${set.name}: ${rows.length} posters, layout holds ${done.sizes.length}`);
-    if (save) await saveSetup(setup, [set.theme], rows, done);
+    if (save) await saveSetup(setup, [set.theme, ...(set.tags ?? [])], rows, done);
     console.log(`✓ ${set.name}: ${rows.length} posters, ${done.feet}`);
   }
 }

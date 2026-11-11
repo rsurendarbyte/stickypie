@@ -4,7 +4,7 @@
 // edited in the admin — add the tag "laptop" to a sticker and it appears on
 // /laptop-stickers.
 import { POSTER_ADHESIVE, POSTER_PAPER, festivalLongDate, type Category, type Festival, type Product } from "@stickypie/shared";
-import { isPoster, isPosterPack, isSinglePoster } from "./poster";
+import { isListed, isPoster, isPosterPack, isSinglePoster } from "./poster";
 
 export type Surface = {
   slug: string;
@@ -517,6 +517,6 @@ function postersForSurface(products: Product[], fits: (p: Product) => boolean): 
     const posters = set.packItems.flatMap((id) => byId.get(id) ?? []);
     return posters.filter(fits).length * 2 >= posters.length && posters.length > 0;
   };
-  const listed = products.filter((p) => isPoster(p) && (fits(p) || (isPosterPack(p) && inSet(p))));
+  const listed = products.filter((p) => isPoster(p) && isListed(p) && (fits(p) || (isPosterPack(p) && inSet(p))));
   return [...listed.filter(isPosterPack), ...listed.filter((p) => !isPosterPack(p))];
 }

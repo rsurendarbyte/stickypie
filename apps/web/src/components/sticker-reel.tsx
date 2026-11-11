@@ -1,6 +1,6 @@
 "use client";
 
-import { puzzleBuildInches } from "@stickypie/shared";
+import { isLockedWall, puzzleBuildInches } from "@stickypie/shared";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, ChevronUp, Info, LayoutList, RotateCcw, Ruler, Share2, ShoppingBag, Truck, ZoomIn } from "lucide-react";
 import type { Product } from "@stickypie/shared";
@@ -12,7 +12,7 @@ import { visitSeed } from "@/lib/skin-seed";
 import { rememberPackPosters, rememberPosters } from "@/lib/poster-images";
 import { pickPoster, setPosters, swapSpots, useWallLine } from "@/lib/wall-picks";
 import { cardSkinFor } from "@/lib/palette";
-import { isMiniPoster, isPosterPack, isSinglePoster, isWallSetup, posterSetName, sizeChipLabel } from "@/lib/poster";
+import { isListed, isMiniPoster, isPosterPack, isSinglePoster, isWallSetup, posterSetName, sizeChipLabel } from "@/lib/poster";
 import { PuzzleLoop, PuzzleSplit, PuzzleStrip } from "./poster-puzzle";
 import { backGoesHome, launchOf, launchPuzzle } from "@/lib/puzzle-launch";
 import { posterShare, puzzleShare, share as shareItem } from "@/lib/share";
@@ -139,7 +139,7 @@ function Reel({
       const byId = new Map(products.map((p) => [p.id, p]));
       return [current, ...nextUp.flatMap((p) => byId.get(p.id) ?? [])];
     }
-    const others = products.filter((p) => p.id !== initial.id);
+    const others = products.filter((p) => p.id !== initial.id && isListed(p));
     // most like this one first (fresh order each visit), not the newest drops
     const same = relatedOrder(current, category ? others.filter((p) => inCategory(p, category.id)) : [], puzzleSeed);
     const rest = relatedOrder(current, others.filter((p) => !same.includes(p)), puzzleSeed);
@@ -337,6 +337,8 @@ function ReelItem({
   const [trueSize, setTrueSize] = useState(false);
   const [zoom, setZoom] = useState(false);
   const puzzle = isSinglePoster(product) && !out;
+  // A locked wall (a calendar…) sells exactly as made: no swapping, removing, adding or arranging.
+  const editable = checked && !isLockedWall(product);
   const [artEl, setArtEl] = useState<HTMLImageElement | null>(null);
   const [wallView, setWallView] = useState<WallView>("wall");
   const [spot, setSpot] = useState<number | null>(null);
@@ -442,16 +444,16 @@ function ReelItem({
                 <WallSizeMap product={product} posters={picks} />
               </div>
             )}
-            {checked && wallView === "wall" && !arranging && <WallTip />}
+            {editable && wallView === "wall" && !arranging && <WallTip />}
             <div className={`size-full ${wallView !== "wall" ? "invisible" : ""}`}>
             {/* The set as sold draws at once from the page's own posters. A shopper's own picks, and changing them, wait for the checked catalog. */}
-            {picks && !checked ? <span className="block size-full animate-pulse rounded-2xl bg-panel" /> : <WallStage bare priority product={product} posters={posters} onRemove={checked ? emptySpot : undefined} onAdd={checked ? setSpot : undefined} onSwap={checked ? (a, b) => setDraft((now) => now && swapSpots(now, a, b)) : undefined} arranging={arranging} onArrange={checked ? () => setDraft(picks ?? product.packItems) : undefined} onFit={checked ? setSpot : undefined} onChoose={choosing ? chooseOwn : undefined} src={product.displayUrl ?? product.imageUrl} alt={product.name} className={out ? "opacity-50 saturate-50" : ""} />}
+            {picks && !checked ? <span className="block size-full animate-pulse rounded-2xl bg-panel" /> : <WallStage bare priority product={product} posters={posters} onRemove={editable ? emptySpot : undefined} onAdd={editable ? setSpot : undefined} onSwap={editable ? (a, b) => setDraft((now) => now && swapSpots(now, a, b)) : undefined} arranging={arranging} onArrange={editable ? () => setDraft(picks ?? product.packItems) : undefined} onFit={editable ? setSpot : undefined} onChoose={choosing ? chooseOwn : undefined} src={product.displayUrl ?? product.imageUrl} alt={product.name} className={out ? "opacity-50 saturate-50" : ""} />}
             </div>
             </div>
             {/* below the wall, so nothing sits on a poster or its close button */}
             <div className="relative shrink-0" onPointerUp={(e) => e.stopPropagation()}>
               {/* stays in the layout while arranging, so the wall doesn't change size under the finger */}
-              <div className={`flex justify-end px-1.5 pb-1.5 ${arranging || !checked || out || wallView !== "wall" ? "invisible" : ""}`}>
+              <div className={`flex justify-end px-1.5 pb-1.5 ${arranging || !editable || out || wallView !== "wall" ? "invisible" : ""}`}>
                 <OwnPosterButton choosing={choosing} onChange={setChoosing} glass />
               </div>
               <div className={`flex items-start justify-between gap-1 px-1.5 pb-1 ${arranging ? "invisible" : ""}`}>

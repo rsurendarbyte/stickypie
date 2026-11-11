@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import ProductPage from "@/app/sticker/[slug]/page";
 import { FinishStart } from "@/lib/poster-finish";
-import { isMiniPoster, isPosterPack } from "@/lib/poster";
+import { isSinglePoster } from "@/lib/poster";
 import { pageMetadata } from "@/lib/site";
 import { activeProducts, productBySlug } from "@/lib/page-data";
 
@@ -13,7 +13,7 @@ export const revalidate = 3600;
 
 export async function generateStaticParams() {
   const products = await activeProducts();
-  return products.filter((p) => isMiniPoster(p) && !isPosterPack(p)).map((p) => ({ slug: p.slug }));
+  return products.filter(isSinglePoster).map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function PuzzlePosterPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const product = await productBySlug(slug);
-  if (!product || !product.isActive || !isMiniPoster(product) || isPosterPack(product)) notFound();
+  if (!product || !product.isActive || !isSinglePoster(product)) notFound();
   return (
     <FinishStart finish="puzzle">
       <ProductPage params={params} />

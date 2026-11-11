@@ -1,5 +1,5 @@
 import type { OrderItem, Product } from "@stickypie/shared";
-import { packPosterSizes } from "@stickypie/shared";
+import { isWallSetOnly, packPosterSizes } from "@stickypie/shared";
 
 /** Mini posters are tagged "mini poster" (and their slugs end in -mini-poster). */
 export function isMiniPoster(product: Product) {
@@ -11,9 +11,14 @@ export function isPosterPack(product: Product) {
   return (product.packItems?.length ?? 0) > 0;
 }
 
-/** A mini poster sold on its own, not a set of them. */
+/** A mini poster sold on its own, not a set of them (wall-set-only posters aren't). */
 export function isSinglePoster(product: Product) {
-  return isMiniPoster(product) && !isPosterPack(product);
+  return isMiniPoster(product) && !isPosterPack(product) && !isWallSetOnly(product);
+}
+
+/** Can be shown on its own in lists, search, feeds and the sitemap (wall-set-only posters can't). */
+export function isListed(product: Product) {
+  return !isWallSetOnly(product);
 }
 
 /** The Walls page's "theme" for single posters: ?theme=single. */
@@ -96,7 +101,7 @@ export function isRegional(product: Product, regionCategoryId: string | undefine
 
 /** Tags that only drive the shop (row, size, paint, spots), never shown to shoppers. */
 export function isInternalTag(tag: string) {
-  return /^wall (theme|size|paint|spots):/.test(tag);
+  return /^wall (theme|size|paint|spots):/.test(tag) || /^(wall set only|locked wall)$/i.test(tag);
 }
 
 /** "Red Line — 6 Mini Poster Pack" → "Red Line": a set's name for shoppers. */

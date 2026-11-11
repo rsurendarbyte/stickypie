@@ -3,7 +3,7 @@
 // instead of waiting for the JS and the catalogue; the full list comes from the
 // catalogue the page loads anyway. Shared by the server page and the hero.
 import type { Category, Product } from "@stickypie/shared";
-import { isMiniPoster, isPosterPack } from "./poster";
+import { isSinglePoster } from "./poster";
 
 /** Smoking and guns (checked by eye, not all say so in the name): still on sale, but never put forward on the banner. */
 export const NOT_IN_HERO = /cigar|mala da|rajinikanth red and gold|boss dog|ajith kumar racing collage|masked heist/i;
@@ -34,7 +34,7 @@ export function fanOrder(products: Product[], categories: Category[]): FanPoster
   const regionId = categories.find((c) => c.slug === "cities-states")?.id;
   const posters = [...products]
     .sort((x, y) => (x.slug < y.slug ? -1 : 1))
-    .filter((p) => isMiniPoster(p) && !isPosterPack(p) && !NOT_IN_HERO.test(p.name) && !(regionId && p.categoryIds.includes(regionId)));
+    .filter((p) => isSinglePoster(p) && !NOT_IN_HERO.test(p.name) && !(regionId && p.categoryIds.includes(regionId)));
   // Grouped by subject (travel, devotional, cars...): a category on most posters, like
   // Mini posters itself, says nothing about the picture, so it's skipped.
   const count = new Map<string, number>();

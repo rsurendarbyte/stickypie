@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { isWallSetOnly } from "@stickypie/shared";
 import { preconnect, preload } from "react-dom";
 import JsonLd from "@/components/json-ld";
 import { MetaViewContent } from "@/components/meta-track";
@@ -31,7 +32,8 @@ export const revalidate = 3600;
 
 export async function generateStaticParams() {
   const products = await getDriver().listProducts({ activeOnly: true });
-  return products.map((product) => ({ slug: product.slug }));
+  // wall-set-only posters have no page of their own: they redirect to their wall
+  return products.filter((product) => !isWallSetOnly(product)).map((product) => ({ slug: product.slug }));
 }
 
 export async function generateMetadata({
@@ -57,6 +59,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const driver = getDriver();
   const product = await productBySlug(slug);
   if (!product || !product.isActive) notFound();
+  // Sold only inside its wall set (a calendar month…): its link opens the wall.
+  if (isWallSetOnly(product)) {
+    const walls = await driver.listProducts({ activeOnly: true });
+    const wall = walls.find((p) => p.packItems.includes(product.id));
+    if (wall) redirect(`/sticker/${wall.slug}`);
+    notFound();
+  }
 
   // Independent reads run together (a refresh used to wait on each in turn).
   const [categories, reviews, settings] = await Promise.all([
@@ -69,9 +78,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     driver.getSettings(),
   ]);
   const category = categories.find((c) => c.id === product.categoryId) ?? null;
-  const siblings = await driver.listProducts(
-    category ? { activeOnly: true, categorySlug: category.slug } : { activeOnly: true }
-  );
+  const siblings = (
+    await driver.listProducts(category ? { activeOnly: true, categorySlug: category.slug } : { activeOnly: true })
+  ).filter((p) => !isWallSetOnly(p));
   const related = category ? siblings.filter((p) => p.id !== product.id).slice(0, 10) : [];
   // the swipe view's first posters, in the page itself: the most alike ones, so
   // a slow network can swipe before the whole catalogue has loaded
@@ -93,7 +102,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     ? await driver.getProductsByIds(product.packItems).then((found) =>
         product.packItems.flatMap((id, i) => {
           const p = found.find((f) => f.id === id);
-          return p ? [{ id: p.id, slug: p.slug, name: p.name, imageUrl: p.thumbUrl ?? p.imageUrl, active: p.isActive, inches: product.packSizes[i] ?? 6 }] : [];
+          return p ? [{ id: p.id, slug: p.slug, name: p.name, imageUrl: p.thumbUrl ?? p.imageUrl, active: p.isActive && !isWallSetOnly(p), inches: product.packSizes[i] ?? 6 }] : [];
         })
       )
     : [];
