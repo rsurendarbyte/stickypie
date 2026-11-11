@@ -4,7 +4,7 @@ import PageLink from "./page-link";
 import { useState } from "react";
 import { Check, Frame, ImagePlus, Puzzle, Ruler, ShoppingBag } from "lucide-react";
 import type { Product } from "@stickypie/shared";
-import { LOW_STOCK_THRESHOLD, discountPercent, formatINR } from "@stickypie/shared";
+import { LOW_STOCK_THRESHOLD, discountPercent, formatINR, isLockedWall } from "@stickypie/shared";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
 import WallStage from "./wall-stage";
 import type { WallEffect } from "@/lib/wall-effects";
@@ -406,7 +406,8 @@ function PackCard({ product, width, wallEffect = "sweep" }: { product: Product; 
         <div className="mt-0.5 flex items-center justify-between gap-2">
           {design.posterCount && <p className="min-w-0 truncate text-[11px] text-fog">{product.packItems.length} posters</p>}
           {/* beside the text: every wall fills its picture differently, so no spot on it stays clear */}
-          {wall && !out && (
+          {/* a locked wall (a calendar) sells as made: no own photo */}
+          {wall && !out && !isLockedWall(product) && (
             <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-mint/10 px-2 py-0.5 text-[10px] font-bold whitespace-nowrap text-mint ring-1 ring-mint/25">
               <ImagePlus className="size-3" /> Add your own photo
             </span>
