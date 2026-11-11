@@ -3,7 +3,7 @@
 // A poster on a wall can't be deleted. The admin can change a wall's posters by
 // hand, but not while an order for it is open.
 import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { packPosterSizes, type DataDriver, type Product } from "@stickypie/shared";
+import { isWallSetOnly, packPosterSizes, type DataDriver, type Product } from "@stickypie/shared";
 import { imageSrc } from "./img";
 import { r2Client, r2Config } from "./r2";
 import { arrangeWall } from "./wall-layout";
@@ -13,9 +13,13 @@ import { makeDisplay, makeThumb, makeTiny } from "./thumbs";
 const NOT_FOR_WALLS = /festival|diwali/i;
 const HAND_PICK_ONLY = /tvk/i;
 
-/** The admin can put these on a wall by hand. */
+/** The admin can put these on a wall by hand. Wall-set-only posters (calendar months) stay on their own wall. */
 export const isPickable = (p: Product) =>
-  p.isActive && p.slug.endsWith("-mini-poster") && p.packItems.length === 0 && !p.tags.some((t) => NOT_FOR_WALLS.test(t));
+  p.isActive &&
+  p.slug.endsWith("-mini-poster") &&
+  p.packItems.length === 0 &&
+  !isWallSetOnly(p) &&
+  !p.tags.some((t) => NOT_FOR_WALLS.test(t));
 
 /** These can also land on a wall on their own, by randomizing or as a replacement. */
 export const isCandidate = (p: Product) => isPickable(p) && !p.tags.some((t) => HAND_PICK_ONLY.test(t));

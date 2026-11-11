@@ -4,6 +4,7 @@ import { getDriver } from "@/lib/data";
 import { generateStaticParams as legalSlugs } from "./legal/[slug]/page";
 import { absoluteUrl, isProductionSite, MIN_INDEXED_CATEGORY } from "@/lib/site";
 import { POSTER_SURFACES, SURFACES, allLandings } from "@/lib/surfaces";
+import { isWallSetOnly } from "@stickypie/shared";
 
 // Built once at deploy and served as a free static file; stickers added from
 // the admin app appear with the next deploy.
@@ -33,7 +34,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const driver = getDriver();
     const [products, categories, festivals] = await Promise.all([
-      driver.listProducts({ activeOnly: true }),
+      // wall-set-only posters (calendar months…) are sold only inside their wall
+    driver.listProducts({ activeOnly: true }).then((all) => all.filter((p) => !isWallSetOnly(p))),
       driver.listCategories(),
       driver.getFestivals(),
     ]);

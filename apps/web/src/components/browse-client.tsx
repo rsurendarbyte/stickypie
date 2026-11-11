@@ -22,7 +22,7 @@ import VirtualGrid from "./virtual-grid";
 import { SinglePostersRail, WallsPageFeed, usePhone, wallChipColours } from "./wall-feed";
 import CategoryFilter from "./category-filter";
 import { useFestivals, useLiveCatalog, type Catalog } from "@/lib/live-catalog";
-import { PUZZLE_POSTERS, SINGLE_POSTERS, isPoster, isPosterPack, isSinglePoster } from "@/lib/poster";
+import { PUZZLE_POSTERS, SINGLE_POSTERS, isListed, isPoster, isPosterPack, isSinglePoster } from "@/lib/poster";
 import { rememberPosters } from "@/lib/poster-images";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
 import { useDaySeed } from "@/lib/skin-seed";
@@ -60,12 +60,13 @@ export default function BrowseClient({
   const { festivals } = useFestivals([]);
   const onNow = useMemo(() => new Set(activeFestivals(festivals).map((f) => f.id)), [festivals]);
   const products = useMemo(
-    () => allProducts.filter((p) => !isPosterPack(p) || wallInSeason(p.tags, onNow)),
+    // Wall-set-only posters are never listed on their own (their walls still draw them).
+    () => allProducts.filter((p) => (isPosterPack(p) ? wallInSeason(p.tags, onNow) : isListed(p))),
     [allProducts, onNow]
   );
   const themes = WALL_THEMES.filter((t) => !("festivals" in t) || t.festivals.some((id) => onNow.has(id)));
   useWindowScrollMemory(loaded);
-  rememberPosters(products);
+  rememberPosters(allProducts);
   const seed = useDaySeed();
   const pathname = usePathname();
   const params = useSearchParams();

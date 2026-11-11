@@ -28,6 +28,7 @@ import {
   DEFAULT_HOME_PAGE,
   DEFAULT_STORE_SETTINGS,
   inCategory,
+  isWallSetOnly,
   rowToCategory,
   rowToFeatures,
   puzzlePercentFrom,
@@ -253,7 +254,7 @@ export function useRelatedProducts(
   const { bundle, failed } = useBundle();
   if (!liveCatalogEnabled) return { products: initial, loaded: true };
   const current = bundle?.products.find((p) => p.id === excludeId);
-  const pool = bundle ? bundle.products.filter((p) => p.id !== excludeId && inCategory(p, categoryId)) : [];
+  const pool = bundle ? bundle.products.filter((p) => p.id !== excludeId && !isWallSetOnly(p) && inCategory(p, categoryId)) : [];
   // the most alike first (fresh order each visit), not the newest drops
   const products = (current ? relatedOrder(current, pool, seed) : pool).slice(0, 10);
   return { products, loaded: Boolean(bundle) || failed };

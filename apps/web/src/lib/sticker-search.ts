@@ -3,6 +3,7 @@
 // closest stickers (spelling slips, plurals, related words); with nothing
 // close either, popular picks — so a search always leads to stickers to buy.
 import type { Category, Product } from "@stickypie/shared";
+import { isListed } from "./poster";
 
 /** Related words people search with → words that appear on our stickers. */
 const RELATED: Record<string, string[]> = {
@@ -92,7 +93,9 @@ export type SearchResult = {
 /** A related sticker must score at least this (a prefix or two near-misses). */
 const MIN_RELATED = 3;
 
-export function searchStickers(products: Product[], categories: Category[], query: string, limit = 24): SearchResult {
+export function searchStickers(all: Product[], categories: Category[], query: string, limit = 24): SearchResult {
+  // Wall-set-only posters (calendar months…) are found through their wall, never alone.
+  const products = all.filter(isListed);
   const q = norm(query).trim();
   if (!q) return { exact: [], related: [], popular: [] };
   const catName = new Map(categories.map((c) => [c.id, c.name]));

@@ -11,7 +11,7 @@ import Row from "./row";
 import CustomRail from "./custom-rail";
 import LazyRail, { WALL_CARD_WIDTH } from "./lazy-rail";
 import WallFeed, { feedBreaks, usePhone } from "./wall-feed";
-import { isPosterPack } from "@/lib/poster";
+import { isListed, isPosterPack } from "@/lib/poster";
 import { rememberPosters } from "@/lib/poster-images";
 import {
   WALL_MIX_ROW,
@@ -66,7 +66,7 @@ export default function HomeClient({
     .filter((t) => t.visible)
     .map((t) => ({ ...t, items: arrangeWallRow(home.wallRows[t.id], inTheme(t.id), packs) }))
     .filter((t) => t.items.length > 0);
-  const singles = products.filter((p) => !isPosterPack(p));
+  const singles = products.filter((p) => !isPosterPack(p) && isListed(p));
   const featured = singles.filter((p) => p.featured);
   const hero = featured[0] ?? singles[0] ?? products[0];
   // Rails and their order come from the admin (Home page); what each rail

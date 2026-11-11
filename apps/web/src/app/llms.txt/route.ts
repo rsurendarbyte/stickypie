@@ -10,6 +10,7 @@ import { POSTER_SURFACES, SURFACES, allLandings, stickersForSurface } from "@/li
 import { SITE_NAME, absoluteUrl, isProductionSite } from "@/lib/site";
 import { avatarFaq, customFaq, seoName, storeFaq, wallPosterFaq } from "@/lib/seo";
 import { loadShopFacts } from "@/lib/shop-facts";
+import { isWallSetOnly } from "@stickypie/shared";
 
 export const dynamic = "force-static";
 
@@ -22,7 +23,8 @@ export async function GET() {
 
   const driver = getDriver();
   const [products, categories, festivals] = await Promise.all([
-    driver.listProducts({ activeOnly: true }),
+    // wall-set-only posters (calendar months…) are sold only inside their wall
+    driver.listProducts({ activeOnly: true }).then((all) => all.filter((p) => !isWallSetOnly(p))),
     driver.listCategories(),
     driver.getFestivals(),
   ]);

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import JsonLd from "@/components/json-ld";
 import { Suspense } from "react";
-import { categoryPath, categoryTitle, inCategory } from "@stickypie/shared";
+import { categoryPath, categoryTitle, inCategory, isWallSetOnly } from "@stickypie/shared";
 import BrowseClient from "@/components/browse-client";
 import StickerLoader from "@/components/sticker-loader";
 import { productSnapshot } from "@/lib/catalog-snapshot";
@@ -57,7 +57,8 @@ export default async function CategoryPage({ params }: { params: Promise<{ categ
   const { category, categories } = await findCategory(slug);
   if (!category) notFound();
   const products = await activeProducts();
-  const inThis = products.filter((p) => inCategory(p, category.id));
+  // wall-set-only posters (calendar months…) are listed only through their wall
+  const inThis = products.filter((p) => inCategory(p, category.id) && !isWallSetOnly(p));
   const posters = /poster/i.test(category.name);
   // The Walls page sells single posters too, drawn in the browser like its sets.
   const singles = category.slug === "poster-packs" ? products.filter(isSinglePoster) : [];

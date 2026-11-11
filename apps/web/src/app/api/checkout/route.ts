@@ -30,6 +30,8 @@ import {
   withFinish,
   PUZZLE_CARDS,
   isMiniPosterProduct,
+  isLockedWall,
+  isWallSetOnly,
   isOwnPoster,
   OWN_POSTER_NAME,
   wallLayout,
@@ -177,6 +179,13 @@ export async function POST(req: Request) {
         { status: 409 }
       );
     }
+    // A calendar month (or any wall-set-only poster) is sold only inside its wall set.
+    if (isWallSetOnly(product) && product.packItems.length === 0) {
+      return NextResponse.json(
+        { error: `"${product.name}" is sold only as part of its full wall set. Please remove it and add the wall set instead.` },
+        { status: 409 }
+      );
+    }
     if (product.stock !== null && product.stock < quantity) {
       return NextResponse.json(
         {
@@ -287,6 +296,13 @@ export async function POST(req: Request) {
         { status: 409 }
       );
     }
+    // A locked wall (a calendar…) is sold exactly as made: every spot must hold its own poster.
+    if (set && isLockedWall(set) && spec.posters.some((id, i) => id !== set.packItems[i])) {
+      return NextResponse.json(
+        { error: `"${set.name}" is sold only as the full set. Please remove it from your cart and add it again.`, code: "wall_changed" },
+        { status: 409 }
+      );
+    }
     const found = new Map((await driver.getProductsByIds(spec.posters.filter((id) => !isOwnPoster(id)))).map((p) => [p.id, p]));
     const posters: { name: string; imageUrl: string; inches: number; own?: boolean }[] = [];
     let price = 0;
@@ -302,7 +318,9 @@ export async function POST(req: Request) {
         continue;
       }
       const poster = found.get(id);
-      const priced = poster?.isActive && poster.stock !== 0 && isMiniPosterProduct(poster) ? priceForSize(poster, inches) : null;
+      // wall-set-only posters can't be swapped onto another wall
+      const allowed = poster && (!isWallSetOnly(poster) || set?.packItems.includes(id));
+      const priced = allowed && poster.isActive && poster.stock !== 0 && isMiniPosterProduct(poster) ? priceForSize(poster, inches) : null;
       if (!poster || !priced) {
         return NextResponse.json(
           {

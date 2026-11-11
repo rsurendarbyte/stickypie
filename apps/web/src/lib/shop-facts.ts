@@ -5,11 +5,13 @@ import { getDriver } from "./data";
 import { isMiniPoster, isPosterPack } from "./poster";
 import { absoluteUrl } from "./site";
 import { lowestPrice, type ShopFacts } from "./seo";
+import { isWallSetOnly } from "@stickypie/shared";
 
 export async function loadShopFacts(): Promise<ShopFacts> {
   const driver = getDriver();
   const [products, settings, features] = await Promise.all([
-    driver.listProducts({ activeOnly: true }),
+    // wall-set-only posters (calendar months…) are sold only inside their wall
+    driver.listProducts({ activeOnly: true }).then((all) => all.filter((p) => !isWallSetOnly(p))),
     driver.getSettings(),
     driver.getFeatures(),
   ]);

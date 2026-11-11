@@ -7,7 +7,7 @@ import type { Product } from "@stickypie/shared";
 import { CUSTOM_STICKER_TYPES, isOwnPoster, packPosterSizes } from "@stickypie/shared";
 import { useLiveCatalog } from "@/lib/live-catalog";
 import { addOwnPoster, ownPoster, type PosterFit } from "@/lib/own-posters";
-import { isMiniPoster, isPosterPack, wallPosterSizes, wallSpots } from "@/lib/poster";
+import { isMiniPoster, isPosterPack, isSinglePoster, wallPosterSizes, wallSpots } from "@/lib/poster";
 import { posterImage, rememberPosters } from "@/lib/poster-images";
 import { pickPoster, useWallLine } from "@/lib/wall-picks";
 import LabelModal from "./label-modal";
@@ -19,11 +19,11 @@ export type WallView = "wall" | "map";
 const NO_CATALOG = { categories: [], products: [] };
 const noSubscribe = () => () => {};
 
-/** Every poster on sale, for choosing replacements. */
+/** Every poster on sale on its own, for choosing replacements (never wall-set-only ones). */
 export function usePosterCatalog() {
   const { products } = useLiveCatalog(NO_CATALOG);
   rememberPosters(products);
-  return useMemo(() => products.filter((p) => isMiniPoster(p) && !isPosterPack(p) && p.stock !== 0), [products]);
+  return useMemo(() => products.filter((p) => isSinglePoster(p) && p.stock !== 0), [products]);
 }
 
 /** A dimension line with its length in the middle, like on a drawing. */

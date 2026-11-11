@@ -10,6 +10,20 @@ export const POSTER_SIZES = [6, 9] as const;
 export function isMiniPosterProduct(product: { slug?: string; tags?: string[] } | null | undefined): boolean {
   return !!product && (!!product.slug?.endsWith("-mini-poster") || !!product.tags?.some((t) => t.toLowerCase() === "mini poster"));
 }
+/**
+ * A poster sold only inside its wall set (e.g. one month of a calendar): it stays
+ * in the catalogue so its wall can draw it, but is never listed, searched,
+ * swapped onto another wall or bought on its own.
+ */
+export const WALL_SET_ONLY_TAG = "wall set only";
+export function isWallSetOnly(product: { tags?: string[] } | null | undefined): boolean {
+  return !!product?.tags?.some((t) => t.toLowerCase() === WALL_SET_ONLY_TAG);
+}
+/** A wall set that is sold exactly as made: shoppers can't swap, remove or add posters. */
+export const LOCKED_WALL_TAG = "locked wall";
+export function isLockedWall(product: { tags?: string[]; packItems?: string[] } | null | undefined): boolean {
+  return (product?.packItems?.length ?? 0) > 0 && !!product?.tags?.some((t) => t.toLowerCase() === LOCKED_WALL_TAG);
+}
 /** What posters are, wherever the shop describes them: paper, not sticker vinyl. */
 export const POSTER_PAPER = "premium poster paper";
 /** Posters have no sticky back, so every poster order comes with these. */

@@ -4,7 +4,7 @@ import SmartImg from "./smart-img";
 import PageLink from "./page-link";
 import ImageZoom from "./image-zoom";
 import { isInternalTag, isMiniPoster, isPosterPack, isSinglePoster, isWallSetup, posterSetName, sizeChipLabel, wallSize } from "@/lib/poster";
-import { puzzleBuildInches, PUZZLE_POSTER_PRICES } from "@stickypie/shared";
+import { isLockedWall, puzzleBuildInches, PUZZLE_POSTER_PRICES } from "@stickypie/shared";
 import { useEffect, useRef, useState } from "react";
 import { BadgeCheck, Car, ChevronsUpDown, Frame, Gift, PackageX, Ruler, Share2, Sparkles, Truck } from "lucide-react";
 import type { Product } from "@stickypie/shared";
@@ -144,6 +144,9 @@ export default function ProductDetailClient({
       });
   const shownTags = product.tags.filter((t) => !isInternalTag(t));
   const wall = isWallSetup(product);
+  // A locked wall (a calendar…) sells exactly as made: no swapping, removing or adding posters.
+  const locked = isLockedWall(product);
+  const editable = checked && !locked;
   // portrait art (posters): on wide screens the stage grows with the window height instead of a fixed 440px box
   const tall = !wall && (product.aspectRatio ?? 1) < 0.95;
   // A wall's posters have their own buttons, so the picture around them can't be one.
@@ -156,6 +159,7 @@ export default function ProductDetailClient({
         </h2>
         <p className="text-xs text-fog">
           {packSizeSummary(packPosterSizes(product))}. Lay them out like the picture.
+          {locked && " Sold as the full set only: these posters aren't sold one by one."}
         </p>
         <ol className={`mt-2 grid gap-2 ${wall ? "grid-cols-4 sm:grid-cols-6 lg:grid-cols-8" : "max-w-md grid-cols-3 sm:grid-cols-4"}`}>
           {!checked && product.packItems.map((id) => <li key={id} className="aspect-[2/3] animate-pulse rounded-md bg-panel" />)}
@@ -271,10 +275,10 @@ export default function ProductDetailClient({
                 priority
                 product={product}
                 posters={picks}
-                onRemove={checked ? (i) => pickPoster(product, i, "") : undefined}
-                onAdd={checked ? setSpot : undefined}
-                onSwap={checked ? (a, b) => swapPosters(product, a, b) : undefined}
-                onFit={checked ? setSpot : undefined}
+                onRemove={editable ? (i) => pickPoster(product, i, "") : undefined}
+                onAdd={editable ? setSpot : undefined}
+                onSwap={editable ? (a, b) => swapPosters(product, a, b) : undefined}
+                onFit={editable ? setSpot : undefined}
                 onChoose={
                   choosing
                     ? (i) => {
@@ -309,7 +313,7 @@ export default function ProductDetailClient({
               <WallSizeMap product={product} posters={picks} />
             </div>
           )}
-          {wall && checked && !out && !unavailable && wallView === "wall" && <WallTip />}
+          {wall && editable && !out && !unavailable && wallView === "wall" && <WallTip />}
           {puzzle && <PuzzleButton src={product.thumbUrl ?? product.imageUrl} onClick={play} className="absolute bottom-2 left-2" />}
           {off !== null && !unavailable && wallView === "wall" && (
             <span className="pie-gradient absolute top-4 left-4 rounded-full px-3 py-1 text-xs font-bold text-white">
@@ -326,7 +330,7 @@ export default function ProductDetailClient({
                 setChoosing(false);
               }}
             />
-            {checked && !out && !unavailable && wallView === "wall" && <OwnPosterButton choosing={choosing} onChange={setChoosing} />}
+            {editable && !out && !unavailable && wallView === "wall" && <OwnPosterButton choosing={choosing} onChange={setChoosing} />}
             <WallPosterSheet product={product} posters={picks} spot={spot} onClose={() => setSpot(null)} fileInput={ownFile} />
           </div>
         )}

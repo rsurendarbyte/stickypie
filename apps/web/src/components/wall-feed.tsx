@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { categoryPath, resolveHomeRails, type Category, type Product } from "@stickypie/shared";
-import { SINGLE_POSTERS, isPosterPack } from "@/lib/poster";
+import { SINGLE_POSTERS, isListed, isPosterPack } from "@/lib/poster";
 import { useHomePage, useHomeRails } from "@/lib/live-catalog";
 import { rememberChoice, savedChoice, useRailScrollMemory } from "@/lib/scroll-memory";
 import { wallEffect } from "@/lib/wall-effects";
@@ -215,7 +215,7 @@ export function WallsPageFeed({
   const breaks = useMemo(() => {
     if (plain) return [];
     const on = (id: string) => home.sections.some((s) => s.id === id && s.visible);
-    const singles = products.filter((p) => !isPosterPack(p));
+    const singles = products.filter((p) => !isPosterPack(p) && isListed(p));
     const rows = on("rails")
       ? resolveHomeRails(rails, singles, categories, seed).map((rail) => (
           <LazyRail key={rail.key} eager title={rail.title} href={rail.href}>

@@ -6,6 +6,7 @@ import { getDriver } from "@/lib/data";
 import { productSeoDescription, seoName } from "@/lib/seo";
 import { isPoster, isPosterPack, sizeChipLabel } from "@/lib/poster";
 import { SITE_NAME, absoluteUrl, isProductionSite } from "@/lib/site";
+import { isWallSetOnly } from "@stickypie/shared";
 
 export const dynamic = "force-static";
 
@@ -27,7 +28,8 @@ export async function GET() {
 
   const driver = getDriver();
   const [products, categories] = await Promise.all([
-    driver.listProducts({ activeOnly: true }),
+    // wall-set-only posters (calendar months…) are sold only inside their wall
+    driver.listProducts({ activeOnly: true }).then((all) => all.filter((p) => !isWallSetOnly(p))),
     driver.listCategories(),
   ]);
   const catName = new Map(categories.map((c) => [c.id, c.name]));
