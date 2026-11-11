@@ -317,7 +317,7 @@ function ReelItem({
 }) {
   const puzzlePercent = usePuzzlePercent();
   const checked = useCatalogChecked();
-  const { add, items, subtotal } = useCart();
+  const { add, items, subtotal, openCart } = useCart();
   const settings = useStoreSettings();
   // Below the minimum order: no Checkout yet, just how much more to add.
   const shortBy = belowMinimum(settings, subtotal, items);
@@ -591,12 +591,12 @@ function ReelItem({
                 // the real minimum order is still loading
                 <span className="h-12 min-w-0 flex-1 animate-pulse rounded-2xl bg-panel ring-1 ring-line" />
               ) : shortBy > 0 ? (
-                // below the minimum: Checkout can't be used yet; it fills up towards the minimum
+                // below the minimum: it fills up towards the minimum and opens the cart,
+                // where the shopper can add one more poster in a tap
                 <button
                   type="button"
-                  disabled
-                  aria-disabled
-                  className="relative flex h-12 min-w-0 flex-1 cursor-not-allowed flex-col items-center justify-center overflow-hidden rounded-2xl bg-brand/[0.06] px-2 ring-1 ring-brand/20"
+                  onClick={openCart}
+                  className="relative flex h-12 min-w-0 flex-1 flex-col items-center justify-center overflow-hidden rounded-2xl bg-brand/[0.06] px-2 ring-1 ring-brand/20"
                 >
                   <span
                     aria-hidden
