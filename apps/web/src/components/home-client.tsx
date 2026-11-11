@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "@/components/page-link";
-import { Fragment } from "react";
+import { Fragment, useMemo } from "react";
 import Hero from "./hero";
 import type { FanPoster } from "@/lib/hero-fan";
 import ProductCard from "./product-card";
@@ -29,7 +29,11 @@ import {
 } from "@stickypie/shared";
 import { useFestivals, useHomePage, useHomeRails, useLiveCatalog, type Catalog } from "@/lib/live-catalog";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
-import { useDaySeed } from "@/lib/skin-seed";
+import { useSkinSeed } from "@/lib/skin-seed";
+import { HOT_TAGS, HotContext, recentlyViewedIds, useTrending } from "@/lib/trending";
+import { readInterest } from "@/lib/interest";
+import { relatedOrder } from "@/lib/related";
+import { useCart } from "./cart-context";
 import { wallEffect } from "@/lib/wall-effects";
 
 export default function HomeClient({
@@ -52,7 +56,10 @@ export default function HomeClient({
   const { festivals } = useFestivals(initialFestivals);
   const home = useHomePage();
   const { categories, products, failed, retry } = catalog;
-  const loaded = catalog.loaded && railsLoaded;
+  // What India searches right now, matched to our products (lib/trending.ts).
+  const { trend, loaded: trendLoaded } = useTrending(products, categories);
+  const loaded = catalog.loaded && railsLoaded && trendLoaded;
+  const { items: cartItems } = useCart();
   useWindowScrollMemory(loaded);
 
   // Poster packs get the first row, wall setups leading; every other row is single stickers.
@@ -69,13 +76,52 @@ export default function HomeClient({
   const singles = products.filter((p) => !isPosterPack(p) && isListed(p));
   const featured = singles.filter((p) => p.featured);
   const hero = featured[0] ?? singles[0] ?? products[0];
-  // Rails and their order come from the admin (Home page); what each rail
-  // shows changes once a day, not on every refresh.
-  const seed = useDaySeed();
-  const wallMix = arrangeWallRow(home.wallRows[WALL_MIX_ROW], mixWalls(packs, seed), packs);
+  // Rails and their order come from the admin (Home page). What each rail shows
+  // is a fresh, trend-weighted mix on every visit (a refresh reshuffles; Back
+  // shows the page as it was).
+  const seed = useSkinSeed();
+  const wallMix = arrangeWallRow(home.wallRows[WALL_MIX_ROW], mixWalls(packs, seed, trend), packs);
   // festival rails come before the other rails: those never repeat their stickers
   const festivalItems = activeFestivals(festivals).flatMap((f) => festivalProducts(f, singles).slice(0, 24).map((p) => p.id));
-  const homeRails = resolveHomeRails(rails, singles, categories, seed, festivalItems);
+  // Posters like the ones in this shopper's cart: a few for each of the newest lines.
+  const cartIds = cartItems.map((i) => i.productId).join(",");
+  const withCart = useMemo(() => {
+    if (!loaded || !cartIds) return [];
+    const inCart = new Set(cartIds.split(","));
+    const byId = new Map(products.map((p) => [p.id, p]));
+    const pool = singles.filter((p) => !inCart.has(p.id));
+    const lists = [...inCart].reverse().slice(0, 3).flatMap((id) => (byId.get(id) ? [relatedOrder(byId.get(id)!, pool, seed).slice(0, 6)] : []));
+    const out: Product[] = [];
+    for (let i = 0; i < 6; i++) for (const l of lists) if (l[i] && !out.includes(l[i])) out.push(l[i]);
+    return out;
+    // singles follows products
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, cartIds, products, seed]);
+  const trendScores = useMemo(() => new Map([...trend].map(([id, t]) => [id, t.score])), [trend]);
+  const homeRails = useMemo(
+    () =>
+      !loaded
+        ? []
+        : resolveHomeRails(rails, singles, categories, seed, festivalItems, {
+            trend: trendScores,
+            interest: readInterest(),
+            recent: recentlyViewedIds(),
+            withCart,
+          }),
+    // singles / festivalItems follow products, festivals and rails
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [loaded, rails, products, categories, festivals, seed, trendScores, withCart],
+  );
+  // Trending and "Goes with your cart" open the page, right under the hero (on
+  // phones too, ahead of the walls feed); the other rails keep their place.
+  const leadKinds = new Set(["trending", "with-cart"]);
+  const leadRails = homeRails.filter((r) => r.kind && leadKinds.has(r.kind));
+  const otherRails = homeRails.filter((r) => !(r.kind && leadKinds.has(r.kind)));
+  // The best matches carry a "Trending" tag on their card.
+  const hot = useMemo(
+    () => new Set([...trend].sort((a, b) => b[1].score - a[1].score).slice(0, HOT_TAGS).map(([id]) => id)),
+    [trend],
+  );
   // Phones get one wall feed in place of the wall rows, with the sections after it woven in.
   const phone = usePhone();
   const sectionOn = (id: HomeSectionId) => home.sections.some((s) => s.id === id && s.visible);
@@ -195,7 +241,7 @@ export default function HomeClient({
     : order.slice(order.indexOf(feedAt) + 1).filter(isRow).flatMap((id) =>
         id === "festivals"
           ? festivalRails.map((r) => (u: Set<string>) => festivalRow(r, u))
-          : homeRails.map((r, i) => (u: Set<string>) => railRow(r, i, u)),
+          : otherRails.map((r, i) => (u: Set<string>) => railRow(r, i, u)),
       );
   const feed = () => (
     <WallFeed
@@ -225,13 +271,14 @@ export default function HomeClient({
     )),
     custom: () => <CustomRail />,
     festivals: () => festivalRails.map((r) => festivalRow(r, used)),
-    rails: () => homeRails.map((r, i) => railRow(r, i, used)),
+    rails: () => otherRails.map((r, i) => railRow(r, i, used)),
   };
 
   return (
-    <>
+    <HotContext.Provider value={hot}>
       {heroBanner}
       <div className="relative z-10 mt-2 space-y-1 pb-24 sm:space-y-8">
+        {leadRails.map((r) => railRow(r, 0, used))}
         {/* built in page order, so puzzle cards higher up pick first */}
         {order
           .filter((id) => !feedAt || order.indexOf(id) <= order.indexOf(feedAt))
@@ -239,16 +286,26 @@ export default function HomeClient({
             <Fragment key={id}>{sections[id]()}</Fragment>
           ))}
       </div>
-    </>
+    </HotContext.Provider>
   );
 }
 
-/** Every wall set, one theme after another so none fills the row; a new order each day. */
-function mixWalls(packs: Product[], seed: number): Product[] {
-  const spin = (slug: string) => [...slug].reduce((n, c) => Math.imul(n ^ c.charCodeAt(0), 16777619) >>> 0, seed >>> 0);
+/**
+ * Every wall set, one theme after another so none fills the row; a new order
+ * each visit. Sets matching what India searches now tend to come first (and
+ * their theme leads the round-robin).
+ */
+function mixWalls(packs: Product[], seed: number, trend: Map<string, { score: number }>): Product[] {
+  const top = Math.max(0, ...[...trend.values()].map((t) => t.score));
+  const heat = (p: Product) => (top > 0 ? (trend.get(p.id)?.score ?? 0) / top : 0);
+  // weighted random key (u^(1/w)): hot sets usually sort first, the rest still move around
+  const spin = (p: Product) => {
+    const h = [...p.slug].reduce((n, c) => Math.imul(n ^ c.charCodeAt(0), 16777619) >>> 0, seed >>> 0);
+    return -Math.pow(((h >>> 0) % 1_000_003) / 1_000_003 || 1e-6, 1 / (1 + 5 * heat(p)));
+  };
   const themeOf = (p: Product) => p.tags.find((t) => t.startsWith("wall theme:")) ?? "";
   const groups = new Map<string, Product[]>();
-  for (const p of [...packs].sort((a, b) => spin(a.slug) - spin(b.slug))) {
+  for (const p of [...packs].sort((a, b) => spin(a) - spin(b))) {
     groups.set(themeOf(p), [...(groups.get(themeOf(p)) ?? []), p]);
   }
   const queues = [...groups.values()];

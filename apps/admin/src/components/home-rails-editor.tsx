@@ -41,6 +41,7 @@ const NEW_TITLES: Record<HomeRailKind, string> = {
   custom: "Staff picks",
   featured: "Top Picks This Week",
   new: "New Drops",
+  trending: "Trending now",
   category: "",
   categories: "",
 };
