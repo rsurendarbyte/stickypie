@@ -118,6 +118,13 @@ export default function CartStrip() {
 
           <Link
             href={shortBy > 0 ? "/" : "/checkout"}
+            // under the minimum: the cart, where one more can be added in a tap
+            onClick={(e) => {
+              if (shortBy > 0) {
+                e.preventDefault();
+                openCart();
+              }
+            }}
             className="peel-btn peel-btn--brand flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-3.5 text-sm font-bold max-[359px]:px-3 sm:h-11 sm:px-4"
           >
             {shortBy > 0 ? "Add more" : "Checkout"}{" "}

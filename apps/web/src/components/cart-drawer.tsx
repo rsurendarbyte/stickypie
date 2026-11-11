@@ -11,6 +11,7 @@ import { usePuzzlePrize } from "@/lib/puzzle-prize";
 import CartThumb, { WallPicksNote } from "./cart-thumb";
 import { lineKey, useCart, itemHref } from "./cart-context";
 import QtyStepper from "./qty-stepper";
+import CartTopUp from "./cart-top-up";
 import { useBackToClose } from "@/lib/back-close";
 
 export default function CartDrawer() {
@@ -212,6 +213,7 @@ export default function CartDrawer() {
                   </p>
                 ) : (
                   <div>
+                    <CartTopUp items={items} shortBy={shortBy} />
                     <p className="flex items-center gap-2 text-xs text-fog">
                       <Truck className="size-4 shrink-0" />
                       {/* one text run, so it wraps as a sentence beside the icon */}
