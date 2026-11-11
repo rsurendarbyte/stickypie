@@ -252,6 +252,42 @@ export const POSTER_SURFACES: Surface[] = [
     faq: [],
   },
   {
+    slug: "calendar-2027",
+    name: "2027 Wall Calendars",
+    noun: "calendar",
+    title: "2027 Wall Calendar Online in India – Car & India Calendar Poster Sets",
+    description:
+      "Buy a 2027 wall calendar online in India: 12 month posters that go up together as one wall, a car calendar and an India calendar, on premium poster paper.",
+    intro: `A 2027 calendar that is also a poster wall: 12 month posters that go up together. Pick the car calendar, a different car every month, or the India calendar, a famous Indian place every month. Each month is a 4 × 6 in poster on ${POSTER_PAPER}, ${POSTER_ADHESIVE} included.`,
+    tags: ["2027 calendar"],
+    categories: [],
+    posters: true,
+    sections: [
+      {
+        heading: "A calendar you can see from across the room",
+        body: "All 12 months stay on the wall at once, so the whole year is in view: no flipping pages, and you can still plan next month at a glance. The months go up four across, with every other column set half a poster lower, and the wall covers about 1.4 × 1.8 ft.",
+      },
+      {
+        heading: "A New Year gift that lasts all year",
+        body: "A calendar wall makes an easy New Year or Christmas gift for a car lover, a friend in a hostel room or a new home. It comes as the full set of 12 months, ready to put up.",
+      },
+    ],
+    faq: [
+      {
+        q: "Can I buy a single month?",
+        a: "No. The 2027 calendars are sold as the full set of 12 months only, so the wall always has the whole year.",
+      },
+      {
+        q: "What size is the 2027 calendar wall?",
+        a: "Each month is a 4 × 6 in poster. All 12 together cover about 1.4 × 1.8 ft of wall.",
+      },
+      {
+        q: "How do I put the calendar on the wall?",
+        a: `Each month comes with ${POSTER_ADHESIVE}. Start with January at the top left and work across, four months to a row.`,
+      },
+    ],
+  },
+  {
     slug: "car-posters",
     name: "Car Posters",
     noun: "car",
@@ -451,6 +487,8 @@ export const POSTER_SURFACES: Surface[] = [
 
 /** A poster page's name mid-sentence: "car posters", "Tamil cinema posters". */
 export function posterLabel(surface: Surface): string {
+  // festival names stay capitalised: "Christmas posters"
+  if (surface.when) return surface.name.replace(/ Posters$/, " posters");
   return surface.name.toLowerCase().replace(/^tamil/, "Tamil");
 }
 
@@ -461,9 +499,11 @@ export function surfaceBySlug(slug: string): Surface | undefined {
 /** A festival (admin → Festivals) as a landing page, same layout as the others. */
 export function festivalSurface(f: Festival, categories: Category[]): Surface {
   const category = f.categoryId ? categories.find((c) => c.id === f.categoryId) : undefined;
+  // /christmas-posters and /new-year-posters are poster festivals: their heading says so.
+  const kind = f.slug.endsWith("-posters") ? "Posters" : "Stickers";
   return {
     slug: f.slug,
-    name: `${f.name} Stickers`,
+    name: `${f.name} ${kind}`,
     noun: "collection",
     title: f.title || `${f.name} Stickers & Mini Posters`,
     description: f.description || `${f.name} die-cut vinyl stickers for your car, bike and laptop, and mini posters as wall posters or puzzle posters, shipped across India.`,
@@ -473,6 +513,8 @@ export function festivalSurface(f: Festival, categories: Category[]): Surface {
     sections: [],
     faq: f.faq,
     when: festivalLongDate(f),
+    // a poster festival lists its posters and wall sets, not stickers
+    posters: kind === "Posters" || undefined,
   };
 }
 
