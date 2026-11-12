@@ -11,6 +11,8 @@
 //   --sets=<file> makes the sets picked in that file instead
 //   --draft (with --sets --save) saves them hidden, tagged "awaiting approval", for the
 //   admin's Approve page; it never touches a wall that already exists
+import { wallDescription } from "./lib/wall-description.mjs";
+import { pingIndexNow } from "./lib/indexnow.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
@@ -236,7 +238,9 @@ async function draw(setup, posters) {
   return { file, sizes: spots.map((s) => s.h), feet, paint: setup.paint, places };
 }
 
-const { url, key, args } = loadTargetEnv();
+const { url, key, args, prod } = loadTargetEnv();
+// live walls saved on production, for IndexNow at the end
+const livePaths = [];
 const save = args.includes("--save");
 const draft = args.includes("--draft");
 const DRAFT_TAG = "awaiting approval";
@@ -276,10 +280,14 @@ async function saveSetup(setup, tags, rows, done) {
   const slug = `${path.basename(setup.file)}-wall-setup`;
   const ts = Date.now();
   const master = await sharp(done.file).toBuffer();
+  const name = `${setup.title} — ${done.sizes.length} Mini Poster Pack`;
+  // the description names the wall's own posters (lib/wall-description.mjs)
+  const named = await rest(`products?id=in.(${rows.map((r) => r.id).join(",")})&select=id,name`);
+  const posterNames = rows.map((r) => named.find((p) => p.id === r.id)?.name).filter(Boolean);
   const row = {
     slug,
-    name: `${setup.title} — ${done.sizes.length} Mini Poster Pack`,
-    description: `A ready wall setup of ${done.sizes.length} posters, about ${done.feet} on your wall, printed on premium poster paper. Glue dots or double-sided tape included.`,
+    name,
+    description: wallDescription({ name, posterNames, feet: done.feet, theme: setup.theme }),
     image_url: await put(`packs/${slug}-${ts}.jpg`, master, "image/jpeg"),
     aspect_ratio: W / H,
     category_ids: [category.id],
@@ -309,6 +317,7 @@ async function saveSetup(setup, tags, rows, done) {
       body: JSON.stringify({ ...row, ...priced, sizes: [], is_active: !draft, is_new: true, featured: false, stock: null }),
     });
   }
+  if (prod && !draft) livePaths.push(`/sticker/${slug}`);
   return row.name;
 }
 const packs = JSON.parse(fs.readFileSync(path.join(root, "prod_stickers/poster-packs/packs.json"), "utf8"));
@@ -524,3 +533,6 @@ if (results.length) {
     .jpeg({ quality: 85 })
     .toFile(path.join(OUT, "overview.jpg"));
 }
+
+// Bing / ChatGPT search hear about walls that went live now, not at the next deploy.
+if (livePaths.length) await pingIndexNow([...livePaths, "/stickers/poster-packs", "/wall-posters"]);
