@@ -16,8 +16,16 @@ export const WALL_THEMES = [
   { id: "retro", title: "Retro walls" },
 ] as const;
 
+/** Calendar walls carry this tag: the home page's 2027 calendars row and /calendar-2027 list them. */
+export const CALENDAR_WALL_TAG = "2027 calendar";
+export function isCalendarWall(tags: string[]): boolean {
+  return tags.includes(CALENDAR_WALL_TAG);
+}
+
 /** False for a wall of a seasonal theme (Christmas & New Year) while none of its festivals is on. */
 export function wallInSeason(tags: string[], onNow: ReadonlySet<string>): boolean {
+  // a calendar wall (the Christmas calendar too) sells all year: it is a calendar first
+  if (isCalendarWall(tags)) return true;
   for (const t of WALL_THEMES) {
     if ("festivals" in t && tags.includes(`wall theme:${t.id}`)) return t.festivals.some((id) => onNow.has(id));
   }
