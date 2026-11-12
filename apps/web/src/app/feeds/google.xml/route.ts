@@ -79,7 +79,8 @@ export async function GET() {
         ["g:item_group_id", product.slug],
         ["g:title", pack ? `${seoName(product)} – ${product.packItems.length} Posters` : `${seoName(product)}${size.inches ? ` – ${poster ? sizeChipLabel(product, size.inches) : size.inches} inch` : ""} | ${poster ? "Wall Poster" : "Die-Cut Vinyl"}`],
         ["g:description", description],
-        ["g:link", absoluteUrl(`/sticker/${product.slug}`)],
+        // one link per size, opening the page on that size so its price matches
+        ["g:link", absoluteUrl(`/sticker/${product.slug}${size.inches && sizes.length > 1 ? `?size=${size.inches}` : ""}`)],
         ["g:image_link", absoluteUrl(product.imageUrl)],
         ...(extraImage ? [["g:additional_image_link", absoluteUrl(extraImage)] as [string, string]] : []),
         ["g:availability", availability],
