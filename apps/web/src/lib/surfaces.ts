@@ -298,10 +298,10 @@ export const POSTER_SURFACES: Surface[] = [
     slug: "calendar-2027",
     name: "2027 Wall Calendars",
     noun: "calendar",
-    title: "2027 Wall Calendar Online in India – Car, Offroad, Law, Christmas, Ramayana & More",
+    title: "2027 Wall Calendar Online in India – Car, Indian Army, Offroad, Law, Ramayana & More",
     description:
-      "Buy a 2027 wall calendar online in India: 12 month posters that go up together as one wall. Car, offroad, India, law, Christmas, Ramayana and Mahabharata calendars on premium poster paper.",
-    intro: `A 2027 calendar that is also a poster wall: 12 month posters that go up together. Pick the car calendar (a different car every month), the offroad calendar (a 4x4 on a famous Indian trail every month), the India calendar (a famous Indian place every month), the law calendar (advocates, courts and the Constitution, one legal day each month), the Christmas calendar (Indian churches, streets and hill towns in Christmas lights), the Ramayana calendar (from the princes of Ayodhya to Rama's return) or the Mahabharata calendar (the epic told month by month, from Bhishma's vow to the Bhagavad Gita). Each month is a 4 × 6 in poster on ${POSTER_PAPER}, ${POSTER_ADHESIVE} included.`,
+      "Buy a 2027 wall calendar online in India: 12 month posters that go up together as one wall. Car, Indian Army, offroad, India, law, Christmas, Ramayana and Mahabharata calendars on premium poster paper.",
+    intro: `A 2027 calendar that is also a poster wall: 12 month posters that go up together. Pick the car calendar (a different car every month), the offroad calendar (a 4x4 on a famous Indian trail every month), the India calendar (a famous Indian place every month), the Indian Army calendar (a jawan's year, from the Republic Day parade to Siachen and Kargil), the law calendar (advocates, courts and the Constitution, one legal day each month), the Christmas calendar (Indian churches, streets and hill towns in Christmas lights), the Ramayana calendar (from the princes of Ayodhya to Rama's return) or the Mahabharata calendar (the epic told month by month, from Bhishma's vow to the Bhagavad Gita). Each month is a 4 × 6 in poster on ${POSTER_PAPER}, ${POSTER_ADHESIVE} included.`,
     tags: ["2027 calendar"],
     categories: [],
     posters: true,
@@ -312,17 +312,17 @@ export const POSTER_SURFACES: Surface[] = [
       },
       {
         heading: "A New Year gift that lasts all year",
-        body: "A calendar wall makes an easy New Year or Christmas gift for a car lover, a lawyer or law student, a friend in a hostel room or a new home. It comes as the full set of 12 months, ready to put up.",
+        body: "A calendar wall makes an easy New Year or Christmas gift for a car lover, an army family, a lawyer or law student, a friend in a hostel room or a new home. It comes as the full set of 12 months, ready to put up.",
       },
       {
-        heading: "Seven calendars to pick from",
-        body: "Car calendar: a different car on the road every month. Offroad calendar: a 4x4 on the Rann of Kutch, Spiti, Pangong Lake, Sela Pass and other Indian trails. India calendar: the Red Fort, the Taj Mahal, Varanasi and more. Law calendar: Republic Day, legal aid under a banyan tree, a woman advocate in court, Ambedkar Jayanti, a moot court, mediation, Constitution Day and Human Rights Day. Christmas calendar: Christ Church in Shimla, Park Street in Kolkata, Bom Jesus in Goa and other Christmas scenes from across India, one for every month. Ramayana calendar: Rama's story month by month, from breaking Shiva's bow and the golden deer to Hanuman, Ram Setu and the return to Ayodhya. Mahabharata calendar: twelve moments of the epic in story order, from Bhishma's vow and Draupadi's swayamvar to the Bhagavad Gita and the journey to the Himalayas.",
+        heading: "Eight calendars to pick from",
+        body: "Car calendar: a different car on the road every month. Offroad calendar: a 4x4 on the Rann of Kutch, Spiti, Pangong Lake, Sela Pass and other Indian trails. India calendar: the Red Fort, the Taj Mahal, Varanasi and more. Indian Army calendar: the Republic Day parade, the Siachen glacier, tanks in the Thar desert, flood rescue, yoga in the snow, Kargil Vijay Diwas, paratroopers and an army dog on watch. Law calendar: Republic Day, legal aid under a banyan tree, a woman advocate in court, Ambedkar Jayanti, a moot court, mediation, Constitution Day and Human Rights Day. Christmas calendar: Christ Church in Shimla, Park Street in Kolkata, Bom Jesus in Goa and other Christmas scenes from across India, one for every month. Ramayana calendar: Rama's story month by month, from breaking Shiva's bow and the golden deer to Hanuman, Ram Setu and the return to Ayodhya. Mahabharata calendar: twelve moments of the epic in story order, from Bhishma's vow and Draupadi's swayamvar to the Bhagavad Gita and the journey to the Himalayas.",
       },
     ],
     faq: [
       {
         q: "Which 2027 calendars can I buy?",
-        a: "Seven: the car calendar, the offroad calendar, the India calendar, the law calendar, the Christmas calendar, the Ramayana calendar and the Mahabharata calendar. Each is 12 month posters that go up together as one wall.",
+        a: "Eight: the car calendar, the Indian Army calendar, the offroad calendar, the India calendar, the law calendar, the Christmas calendar, the Ramayana calendar and the Mahabharata calendar. Each is 12 month posters that go up together as one wall.",
       },
       {
         q: "Is there a Mahabharata calendar for 2027?",
@@ -335,6 +335,10 @@ export const POSTER_SURFACES: Surface[] = [
       {
         q: "Is there an offroad calendar for 2027?",
         a: "Yes. Every month of the 2027 offroad calendar is a 4x4 on a famous Indian trail in its best season, from the white Rann of Kutch in January to the Auli snow trail in December.",
+      },
+      {
+        q: "Is there an Indian Army calendar for 2027?",
+        a: "Yes. The 2027 Indian Army calendar shows a jawan's year, one scene a month: the Army Day and Republic Day parade, the Siachen glacier, tanks in the Thar desert, flood rescue, a Himalayan patrol, Yoga Day in the snow, Kargil Vijay Diwas, Independence Day, paratroopers, the mountain warriors, a soldier and his army dog on watch, and tea at a snowy border post. It makes a proud gift for an army family or anyone preparing for the forces.",
       },
       {
         q: "Is there a law calendar for 2027 for lawyers and advocates?",
