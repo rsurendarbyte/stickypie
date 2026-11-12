@@ -38,6 +38,8 @@ export type JourneySession = {
   contact_email: string | null;
   contact_phone: string | null;
   contact_at: string | null;
+  /** The visit's IP address (Cloudflare's view). Null for visits before 2026-11-12. */
+  ip: string | null;
   /** This browser's unpaid cart now. */
   cart_items: CartLine[] | null;
   cart_value: number | null;
@@ -71,6 +73,8 @@ export type Visitor = {
   source: string;
   device: string;
   place: string | null;
+  /** IP addresses this guest came from, newest first. */
+  ips: string[];
   /** First visit's facts. */
   first: JourneySession;
   /** Where they got to and stopped: "Checkout · filling the address". */
@@ -310,6 +314,7 @@ export function groupVisitors(sessions: JourneySession[]): Visitor[] {
       source: sourceLabel(list.find((s) => s.source && s.source !== "direct") ?? list[0]),
       device: deviceLabel(latest("device") as string | null),
       place: latest("place") as string | null,
+      ips: [...new Set(list.flatMap((s) => (s.ip ? [s.ip] : [])))],
       first,
       ...whereLeft(list, paid),
     };

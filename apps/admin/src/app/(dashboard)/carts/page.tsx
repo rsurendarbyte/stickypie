@@ -1,17 +1,19 @@
 import Link from "next/link";
 import { formatDateTime, formatINR, orderCode } from "@stickypie/shared";
+import MeButton from "@/components/me-button";
 import StatusBadge from "@/components/status-badge";
 import { type Cart, listCarts } from "@/lib/carts";
 import { timeAgo } from "@/lib/customers";
 import { imageSrc } from "@/lib/img";
+import { listOwnDevices } from "@/lib/own-devices";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Carts" };
 
-function CartCard({ cart }: { cart: Cart }) {
-  const shopper = cart.name ?? cart.email ?? "Guest";
+function CartCard({ cart, me }: { cart: Cart; me: boolean }) {
+  const shopper = me ? "You" : (cart.name ?? cart.email ?? "Guest");
   return (
-    <article className="min-w-0 rounded-2xl border border-line bg-ink2 p-4">
+    <article className={`min-w-0 rounded-2xl border p-4 ${me ? "border-sky-400/50 bg-sky-400/[0.07]" : "border-line bg-ink2"}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           {cart.user_id ? (
@@ -20,6 +22,11 @@ function CartCard({ cart }: { cart: Cart }) {
             </Link>
           ) : (
             <p className="font-semibold">{shopper}</p>
+          )}
+          {me && (
+            <span className="mt-1 inline-flex items-center rounded-full border border-sky-400/50 bg-sky-400/15 px-2 py-0.5 text-[11px] font-semibold text-sky-300">
+              My device
+            </span>
           )}
           {cart.name && cart.email && <p className="truncate text-xs text-fog">{cart.email}</p>}
           {cart.phone && (
@@ -30,6 +37,7 @@ function CartCard({ cart }: { cart: Cart }) {
           <p className="mt-0.5 text-xs text-fog" title={formatDateTime(cart.updated_at)}>
             {cart.place && <>{cart.place} · </>}Updated {timeAgo(cart.updated_at)}
           </p>
+          {cart.ip && <p className="mt-0.5 font-mono text-xs text-fog/80">IP {cart.ip}</p>}
         </div>
         <div className="shrink-0 text-right">
           <p className="font-semibold tabular-nums">{formatINR(cart.value)}</p>
@@ -78,6 +86,9 @@ function CartCard({ cart }: { cart: Cart }) {
             {orderCode(cart.order_id)}
           </Link>
         )}
+        <span className="ml-auto">
+          <MeButton ip={cart.ip} isMe={me} />
+        </span>
       </div>
     </article>
   );
@@ -88,8 +99,9 @@ export default async function CartsPage({ searchParams }: { searchParams: Promis
   const ordered = show === "ordered";
 
   let carts: Cart[];
+  let ownIps: string[];
   try {
-    carts = await listCarts();
+    [carts, { ips: ownIps }] = await Promise.all([listCarts(), listOwnDevices()]);
   } catch (e) {
     return (
       <div className="w-full">
@@ -136,7 +148,7 @@ export default async function CartsPage({ searchParams }: { searchParams: Promis
       ) : (
         <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
           {shown.map((cart) => (
-            <CartCard key={cart.id} cart={cart} />
+            <CartCard key={cart.id} cart={cart} me={Boolean(cart.ip && ownIps.includes(cart.ip))} />
           ))}
         </div>
       )}
