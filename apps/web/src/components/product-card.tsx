@@ -1,11 +1,12 @@
 "use client";
 
 import PageLink from "./page-link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, Flame, Frame, ImagePlus, Puzzle, Ruler, ShoppingBag } from "lucide-react";
 import { useIsHot } from "@/lib/trending";
 import type { Product } from "@stickypie/shared";
-import { LOW_STOCK_THRESHOLD, discountPercent, formatINR, isLockedWall } from "@stickypie/shared";
+import { LOW_STOCK_THRESHOLD, discountPercent, formatINR, isCalendarWall, isLockedWall } from "@stickypie/shared";
+import { posterImage } from "@/lib/poster-images";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
 import WallStage from "./wall-stage";
 import type { WallEffect } from "@/lib/wall-effects";
@@ -346,6 +347,72 @@ function PuzzleWallCard({ product, width }: { product: Product; width: string })
   );
 }
 
+/** The 12 month pictures of a calendar wall, January first; null until every one is known. */
+function calendarMonths(product: Product): string[] | null {
+  if (product.packItems.length !== 12) return null;
+  const urls = product.packItems.map((id) => posterImage(id));
+  return urls.every((u): u is string => Boolean(u)) ? urls : null;
+}
+
+/**
+ * A calendar wall's card picture: a desk-calendar pad. One month big enough to
+ * read, the next pages peeking out behind it, and a page turn every few seconds
+ * while the card is on screen (never in lite mode or with reduced motion, where
+ * January just stays on top). The month dots say there are 12.
+ */
+function CalendarPad({ months, out, seed }: { months: string[]; out: boolean; seed: string }) {
+  const [page, setPage] = useState(0);
+  const box = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = box.current;
+    const lite = document.documentElement.dataset.lite;
+    if (!el || (lite && lite !== "net") || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // cards in a row turn their pages at different moments
+    const offset = [...seed].reduce((n, c) => (n * 31 + c.charCodeAt(0)) % 1200, 7);
+    let timer: ReturnType<typeof setInterval> | undefined;
+    let wait: ReturnType<typeof setTimeout> | undefined;
+    const stop = () => {
+      clearTimeout(wait);
+      clearInterval(timer);
+    };
+    const seen = new IntersectionObserver(([entry]) => {
+      stop();
+      if (entry.isIntersecting) wait = setTimeout(() => {
+        setPage((p) => (p + 1) % 12);
+        timer = setInterval(() => setPage((p) => (p + 1) % 12), 2600);
+      }, 1800 + offset);
+    }, { threshold: 0.6 });
+    seen.observe(el);
+    return () => {
+      stop();
+      seen.disconnect();
+    };
+  }, [seed]);
+  const at = (k: number) => months[(page + k) % 12];
+  return (
+    <div ref={box} className={`absolute inset-x-[8%] top-[6%] bottom-[11%] flex items-center justify-center ${out ? "opacity-40 saturate-50" : ""}`}>
+      <div className="relative h-full transition-transform duration-300 group-hover:scale-[1.03]" style={{ aspectRatio: "2 / 3" }}>
+        {/* the pages under the top one */}
+        <img src={at(2)} alt="" loading="lazy" decoding="async" className="absolute inset-0 size-full translate-x-[9%] translate-y-[2%] rotate-[5deg] rounded-md object-cover opacity-90 shadow-md" />
+        <img src={at(1)} alt="" loading="lazy" decoding="async" className="absolute inset-0 size-full -translate-x-[8%] translate-y-[1%] -rotate-[4deg] rounded-md object-cover shadow-md" />
+        <img
+          key={page}
+          src={at(0)}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="calendar-page absolute inset-0 size-full rounded-md object-cover shadow-[0_2px_4px_rgba(16,24,40,0.2),0_14px_24px_-10px_rgba(16,24,40,0.45)]"
+        />
+      </div>
+      <div className="absolute inset-x-0 -bottom-[7%] flex justify-center gap-[3px]" aria-hidden>
+        {months.map((_, i) => (
+          <span key={i} className={`h-[5px] rounded-full transition-all duration-300 ${i === page ? "w-3.5 bg-brand" : "w-[5px] bg-black/20"}`} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** "Red Line — 6 Mini Poster Pack" → "Red Line". */
 function packTitle(name: string) {
   return posterSetName(name).replace(/\s+Wall Setup$/i, "");
@@ -365,6 +432,8 @@ function PackCard({ product, width, wallEffect = "sweep" }: { product: Product; 
   const wall = isWallSetup(product);
   const { wallCard: design } = useHomePage();
   const small = product.thumbUrl ?? product.imageUrl;
+  // A calendar wall's own picture leaves each month tiny: its card shows a calendar pad instead.
+  const months = wall && isLockedWall(product) && isCalendarWall(product.tags) ? calendarMonths(product) : null;
 
   return (
     <div
@@ -380,7 +449,9 @@ function PackCard({ product, width, wallEffect = "sweep" }: { product: Product; 
       >
         {!wall && <img src={small} alt="" loading="lazy" decoding="async" className="absolute inset-0 size-full scale-110 object-cover opacity-60 blur-xl" />}
         {wall && <span className="absolute inset-0" style={{ ...wallBackground(product), opacity: design.tint / 100 }} />}
-        {wall ? (
+        {months ? (
+          <CalendarPad months={months} out={out} seed={product.slug} />
+        ) : wall ? (
           <div
             className={`absolute transition-transform duration-300 group-hover:scale-[1.03] ${out ? "opacity-40 saturate-50" : ""}`}
             style={{ inset: `${design.space}%` }}
