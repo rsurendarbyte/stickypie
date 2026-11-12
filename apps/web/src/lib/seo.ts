@@ -9,8 +9,8 @@ import { siteUrl } from "./mode";
 import { isInternalTag, isMiniPoster, isPoster, isPosterPack, posterSetName, sizeChipLabel } from "./poster";
 
 /** Where parcels go and how long they take (matches the shipping policy). */
-const HANDLING_DAYS = { min: 2, max: 4 };
-const TRANSIT_DAYS = { min: 3, max: 5 };
+export const HANDLING_DAYS = { min: 2, max: 4 };
+export const TRANSIT_DAYS = { min: 3, max: 5 };
 
 /** "Made in India" → "Made in India Sticker"; leaves "… Decal/Badge/Pack" alone. */
 export function seoName(product: Product): string {
