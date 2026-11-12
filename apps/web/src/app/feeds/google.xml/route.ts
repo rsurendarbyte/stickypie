@@ -41,6 +41,18 @@ function highlights(product: Product, categoryNames: string[]) {
     .slice(0, 10);
 }
 
+/**
+ * Google caps g:id at 50 characters. Ids that fit stay as they are (changing one
+ * resets its review); longer ones keep their first 41 characters plus a short,
+ * stable hash of the whole id.
+ */
+function feedId(id: string): string {
+  if (id.length <= 50) return id;
+  let h = 2166136261;
+  for (const ch of id) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+  return `${id.slice(0, 41).replace(/-+$/, "")}-${h.toString(36).padStart(7, "0").slice(0, 8)}`;
+}
+
 function xml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -75,7 +87,7 @@ export async function GET() {
     return sizes.map((size) => {
       const sale = size.compareAtPrice && size.compareAtPrice > size.price;
       const fields: [string, string][] = [
-        ["g:id", size.inches ? `${product.slug}-${size.inches}in` : product.slug],
+        ["g:id", feedId(size.inches ? `${product.slug}-${size.inches}in` : product.slug)],
         ["g:item_group_id", product.slug],
         ["g:title", pack ? `${seoName(product)} – ${product.packItems.length} Posters` : `${seoName(product)}${size.inches ? ` – ${poster ? sizeChipLabel(product, size.inches) : size.inches} inch` : ""} | ${poster ? "Wall Poster" : "Die-Cut Vinyl"}`],
         ["g:description", description],
