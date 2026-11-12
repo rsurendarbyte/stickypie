@@ -481,6 +481,8 @@ export function productStructuredData(
     "@type": "Offer",
     ...offerBase,
     ...(s.inches ? { name: `${s.inches} inch`, sku: `${product.slug}-${s.inches}in` } : {}),
+    // each size links to the page opened on that size (the page reads ?size=)
+    ...(s.inches && sizes.length > 1 ? { url: `${url}?size=${s.inches}` } : {}),
     price: s.price,
     // Last edit, not created date: a price can't have changed since then.
     validFrom: product.updatedAt,

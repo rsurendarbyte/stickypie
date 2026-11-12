@@ -88,6 +88,13 @@ export default function ProductDetailClient({
   const isPuzzle = finish === "puzzle";
   const { sizes, size, setSize, price, compareAtPrice } = useSizeChoice(product, finish);
   const off = discountPercent(price, compareAtPrice);
+  // ?size=6 (Google Shopping and structured-data links, one per size) opens the
+  // page on that size, so the price shown matches the listing's price.
+  useEffect(() => {
+    const want = Number(new URLSearchParams(window.location.search).get("size"));
+    if (want && sizes.some((s) => s.inches === want)) setSize(want);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const out = product.stock === 0;
   const settings = useStoreSettings();
   const [trueSize, setTrueSize] = useState(false);
