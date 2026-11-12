@@ -244,6 +244,20 @@ export function storeFaq(facts: ShopFacts): Faq[] {
 }
 
 /**
+ * The sticker questions for /stickers: the store answers about stickers only
+ * (no poster ones), plus what the stickers are and where they go.
+ */
+export function stickerFaq(facts: ShopFacts): Faq[] {
+  return [
+    ...storeFaq(facts).filter(({ q, a }) => /sticker|ship across/i.test(q + a) && !/poster|What is StickyPie|payment|cancel/i.test(q)),
+    {
+      q: "What are die-cut vinyl stickers?",
+      a: "A die-cut sticker is cut along the outline of its design, so there is no square border around it. StickyPie stickers are printed on vinyl and cut to shape, for cars, bikes, laptops, helmets, water bottles and phone cases.",
+    },
+  ];
+}
+
+/**
  * Wall poster questions, for /wall-posters (all of them), the home page (the
  * first two) and /llms.txt. Empty while nothing is on sale.
  */

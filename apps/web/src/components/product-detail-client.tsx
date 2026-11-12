@@ -350,7 +350,7 @@ export default function ProductDetailClient({
 
         {/* Details */}
         <div>
-          <h1 className="font-display text-3xl font-bold sm:text-4xl">{isPack ? posterSetName(product.name) : product.name}</h1>
+          <h1 className="font-display text-3xl font-bold sm:text-4xl">{isPack ? posterSetName(product.name) : headingName(product)}</h1>
           <RatingSummary productId={product.id} />
 
           <div className="mt-1.5 flex items-baseline gap-3">
@@ -563,4 +563,10 @@ function WallFacts({ product }: { product: Product }) {
       ))}
     </dl>
   );
+}
+
+/** The page heading says what it is, like the page title ("… Sticker", "… Mini Poster"), for search. */
+function headingName(product: Product): string {
+  if (isMiniPoster(product)) return /poster/i.test(product.name) ? product.name : `${product.name} Mini Poster`;
+  return /sticker|decal|badge|pack|label|poster/i.test(product.name) ? product.name : `${product.name} Sticker`;
 }
