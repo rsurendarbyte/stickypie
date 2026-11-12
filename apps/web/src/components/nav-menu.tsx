@@ -55,7 +55,17 @@ export default function NavMenu({ kind, href, label, active }: { kind: "posters"
   const [shown, setShown] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const hoverClose = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const pointer = useRef("");
+  // how far left the menu moves so it ends 16px inside the screen (tablets)
+  const [shift, setShift] = useState(0);
   const { products, categories } = useLiveCatalog(EMPTY);
+
+  useEffect(() => {
+    if (!open || !root.current) return;
+    const width = Math.min(544, window.innerWidth - 32);
+    const left = root.current.getBoundingClientRect().left;
+    setShift(Math.min(0, window.innerWidth - 16 - (left + width)));
+  }, [open]);
 
   useEffect(() => {
     if (open) return setShown(true);
@@ -105,7 +115,9 @@ export default function NavMenu({ kind, href, label, active }: { kind: "posters"
           aria-label={`${label} categories`}
           aria-haspopup="menu"
           aria-expanded={open}
-          onClick={() => setOpen((o) => !o)}
+          onPointerDown={(e) => (pointer.current = e.pointerType)}
+          // a mouse already opened it on hover, so its click keeps it open
+          onClick={() => setOpen((o) => (pointer.current === "mouse" ? true : !o))}
           className="grid h-8 place-items-center pr-2 pl-1 lg:pr-3"
         >
           <ChevronDown className={`size-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
@@ -113,7 +125,9 @@ export default function NavMenu({ kind, href, label, active }: { kind: "posters"
       </div>
 
       {(open || shown) && (
-        <div className={`absolute top-full left-0 z-50 mt-2 w-[min(34rem,calc(100vw-2rem))] drop-shadow-[0_18px_24px_rgba(16,24,40,0.22)] ${open ? "" : "pointer-events-none"}`}>
+        <div
+          style={{ left: shift }}
+          className={`absolute top-full z-50 mt-2 w-[min(34rem,calc(100vw-2rem))] drop-shadow-[0_18px_24px_rgba(16,24,40,0.22)] ${open ? "" : "pointer-events-none"}`}>
           <div role="menu" className={`cart-label relative rounded-[20px] border-[3px] border-white bg-ink2 p-1.5 ${open ? "panel-label--on" : "panel-label--off"}`}>
             <span aria-hidden className="cart-label-flap" />
             <div className="grid max-h-[min(28rem,70vh)] grid-cols-2 gap-0.5 overflow-y-auto overscroll-contain">
