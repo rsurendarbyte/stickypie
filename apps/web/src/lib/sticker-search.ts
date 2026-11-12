@@ -36,6 +36,8 @@ const RELATED: Record<string, string[]> = {
   army: ["indian army", "soldier", "jawan", "fauji", "defence", "patriotic"],
   soldier: ["army", "jawan", "fauji", "defence"],
   fauji: ["army", "soldier", "jawan"],
+  ladakh: ["leh", "pangong", "spiti", "road trip", "biker"],
+  kanyakumari: ["road trip", "travel", "ladakh"],
   mountain: ["mountains", "hills", "adventure", "nature"],
   beach: ["goa", "sea", "coast"],
   dog: ["dogs", "pets", "animals", "puppy"],
