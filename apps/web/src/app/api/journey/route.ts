@@ -130,6 +130,8 @@ export async function POST(req: Request) {
     device: deviceOf(ua),
     // city only needs reading on a visit's first batch
     place: b.entry ? await connectionPlace() : null,
+    // free: Cloudflare puts it on every request; saved once, by the first batch to arrive
+    ip: clientIp(req),
   };
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
   await fetch(`${supabaseUrl()}/rest/v1/rpc/journey_ingest`, {
@@ -137,14 +139,5 @@ export async function POST(req: Request) {
     headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({ p: payload }),
   }).catch(() => {});
-  // the visit's IP, once (its first batch made the row just above)
-  const ip = clientIp(req);
-  if (b.entry && ip) {
-    await fetch(`${supabaseUrl()}/rest/v1/journey_sessions?id=eq.${b.sid}&ip=is.null`, {
-      method: "PATCH",
-      headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ ip }),
-    }).catch(() => {});
-  }
   return new NextResponse(null, { status: 204 });
 }
