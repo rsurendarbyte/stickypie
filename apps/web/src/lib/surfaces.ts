@@ -298,10 +298,10 @@ export const POSTER_SURFACES: Surface[] = [
     slug: "calendar-2027",
     name: "2027 Wall Calendars",
     noun: "calendar",
-    title: "2027 Wall Calendar Online in India – Car, India, Christmas & Mahabharata Calendars",
+    title: "2027 Wall Calendar Online in India – Car, Offroad, India, Christmas, Ramayana & Mahabharata",
     description:
-      "Buy a 2027 wall calendar online in India: 12 month posters that go up together as one wall. Car, India, Christmas and Mahabharata calendars on premium poster paper.",
-    intro: `A 2027 calendar that is also a poster wall: 12 month posters that go up together. Pick the car calendar (a different car every month), the India calendar (a famous Indian place every month), the Christmas calendar (Indian churches, streets and hill towns in Christmas lights) or the Mahabharata calendar (the epic told month by month, from Bhishma's vow to the Bhagavad Gita). Each month is a 4 × 6 in poster on ${POSTER_PAPER}, ${POSTER_ADHESIVE} included.`,
+      "Buy a 2027 wall calendar online in India: 12 month posters that go up together as one wall. Car, offroad, India, Christmas, Ramayana and Mahabharata calendars on premium poster paper.",
+    intro: `A 2027 calendar that is also a poster wall: 12 month posters that go up together. Pick the car calendar (a different car every month), the offroad calendar (a 4x4 on a famous Indian trail every month), the India calendar (a famous Indian place every month), the Christmas calendar (Indian churches, streets and hill towns in Christmas lights) the Ramayana calendar (from the princes of Ayodhya to Rama's return) or the Mahabharata calendar (the epic told month by month, from Bhishma's vow to the Bhagavad Gita). Each month is a 4 × 6 in poster on ${POSTER_PAPER}, ${POSTER_ADHESIVE} included.`,
     tags: ["2027 calendar"],
     categories: [],
     posters: true,
@@ -315,18 +315,26 @@ export const POSTER_SURFACES: Surface[] = [
         body: "A calendar wall makes an easy New Year or Christmas gift for a car lover, a friend in a hostel room or a new home. It comes as the full set of 12 months, ready to put up.",
       },
       {
-        heading: "Four calendars to pick from",
-        body: "Car calendar: a different car on the road every month. India calendar: the Red Fort, the Taj Mahal, Varanasi and more. Christmas calendar: Christ Church in Shimla, Park Street in Kolkata, Bom Jesus in Goa and other Christmas scenes from across India, one for every month. Mahabharata calendar: twelve moments of the epic in story order, from Bhishma's vow and Draupadi's swayamvar to the Bhagavad Gita and the journey to the Himalayas.",
+        heading: "Six calendars to pick from",
+        body: "Car calendar: a different car on the road every month. Offroad calendar: a 4x4 on the Rann of Kutch, Spiti, Pangong Lake, Sela Pass and other Indian trails. India calendar: the Red Fort, the Taj Mahal, Varanasi and more. Christmas calendar: Christ Church in Shimla, Park Street in Kolkata, Bom Jesus in Goa and other Christmas scenes from across India, one for every month. Ramayana calendar: Rama's story month by month, from breaking Shiva's bow and the golden deer to Hanuman, Ram Setu and the return to Ayodhya. Mahabharata calendar: twelve moments of the epic in story order, from Bhishma's vow and Draupadi's swayamvar to the Bhagavad Gita and the journey to the Himalayas.",
       },
     ],
     faq: [
       {
         q: "Which 2027 calendars can I buy?",
-        a: "Four: the car calendar, the India calendar, the Christmas calendar and the Mahabharata calendar. Each is 12 month posters that go up together as one wall.",
+        a: "Six: the car calendar, the offroad calendar, the India calendar, the Christmas calendar, the Ramayana calendar and the Mahabharata calendar. Each is 12 month posters that go up together as one wall.",
       },
       {
         q: "Is there a Mahabharata calendar for 2027?",
         a: "Yes. The 2027 Mahabharata calendar shows one moment of the story each month, in order: Bhishma's vow, Arjuna and the bird's eye, the house of lac, Draupadi's swayamvar, the palace of illusions, the game of dice, Krishna saving Draupadi, the Yaksha's questions, Krishna's universal form, the Bhagavad Gita, Bhishma on the bed of arrows and the journey to the Himalayas.",
+      },
+      {
+        q: "Is there a Ramayana calendar for 2027?",
+        a: "Yes. The 2027 Ramayana calendar tells Rama's story in order, one moment a month: the princes of Ayodhya, breaking Shiva's bow, leaving for the forest, Bharata's devotion, the golden deer, Jatayu, Shabari's berries, Rama meeting Hanuman, Hanuman finding Sita, building Ram Setu, the victory of good and the return to Ayodhya.",
+      },
+      {
+        q: "Is there an offroad calendar for 2027?",
+        a: "Yes. Every month of the 2027 offroad calendar is a 4x4 on a famous Indian trail in its best season, from the white Rann of Kutch in January to the Auli snow trail in December.",
       },
       {
         q: "Is there a Christmas calendar for 2027?",
