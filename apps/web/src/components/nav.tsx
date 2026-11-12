@@ -8,8 +8,10 @@ import { useShopper } from "@/lib/shopper-auth";
 import { useCart } from "./cart-context";
 import SearchSpotlight from "./search-spotlight";
 import CustomMenu from "./custom-menu";
+import NavMenu from "./nav-menu";
 import BackButton from "./back-button";
 import { useFeatures } from "@/lib/live-catalog";
+import { POSTER_SURFACES } from "@/lib/surfaces";
 
 // Pages with a Back button in the header, and where it goes on a direct visit.
 const BACK_PAGES: Record<string, string> = {
@@ -86,6 +88,7 @@ export default function Nav() {
   }, []);
 
   const features = useFeatures();
+  const postersActive = pathname.startsWith("/stickers/poster-packs") || POSTER_SURFACES.some((s) => pathname === `/${s.slug}`);
   const navLink = (href: string, label: string, hideOnMobile = false) => {
     const walls = pathname.startsWith("/stickers/poster-packs");
     const active = href === "/" ? pathname === "/" : href === "/stickers" ? pathname.startsWith(href) && !walls : pathname.startsWith(href);
@@ -151,8 +154,9 @@ export default function Nav() {
           {/* phones: these live in the bottom tab bar instead */}
           <nav className="hidden items-center gap-1 sm:flex">
             {navLink("/", "Home", true)}
-            {navLink("/stickers/poster-packs", "Wall posters")}
-            {navLink("/stickers", "Stickers")}
+            {/* each with a drop-down of its categories */}
+            <NavMenu kind="posters" href="/stickers/poster-packs" label="Wall posters" active={postersActive} />
+            <NavMenu kind="stickers" href="/stickers" label="Stickers" active={pathname.startsWith("/stickers") && !postersActive} />
             {/* your design, QR code and name & text in one drop-down */}
             {features.customStickers && <CustomMenu />}
           </nav>
