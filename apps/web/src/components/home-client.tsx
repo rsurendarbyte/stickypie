@@ -21,6 +21,7 @@ import {
   festivalProducts,
   festivalShortDate,
   resolveHomeRails,
+  isCalendarWall,
   wallInSeason,
   type Festival,
   type HomeSectionId,
@@ -66,7 +67,12 @@ export default function HomeClient({
   rememberPosters(products);
   // Christmas & New Year walls only while those festivals are on (admin → Festivals dates).
   const onNow = new Set(activeFestivals(festivals).map((f) => f.id));
-  const packs = products.filter((p) => isPosterPack(p) && wallInSeason(p.tags, onNow));
+  const walls = products.filter((p) => isPosterPack(p) && wallInSeason(p.tags, onNow));
+  // The 2027 calendar walls get a row of their own (admin → Home page → 2027 calendars),
+  // and then stay out of the mix and the theme rows so no wall shows twice.
+  const calendarsOn = home.sections.some((s) => s.id === "calendars" && s.visible);
+  const calendars = calendarsOn ? arrangeWallRow(home.wallRows.calendars, walls.filter((p) => isCalendarWall(p.tags)), walls) : [];
+  const packs = calendars.length > 0 ? walls.filter((p) => !isCalendarWall(p.tags)) : walls;
   // A row per wall theme, after the mix of every set.
   const inTheme = (id: string) => packs.filter((p) => p.tags.includes(`wall theme:${id}`));
   const wallRows = home.themes
@@ -212,7 +218,12 @@ export default function HomeClient({
   // back (until every poster has been shown once). Sections are built top to
   // bottom, and the phone feed builds its rows as it reaches them, so puzzle
   // cards pick in the order the shopper scrolls.
-  const used = new Set<string>([...festivalItems, ...homeRails.flatMap((r) => r.items.map((p) => p.id)), ...wallMix.map((p) => p.id)]);
+  const used = new Set<string>([
+    ...festivalItems,
+    ...homeRails.flatMap((r) => r.items.map((p) => p.id)),
+    ...wallMix.map((p) => p.id),
+    ...calendars.map((p) => p.id),
+  ]);
   const festivalRow = ({ f, items }: (typeof festivalRails)[number], u: Set<string>) => (
     <LazyRail
       key={`festival-${f.id}`}
@@ -255,6 +266,13 @@ export default function HomeClient({
   );
 
   const sections: Record<HomeSectionId, () => React.ReactNode> = {
+    calendars: () => calendars.length > 0 && (
+      <LazyRail eager wide title="2027 Calendars" href="/calendar-2027">
+        {calendars.map((product) => (
+          <ProductCard key={product.id} product={product} width={WALL_CARD_WIDTH} wallEffect={wallEffect(0, seed)} />
+        ))}
+      </LazyRail>
+    ),
     walls: () => feedAt ? feedAt === "walls" && feed() : wallMix.length > 0 && (
       <LazyRail eager wide title={home.wallsTitle} href={categoryPath("poster-packs")}>
         {mix(wallMix, { used }).map((product) => (

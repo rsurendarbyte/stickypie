@@ -14,6 +14,7 @@ export const HOME_SLIDES = {
 export type HomeSlideId = keyof typeof HOME_SLIDES;
 
 export const HOME_SECTIONS = {
+  calendars: { label: "2027 calendars", hint: "Calendar walls, sold only as the full 12 months; they leave the other wall rows while this shows" },
   walls: { label: "Wall poster sets", hint: "The mix of every wall set" },
   themes: { label: "Wall theme rows", hint: "Car walls, Travel walls and the rest" },
   custom: { label: "Make your own", hint: "The custom sticker cards" },
@@ -193,11 +194,21 @@ export function arrangeWallRow<P extends { slug: string }>(row: WallRowCards | u
   return [...pinned, ...own.filter((p) => !row.pinned.includes(p.slug) && !row.hidden.includes(p.slug))];
 }
 
-/** Every known slide, section and theme exactly once: saved order first, new ones after. */
+/**
+ * Every known slide, section and theme exactly once, in the saved order. A new one
+ * (added in code after the admin last saved) goes in at its default place: right
+ * before the saved item that follows it in the defaults.
+ */
 function complete<T extends { id: string }>(saved: T[], all: T[]): T[] {
   const known = new Map(all.map((item) => [item.id, item]));
-  const kept = saved.filter((item, i) => known.has(item.id) && saved.findIndex((s) => s.id === item.id) === i);
-  return [...kept, ...all.filter((item) => !kept.some((s) => s.id === item.id))];
+  const out = saved.filter((item, i) => known.has(item.id) && saved.findIndex((s) => s.id === item.id) === i);
+  all.forEach((item, i) => {
+    if (out.some((s) => s.id === item.id)) return;
+    const next = all.slice(i + 1).find((later) => out.some((s) => s.id === later.id));
+    const at = next ? out.findIndex((s) => s.id === next.id) : out.length;
+    out.splice(at, 0, item);
+  });
+  return out;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
