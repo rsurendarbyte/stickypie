@@ -15,6 +15,8 @@ export type Cart = {
   value: number;
   /** Roughly where it came from: "Chennai, Tamil Nadu". Null for older carts. */
   place: string | null;
+  /** The shopper's IP address (Cloudflare's view). Null for carts before 2026-11-12. */
+  ip: string | null;
   user_id: string | null;
   order_id: string | null;
   order_status: OrderStatus | null;

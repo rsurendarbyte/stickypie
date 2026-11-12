@@ -7,7 +7,8 @@ import { supabaseConfigured, supabaseUrl } from "@/lib/mode";
 // The browser batches its page views and key steps and sends them here a few
 // times a visit (sendBeacon on leaving). Only paths are kept: anything after
 // "?" or "#" is cut here too, so guest keys, ad ids and sign-in tokens never
-// reach the database. City and device come from the request, never the IP.
+// reach the database. City and device come from the request; the IP address
+// (Cloudflare's cf-connecting-ip) is kept for the admin, never sent by the browser.
 // The name, email and phone a guest types at checkout come too (for following up
 // on unpaid carts), only once they look complete.
 
@@ -84,6 +85,12 @@ async function connectionPlace(): Promise<string | null> {
   }
 }
 
+/** Cloudflare's view of the visitor's address; nothing on local dev. */
+function clientIp(req: Request): string | null {
+  const ip = req.headers.get("cf-connecting-ip")?.trim();
+  return ip && /^[0-9a-f.:]{3,45}$/i.test(ip) ? ip : null;
+}
+
 export async function POST(req: Request) {
   const ua = req.headers.get("user-agent") ?? "";
   if (!supabaseConfigured() || BOT.test(ua)) return new NextResponse(null, { status: 204 });
@@ -130,5 +137,14 @@ export async function POST(req: Request) {
     headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify({ p: payload }),
   }).catch(() => {});
+  // the visit's IP, once (its first batch made the row just above)
+  const ip = clientIp(req);
+  if (b.entry && ip) {
+    await fetch(`${supabaseUrl()}/rest/v1/journey_sessions?id=eq.${b.sid}&ip=is.null`, {
+      method: "PATCH",
+      headers: { apikey: key, Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ ip }),
+    }).catch(() => {});
+  }
   return new NextResponse(null, { status: 204 });
 }

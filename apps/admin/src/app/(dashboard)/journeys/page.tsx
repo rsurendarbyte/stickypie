@@ -18,7 +18,9 @@ import {
   XCircle,
 } from "lucide-react";
 import { formatINR, orderCode } from "@stickypie/shared";
+import MeButton from "@/components/me-button";
 import { timeAgo } from "@/lib/customers";
+import { listOwnDevices, type OwnDevices } from "@/lib/own-devices";
 import {
   JOURNEY_RANGES,
   dayTime,
@@ -195,10 +197,12 @@ function Fact({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
-function GuestRow({ v }: { v: Visitor }) {
+const isMine = (v: Visitor, own: OwnDevices) => own.visitors.includes(v.id) || v.ips.some((ip) => own.ips.includes(ip));
+
+function GuestRow({ v, me }: { v: Visitor; me: boolean }) {
   const stage = STAGE[v.stage];
   const city = v.place?.split(",")[0];
-  const who = v.name ?? (v.phone || v.email ? "Guest" : city ? `Guest from ${city}` : "Guest");
+  const who = me ? "You" : (v.name ?? (v.phone || v.email ? "Guest" : city ? `Guest from ${city}` : "Guest"));
   const DeviceIcon = /Computer/.test(v.device) ? Monitor : Smartphone;
   const sentence = [
     `Came from ${v.source}`,
@@ -214,7 +218,9 @@ function GuestRow({ v }: { v: Visitor }) {
   ].filter(Boolean);
   const first = v.first;
   return (
-    <details className="group rounded-2xl border border-line bg-ink2 open:border-fog/40">
+    <details
+      className={`group rounded-2xl border ${me ? "border-sky-400/50 bg-sky-400/[0.07] open:border-sky-400" : "border-line bg-ink2 open:border-fog/40"}`}
+    >
       <summary className="flex cursor-pointer list-none items-start gap-3 p-4 [&::-webkit-details-marker]:hidden">
         <span className={`grid size-10 shrink-0 place-items-center rounded-full border ${stage.cls}`}>
           <stage.Icon className="size-5" />
@@ -222,6 +228,11 @@ function GuestRow({ v }: { v: Visitor }) {
         <div className="min-w-0 flex-1">
           <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="font-semibold">{who}</span>
+            {me && (
+              <span className="inline-flex items-center rounded-full border border-sky-400/50 bg-sky-400/15 px-2 py-0.5 text-[11px] font-semibold text-sky-300">
+                My device
+              </span>
+            )}
             <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${stage.cls}`}>
               {stage.text}
             </span>
@@ -232,6 +243,12 @@ function GuestRow({ v }: { v: Visitor }) {
             )}
           </p>
           <p className="mt-1 text-sm leading-snug text-fog">{sentence.join(" · ")}</p>
+          {v.ips.length > 0 && (
+            <p className="mt-0.5 font-mono text-xs text-fog/80">
+              IP {v.ips[0]}
+              {v.ips.length > 1 && ` +${v.ips.length - 1} more`}
+            </p>
+          )}
           <p className="mt-1 text-sm">
             {v.paid ? (
               <span className="font-semibold text-mint">
@@ -333,6 +350,7 @@ function GuestRow({ v }: { v: Visitor }) {
             <Fact label="Ad campaign" value={first.campaign} />
             <Fact label="Ad name" value={first.utm_content} />
             <Fact label="Place" value={v.place} />
+            <Fact label={v.ips.length > 1 ? "IP addresses" : "IP address"} value={v.ips.length ? <span className="font-mono">{v.ips.join(", ")}</span> : null} />
             <Fact label="Device" value={v.device} />
             <Fact label="Screen" value={v.sessions.find((s) => s.screen)?.screen} />
             <Fact label="Language" value={v.sessions.find((s) => s.lang)?.lang} />
@@ -348,6 +366,9 @@ function GuestRow({ v }: { v: Visitor }) {
               />
             )}
           </dl>
+          <div className="mt-3">
+            <MeButton ip={v.ips[0]} visitorId={v.id} isMe={me} />
+          </div>
           <p className="mt-2 flex items-center gap-1 text-[11px] text-fog/70">
             <DeviceIcon className="size-3" /> one browser = one guest; the same person on another phone shows as a new guest.
           </p>
@@ -365,8 +386,9 @@ export default async function JourneysPage({ searchParams }: { searchParams: Pro
   const range = JOURNEY_RANGES.find((r) => r.id === q.days) ?? JOURNEY_RANGES[1];
 
   let sessions: JourneySession[];
+  let own: OwnDevices;
   try {
-    sessions = await listJourneys(range.days);
+    [sessions, own] = await Promise.all([listJourneys(range.days), listOwnDevices()]);
   } catch (e) {
     return (
       <div className="w-full">
@@ -380,7 +402,10 @@ export default async function JourneysPage({ searchParams }: { searchParams: Pro
     );
   }
 
-  const visitors = groupVisitors(sessions);
+  const everyone = groupVisitors(sessions);
+  const mine = new Set(everyone.filter((v) => isMine(v, own)).map((v) => v.id));
+  // the numbers leave out your own devices; the "Everyone" list still shows them
+  const visitors = everyone.filter((v) => !mine.has(v.id));
   const added = visitors.filter((v) => v.added);
   const abandoners = added.filter((v) => !v.paid);
   const reachable = visitors.filter((v) => !v.paid && (v.phone || v.email));
@@ -389,7 +414,10 @@ export default async function JourneysPage({ searchParams }: { searchParams: Pro
   const sources = count(abandoners, (v) => v.source);
   const top = leftAt[0];
 
-  const list = show === "abandoned" ? abandoners : show === "contact" ? reachable : show === "paid" ? paid : visitors;
+  // the lists still show your own devices (in blue), so you can find yourself
+  const shownIn = (want: Show, v: Visitor) =>
+    want === "abandoned" ? v.added && !v.paid : want === "contact" ? !v.paid && Boolean(v.phone || v.email) : want === "paid" ? v.paid : true;
+  const list = everyone.filter((v) => shownIn(show, v));
   list.sort((a, b) => b.lastAt.localeCompare(a.lastAt));
 
   const chip = (isActive: boolean) =>
@@ -399,7 +427,7 @@ export default async function JourneysPage({ searchParams }: { searchParams: Pro
         : "border-line bg-ink2 text-fog hover:border-fog/40 hover:text-snow"
     }`;
   const href = (o: { show?: Show; days?: string }) => `/journeys?${new URLSearchParams({ show: o.show ?? show, days: o.days ?? range.id })}`;
-  const listCount = { abandoned: abandoners.length, contact: reachable.length, paid: paid.length, all: visitors.length };
+  const listCount = Object.fromEntries(SHOWS.map((s) => [s.id, everyone.filter((v) => shownIn(s.id, v)).length])) as Record<Show, number>;
 
   return (
     <div className="w-full">
@@ -447,6 +475,11 @@ export default async function JourneysPage({ searchParams }: { searchParams: Pro
             </span>
           </Link>
         )}
+        {mine.size > 0 && (
+          <p className="mt-2 text-xs text-sky-300">
+            Your own devices ({mine.size}) are left out of these numbers. They still show in the lists below, in blue.
+          </p>
+        )}
         {sessions.length >= 1000 && (
           <p className="mt-2 text-xs text-gold">Only the latest 1,000 visits are counted — pick a shorter range for exact numbers.</p>
         )}
@@ -471,7 +504,7 @@ export default async function JourneysPage({ searchParams }: { searchParams: Pro
         <>
           <div className="mt-4 grid grid-cols-1 items-start gap-3 xl:grid-cols-2">
             {list.slice(0, SHOWN_MAX).map((v) => (
-              <GuestRow key={v.id} v={v} />
+              <GuestRow key={v.id} v={v} me={mine.has(v.id)} />
             ))}
           </div>
           {list.length > SHOWN_MAX && (
@@ -484,7 +517,8 @@ export default async function JourneysPage({ searchParams }: { searchParams: Pro
         <Clock className="mt-px size-3 shrink-0" />
         A visit ends after 30 minutes away. Times are India time and count only while the page was on screen. Place is a
         rough guess from the connection. Name, phone and email appear once a guest types them at checkout. Kept 60 days.
-        Your own visits count too. “Ad” means the link carried an ad tag.
+        IP is the guest&apos;s internet address; a phone&apos;s changes often. Tap a guest and “This is me” to mark your own
+        browser and IP: they show in blue as “You” and leave the numbers. “Ad” means the link carried an ad tag.
       </p>
     </div>
   );
