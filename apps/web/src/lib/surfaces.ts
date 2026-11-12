@@ -612,6 +612,38 @@ export const POSTER_SURFACES: Surface[] = [
       },
     ],
   },
+  {
+    slug: "space-posters",
+    name: "Space Posters",
+    noun: "space",
+    title: "Solar System Posters for Kids Room – Space & Planet Wall Posters India",
+    description:
+      "Buy solar system and planet posters online in India: a space wall for kids rooms and study corners with Chandrayaan-3 and Mangalyaan, on premium poster paper.",
+    intro: `Every planet with a short, true fun fact in big clear letters, plus India's Chandrayaan-3 on the Moon and Mangalyaan at Mars. ${POSTER_BASICS}`,
+    tags: ["wall theme:space", "solar system", "planets", "space poster", "chandrayaan", "mangalyaan"],
+    categories: [],
+    posters: true,
+    sections: [
+      {
+        heading: "A wall that teaches",
+        body: "The Solar System wall puts Earth, the full solar system chart and Saturn in the middle with Mercury, Venus, the Moon, Mars, Jupiter, Uranus, Neptune and Pluto around them. Kids learn the planets in order just by looking at it every day.",
+      },
+      {
+        heading: "For kids rooms, study corners and classrooms",
+        body: "Bright cartoon-clean art on a deep space background looks good in a kids room, and the facts help with school projects. Teachers can put the full set up in a classroom too.",
+      },
+    ],
+    faq: [
+      {
+        q: "Are the planet facts correct?",
+        a: "Yes. Each poster has one short fact checked before printing: Mercury's 88-day year, Venus being the hottest planet, about 71% of Earth covered by water, Chandrayaan-3 landing near the Moon's south pole on 23 August 2023, and Mangalyaan reaching Mars on its first try in 2014.",
+      },
+      {
+        q: "Can I buy one planet poster alone?",
+        a: "Yes. Every planet is sold on its own as a 4 × 6 in or 6 × 9 in poster, or take the whole Solar System wall of 11 posters together.",
+      },
+    ],
+  },
 ];
 
 /** A poster page's name mid-sentence: "car posters", "Tamil cinema posters". */
