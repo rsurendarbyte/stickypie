@@ -39,8 +39,10 @@ export function productSeoTitle(product: Product): string {
 export function productSeoDescription(product: Product): string {
   if (isPosterPack(product)) {
     const pitch = `Buy the ${seoName(product)}: ${product.packItems.length} wall posters on ${POSTER_PAPER}, ${POSTER_ADHESIVE} included, for ${formatINR(product.price)}. Ships across India.`;
-    const lead = product.description.trim();
-    const text = lead ? `${pitch} ${lead}` : pitch;
+    // The wall's own first sentence (which posters are on it) leads, so no two
+    // walls show the same search snippet; the generic pitch only when it has none.
+    const lead = product.description.trim().split(/(?<=\.)\s+(?=[A-Z])/)[0] ?? "";
+    const text = lead ? `${lead} ${formatINR(product.price)}, ${POSTER_ADHESIVE} included, ships across India.` : pitch;
     return text.length > 160 ? `${text.slice(0, 157).trimEnd()}…` : text;
   }
   const sizes = sizeList(product);

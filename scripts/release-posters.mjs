@@ -53,6 +53,7 @@ async function master(item) {
 }
 
 const categories = await rest("categories?select=id,slug&limit=200");
+const added = [];
 for (const item of JSON.parse(readFileSync(path.join(folder, "posters.json"), "utf8"))) {
   if ((await rest(`products?select=id&slug=eq.${item.slug}`)).length) {
     console.log(`${item.slug}: already there, skipped`);
@@ -88,6 +89,13 @@ for (const item of JSON.parse(readFileSync(path.join(folder, "posters.json"), "u
     }),
   });
   console.log(`${item.slug}: added to ${prod ? "production" : "dev"}`);
+  added.push(`/sticker/${item.slug}`);
+}
+
+// Bing / ChatGPT search hear about the new pages now, not at the next deploy.
+if (prod && added.length) {
+  const { pingIndexNow } = await import("./lib/indexnow.mjs");
+  await pingIndexNow([...added, "/wall-posters", "/stickers/mini-posters"]);
 }
 
 // Link previews (WhatsApp, Instagram, X…) for the new posters; existing ones are skipped.
