@@ -6,6 +6,7 @@ import ProductCardSkeleton from "./product-card-skeleton";
 import VirtualGrid from "./virtual-grid";
 import { useLiveCatalog, type Catalog } from "@/lib/live-catalog";
 import { isPosterPack } from "@/lib/poster";
+import { rememberPosters } from "@/lib/poster-images";
 import { useWindowScrollMemory } from "@/lib/scroll-memory";
 import { useDaySeed } from "@/lib/skin-seed";
 import { posterLabel, stickersForSurface, surfacePosters, surfaceStickers, type Surface } from "@/lib/surfaces";
@@ -73,6 +74,8 @@ export default function SurfaceGrid({ surface, initial }: { surface: Surface; in
   const { categories, products, loaded } = useLiveCatalog(initial);
   useWindowScrollMemory(loaded);
   const mix = usePuzzleLead();
+  // wall cards draw from their own posters (calendar walls show their months as a pad)
+  rememberPosters(products);
 
   if (!loaded && products.length === 0) {
     return (
