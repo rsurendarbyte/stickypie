@@ -2598,3 +2598,11 @@ html[data-lite]:not([data-lite="net"]) .puzzle-win-rays {
     linear-gradient(to bottom, #000 calc(33.333% - 1px), transparent 0 calc(33.333% + 1px), #000 0 calc(66.667% - 1px), transparent 0 calc(66.667% + 1px), #000 0);
   mask-composite: intersect;
 }
+
+/* Calendar wall cards: the top page of the pad turns over to the next month. Ends
+   as the plain picture, so lite mode (no animations) still shows the page. */
+@keyframes calendar-page-in {
+  from { transform: translateY(-6%) rotate(-3deg); opacity: 0.35; }
+  to { transform: none; opacity: 1; }
+}
+.calendar-page { animation: calendar-page-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1); }
