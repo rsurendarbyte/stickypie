@@ -26,9 +26,15 @@ const NO_PIXEL_PATHS = "^\\/(print-job|account\\/reset|pay\\/simulator)(\\/|$)";
  */
 const NO_PIXEL_PARAMS = "(^|[?&#])(fb|access_token|refresh_token)=";
 
-/** Meta's standard loader, then a PageView for the page that loaded it. */
+/**
+ * Meta's standard loader, then a PageView for the page that loaded it. The fbq
+ * queue starts at once, so PageView and any early event are kept, but Meta's
+ * ~200 KB script only downloads once the page has settled (3.5 s), or at the
+ * shopper's first tap, scroll or key if that comes sooner, or as the tab is
+ * hidden: on a slow phone it no longer competes with the first pictures.
+ */
 export const META_PIXEL_SCRIPT = META_PIXEL_ID
-  ? `if(!new RegExp(${JSON.stringify(NO_PIXEL_PATHS)}).test(location.pathname)&&!new RegExp(${JSON.stringify(NO_PIXEL_PARAMS)}).test(location.search+location.hash))!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init',${JSON.stringify(
+  ? `if(!new RegExp(${JSON.stringify(NO_PIXEL_PATHS)}).test(location.pathname)&&!new RegExp(${JSON.stringify(NO_PIXEL_PARAMS)}).test(location.search+location.hash))!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];var go=function(){if(t)return;t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)};setTimeout(go,3500);["pointerdown","keydown","scroll","touchstart"].forEach(function(x){f.addEventListener(x,go,{once:!0,passive:!0})});b.addEventListener("visibilitychange",function(){if(b.visibilityState==="hidden")go()})}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init',${JSON.stringify(
       META_PIXEL_ID
     )});fbq('track','PageView');`
   : "";

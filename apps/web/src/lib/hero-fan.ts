@@ -11,8 +11,11 @@ export const NOT_IN_HERO = /cigar|mala da|rajinikanth red and gold|boss dog|ajit
 export type FanPoster = Pick<Product, "id" | "slug" | "name" | "tinyUrl" | "thumbUrl" | "displayUrl" | "imageUrl">;
 
 /** Phones take the 240px tiny file (about 8 KB, the same one blurred behind the card,
- *  so one download), even on a sharp screen; bigger screens the 1024px one. */
-export const FAN_SIZES = "(min-width: 768px) 230px, 80px";
+ *  so one download), even on a sharp screen. Desktop cards are 200 to 300px wide, so
+ *  they take at least the 320px file: the 240px one was stretched (soft), and Chrome
+ *  counts a stretched picture only at its own size, so the fan lost "largest picture"
+ *  (LCP) to the next slide's wall tiles. Sharp screens take the 1024px one. */
+export const FAN_SIZES = "(min-width: 768px) 300px, 80px";
 
 export function fanSrc(p: FanPoster) {
   const src = p.thumbUrl ?? p.imageUrl;
