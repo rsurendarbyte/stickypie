@@ -672,7 +672,7 @@ export const POSTER_SURFACES: Surface[] = [
       },
       {
         q: "Can I buy one table alone?",
-        a: "No. The tables of 1 to 12 are sold together as one wall so the set stays complete. The fractions poster is sold on its own as a 4 × 6 in or 6 × 9 in poster.",
+        a: "Yes. Every table is also sold on its own as a 4 × 6 in or 6 × 9 in poster, and so is the fractions poster. The full wall of 12 comes in order, 4 across and 3 down, for ₹349.",
       },
     ],
   },
