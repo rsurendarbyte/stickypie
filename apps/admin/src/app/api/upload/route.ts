@@ -79,6 +79,24 @@ export async function POST(req: Request) {
         { status: 500 }
       );
     }
+    // AI style card pictures also get a 240px copy next to them (same name, ".s240.webp"):
+    // the shop's hero draws them small. Best effort: the shop falls back to the full one.
+    if (maxPx > 0 && maxPx <= 512 && ext === "webp") {
+      try {
+        const small = await toWebp(body.slice().buffer, 240, 80);
+        await r2Client(r2).send(
+          new PutObjectCommand({
+            Bucket: r2.bucket,
+            Key: name.replace(/\.webp$/, ".s240.webp"),
+            Body: small,
+            ContentType: "image/webp",
+            CacheControl: "public, max-age=31536000, immutable",
+          })
+        );
+      } catch {
+        // the full picture is saved; the small copy can be made later (scripts/avatar-small-covers.mjs)
+      }
+    }
     return NextResponse.json({ url: `${r2.publicUrl}/${name}` });
   }
 

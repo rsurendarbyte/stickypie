@@ -39,6 +39,7 @@
     "icons:build": "python3 scripts/build-icons.py",
     "thumbs:build": "node scripts/build-thumbs.mjs",
     "avatar:shrink": "node scripts/shrink-avatar-images.mjs",
+    "avatar:small": "node scripts/avatar-small-covers.mjs",
     "seed:sql": "node scripts/generate-seed-sql.mjs"
   },
   "devDependencies": {

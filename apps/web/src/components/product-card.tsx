@@ -6,7 +6,7 @@ import { Check, Flame, Frame, ImagePlus, Puzzle, Ruler, ShoppingBag } from "luci
 import { useIsHot } from "@/lib/trending";
 import type { Product } from "@stickypie/shared";
 import { LOW_STOCK_THRESHOLD, discountPercent, formatINR, isCalendarWall, isLockedWall } from "@stickypie/shared";
-import { posterImage } from "@/lib/poster-images";
+import { posterImage, posterTiny } from "@/lib/poster-images";
 import { cardSkinFor, rotationFor } from "@/lib/palette";
 import WallStage from "./wall-stage";
 import type { WallEffect } from "@/lib/wall-effects";
@@ -354,13 +354,18 @@ function calendarMonths(product: Product): string[] | null {
   return urls.every((u): u is string => Boolean(u)) ? urls : null;
 }
 
+/** The same months as small files: the pages under the top one are mostly hidden. */
+function calendarMonthsTiny(product: Product): string[] {
+  return product.packItems.map((id) => posterTiny(id) ?? "");
+}
+
 /**
  * A calendar wall's card picture: a desk-calendar pad. One month big enough to
  * read, the next pages peeking out behind it, and a page turn every few seconds
  * while the card is on screen (never in lite mode or with reduced motion, where
  * January just stays on top). The month dots say there are 12.
  */
-function CalendarPad({ months, out, seed }: { months: string[]; out: boolean; seed: string }) {
+function CalendarPad({ months, under, out, seed }: { months: string[]; under: string[]; out: boolean; seed: string }) {
   const [page, setPage] = useState(0);
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -389,12 +394,14 @@ function CalendarPad({ months, out, seed }: { months: string[]; out: boolean; se
     };
   }, [seed]);
   const at = (k: number) => months[(page + k) % 12];
+  // the two pages underneath: the tiny files (a third of the download), mostly hidden anyway
+  const below = (k: number) => under[(page + k) % 12] || at(k);
   return (
     <div ref={box} className={`absolute inset-x-[8%] top-[6%] bottom-[11%] flex items-center justify-center ${out ? "opacity-40 saturate-50" : ""}`}>
       <div className="relative h-full transition-transform duration-300 group-hover:scale-[1.03]" style={{ aspectRatio: "2 / 3" }}>
         {/* the pages under the top one */}
-        <img src={at(2)} alt="" loading="lazy" decoding="async" className="absolute inset-0 size-full translate-x-[9%] translate-y-[2%] rotate-[5deg] rounded-md object-cover opacity-90 shadow-md" />
-        <img src={at(1)} alt="" loading="lazy" decoding="async" className="absolute inset-0 size-full -translate-x-[8%] translate-y-[1%] -rotate-[4deg] rounded-md object-cover shadow-md" />
+        <img src={below(2)} alt="" loading="lazy" decoding="async" className="absolute inset-0 size-full translate-x-[9%] translate-y-[2%] rotate-[5deg] rounded-md object-cover opacity-90 shadow-md" />
+        <img src={below(1)} alt="" loading="lazy" decoding="async" className="absolute inset-0 size-full -translate-x-[8%] translate-y-[1%] -rotate-[4deg] rounded-md object-cover shadow-md" />
         <img
           key={page}
           src={at(0)}
@@ -450,7 +457,7 @@ function PackCard({ product, width, wallEffect = "sweep" }: { product: Product; 
         {!wall && <img src={small} alt="" loading="lazy" decoding="async" className="absolute inset-0 size-full scale-110 object-cover opacity-60 blur-xl" />}
         {wall && <span className="absolute inset-0" style={{ ...wallBackground(product), opacity: design.tint / 100 }} />}
         {months ? (
-          <CalendarPad months={months} out={out} seed={product.slug} />
+          <CalendarPad months={months} under={calendarMonthsTiny(product)} out={out} seed={product.slug} />
         ) : wall ? (
           <div
             className={`absolute transition-transform duration-300 group-hover:scale-[1.03] ${out ? "opacity-40 saturate-50" : ""}`}

@@ -3,9 +3,14 @@
 import type { Product } from "@stickypie/shared";
 
 const images = new Map<string, string>();
+/** The 240px tiny file, where there is one: for pictures drawn small or mostly hidden. */
+const tiny = new Map<string, string>();
 
-export function rememberPosters(products: Pick<Product, "id" | "thumbUrl" | "imageUrl">[]) {
-  for (const p of products) images.set(p.id, p.thumbUrl ?? p.imageUrl);
+export function rememberPosters(products: (Pick<Product, "id" | "thumbUrl" | "imageUrl"> & { tinyUrl?: string | null })[]) {
+  for (const p of products) {
+    images.set(p.id, p.thumbUrl ?? p.imageUrl);
+    if (p.tinyUrl) tiny.set(p.id, p.tinyUrl);
+  }
 }
 
 /** A wall set's own posters, from the page, before anything on it draws the wall. */
@@ -20,4 +25,9 @@ export function rememberPoster(id: string, url: string) {
 
 export function posterImage(id: string): string | null {
   return images.get(id) ?? null;
+}
+
+/** The poster's tiny file, or its usual picture when it has none. */
+export function posterTiny(id: string): string | null {
+  return tiny.get(id) ?? images.get(id) ?? null;
 }

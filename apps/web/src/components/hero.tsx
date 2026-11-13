@@ -52,6 +52,7 @@ import { readInterest, type Interest } from "@/lib/interest";
 import { useLite, useSlowNetwork } from "@/lib/lite";
 import { PuzzleLoop, PuzzlePlayLink } from "./poster-puzzle";
 import { launchOf, setHeroPuzzle, useHeroPuzzle } from "@/lib/puzzle-launch";
+import { smallCover } from "@/lib/avatar-card-small";
 import { FAN_SIZES, NOT_IN_HERO, fanOrder, fanScript, fanSrc, wallTileSrc, type FanPoster } from "@/lib/hero-fan";
 
 /** Rotating hero: the featured sticker is staged on a big tilted product card. */
@@ -126,6 +127,12 @@ export default function Hero({
   // Shopper picked a size → stop rotating so the slide doesn't change under them.
   const [engaged, setEngaged] = useState(false);
   const slide = slides[Math.min(index, slides.length - 1)];
+  // How many times the avatar slide has come back round: each time the fan shows the
+  // next three posters. Counted here, not per mount, so the fan re-mounting when the
+  // catalogue arrives doesn't swap the posters the page started with.
+  const [avatarVisit, setAvatarVisit] = useState({ kind: slide?.kind, turn: slide?.kind === "avatar" ? 0 : -1 });
+  if (slide && avatarVisit.kind !== slide.kind)
+    setAvatarVisit({ kind: slide.kind, turn: avatarVisit.turn + (slide.kind === "avatar" ? 1 : 0) });
 
   useEffect(() => {
     if (slides.length < 2 || paused || engaged) return;
@@ -375,13 +382,15 @@ export default function Hero({
                   thumb={product.thumbUrl}
                   alt={product.name}
                   priority
+                  // on a canvas: a later slide's bigger art must not count as the page's LCP
+                  canvas
                   // a wall poster set's collage stands straight with rounded corners, like its card
                   className={`animate-float max-h-full max-w-full cursor-pointer object-contain transition-transform duration-200 hover:scale-[1.03] md:max-h-[min(46vh,520px)] ${isPosterPack(product) ? "rounded-2xl shadow-[0_24px_50px_-20px_rgba(16,24,40,0.45)]" : "sticker-cut rotate-2"}`}
                 />
                 )}
               </PageLink>
             ) : slide.kind === "avatar" ? (
-              <AvatarFan shop={shop} snapshot={fanPosters} categories={categories} />
+              <AvatarFan shop={shop} snapshot={fanPosters} categories={categories} turn={avatarVisit.turn} />
             ) : null}
           </div>
 
@@ -889,7 +898,6 @@ function shuffled<T>(list: readonly T[], random: () => number): T[] {
 }
 
 const FAN_POSTERS = 3;
-let fanTurns = 0;
 /** A new card lifts out of the fan this often, and stays up this long. */
 const FAN_LIFT_EVERY_MS = 2400;
 const FAN_LIFT_FOR_MS = 1500;
@@ -952,7 +960,11 @@ function StyleCard({ style }: { style: StylePick }) {
       <span className="min-h-0 flex-1">
         {style.url ? (
           <img
-            src={style.url}
+            // the 240px copy (a quarter of the download); the full card picture if it has none yet
+            src={smallCover(style.url) ?? style.url}
+            onError={(e) => {
+              if (e.currentTarget.src !== style.url) e.currentTarget.src = style.url!;
+            }}
             alt=""
             loading="lazy"
             decoding="async"
@@ -1026,14 +1038,13 @@ function FanImage({ src, srcSet }: { src?: string; srcSet?: string }) {
 }
 
 /** Avatar slide art, in front of the wall: three posters in a small fan. */
-function AvatarFan({ shop, snapshot, categories }: { shop: Product[]; snapshot: FanPoster[]; categories: Category[] }) {
+function AvatarFan({ shop, snapshot, categories, turn }: { shop: Product[]; snapshot: FanPoster[]; categories: Category[]; turn: number }) {
   const box = useRef<HTMLDivElement>(null);
   useFanLifts(box);
   const start = useFanStart();
   const slow = useSlowNetwork();
   const features = useFeatures();
   // The fan is drawn afresh each time the slide comes round: the next three posters.
-  const [turn] = useState(() => (typeof window === "undefined" ? 0 : fanTurns++));
   // Every turn walks one list of all the posters, from this visit's start, so none
   // comes back until every one has been shown. The list comes from the catalogue; until
   // it loads, the few first fans built into the page stand in.
@@ -1043,11 +1054,12 @@ function AvatarFan({ shop, snapshot, categories }: { shop: Product[]; snapshot: 
   const take = (at: number) =>
     Array.from({ length: Math.min(FAN_POSTERS, pool.length) }, (_, i) => pool[(at + i) % pool.length]);
   const cards = take(from + turn * FAN_POSTERS);
-  // The next three are ready before the slide comes back.
-  const poolCount = pool.length;
+  // The next three are ready before the slide comes back. Only from the full list:
+  // the page's few first fans don't know which three come next.
+  const poolCount = shop.length ? pool.length : 0;
   useEffect(() => {
     if (slow || !poolCount) return;
-    for (const poster of take(from + fanTurns * FAN_POSTERS)) {
+    for (const poster of take(from + (turn + 1) * FAN_POSTERS)) {
       const { src, srcSet } = fanSrc(poster);
       const next = new Image();
       if (srcSet) {
@@ -1057,7 +1069,7 @@ function AvatarFan({ shop, snapshot, categories }: { shop: Product[]; snapshot: 
       next.src = src;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per fan, when the list is known
-  }, [slow, poolCount, from]);
+  }, [slow, poolCount, from, turn]);
   const placed = start !== null;
   // the Wall posters card's Play & win plays the poster in the middle
   const middle = placed ? cards[1] : undefined;
@@ -1134,7 +1146,9 @@ function AvatarBookWall({ styles, shop }: { styles: AvatarStyle[]; shop: Product
       ref={box}
       className="sticker-wall animate-hero-img-in absolute inset-x-0 top-0 bottom-[38%] overflow-hidden sm:bottom-0"
     >
-      <div className="absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 -rotate-[14deg] gap-3 sm:gap-4">
+      {/* faded, so the fan in front stands out (on this inner box: the outer one's
+          fade-in animation would override an opacity there) */}
+      <div className="absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 -rotate-[14deg] gap-3 opacity-55 sm:gap-4">
         {columns.map((col, c) => (
           <div key={c} className="w-[clamp(92px,13vw,170px)] shrink-0">
             <div
@@ -1242,7 +1256,17 @@ function AvatarSlideCopy({ book, catalog, copy }: { book: AvatarBook; catalog: P
                   className="-ml-1.5 grid size-10 shrink-0 place-items-center overflow-hidden rounded-xl bg-white shadow-sm ring-2 ring-white first:ml-0 sm:size-11"
                   style={{ background: `linear-gradient(135deg, ${FAN_TINTS[i % FAN_TINTS.length]})`, transform: `rotate(${[-6, 4, -3][i]}deg)`, zIndex: 3 - i }}
                 >
-                  <img src={st.src} alt="" loading="lazy" decoding="async" className="size-full object-contain p-0.5" />
+                  <img
+                    // drawn about 40px wide: the 240px copy where there is one
+                    src={smallCover(st.src) ?? st.src}
+                    onError={(e) => {
+                      if (e.currentTarget.src !== st.src) e.currentTarget.src = st.src;
+                    }}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    className="size-full object-contain p-0.5"
+                  />
                 </span>
               ))}
               {avatarStyles.length > stylePeek.length && (

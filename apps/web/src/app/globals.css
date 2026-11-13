@@ -1305,6 +1305,16 @@ html[data-lite]:not([data-lite="net"]) .sticker-wall-down {
   width: 0;
   height: 0;
 }
+/* Desktop: a tenth bigger, still centred where it was (the cards run from 137 to
+   56 units above the pivot). The fan must stay the biggest picture on the first
+   slide: the next slide's poster wall tiles were slightly bigger, so Chrome counted
+   them as a later "largest picture" (LCP) for anyone who sat on the page. */
+@media (min-width: 768px) {
+  .hero-fan {
+    --u: calc(min(1cqh, 0.66cqw) * 1.1);
+    top: calc(43.5cqh + 96.5 * var(--u));
+  }
+}
 .hero-fan-slot {
   position: absolute;
   left: calc(var(--w) * var(--u) / -2);
