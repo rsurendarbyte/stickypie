@@ -658,7 +658,7 @@ export const POSTER_SURFACES: Surface[] = [
     sections: [
       {
         heading: "Follow it every morning",
-        body: "The 12 posters go up in a circle like the sun, step 1 at the top and the rest clockwise. Each poster has a ring of 12 dots with its own step filled in, so the order is clear even without numbers.",
+        body: "The 12 step posters go up in a circle like the sun, step 1 at the top and the rest clockwise, around a bigger Surya Namaskar title poster with the Om symbol in the middle. Each poster has a ring of 12 dots with its own step filled in, so the order is clear even without numbers.",
       },
       {
         heading: "For home, gym and yoga studio",
