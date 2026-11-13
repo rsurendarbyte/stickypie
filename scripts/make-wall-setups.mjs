@@ -30,7 +30,7 @@ const IMAGE_HOST = "https://stickers.stickypie.in";
 const SMALL = { w: 4, h: 6 };
 const BIG = { w: 6, h: 9 };
 /** One price per wall, by number of posters. */
-const WALL_PRICES = { 4: 199, 6: 199, 7: 229, 8: 259, 9: 279, 10: 299, 11: 329, 12: 349, 14: 379, 20: 459, 30: 549 };
+const WALL_PRICES = { 4: 199, 6: 199, 7: 229, 8: 259, 9: 279, 10: 299, 11: 329, 12: 349, 13: 359, 14: 379, 20: 459, 30: 549 };
 
 // pack: id in packs.json; its first poster goes big.
 const SETUPS = [
@@ -157,11 +157,16 @@ function layoutSpots(name, count) {
   }
   if (name === "surya-circle") {
     // Surya Namaskar: the 12 steps in a ring like the sun's dots, step 1 at 12 o'clock, then clockwise.
+    // With 13 posters the first one is the big title poster in the middle of the ring.
     const r = 13.2;
-    return Array.from({ length: count }, (_, i) => {
-      const a = ((i % 12) / 12) * Math.PI * 2;
-      return small(r + Math.sin(a) * r, r - Math.cos(a) * r);
-    });
+    const centre = count === 13 ? [big(r + SMALL.w / 2 - BIG.w / 2, r + SMALL.h / 2 - BIG.h / 2)] : [];
+    return [
+      ...centre,
+      ...Array.from({ length: count - centre.length }, (_, i) => {
+        const a = ((i % 12) / 12) * Math.PI * 2;
+        return small(r + Math.sin(a) * r, r - Math.cos(a) * r);
+      }),
+    ];
   }
   if (name === "trio") {
     const perRow = Math.min(4, Math.floor((count - 3) / 2));
