@@ -147,6 +147,22 @@ function layoutSpots(name, count) {
       return small(r + Math.sin(a) * r, r - Math.cos(a) * r);
     });
   }
+  if (name === "headline") {
+    // One big poster centred on top like a title, the rest in two equal rows of small posters
+    // read in order (the Solar System: inner planets and the Moon, then the outer ones).
+    const perRow = Math.ceil((count - 1) / 2);
+    const rowW = perRow * colW - GAP;
+    const row = (y, n) => Array.from({ length: n }, (_, i) => small((rowW - (n * colW - GAP)) / 2 + i * colW, y));
+    return [big((rowW - BIG.w) / 2, 0), ...row(bigH, perRow), ...row(bigH + rowH, count - 1 - perRow)];
+  }
+  if (name === "surya-circle") {
+    // Surya Namaskar: the 12 steps in a ring like the sun's dots, step 1 at 12 o'clock, then clockwise.
+    const r = 13.2;
+    return Array.from({ length: count }, (_, i) => {
+      const a = ((i % 12) / 12) * Math.PI * 2;
+      return small(r + Math.sin(a) * r, r - Math.cos(a) * r);
+    });
+  }
   if (name === "trio") {
     const perRow = Math.min(4, Math.floor((count - 3) / 2));
     const inset = (bigW * 3 - GAP - (perRow * colW - GAP)) / 2;
