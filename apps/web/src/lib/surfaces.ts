@@ -644,6 +644,42 @@ export const POSTER_SURFACES: Surface[] = [
       },
     ],
   },
+  {
+    slug: "yoga-posters",
+    name: "Yoga Posters",
+    noun: "yoga",
+    title: "Surya Namaskar Poster – 12 Steps Yoga Wall Chart Online India",
+    description:
+      "Buy a Surya Namaskar poster set online in India: all 12 steps with their mantras as a calm yoga wall, for home, gym or yoga studio, on premium poster paper.",
+    intro: `All 12 steps of Surya Namaskar, from Pranamasana to Tadasana, each with its asana name and mantra. ${POSTER_BASICS}`,
+    tags: ["wall theme:yoga", "surya namaskar", "yoga", "sun salutation"],
+    categories: [],
+    posters: true,
+    sections: [
+      {
+        heading: "Follow it every morning",
+        body: "The 12 posters go up in a circle like the sun, step 1 at the top and the rest clockwise. Each poster has a ring of 12 dots with its own step filled in, so the order is clear even without numbers.",
+      },
+      {
+        heading: "For home, gym and yoga studio",
+        body: "A calm art-print look with an indigo figure and a saffron sun suits a yoga corner, a gym wall, a studio or a pooja room, and makes a thoughtful gift for International Yoga Day.",
+      },
+    ],
+    faq: [
+      {
+        q: "Which mantras are on the Surya Namaskar posters?",
+        a: "One for each step, in order: Om Mitraya Namah, Om Ravaye Namah, Om Suryaya Namah, Om Bhanave Namah, Om Khagaya Namah, Om Pushne Namah, Om Hiranyagarbhaya Namah, Om Marichaye Namah, Om Adityaya Namah, Om Savitre Namah, Om Arkaya Namah and Om Bhaskaraya Namah.",
+      },
+      {
+        q: "Why do some poses appear twice?",
+        a: "That is how Surya Namaskar works: you go out through the poses and come back the same way, so raised arms, hand to foot and the equestrian pose each come twice, with a different mantra. On the posters the figure faces the other way on the way back.",
+      },
+      {
+        q: "Can I buy one step alone?",
+        a: "No. The 12 steps are sold together as one wall, so the sequence stays complete.",
+      },
+    ],
+  },
 ];
 
 /** A poster page's name mid-sentence: "car posters", "Tamil cinema posters". */

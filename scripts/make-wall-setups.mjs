@@ -147,6 +147,14 @@ function layoutSpots(name, count) {
       return small(r + Math.sin(a) * r, r - Math.cos(a) * r);
     });
   }
+  if (name === "surya-circle") {
+    // Surya Namaskar: the 12 steps in a ring like the sun's dots, step 1 at 12 o'clock, then clockwise.
+    const r = 13.2;
+    return Array.from({ length: count }, (_, i) => {
+      const a = ((i % 12) / 12) * Math.PI * 2;
+      return small(r + Math.sin(a) * r, r - Math.cos(a) * r);
+    });
+  }
   if (name === "trio") {
     const perRow = Math.min(4, Math.floor((count - 3) / 2));
     const inset = (bigW * 3 - GAP - (perRow * colW - GAP)) / 2;
