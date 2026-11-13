@@ -147,6 +147,24 @@ function layoutSpots(name, count) {
       return small(r + Math.sin(a) * r, r - Math.cos(a) * r);
     });
   }
+  if (name === "sun-frame") {
+    // One big poster in the middle, 12 small ones framing it: 5 on top, 1 each side, 5 below.
+    // Nearly square, so it fills the wall card. The 12 run clockwise from top centre like clock hours
+    // (1st at 12 o'clock, 4th at 3, 7th at 6, 10th at 9), matching the dot ring on Surya Namaskar posters.
+    const midH = BIG.h + GAP * 2;
+    const w = colW * 5 - GAP;
+    const ring = [
+      ...[0, 1, 2, 3, 4].map((i) => small(i * colW, 0)),
+      small(0, rowH + (BIG.h - SMALL.h) / 2),
+      small(colW * 4, rowH + (BIG.h - SMALL.h) / 2),
+      ...[0, 1, 2, 3, 4].map((i) => small(i * colW, SMALL.h + midH)),
+    ];
+    const cx = w / 2;
+    const cy = (SMALL.h * 2 + midH) / 2;
+    const angle = (s) => (Math.atan2(s.x + SMALL.w / 2 - cx, cy - (s.y + SMALL.h / 2)) + Math.PI * 2 + 1e-6) % (Math.PI * 2);
+    ring.sort((a, b) => angle(a) - angle(b));
+    return [big((w - BIG.w) / 2, rowH), ...ring.slice(0, count - 1)];
+  }
   if (name === "surya-circle") {
     // Surya Namaskar: the 12 steps in a ring like the sun's dots, step 1 at 12 o'clock, then clockwise.
     // With 13 posters the first one is the big title poster in the middle of the ring.

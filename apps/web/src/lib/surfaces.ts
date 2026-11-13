@@ -645,6 +645,38 @@ export const POSTER_SURFACES: Surface[] = [
     ],
   },
   {
+    slug: "maths-posters",
+    name: "Maths Posters",
+    noun: "maths",
+    title: "Times Tables Poster 1 to 12 – Multiplication Table Wall Chart for Kids India",
+    description:
+      "Buy times tables posters online in India: tables 1 to 12 as a bright kids wall, plus a fractions poster, for kids rooms, study corners and classrooms, on premium poster paper.",
+    intro: `The tables of 1 to 12 in big bold numbers with the answers in red, and a fractions poster that explains halves, thirds and quarters in one look. ${POSTER_BASICS}`,
+    tags: ["wall theme:maths", "times tables", "multiplication table", "fractions"],
+    categories: [],
+    posters: true,
+    sections: [
+      {
+        heading: "Learn tables on the wall, not from a book",
+        body: "The Times Tables wall puts all 12 tables up in order, 4 across and 3 down. Each table runs from × 1 to × 10, every answer is in red, and every poster has its own colour and picture (a tricycle for 3, a cow for 4, an octopus for 8), so kids remember which is which.",
+      },
+      {
+        heading: "For Class 1 to 5, tuition and classrooms",
+        body: "The numbers are big enough to read from across the room, which helps with daily practice before school. The fractions poster suits Class 3 to 5: it shows one half to one eighth as coloured circles and explains the numerator and denominator.",
+      },
+    ],
+    faq: [
+      {
+        q: "Are all the numbers correct?",
+        a: "Yes. Every line of every table, 120 lines in all, was checked before printing, and so was every fraction on the fractions poster.",
+      },
+      {
+        q: "Can I buy one table alone?",
+        a: "No. The tables of 1 to 12 are sold together as one wall so the set stays complete. The fractions poster is sold on its own as a 4 × 6 in or 6 × 9 in poster.",
+      },
+    ],
+  },
+  {
     slug: "yoga-posters",
     name: "Yoga Posters",
     noun: "yoga",
@@ -658,7 +690,7 @@ export const POSTER_SURFACES: Surface[] = [
     sections: [
       {
         heading: "Follow it every morning",
-        body: "The 12 step posters go up in a circle like the sun, step 1 at the top and the rest clockwise, around a bigger Surya Namaskar title poster with the Om symbol in the middle. Each poster has a ring of 12 dots with its own step filled in, so the order is clear even without numbers.",
+        body: "The 12 step posters frame a bigger Surya Namaskar title poster with the Om symbol in the middle, step 1 at the top centre and the rest clockwise like a clock. Each poster has a ring of 12 dots with its own step filled in, so the order is clear even without numbers.",
       },
       {
         heading: "For home, gym and yoga studio",
