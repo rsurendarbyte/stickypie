@@ -166,7 +166,9 @@ export default function ProductDetailClient({
         </h2>
         <p className="text-xs text-fog">
           {packSizeSummary(packPosterSizes(product))}. Lay them out like the picture.
-          {locked && " Sold as the full set only: these posters aren't sold one by one."}
+          {locked && (packPosters.some((p) => p.active)
+            ? " The wall is sold as the full set, in this order. Each poster is also sold on its own."
+            : " Sold as the full set only: these posters aren't sold one by one.")}
         </p>
         <ol className={`mt-2 grid gap-2 ${wall ? "grid-cols-4 sm:grid-cols-6 lg:grid-cols-8" : "max-w-md grid-cols-3 sm:grid-cols-4"}`}>
           {!checked && product.packItems.map((id) => <li key={id} className="aspect-[2/3] animate-pulse rounded-md bg-panel" />)}
