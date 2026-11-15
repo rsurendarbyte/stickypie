@@ -25,6 +25,7 @@ import { rowToFestivals, type Festival } from "../festivals";
 import {
   REVIEW_PHOTO_BUCKET,
   rowToContact,
+  rowToContactReply,
   rowToReview,
   type ContactInput,
   type NewReviewInput,
@@ -646,28 +647,70 @@ export function createSupabaseDriver(client: SupabaseClient): DataDriver {
     },
 
     async createContactMessage(input: ContactInput) {
-      const { error } = await client.from("contact_messages").insert({
-        name: input.name,
-        email: input.email,
-        phone: input.phone,
-        order_code: input.orderCode,
-        topic: input.topic,
-        message: input.message,
-      });
+      const { data, error } = await client
+        .from("contact_messages")
+        .insert({
+          name: input.name,
+          email: input.email,
+          phone: input.phone,
+          order_code: input.orderCode,
+          topic: input.topic,
+          message: input.message,
+        })
+        .select("id, access_key")
+        .single();
       if (error) throw friendly(error);
+      return { id: data.id as string, accessKey: data.access_key as string };
     },
 
     async listContactMessages() {
       const { data, error } = await client
         .from("contact_messages")
-        .select("*")
+        .select("*, contact_replies(*)")
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw friendly(error);
       return (data ?? []).map(rowToContact);
     },
 
-    async setContactStatus(id: string, status: "new" | "resolved") {
+    async listContactMessagesByEmail(email: string) {
+      const { data, error } = await client
+        .from("contact_messages")
+        .select("*, contact_replies(*)")
+        .eq("email", email.trim().toLowerCase())
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw friendly(error);
+      return (data ?? []).map(rowToContact);
+    },
+
+    async getContactMessage(id: string) {
+      if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+      const { data, error } = await client
+        .from("contact_messages")
+        .select("*, contact_replies(*)")
+        .eq("id", id)
+        .maybeSingle();
+      if (error) throw friendly(error);
+      return data ? rowToContact(data) : null;
+    },
+
+    async addContactReply(id: string, author: "admin" | "customer", body: string) {
+      const { data, error } = await client
+        .from("contact_replies")
+        .insert({ message_id: id, author, body })
+        .select("*")
+        .single();
+      if (error) throw friendly(error);
+      const { error: e2 } = await client
+        .from("contact_messages")
+        .update({ status: author === "admin" ? "replied" : "new" })
+        .eq("id", id);
+      if (e2) throw friendly(e2);
+      return rowToContactReply(data);
+    },
+
+    async setContactStatus(id: string, status: "new" | "replied" | "resolved") {
       const { error } = await client.from("contact_messages").update({ status }).eq("id", id);
       if (error) throw friendly(error);
     },

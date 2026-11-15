@@ -11,7 +11,7 @@
 const PAGES = "sp-pages-v1";
 const STATIC = "sp-static-v1";
 const MAX_PAGES = 80;
-const PRIVATE = /^\/(api|checkout|pay|order|account|print-job|j)(\/|$)/;
+const PRIVATE = /^\/(api|checkout|pay|order|account|print-job|j|contact\/t)(\/|$)/;
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) =>

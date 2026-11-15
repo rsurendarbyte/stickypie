@@ -18,10 +18,35 @@ export type ContactMessage = {
   orderCode: string | null;
   topic: ContactTopic;
   message: string;
-  status: "new" | "resolved";
+  /** new = needs our reply, replied = waiting on the shopper, resolved = closed. */
+  status: ContactStatus;
+  createdAt: string;
+  /** Secret for the shopper's private conversation page (/contact/t/<id>?k=<key>). */
+  accessKey: string;
+  /** Oldest first. */
+  replies: ContactReply[];
+};
+export type ContactStatus = "new" | "replied" | "resolved";
+export type ContactReply = {
+  id: string;
+  messageId: string;
+  author: "admin" | "customer";
+  body: string;
   createdAt: string;
 };
-export type ContactInput = Omit<ContactMessage, "id" | "status" | "createdAt" | "phone"> & { phone: string };
+export type ContactInput = Omit<ContactMessage, "id" | "status" | "createdAt" | "phone" | "accessKey" | "replies"> & {
+  phone: string;
+};
+
+/** Path of the shopper's private conversation page. */
+export function contactThreadPath(m: { id: string; accessKey: string }): string {
+  return `/contact/t/${m.id}?k=${m.accessKey}`;
+}
+
+/** Admin reply or shopper answer in a conversation. */
+export const contactReplySchema = z.object({
+  body: z.string().trim().min(1, "Write a message first").max(4000, "Keep it under 4000 characters"),
+});
 
 export const contactSchema = z.object({
   name: z.string().trim().min(2, "Please enter your name").max(80),
@@ -122,7 +147,15 @@ export function rowToContact(r: any): ContactMessage {
     message: r.message,
     status: r.status,
     createdAt: r.created_at,
+    accessKey: r.access_key ?? "",
+    replies: ((r.contact_replies ?? []) as any[])
+      .map(rowToContactReply)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
   };
+}
+
+export function rowToContactReply(r: any): ContactReply {
+  return { id: r.id, messageId: r.message_id, author: r.author, body: r.body, createdAt: r.created_at };
 }
 
 export function rowToPublicReview(r: any): PublicReview {

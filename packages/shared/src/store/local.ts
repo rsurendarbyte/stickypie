@@ -111,6 +111,11 @@ export function createLocalDriver(filePath: string): DataDriver {
 
   const now = () => new Date().toISOString();
 
+  /** Older saved messages have no replies / key yet. */
+  function allContactMessages(): ContactMessage[] {
+    return (load().contactMessages ?? []).map((m) => ({ ...m, replies: m.replies ?? [], accessKey: m.accessKey ?? "" }));
+  }
+
   function assertSlugFree(store: StoreShape, slug: string, exceptId?: string) {
     if (store.products.some((p) => p.slug === slug && p.id !== exceptId)) {
       throw new Error(`A product with the slug "${slug}" already exists`);
@@ -607,15 +612,41 @@ export function createLocalDriver(filePath: string): DataDriver {
 
     async createContactMessage(input: ContactInput) {
       const store = load();
-      store.contactMessages = [
-        { ...input, id: randomUUID(), status: "new", createdAt: now() },
-        ...(store.contactMessages ?? []),
-      ];
+      const m: ContactMessage = {
+        ...input,
+        id: randomUUID(),
+        status: "new",
+        createdAt: now(),
+        accessKey: randomUUID().replace(/-/g, "") + randomUUID().replace(/-/g, ""),
+        replies: [],
+      };
+      store.contactMessages = [m, ...(store.contactMessages ?? [])];
       persist(store);
+      return { id: m.id, accessKey: m.accessKey };
     },
 
     async listContactMessages() {
-      return load().contactMessages ?? [];
+      return allContactMessages();
+    },
+
+    async listContactMessagesByEmail(email) {
+      const want = email.trim().toLowerCase();
+      return allContactMessages().filter((m) => m.email.toLowerCase() === want);
+    },
+
+    async getContactMessage(id) {
+      return allContactMessages().find((m) => m.id === id) ?? null;
+    },
+
+    async addContactReply(id, author, body) {
+      const store = load();
+      const m = store.contactMessages?.find((x) => x.id === id);
+      if (!m) throw new Error("Message not found");
+      const reply = { id: randomUUID(), messageId: id, author, body, createdAt: now() };
+      m.replies = [...(m.replies ?? []), reply];
+      m.status = author === "admin" ? "replied" : "new";
+      persist(store);
+      return reply;
     },
 
     async setContactStatus(id, status) {

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { OrderAlertsToggle, useOrderAlerts } from "./order-alerts";
+import { useMessageAlerts } from "./message-alerts";
 import { BadgeCheck, BarChart3, Calculator, Clapperboard, CalendarHeart, Inbox, LayoutDashboard, LayoutList, LogOut, Package, Route, Scissors, Settings, ShoppingBasket, ShoppingCart, Smile, Star, Tag, Tags, ToggleRight, Users } from "lucide-react";
 
 const NAV = [
@@ -39,9 +40,12 @@ export default function Sidebar({
 }) {
   const pathname = usePathname();
   // Paid orders waiting to be packed — a red count on Orders.
-  const { count } = useOrderAlerts();
-  const badge = (href: string, small = false) =>
-    href === "/orders" && count > 0 ? (
+  const { count: orderCount } = useOrderAlerts();
+  // Shoppers waiting for a reply — a red count on Messages (live).
+  const { count: messageCount } = useMessageAlerts();
+  const badge = (href: string, small = false) => {
+    const count = href === "/orders" ? orderCount : href === "/messages" ? messageCount : 0;
+    return count > 0 ? (
       <span
         className={`ml-auto grid min-w-5 place-items-center rounded-full bg-brand px-1.5 font-bold text-white ${
           small ? "h-4 min-w-4 text-[9px]" : "h-5 text-[11px]"
@@ -50,6 +54,7 @@ export default function Sidebar({
         {count}
       </span>
     ) : null;
+  };
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);

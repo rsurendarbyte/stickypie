@@ -2,6 +2,8 @@
 
 import Link from "@/components/page-link";
 import { usePathname } from "next/navigation";
+import { useRef } from "react";
+import { useBottomStack } from "@/lib/bottom-stack";
 import { ArrowRight } from "lucide-react";
 import { belowMinimum, formatINR } from "@stickypie/shared";
 import { useStoreSettings } from "@/lib/live-catalog";
@@ -31,6 +33,10 @@ export default function CartStrip() {
   const { items, count, subtotal, openCart, isOpen } = useCart();
   const pathname = usePathname();
   const settings = useStoreSettings();
+  const box = useRef<HTMLDivElement>(null);
+  const shown = !(count === 0 || isOpen || cartUiHidden(pathname) || !settings.loaded);
+  // room it takes above the tab bar (0.75rem below it + 0.5rem gap above)
+  useBottomStack(box, "--cartstrip", 20, shown);
 
   // Hidden while the cart itself is open (it says the same thing).
   // ...and until the real minimum order has loaded (never the built-in default)
@@ -49,7 +55,7 @@ export default function CartStrip() {
 
   return (
     <div className={`${maker ? "max-sm:hidden " : ""}shift-with-cart pointer-events-none fixed inset-x-3 bottom-[calc(0.75rem+var(--tabbar,0px)+env(safe-area-inset-bottom,0px))] z-30 flex justify-center cart-tape-wrap sm:bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))]`}>
-      <div className="cart-tape-box pointer-events-auto w-full max-w-[560px]">
+      <div ref={box} className="cart-tape-box pointer-events-auto w-full max-w-[560px]">
         <div className="cart-tape flex items-center gap-2 py-2.5 pr-5 pl-4 max-[359px]:pr-4 max-[359px]:pl-3 sm:pr-7 sm:pl-6">
           <button
             type="button"

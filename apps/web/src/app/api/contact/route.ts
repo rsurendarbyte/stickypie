@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { CONTACT_TOPICS, SUPPORT_EMAIL, contactSchema } from "@stickypie/shared";
+import { CONTACT_TOPICS, SUPPORT_EMAIL, contactSchema, contactThreadPath } from "@stickypie/shared";
 import { getDriver } from "@/lib/data";
 import { sendEmail } from "@/lib/email";
 
@@ -22,8 +22,9 @@ export async function POST(req: Request) {
   // Bots fill the hidden field; pretend it worked and drop it.
   if (website) return NextResponse.json({ ok: true });
 
+  let saved: { id: string; accessKey: string };
   try {
-    await getDriver().createContactMessage(input);
+    saved = await getDriver().createContactMessage(input);
   } catch (err) {
     console.error("[contact] could not save message:", err);
     return NextResponse.json({ error: "Couldn't send your message. Please try again." }, { status: 500 });
@@ -49,5 +50,6 @@ export async function POST(req: Request) {
     },
     { replyTo: input.email }
   );
-  return NextResponse.json({ ok: true });
+  // The shopper's private conversation page (our replies show up there).
+  return NextResponse.json({ ok: true, thread: contactThreadPath(saved) });
 }

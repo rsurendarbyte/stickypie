@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdminApi } from "@/lib/data";
+import { notifyStorefront } from "@/lib/storefront-notify";
 
 type Ctx = { params: Promise<{ id: string }> };
-const body = z.object({ status: z.enum(["new", "resolved"]) });
+const body = z.object({ status: z.enum(["new", "replied", "resolved"]) });
 
 export async function PATCH(req: Request, ctx: Ctx) {
   const auth = await requireAdminApi();
@@ -13,6 +14,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   try {
     await auth.driver.setContactStatus(id, parsed.data.status);
+    await notifyStorefront(id, false); // shopper's open page shows it live
     return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Update failed" }, { status: 400 });

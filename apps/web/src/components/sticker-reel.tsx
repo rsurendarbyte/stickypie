@@ -3,6 +3,8 @@
 import { isLockedWall, puzzleBuildInches } from "@stickypie/shared";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, ChevronUp, Info, LayoutList, RotateCcw, Ruler, Share2, ShoppingBag, Truck, ZoomIn } from "lucide-react";
+import { openHelp, useContactThreads } from "@/lib/contact-live";
+import ChatFace from "./chat-face";
 import type { Product } from "@stickypie/shared";
 import { POSTER_ADHESIVE, POSTER_PAPER, belowMinimum, discountPercent, formatINR, inCategory, packPosterSizes, packSizeSummary } from "@stickypie/shared";
 import { useCatalogChecked, useFeatures, useLiveCatalog, useStoreSettings, usePuzzlePercent } from "@/lib/live-catalog";
@@ -425,6 +427,7 @@ function ReelItem({
       <RailButton label="Share" onClick={share}>
         <Share2 className="size-5" />
       </RailButton>
+      <ChatRailButton />
     </>
   );
 
@@ -690,6 +693,24 @@ function ReelItem({
         />
       )}
     </div>
+  );
+}
+
+/** Help chat from the swipe view (the floating bubble sits under it). Red count = unread replies. */
+function ChatRailButton() {
+  const { threads, unread, seen } = useContactThreads();
+  const newest = threads.find((t) => t.lastFrom === "admin" && t.updatedAt > (seen[t.id] ?? ""));
+  return (
+    <RailButton label="Chat" onClick={() => openHelp(newest?.id)}>
+      <span className="chat-gradient relative grid size-10 place-items-center rounded-full text-white">
+        <ChatFace className="size-[22px]" />
+        {unread > 0 && (
+          <span className="absolute -top-1 -right-1 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+            {unread}
+          </span>
+        )}
+      </span>
+    </RailButton>
   );
 }
 

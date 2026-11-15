@@ -9,6 +9,7 @@ import { CartProvider } from "@/components/cart-context";
 import { ConfirmProvider } from "@/components/confirm-dialog";
 import MildBackground from "@/components/mild-background";
 import Nav from "@/components/nav";
+import HelpBubble from "@/components/help-bubble";
 import Footer from "@/components/footer";
 import MobileTabBar from "@/components/mobile-tab-bar";
 import CartDrawer from "@/components/cart-drawer";
@@ -137,6 +138,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </CartShell>
           <SiteChrome>
             <CartDrawer />
+            <HelpBubble />
           </SiteChrome>
         </CartProvider>
         </ConfirmProvider>

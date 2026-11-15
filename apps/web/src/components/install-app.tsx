@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useBottomStack } from "@/lib/bottom-stack";
 import { usePathname } from "next/navigation";
 import { Download, Share, SquarePlus, X } from "lucide-react";
 
@@ -60,6 +61,9 @@ export default function InstallApp() {
   const home = pathname === "/";
   // ?install on the home page shows the card regardless (to check it, desktop too)
   const [forced, setForced] = useState(false);
+  const card = useRef<HTMLDivElement>(null);
+  // the help chat tab sits above this card on phones (card + 0.5rem gap)
+  useBottomStack(card, "--installbar", 8, open);
 
   // the app's service worker (needed for "install"); harmless if it fails
   useEffect(() => {
@@ -150,9 +154,11 @@ export default function InstallApp() {
   return (
     // no backdrop: the page behind keeps scrolling and tapping
     <div
+      ref={card}
       role="complementary"
       aria-labelledby="install-app-title"
-      className={`puzzle-win-up fixed inset-x-3 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-[60] rounded-full border border-line bg-white py-1 pr-1 pl-1.5 shadow-lg ${forced ? "sm:inset-x-auto sm:right-6 sm:bottom-6 sm:w-80" : "sm:hidden"}`}
+      // above the tab bar, and above the cart strip when it shows
+      className={`puzzle-win-up fixed inset-x-3 bottom-[calc(var(--tabbar,0px)+var(--cartstrip,0.75rem)+env(safe-area-inset-bottom))] z-[60] rounded-full border border-line bg-white py-1 pr-1 pl-1.5 shadow-lg ${forced ? "sm:inset-x-auto sm:right-6 sm:bottom-6 sm:w-80" : "sm:hidden"}`}
     >
       {/* one slim row: icon, short line, Install (iPhone: the two taps), × */}
       <div className="flex items-center gap-2">
