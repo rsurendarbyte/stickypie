@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Clock, Mail, MapPin } from "lucide-react";
 import { SUPPORT_EMAIL } from "@stickypie/shared";
 import ContactForm from "@/components/contact-form";
+import ContactThreads from "@/components/contact-threads";
 import { pageMetadata } from "@/lib/site";
 
 export const metadata: Metadata = pageMetadata({
@@ -71,6 +72,7 @@ export default function ContactPage() {
               );
             })}
           </ul>
+          <ContactThreads variant="contact" />
         </aside>
 
         <ContactForm />

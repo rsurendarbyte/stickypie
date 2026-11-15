@@ -254,7 +254,7 @@ import type { HomePage } from "./home-page";
 import type { WallCosts } from "./wall-costs";
 import type { TrendWalls } from "./trend-walls";
 import type { Festival } from "./festivals";
-import type { ContactInput, ContactMessage, NewReviewInput, Review, ReviewStatus } from "./feedback";
+import type { ContactInput, ContactMessage, ContactReply, ContactStatus, NewReviewInput, Review, ReviewStatus } from "./feedback";
 import type { Coupon, NewCouponInput } from "./thanks";
 
 export interface DataDriver {
@@ -353,9 +353,15 @@ export interface DataDriver {
   updateFeatures(flags: FeatureFlags): Promise<FeatureFlags>;
 
   /** Contact form (written by the storefront server, read in the admin). */
-  createContactMessage(input: ContactInput): Promise<void>;
+  createContactMessage(input: ContactInput): Promise<{ id: string; accessKey: string }>;
+  /** Newest first, each with its replies. */
   listContactMessages(): Promise<ContactMessage[]>;
-  setContactStatus(id: string, status: "new" | "resolved"): Promise<void>;
+  /** Signed-in shopper's "My messages": conversations started with this email. */
+  listContactMessagesByEmail(email: string): Promise<ContactMessage[]>;
+  getContactMessage(id: string): Promise<ContactMessage | null>;
+  /** Adds a reply; admin → status replied, customer → status new (reopens). */
+  addContactReply(id: string, author: ContactReply["author"], body: string): Promise<ContactReply>;
+  setContactStatus(id: string, status: ContactStatus): Promise<void>;
   deleteContactMessage(id: string): Promise<void>;
 
   /** Reviews: created after delivery, shown once approved. */

@@ -24,6 +24,7 @@ import { lookupPincode } from "@/lib/pincode";
 import AddressTypePicker, { AddressTypeBadge } from "./address-type-picker";
 import AuthShell from "./auth-shell";
 import { useConfirm } from "./confirm-dialog";
+import ContactThreads from "./contact-threads";
 import MyOrders from "./my-orders";
 import OfferCard from "./my-offer";
 import { CheckField, PasswordField, SelectField, TextField } from "./field";
@@ -105,6 +106,7 @@ function AccountHome({
             <Package className="size-5 text-brand" /> My orders
           </h2>
           <MyOrders email={email} userId={userId} />
+          <ContactThreads variant="account" />
         </section>
         <aside className="min-w-0 lg:sticky lg:top-24">
           <SavedAddresses email={email} />

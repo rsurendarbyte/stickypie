@@ -7,6 +7,8 @@ import { useShopper } from "@/lib/shopper-auth";
 import { SelectField, TextField } from "./field";
 import { useConfirm } from "./confirm-dialog";
 import StickerLoader from "./sticker-loader";
+import { rememberThread, saveMe } from "@/lib/contact-local";
+import { refreshThreads } from "@/lib/contact-live";
 
 const EMPTY = { name: "", email: "", phone: "", orderCode: "", message: "" };
 
@@ -61,6 +63,8 @@ export default function ContactForm() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
+  /** Private conversation page for the message just sent. */
+  const [thread, setThread] = useState<string | null>(null);
 
   // Signed-in shoppers: pre-fill their email.
   useEffect(() => {
@@ -84,6 +88,12 @@ export default function ContactForm() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(typeof data.error === "string" ? data.error : "Couldn't send your message.");
+      setThread(typeof data.thread === "string" ? data.thread : null);
+      if (typeof data.thread === "string") {
+        rememberThread(data.thread);
+        saveMe({ name: form.name, phone: form.phone, email: form.email });
+        void refreshThreads();
+      }
       setSent(true);
       setForm(EMPTY);
     } catch (err) {
@@ -102,7 +112,18 @@ export default function ContactForm() {
       <div className="rounded-2xl border border-mint/30 bg-mint/5 p-6 text-center">
         <CheckCircle2 className="animate-pop mx-auto size-10 text-mint" />
         <p className="mt-3 font-display text-xl font-bold">Message sent!</p>
-        <p className="mt-1 text-sm text-fog">Thanks for writing in — we usually reply within 1–2 business days.</p>
+        <p className="mt-1 text-sm text-fog">
+          Thanks for writing in. We usually reply within 1–2 business days, by email and on your conversation page.
+        </p>
+        {thread && (
+          <a
+            href={thread}
+            className="pie-gradient mt-4 inline-flex h-10 items-center rounded-xl px-4 text-sm font-bold text-white shadow-md shadow-brand/25"
+          >
+            Open your conversation
+          </a>
+        )}
+        <br />
         <button type="button" onClick={() => setSent(false)} className="mt-4 text-sm font-semibold text-brand hover:underline">
           Send another message
         </button>

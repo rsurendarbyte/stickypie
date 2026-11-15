@@ -162,3 +162,42 @@ export function resetPasswordEmail(
     text: `Reset your StickyPie password: ${link}\n\nThe link works once and expires after an hour. Didn't ask for this? Ignore this email.`,
   };
 }
+
+function paragraphsOf(text: string): string {
+  return escapeHtml(text).replace(/\r?\n/g, "<br>");
+}
+
+/** Our reply to a contact-form message, with the link to the shopper's conversation page. */
+export function contactReplyEmail(
+  brand: EmailBrand,
+  opts: { name: string; reply: string; original: string; threadUrl: string }
+): EmailContent {
+  const first = opts.name.trim().split(/\s+/)[0] ?? "";
+  const quoted = opts.original.length > 600 ? `${opts.original.slice(0, 600)}…` : opts.original;
+  return {
+    subject: "StickyPie replied to your message",
+    html: layout({
+      brand,
+      preheader: opts.reply.slice(0, 120),
+      heading: first ? `Hi ${escapeHtml(first)}, we replied` : "We replied to your message",
+      paragraphs: [
+        `<span style="display:block;color:#15161e;font-size:15px;line-height:1.65">${paragraphsOf(opts.reply)}</span>`,
+        `<span style="display:block;margin-top:6px;padding:10px 14px;border-left:3px solid #e4e7ee;font-size:13px;color:#64708a">You wrote:<br>${paragraphsOf(quoted)}</span>`,
+      ],
+      cta: { label: "Reply to StickyPie", url: opts.threadUrl },
+      afterCta: "Tap the button to see the whole conversation and write back.",
+      footnote: "You're getting this because you sent us a message on StickyPie. Your conversation link is private: please don't share it.",
+    }),
+    text: [
+      first ? `Hi ${first},` : "Hi,",
+      "",
+      opts.reply,
+      "",
+      "Reply to StickyPie or see the whole conversation:",
+      opts.threadUrl,
+      "",
+      "You wrote:",
+      quoted,
+    ].join("\n"),
+  };
+}

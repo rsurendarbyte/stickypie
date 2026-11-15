@@ -11,7 +11,11 @@ import { journeyPage } from "@/lib/journey";
  */
 export default function VisitorCount() {
   const pathname = usePathname();
-  useEffect(() => recordVisitor(), []);
-  useEffect(() => journeyPage(pathname), [pathname]);
+  useEffect(() => {
+    void recordVisitor();
+  }, []);
+  useEffect(() => {
+    void journeyPage(pathname);
+  }, [pathname]);
   return null;
 }

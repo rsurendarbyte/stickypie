@@ -2616,3 +2616,33 @@ html[data-lite]:not([data-lite="net"]) .puzzle-win-rays {
   to { transform: none; opacity: 1; }
 }
 .calendar-page { animation: calendar-page-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+/* Help chat on phones: above the tab bar, the cart strip and the install card
+   (each reports its room as --cartstrip / --installbar, lib/bottom-stack.ts),
+   and never lower than the product pages' own bottom bars. */
+.help-dock {
+  bottom: calc(max(var(--tabbar, 0px) + var(--cartstrip, 0.75rem) + var(--installbar, 0px), 5.5rem) + env(safe-area-inset-bottom, 0px));
+}
+.help-panel-dock {
+  bottom: calc(max(var(--tabbar, 0px) + var(--cartstrip, 0.75rem) + var(--installbar, 0px), 5.5rem) + 3.5rem + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 640px) {
+  .help-dock { bottom: 6.5rem; }
+  .help-panel-dock { bottom: 10.5rem; }
+}
+@media (min-width: 1024px) {
+  .help-dock { bottom: 1.25rem; }
+  .help-panel-dock { bottom: 6rem; }
+}
+
+/* Help chat colour: the shop's own orange (user's choice after trying teal,
+   violet and blue). To give chat its own colour again, change it here only. */
+:root {
+  --chat: var(--color-brand);
+  --chat-ink: var(--color-brand);
+  --chat-glow: color-mix(in srgb, var(--color-brand) 55%, transparent);
+}
+.chat-gradient {
+  background-color: var(--chat);
+  background-image: linear-gradient(135deg, var(--color-brand), var(--color-brand2));
+}

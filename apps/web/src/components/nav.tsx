@@ -3,7 +3,8 @@
 import Link from "@/components/page-link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Search, ShoppingBag, UserRound } from "lucide-react";
+import { Bell, Search, ShoppingBag, UserRound } from "lucide-react";
+import { openHelp, useContactThreads } from "@/lib/contact-live";
 import { useShopper } from "@/lib/shopper-auth";
 import { useCart } from "./cart-context";
 import SearchSpotlight from "./search-spotlight";
@@ -179,6 +180,8 @@ export default function Nav() {
               </kbd>
             </button>
 
+            <MessagesBell />
+
             {shopper.enabled && (
               <Link
                 href="/account"
@@ -227,5 +230,31 @@ export default function Nav() {
       {/* outside the header: its blur would otherwise trap the fixed pop-up */}
       <SearchSpotlight open={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
+  );
+}
+
+/**
+ * Bell for shoppers who have written to us: red count of replies they haven't
+ * read (live); opens the help bubble. Hidden for everyone else.
+ */
+function MessagesBell() {
+  const { threads, unread, seen } = useContactThreads();
+  if (!threads.length) return null;
+  const newest = threads.find((t) => t.lastFrom === "admin" && t.updatedAt > (seen[t.id] ?? ""));
+  return (
+    <button
+      type="button"
+      onClick={() => openHelp(newest?.id)}
+      aria-label={unread ? `${unread} new repl${unread === 1 ? "y" : "ies"} from StickyPie` : "Your messages"}
+      title={unread ? "New reply from StickyPie" : "Your messages"}
+      className="relative grid size-9 place-items-center rounded-full text-fog transition-colors hover:bg-snow/5 hover:text-snow sm:size-10"
+    >
+      <Bell className="size-[18px]" />
+      {unread > 0 && (
+        <span className="absolute top-0.5 right-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+          {unread}
+        </span>
+      )}
+    </button>
   );
 }
